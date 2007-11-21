@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="enki-sample" default="convertMetamodel">
+  <property name="enki.dir" location="../.."/>
+  <property name="enki.xmi.dir" location="./catalog/xmi"/>
+
+  <property name="farrago.dir" location="${enki.dir}/../farrago"/>
+  <property name="farrago.xmi.dir" location="${farrago.dir}/catalog/xmi"/>
+
+  <property name="mdrlibs.dir" location="${enki.dir}/thirdparty/mdrlibs"/>
+
+  <property 
+    name="EnkiSampleMetamodel.uml"
+    location="${enki.xmi.dir}/Sample.uml"/>
+    
+  <!-- Macro for converting metamodel from UML to MOF -->
+  <macrodef name="enki.uml2mof">
+    <attribute name="umlmodelname" default="unspecified" />
+    <attribute name="outputfilename" default="unspecified" />
+    <attribute name="umlsansdiagrams" default="unspecified" />
+    <sequential>
+      <xslt style="${farrago.xmi.dir}/deleteUmlDiagrams.xsl"
+        in="@{umlmodelname}"
+        out="@{umlsansdiagrams}">
+      </xslt>
+      <java classname="org.netbeans.lib.jmi.uml2mof.Main"
+        fork="true" failonerror="true">
+        <sysproperty key="org.netbeans.mdr.Logger" value="256"/>
+        <classpath>
+          <pathelement location="${mdrlibs.dir}/openide-util.jar"/>
+          <pathelement location="${mdrlibs.dir}/uml-1.4.jar"/>
+          <pathelement location="${mdrlibs.dir}/uml2mof.jar"/>
+        </classpath>
+        <arg value="@{umlsansdiagrams}"/>
+        <arg value="@{outputfilename}"/>
+      </java>
+      <delete>
+        <fileset dir="." includes="mdr.bt*"/>
+      </delete>
+    </sequential>
+  </macrodef>
+  
+  <!-- 
+      Macro for extracting a UML model from ArgoUML .uml format,
+      and converting it to MOF.
+  -->
+  <macrodef name="enki.extractArgoModel">
+    <attribute name="umlFile" default="unspecified" />
+    <attribute name="umlBasename" default="unspecified" />
+    <attribute name="mofBasename" default="unspecified" />
+    <attribute name="xmiDir" default="unspecified" />
+    <sequential>
+      <xslt style="${farrago.xmi.dir}/extractArgoModel.xsl"
+        in="@{umlFile}"
+        out="@{xmiDir}/@{umlBasename}.xmi">
+      </xslt>
+      <enki.uml2mof
+        umlmodelname="@{xmiDir}/@{umlBasename}.xmi"
+        outputfilename="@{xmiDir}/@{mofBasename}.xmi"
+        umlsansdiagrams="@{xmiDir}/@{umlBasename}SansDiagrams.xmi"/>
+    </sequential>
+  </macrodef>
+
+  <target name="convertMetamodel">
+    <enki.extractArgoModel
+      umlFile="${EnkiSampleMetamodel.uml}"
+      umlBasename="EnkiSampleMetamodel"
+      mofBasename="EnkiSampleMetamodel"
+      xmiDir="${enki.xmi.dir}"/>
+  </target>
+
+  <target name="clean">
+    <delete quiet="true">
+      <fileset dir="${enki.xmi.dir}">
+        <include name="*.xmi"/>
+      </fileset>
+    </delete>
+  </target>
+
+</project>

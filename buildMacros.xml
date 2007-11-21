@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+// $Id$
+// Enki generates and implements the JMI and MDR APIs for MOF metamodels.
+// Copyright (C) 2007-2007 The Eigenbase Project
+// Copyright (C) 2007-2007 Disruptive Tech
+// Copyright (C) 2007-2007 LucidEra, Inc.
+//
+// This library is free software; you can redistribute it and/or modify it
+// under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2.1 of the License, or (at
+// your option) any later version.
+// 
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+// 
+// You should have received a copy of the GNU Lesser General Public
+// License along with this library; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+-->
+
+<project name="enkiBuildMacros">
+  <taskdef resource="net/sf/antcontrib/antlib.xml" />
+
+  <osfamily property="osfamily"/>
+  <property environment="env" />
+
+  <property file="customBuild.properties"/>
+
+  <property name="classes.dir" location="${enki.dir}/classes"/>
+  <property name="src.dir" location="${enki.dir}/src"/>
+
+  <property name="thirdparty.dir" location="${enki.dir}/thirdparty"/>
+
+  <property name="test.dir" location="${enki.dir}/test"/>
+  <property name="sample.dir" location="${test.dir}/sample"/>
+  <property name="sample.catalog.dir" location="${sample.dir}/catalog"/>
+  <property 
+    name="sample.model.xmi" 
+    location="${sample.catalog.dir}/xmi/EnkiSampleMetamodel.xmi"/>
+  <property name="sample.jar" location="${sample.dir}/sample.jar"/>
+
+  <!-- properties for thirdparty libraries -->
+  <property name="commons-collections.dir" location="${thirdparty.dir}/commons-collections"/>
+  <property name="commons-logging.dir" location="${thirdparty.dir}/commons-logging"/>
+  <property name="hibernate.dir" location="${thirdparty.dir}/hibernate-3.1"/>
+  <property name="hsqldb.dir" location="${thirdparty.dir}/hsqldb"/>
+  <property name="mdrlibs.dir" location="${thirdparty.dir}/mdrlibs"/>
+  <property name="ant.dir" location="${thirdparty.dir}/ant"/>
+
+  <property name="enki.javasrc.version" value="1.5"/>
+
+  <!-- runtime assertion control -->
+  <property name="assertions.jvmarg" value="-ea -esa"/>
+
+
+  <condition property="notWindows">
+    <not>
+      <os family="windows"/>
+    </not>
+  </condition>
+
+  <!-- Set mysql.inst.dir to env.MYSQL_HOME when set -->
+  <if>
+    <isset property="env.MYSQL_HOME" />
+    <then>
+      <if>
+        <isset property="notWindows" />
+        <then>
+          <property name="mysql.inst.dir" location="${env.MYSQL_HOME}"/>    
+        </then>
+        <else>
+          <exec dir="${platform.dir}" executable="${bash.exe}"
+              outputproperty="mysql.inst.dir"
+              failonerror="true">
+            <arg value="-c"/>
+            <arg value="cygpath -w '${env.MYSQL_HOME}'"/>
+          </exec>
+        </else>
+      </if>
+    </then>
+  </if>
+
+  <property name="mysql.driver" value="com.mysql.jdbc.Driver"/>
+  <property name="mysql.hostname" value="localhost"/>
+  <property name="mysql.port" value="3306"/>
+  <property name="mysql.host" value="${mysql.hostname}:${mysql.port}"/>
+  <property name="mysql.enki.dbname" value="ENKI"/>
+  <property name="mysql.url" value="jdbc:mysql://${mysql.host}/${mysql.enki.dbname}"/>
+  <property name="mysql.userid" value="root"/>
+  <property name="mysql.password" value=""/>
+
+  <path id="enki.3p.build.classpath">
+    <fileset dir="${hibernate.dir}" includes="**/*.jar"/>
+    <fileset dir="${mdrlibs.dir}" includes="**/*.jar"/>
+  </path>
+  <property name="enki.3p.build.classpath" refid="enki.3p.build.classpath"/>
+
+  <path id="mysql.driver.classpath">
+    <fileset dir="${mysql.driver.dir}">
+      <include name="**/mysql*bin.jar"/>
+    </fileset>
+  </path>
+  <property name="mysql.driver.classpath" refid="mysql.driver.classpath"/>
+
+  <path id="enki.3p.run.classpath">
+    <pathelement path="${enki.3p.build.classpath}"/>
+    <fileset dir="${commons-logging.dir}" includes="*.jar"/>
+    <fileset dir="${commons-collections.dir}" includes="*.jar"/>
+    <fileset dir="${hsqldb.dir}" includes="lib/hsqldb.jar"/>
+    <fileset dir="${ant.dir}" includes="lib/*.jar"/>
+    <pathelement path="${mysql.driver.classpath}"/>
+  </path>
+  <property name="enki.3p.run.classpath" refid="enki.3p.run.classpath"/>
+
+  <!-- MACROS -->
+
+  <!-- Customization for javac task -->
+  <presetdef name="enki.javac">
+    <javac debug="on" deprecation="on" source="${enki.javasrc.version}"/>
+  </presetdef>
+
+  <!-- Customization for java task -->
+  <presetdef name="enki.java">
+    <java fork="yes" failonerror="true">
+      <jvmarg line="${assertions.jvmarg}"/>
+    </java>
+  </presetdef>
+
+  <macrodef name="start-mysql-server">
+    <sequential>
+      <echo message="Starting MySQL Server (under MYSQL_HOME: ${mysql.inst.dir}) ..."/>
+      <if>
+        <isset property="notWindows" />
+        <then>
+          <exec dir="${mysql.inst.dir}" executable="${mysql.inst.dir}/bin/mysqld_safe" failonerror="false" spawn="true">
+          </exec>
+        </then>
+        <else>
+          <exec dir="${mysql.inst.dir}/bin" executable="${mysql.inst.dir}/bin/mysqld" failonerror="false" spawn="true">
+            <arg value="--defaults-file=${mysql.inst.dir}/my.ini"/>
+          </exec>
+        </else>
+      </if>
+      <sleep seconds="5" />
+      <echo message="MySQL Server has been started"/>
+    </sequential>
+  </macrodef>
+
+  <macrodef name="shutdown-mysql-server">
+    <sequential>
+      <echo message="Stopping MySQL Server (under MYSQL_HOME: ${mysql.inst.dir}) ..."/>
+      <exec dir="${mysql.inst.dir}/bin" executable="${mysql.inst.dir}/bin/mysqladmin" failonerror="false">
+        <arg value="-u"/>
+        <arg value="root"/>
+        <arg value="shutdown"/>
+      </exec>
+      <sleep seconds="2" />
+    </sequential>
+  </macrodef>
+
+  <target name="enki.codegen_taskdef">
+    <taskdef 
+      name="enki.codegen" 
+      classname="org.eigenbase.enki.ant.MapJavaTask"
+      classpathref="enki.run.classpath"/>
+  </target>
+</project>

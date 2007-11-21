@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+// $Id$
+// Enki generates and implements the JMI and MDR APIs for MOF metamodels.
+// Copyright (C) 2007-2007 The Eigenbase Project
+// Copyright (C) 2007-2007 Disruptive Tech
+// Copyright (C) 2007-2007 LucidEra, Inc.
+//
+// This library is free software; you can redistribute it and/or modify it
+// under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2.1 of the License, or (at
+// your option) any later version.
+// 
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+// 
+// You should have received a copy of the GNU Lesser General Public
+// License along with this library; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+-->
+
+<!-- Enki ant script for developer builds -->
+
+<project name="enki" basedir="." default="compile">
+  <property name="enki.dir" location="."/>
+
+  <import file="buildMacros.xml"/>
+
+  <!-- classpath for main build -->
+  <path id="enki.build.classpath">
+    <pathelement path="${enki.3p.build.classpath}"/>
+  </path>
+  <property name="enki.build.classpath" refid="enki.build.classpath"/>
+
+  <!-- classpath for execution -->
+  <path id="enki.run.classpath">
+    <pathelement path="${classes.dir}"/>
+    <pathelement path="${src.dir}"/>
+    <pathelement path="${enki.3p.run.classpath}"/>
+  </path>
+  <property name="enki.run.classpath" refid="enki.run.classpath"/>
+
+  <target name="createClasspathFile">
+    <delete file="${file.classpath}" quiet="true"/>
+    <echo file="${file.classpath}" message="${enki.run.classpath}"/>
+  </target>
+  <property name="file.classpath" location="${enki.dir}/classpath.gen"/>
+
+  <target name="createSampleRepository" depends="compile,enki.codegen_taskdef">
+    <delete quiet="true">
+      <fileset dir="${enki.dir}" includes="mdr.bt?"/>
+    </delete>
+
+    <ant dir="${sample.dir}" target="clean"/>
+    <ant dir="${sample.dir}"/>
+
+    <delete quiet="true" includeEmptyDirs="true">
+      <fileset dir="${sample.catalog.dir}/java" includes="**/*"/>
+    </delete>
+    <mkdir dir="${sample.catalog.dir}/java"/>
+
+    <enki.codegen
+      file="${sample.model.xmi}"
+      dir="${sample.catalog.dir}/java"
+      generatorClass="org.eigenbase.enki.hibernate.codegen.HibernateGenerator"/>
+    <enki.javac
+      srcdir="${sample.catalog.dir}/java"
+      destdir="${sample.catalog.dir}/java"
+      classpathref="enki.run.classpath">
+      <include name="**/*.java"/>
+    </enki.javac>
+    <jar jarfile="${sample.jar}">
+      <fileset dir="${sample.catalog.dir}/java">
+        <include name="**/*.java"/>
+        <include name="**/*.class"/>
+        <include name="**/*.xml"/>
+      </fileset>
+    </jar>
+  </target>
+
+  <target name="compile" depends="init">
+    <enki.javac
+      srcdir="${src.dir}"
+      destdir="${classes.dir}"
+      classpathref="enki.build.classpath">
+      <include name="**/*.java"/>
+    </enki.javac>
+  </target>
+
+  <target name="init">
+    <mkdir dir="${classes.dir}"/>
+  </target>
+
+  <target name="clean">
+    <delete>
+      <fileset dir="${classes.dir}" includes="**/*"/>
+    </delete>
+  </target>
+
+  <target name="restart-mysql-server" depends="shutdown-mysql-server,start-mysql-server"/>
+
+  <target name="start-mysql-server">
+    <if>
+      <available file="${mysql.inst.dir}/bin" type="dir"/>
+      <then>
+        <start-mysql-server/>
+      </then>
+      <else>
+        <fail message="MYSQL_HOME is not set, or not set properly."/>
+      </else>
+    </if>
+  </target>
+
+  <target name="shutdown-mysql-server">
+    <if>
+      <available file="${mysql.inst.dir}/bin" type="dir"/>
+      <then>
+        <shutdown-mysql-server/>
+      </then>
+      <else>
+        <fail message="MYSQL_HOME is not set, or not set properly."/>
+      </else>
+    </if>
+  </target>
+
+</project>

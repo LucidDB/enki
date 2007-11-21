@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source ./defineEnkiRuntime.sh
+
+java ${BASE_JAVA_ARGS} org.eigenbase.enki.hibernate.codegen.HibernateGenerator "$@"
