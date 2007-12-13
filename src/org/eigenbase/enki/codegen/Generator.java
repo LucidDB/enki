@@ -25,6 +25,7 @@ import java.io.*;
 import java.util.*;
 
 import javax.jmi.model.*;
+import javax.jmi.reflect.*;
 
 /**
  * Generator represents a class that generates JMI code for a UML model.
@@ -51,6 +52,14 @@ public interface Generator
     public void setXmiFile(File xmiFile);
 
     /**
+     * Retrieve the XMI file containing the model for which code is geing
+     * generated.
+     * 
+     * @return the XMI file's name
+     */
+    public File getXmiFile();
+    
+    /**
      * Configure the directory where code generated for the model will be
      * written.
      * 
@@ -65,8 +74,9 @@ public interface Generator
      * 
      * @param enable controls whether generic types are enabled (true) or not 
      *               (false)
+     * @return the previous value of the setting
      */
-    public void setUseGenerics(boolean enable);
+    public boolean setUseGenerics(boolean enable);
 
     /**
      * Add a {@link Handler} implementation to the list of handlers for this
@@ -90,6 +100,13 @@ public interface Generator
      */
     public void execute() throws GenerationException;
 
+    /**
+     * Retrieve the RefBaseObject for the current metamodel.
+     * 
+     * @return the RefBaseObject for the current metamodel.
+     */
+    public RefBaseObject getRefBaseObject();
+    
     /**
      * Retrieve the value associated with the given tag identifier on the
      * given model element.  If multiple values are associated with the tag,
@@ -153,6 +170,25 @@ public interface Generator
      */
     public String getTypeName(Parameter param);
 
+    /**
+     * Returns the type name for the given {@link TypedElement}.  
+     * Queries the underlying type and presumes multiplicity of exactly 1.
+     * 
+     * @param type TypedElement for which to compute a type name
+     * @return a type name string
+     */
+    public String getTypeName(TypedElement type);
+    
+    /**
+     * Returns the type name for the given {@link TypedElement}.  
+     * Queries the underlying type and and combines it with the given
+     * multiplicity.
+     * 
+     * @param type TypedElement for which to compute a type name
+     * @return a type name string (e.g., "List&lt;a.b.Class&gt;").
+     */
+    public String getTypeName(TypedElement type, MultiplicityType mult);
+    
     /**
      * Convert a collection and element type into a single, possibly 
      * genericized type name.  For example, "java.util.List" and 
@@ -287,6 +323,14 @@ public interface Generator
      */
     public String getClassFieldName(String literal);
 
+    /**
+     * Retrieve the two ends of the association, ignoring other contents.
+     * 
+     * @param assoc an Association
+     * @return the (exactly) two ends of the Association
+     */
+    public AssociationEnd[] getAssociationEnds(Association assoc);
+    
     /**
      * Determines the kind of association given.
      * 

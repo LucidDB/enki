@@ -38,15 +38,28 @@ import org.netbeans.api.xmi.*;
 public abstract class MdrGenerator
     extends GeneratorBase
 {
-    private static final String ENKI_MODEL_EXTENT_NAME = "EnkiModelExtent";
+    public static final String DEFAULT_ENKI_MODEL_EXTENT_NAME = 
+        "EnkiModelExtent";
+
     private MDRManager mdrMgr;
     private MDRepository mdr;
+    private String extentName;
     
     public MdrGenerator()
     {
         super();
     }
 
+    public void setExtentName(String extentName)
+    {
+        this.extentName = extentName;
+    }
+    
+    public String getExtentName()
+    {
+        return extentName;
+    }
+    
     /**
      * Configures a concrete base class's desired handlers.  Must make
      * one or more calls to {@link #addHandler(Handler)}.
@@ -66,6 +79,10 @@ public abstract class MdrGenerator
                     "Cannot create directory '" + outputDir + "'");
             }
             
+            if (extentName == null) {
+                throw new GenerationException("Extent name not set");
+            }
+            
             configureHandlers();
             
             mdrMgr = getDefaultMdrManager();
@@ -79,6 +96,28 @@ public abstract class MdrGenerator
         } catch(Throwable t) {
             throw new GenerationException(t);
         }
+    }
+
+    protected void doMain(String[] args, boolean useGenerics)
+    {
+    
+        try {
+            String xmiFileName = args[0];
+            String outputDirName = args[1];
+    
+            setXmiFile(new File(xmiFileName));
+            setOutputDirectory(new File(outputDirName));
+            setExtentName(DEFAULT_ENKI_MODEL_EXTENT_NAME);
+            setUseGenerics(useGenerics);
+            execute();
+        }
+        catch(Exception e) {
+            System.err.println(
+                "Usage: java " + getClass().toString() + 
+                " <xmi-file> <out-dir>");
+            System.err.println();
+            e.printStackTrace();
+        }        
     }
 
     private MDRManager getDefaultMdrManager()
@@ -114,7 +153,7 @@ public abstract class MdrGenerator
         begin();
         boolean rollback = true;
         try {
-            mdr.createExtent(ENKI_MODEL_EXTENT_NAME);
+            mdr.createExtent(extentName);
             
             rollback = false;
         }
@@ -169,9 +208,14 @@ public abstract class MdrGenerator
         }        
     }
 
+    public RefPackage getExtent(String name)
+    {
+        return mdr.getExtent(name);
+    }
+    
     private RefPackage getExtent()
     {
-        return mdr.getExtent(ENKI_MODEL_EXTENT_NAME);
+        return mdr.getExtent(extentName);
     }
     
 }

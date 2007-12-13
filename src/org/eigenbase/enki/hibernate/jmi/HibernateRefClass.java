@@ -21,130 +21,23 @@
 */
 package org.eigenbase.enki.hibernate.jmi;
 
-import java.util.*;
-
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.jmi.impl.*;
+
 /**
- * HibernateRefClass is a base class for implementations of {@link RefClass}.
+ * HibernateRefClass provides a Hibernate-based implementation of 
+ * {@link RefClass}.
+ *
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateRefClass implements RefClass
+public abstract class HibernateRefClass 
+    extends RefClassBase 
+    implements RefClass
 {
-    public Collection<?> refAllOfClass()
+    protected HibernateRefClass(RefPackage container)
     {
-        // TODO Auto-generated method stub
-        return null;
+        super(container);
     }
-
-    public Collection<?> refAllOfType()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    public RefObject refCreateInstance(List arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    public RefStruct refCreateStruct(RefObject arg0, List arg1)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    public RefStruct refCreateStruct(String arg0, List arg1)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefEnum refGetEnum(RefObject arg0, String arg1)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefEnum refGetEnum(String arg0, String arg1)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Object refGetValue(RefObject arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Object refGetValue(String arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    public Object refInvokeOperation(RefObject arg0, List arg1)
-        throws RefException
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    public Object refInvokeOperation(String arg0, List arg1)
-        throws RefException
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public void refSetValue(RefObject arg0, Object arg1)
-    {
-        // TODO Auto-generated method stub
-
-    }
-
-    public void refSetValue(String arg0, Object arg1)
-    {
-        // TODO Auto-generated method stub
-
-    }
-
-    public RefPackage refImmediatePackage()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefObject refMetaObject()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public String refMofId()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefPackage refOutermostPackage()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Collection<?> refVerifyConstraints(boolean arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
 }

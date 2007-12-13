@@ -26,6 +26,8 @@ import java.util.logging.*;
 
 import javax.jmi.model.*;
 
+import org.eigenbase.enki.util.*;
+
 /**
  * JmiTemplateHandler implements all code generation handlers and generates 
  * the standard JMI template for each type in the given directory.
@@ -66,14 +68,7 @@ public class JmiTemplateHandler
         
         log.fine("Generating Association '" + typeName + "'");
         
-        Collection<?> contents = assoc.getContents();
-        assert(contents.size() == 2) : "association must have 2 ends";
-        
-        Iterator<?> iter = contents.iterator();
-        AssociationEnd[] ends = new AssociationEnd[] {
-            (AssociationEnd)iter.next(),
-            (AssociationEnd)iter.next()
-        };
+        AssociationEnd[] ends = generator.getAssociationEnds(assoc);
         
         String[] names = new String[] {
             generator.getSimpleTypeName(ends[0]),
@@ -450,9 +445,9 @@ public class JmiTemplateHandler
                 ENUM_CLASS_COMMENT);
 
             List<?> labels = enumType.getLabels();
-            for(Object l: labels) {
-                String literal = (String)l;
-                
+            for(String literal: 
+                    GenericCollections.asTypedList(labels, String.class))
+            {
                 writeMethodJavaDoc(
                     enumType,
                     ENUM_LITERAL_COMMENT, 
@@ -494,9 +489,10 @@ public class JmiTemplateHandler
                 "();");
             
             StringBuffer fullyQualifiedName = new StringBuffer();
-            for(Object p: enumType.getQualifiedName()) {
-                String part = (String)p;
-                
+            for(String part: 
+                    GenericCollections.asTypedList(
+                        enumType.getQualifiedName(), String.class)) 
+            {
                 // Add part to the temp collection
                 writeln("temp.add(\"", part, "\");");
                 
@@ -588,9 +584,9 @@ public class JmiTemplateHandler
             startBlock(
                 "public static ", interfaceTypeName, " forName(String name)");
             boolean first = true;
-            for(Object l: labels) {
-                String literal = (String)l;
-                
+            for(String literal: 
+                    GenericCollections.asTypedList(labels, String.class))
+            {
                 if (first) {
                     startStmtBlock(
                         "if (name.equals(\"", 

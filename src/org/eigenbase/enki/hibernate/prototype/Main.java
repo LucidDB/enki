@@ -21,18 +21,25 @@
 */
 package org.eigenbase.enki.hibernate.prototype;
 
+import java.io.*;
 import java.util.*;
 
+import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.mdr.*;
 import org.hibernate.*;
-import org.hibernate.cfg.*;
+import org.netbeans.api.mdr.*;
 
+import eem.*;
 import eem.sample.*;
+import eem.sample.simple.*;
 
 /**
  * @author Stephan Zuercher
  */
 public class Main
 {
+    private static final String SAMPLE_MODEL_EXTENT_NAME = "SampleMetamodel";
+    
     private static final String MODIFY_DRIVERS = "drivers";
     private static final String MODIFY_REGISTRATIONS = "registrations";
     private static final String MODIFY_DEREGISTER = "deregister";
@@ -59,7 +66,9 @@ public class Main
     private static final String STATE_CALIFORNIA = "California";
     private static final String STATE_NEVADA = "Nevada";
 
-    private static SessionFactory sessionFactory;
+    private static MDRepository repository;
+    
+    private static EemPackage eemPkg;
 
     public static void main(String[] args) throws Exception
     {        
@@ -92,7 +101,7 @@ public class Main
         
         boolean createSchemaMode = cmd.requiresCreateSchema();
         
-        createSessionFactory(createSchemaMode, showSqlMode);
+        createRepository(createSchemaMode, showSqlMode);
 
         try {
             switch(cmd) {
@@ -109,36 +118,37 @@ public class Main
             t.printStackTrace();
         }
 
-        getSessionFactory().close();
+        getRepository().shutdown();
     }
 
     private static void executeBasicCommand(Command cmd, String... params)
     {
-        Session session = getSessionFactory().getCurrentSession();
-        session.beginTransaction();
+        MDRepository repository = getRepository();
+        repository.beginTrans(true);
         
         boolean rollback = true;
         try {
             switch(cmd) {
             case CREATE:
             default:
-                write(session);
+                write();
                 break;
                 
             case READ:
-                read(session);
+                read();
                 break;
                 
             case MODIFY:
-                modify(session, params);
+                modify(params);
                 break;
             }
             
             rollback = false;
         }
         finally {
+            // Commit is handled by the write/read/modify methods.
             if (rollback) {
-                session.getTransaction().rollback();
+                repository.endTrans(true);
             }
         }
     }
@@ -167,9 +177,12 @@ public class Main
         executeBasicCommand(Command.READ);
     }
 
-    private static void write(Session session)
+    private static void write()
     {
-        SamplePackage samplePkg = new SamplePackage_Impl();
+        Session session = getSession();
+
+        SamplePackage samplePkg = eemPkg.getSample();
+
         Person newhart = samplePkg.getPerson().createPerson();
         
         newhart.setName(PERSON_BOB_NEWHART);
@@ -219,11 +232,21 @@ public class Main
         session.save(porsche);
         session.save(theStig);
         
-        session.getTransaction().commit();
+        Entity1 e1 = samplePkg.getSimple().getEntity1().createEntity1();
+        Entity2 e2 = samplePkg.getSimple().getEntity2().createEntity2();
+        
+        e1.setEntity2(e2);
+        
+        session.save(e1);
+        session.save(e2);
+        
+        getRepository().endTrans();
     }
     
-    private static void read(Session session)
+    private static void read()
     {
+        Session session = getSession();
+        
         Query personQuery = 
             session.createQuery("from " + Person.class.getName());
         List<?> people = personQuery.list();
@@ -330,12 +353,16 @@ public class Main
                     "\t\t\t" + vehicle.getMake() + " " + vehicle.getModel());
             }
         }
+        
+        getRepository().endTrans(true);
     }
 
-    private static void modify(Session session, String[] params)
+    private static void modify(String[] params)
     {
-        SamplePackage samplePkg = new SamplePackage_Impl();
-
+        Session session = getSession();
+        
+        SamplePackage samplePkg = eemPkg.getSample();
+        
         if (params[0].equals(MODIFY_DRIVERS)) {
             // Switch drivers.        
             Driver mitchell = samplePkg.getDriver().createDriver();
@@ -463,37 +490,54 @@ public class Main
             throw new RuntimeException("unknown modify param: " + params[0]);
         }
         
-        session.getTransaction().commit();
+        getRepository().endTrans();
     }
 
-    public synchronized static SessionFactory createSessionFactory(
+    public synchronized static void createRepository(
         boolean createSchemaMode, boolean showSqlMode)
+    throws CreationFailedException, IOException
     {
-        if (sessionFactory == null) {
-            Configuration config = new Configuration();
-
-            if (createSchemaMode) {
-                config.setProperty("hibernate.hbm2ddl.auto", "create");
-            }
+        if (eemPkg == null) {
+            Properties storageProperties = new Properties();
+            storageProperties.load(
+                new FileInputStream(
+                    "test/config/hibernate/TestStorage.properties"));
             
             if (showSqlMode) {
-                config.setProperty("hibernate.show_sql", "true");
+                storageProperties.setProperty(
+                    SAMPLE_MODEL_EXTENT_NAME + ".hibernate.show_sql", 
+                    "true");
             }
             
-            config.configure("org/eigenbase/enki/hibernate/prototype/hibernate-config.xml");
-            config.addResource("EnkiSampleMetamodel-mapping.xml");
-
-            sessionFactory = config.buildSessionFactory();
+            repository = 
+                MDRepositoryFactory.newMDRepository(storageProperties);
+            
+            if (createSchemaMode) {
+                eemPkg = 
+                    (EemPackage)repository.createExtent(
+                        SAMPLE_MODEL_EXTENT_NAME);
+            } else {
+                eemPkg = 
+                    (EemPackage)repository.getExtent(SAMPLE_MODEL_EXTENT_NAME);                
+            }
         }
-        
-        return sessionFactory;
     }
     
-    public synchronized static SessionFactory getSessionFactory()
+    public synchronized static MDRepository getRepository()
     {
-        return sessionFactory;
+        return repository;
     }
     
+    // Hack for the prototype.
+    private static Session getSession()
+    {
+        Session session = 
+            ((HibernateMDRepository)getRepository())
+                .getSessionFactory()
+                .getCurrentSession();
+        return session;
+    }
+
     private static enum Command
     {
         CREATE(true, "create"),

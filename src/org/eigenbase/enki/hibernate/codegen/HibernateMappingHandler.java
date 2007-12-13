@@ -28,15 +28,21 @@ import java.util.logging.*;
 import javax.jmi.model.*;
 
 import org.eigenbase.enki.codegen.*;
+import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.hibernate.storage.*;
+import org.eigenbase.enki.mdr.*;
+import org.eigenbase.enki.util.*;
 
 /**
- * HibernateMappingHandler generates a Hibernate mapping file.
+ * HibernateMappingHandler generates Hibernate mapping file and an Enki
+ * Hibernate provider configuration file.
  * 
  * @author Stephan Zuercher
  */
 public class HibernateMappingHandler
     extends XmlHandlerBase
-    implements ClassInstanceHandler, AssociationHandler
+    implements ClassInstanceHandler, AssociationHandler, PackageHandler, 
+               MofInitHandler.SubordinateHandler
 {
     private static final String ASSOC_TYPE_PROPERTY = "type";
 
@@ -115,13 +121,10 @@ public class HibernateMappingHandler
         new JavaClassReference(
             HibernateJavaHandler.ASSOCIATION_MANY_TO_MANY_IMPL_CLASS, false);
 
-    // TODO: get the name from the class directly and change to non-prototype
-    public static final String MOF_ID_GENERATOR_CLASS = 
-        "org.eigenbase.enki.prototype.MofIdGenerator";
+    public static final JavaClassReference MOF_ID_GENERATOR_CLASS = 
+        new JavaClassReference(MofIdGenerator.class, false);
 
 
-    private String mappingFilePrefix;
-    
     private Set<Classifier> oneToOneLeftTypeSet;
     private Set<Classifier> oneToOneRightTypeSet;
 
@@ -136,6 +139,14 @@ public class HibernateMappingHandler
     private final Logger log = 
         Logger.getLogger(HibernateMappingHandler.class.getName());
 
+    private File metaInfEnkiDir;
+
+    private String topLevelPackage;
+    
+    private String extentName;
+    
+    private String initializerName;
+    
     public HibernateMappingHandler()
     {
         this.oneToOneLeftTypeSet = new LinkedHashSet<Classifier>();
@@ -150,26 +161,35 @@ public class HibernateMappingHandler
         this.subTypeMap = new HashMap<Classifier, Set<Classifier>>();
     }
 
-    /**
-     * Sets the prefix used to name a unique mapping file.
-     * 
-     * @param mappingFilePrefix a legal file name
-     */
-    public void setMappingFilePrefix(String mappingFilePrefix)
+    public void setExtentName(String extentName)
     {
-        this.mappingFilePrefix = mappingFilePrefix;
+        this.extentName = extentName;
+    }
+
+    public void setInitializerClassName(String initializerName)
+    {
+        this.initializerName = initializerName;
     }
     
     // Implement Handler
     public void beginGeneration() throws GenerationException
     {        
         super.beginGeneration();
-        
-        if (mappingFilePrefix == null || mappingFilePrefix.length() == 0) {
-            throw new GenerationException("Missing mapping file prefix");
+
+        File metaInfDir = 
+            new File(outputDir, MDRepositoryFactory.META_INF_DIR_NAME);
+        if (!metaInfDir.exists()) {
+            metaInfDir.mkdir();
+        }
+
+        metaInfEnkiDir = 
+            new File(metaInfDir, MDRepositoryFactory.ENKI_DIR_NAME);
+        if (!metaInfEnkiDir.exists()) {
+            metaInfEnkiDir.mkdir();
         }
         
-        File file = new File(outputDir, mappingFilePrefix + "-mapping.xml");
+        File file = 
+            new File(metaInfEnkiDir, HibernateMDRepository.MAPPING_XML);
         
         open(file);
         
@@ -205,6 +225,34 @@ public class HibernateMappingHandler
         }
         
         close();
+                
+        if (!throwing) {
+            if (initializerName == null) {
+                throw new GenerationException("Unknown initializer");
+            }
+            
+            File enkiConfigFile = 
+                new File(
+                    metaInfEnkiDir, HibernateMDRepository.CONFIG_PROPERTIES);
+            open(enkiConfigFile);
+
+            writeln("# Generated Enki Metamodel Properties");
+            newLine();
+            
+            writeln(
+                MDRepositoryFactory.PROPERTY_ENKI_IMPLEMENTATION, "=", 
+                MdrProvider.ENKI_HIBERNATE.name());
+            writeln(
+                MDRepositoryFactory.PROPERTY_ENKI_TOP_LEVEL_PKG, "=", 
+                topLevelPackage);
+            writeln(
+                MDRepositoryFactory.PROPERTY_ENKI_EXTENT, "=", extentName);
+            writeln(
+                HibernateMDRepository.PROPERTY_MODEL_INITIALIZER, "=", 
+                initializerName);
+            
+            close();
+        }
         
         super.endGeneration(throwing);
     }
@@ -506,9 +554,10 @@ public class HibernateMappingHandler
             generator.getTypeName(cls, HibernateJavaHandler.IMPL_SUFFIX);
         
         // Build map of Classifiers to their sub types.
-        for(Object o: cls.getSupertypes()) {
-            Classifier superType = (Classifier)o;
-            
+        for(Classifier superType: 
+                GenericCollections.asTypedList(
+                    cls.getSupertypes(), Classifier.class))
+        {
             Set<Classifier> subTypes = subTypeMap.get(superType);
             if (subTypes == null) {
                 subTypes = new LinkedHashSet<Classifier>();
@@ -565,7 +614,7 @@ public class HibernateMappingHandler
         for(Reference ref: instanceReferences) {
             Association assoc = 
                 (Association)ref.getExposedEnd().getContainer();
-            AssociationEnd[] ends = getAssociationEnds(assoc);
+            AssociationEnd[] ends = generator.getAssociationEnds(assoc);
             
           int end0Upper = ends[0].getMultiplicity().getUpper();
           int end1Upper = ends[1].getMultiplicity().getUpper();
@@ -581,25 +630,18 @@ public class HibernateMappingHandler
                 classRef = ASSOCIATION_MANY_TO_MANY_IMPL_CLASS;
             }
 
-            AssociationEnd thisEnd;
-            if (ends[0] == ref.getExposedEnd()) {
-                thisEnd = ends[0];
-            } else {
-                thisEnd = ends[1];
-            }
-                
-            // If this is a 1..* mapping, don't allow nulls
-            String notNull = "false";
-            if (thisEnd.getMultiplicity().getLower() != 0) {
-                notNull = "true";
-            }
-                
+            // NOTE: Cannot specify not-null=true here because Hibernate
+            // may try to insert the object without the association and
+            // then circle back to create the association.  Instead, the
+            // lower multiplicity bound is checked at run-time.  See
+            // HibernateJavaHandler and HibernateObject.checkConstraints().
+            
             writeEmptyElem(
                 "many-to-one",
                 "name", fieldName + HibernateJavaHandler.IMPL_SUFFIX,
                 "column", fieldName,
                 "class", classRef,
-                "not-null", notNull,
+                "not-null", "false",
                 "cascade", "save-update");
         }
         
@@ -628,8 +670,7 @@ public class HibernateMappingHandler
         
         log.fine("Analyzing Association Mapping '" + interfaceName + "'");
 
-        AssociationEnd[] ends = getAssociationEnds(assoc);
-        assert(ends.length == 2);
+        AssociationEnd[] ends = generator.getAssociationEnds(assoc);
         
         int end0Upper = ends[0].getMultiplicity().getUpper();
         int end1Upper = ends[1].getMultiplicity().getUpper();
@@ -653,17 +694,18 @@ public class HibernateMappingHandler
         }
     }
 
-    private AssociationEnd[] getAssociationEnds(Association assoc)
+    public void generatePackage(MofPackage pkg)
+        throws GenerationException
     {
-        List<?> contents = assoc.getContents();
-        assert(contents.size() == 2);
-        
-        Iterator<?> contentIter = contents.iterator();
-        AssociationEnd[] ends = new AssociationEnd[] {
-            (AssociationEnd)contentIter.next(),
-            (AssociationEnd)contentIter.next()
-        };
-        return ends;
+        if (pkg.getContainer() == null && 
+            !pkg.getName().equals("PrimitiveTypes"))
+        {
+            // TODO: reinstate
+//            assert(topLevelPackage == null);
+            topLevelPackage =
+                generator.getTypeName(
+                    pkg, PACKAGE_SUFFIX + HibernateJavaHandler.IMPL_SUFFIX);
+        }
     }
 }
 

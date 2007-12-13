@@ -21,131 +21,22 @@
 */
 package org.eigenbase.enki.hibernate.jmi;
 
-import java.util.*;
-
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.jmi.impl.*;
+
 /**
- * HibernateRefPackage is a base class for implementations of 
+ * HibernateRefPackage provides a Hibernate-based implementations of 
  * {@link RefPackage}.
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateRefPackage implements RefPackage
+public abstract class HibernateRefPackage 
+    extends RefPackageBase 
+    implements RefPackage
 {
-    public Collection<?> refAllAssociations()
+    protected HibernateRefPackage(RefPackage container)
     {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Collection<?> refAllClasses()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Collection<?> refAllPackages()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefAssociation refAssociation(RefObject arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefAssociation refAssociation(String arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefClass refClass(RefObject arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefClass refClass(String arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    public RefStruct refCreateStruct(RefObject arg0, List arg1)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    public RefStruct refCreateStruct(String arg0, List arg1)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public void refDelete()
-    {
-        // TODO Auto-generated method stub
-
-    }
-
-    public RefEnum refGetEnum(RefObject arg0, String arg1)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefEnum refGetEnum(String arg0, String arg1)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefPackage refPackage(RefObject arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefPackage refPackage(String arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefPackage refImmediatePackage()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefObject refMetaObject()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public String refMofId()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefPackage refOutermostPackage()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Collection<?> refVerifyConstraints(boolean arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
+        super(container);
     }
 }

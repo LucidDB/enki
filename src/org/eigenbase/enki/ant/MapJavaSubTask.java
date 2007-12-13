@@ -25,17 +25,58 @@ import java.io.*;
 
 import org.apache.tools.ant.*;
 import org.eigenbase.enki.codegen.*;
+import org.eigenbase.enki.hibernate.codegen.*;
+import org.eigenbase.enki.netbeans.codegen.*;
 
 /**
+ * MapJavaSubTask generates code for a given metamodel.
+ * 
+ * <p>Attributes:
+ * <table>
+ * <tr>
+ *   <th>Name</th>
+ *   <th>Description</th>
+ *   <th>Required?</th>
+ * </tr>
+ * <tr>
+ *   <td>extent</td>
+ *   <td>Extent into which the metamodel will be imported.</td>
+ *   <td>Yes</td>
+ * </tr>
+ * <tr>
+ *   <td>file</td>
+ *   <td>XMI metamodel that needs code generation</td>
+ *   <td>Yes</td>
+ * </tr>
+ * <tr>
+ *   <td>dir</td>
+ *   <td>Directory into which code will be generated (sub directories will be
+ *       created as necessary).</td>
+ *   <td>Yes</td>
+ * </tr>
+ * <tr>
+ *   <td>generatorClass</td>
+ *   <td>Fully qualified name of the generator class to use.  For example,
+ *       {@link HibernateGenerator} or {@link NetbeansGenerator}.</td>
+ *   <td>Yes</td>
+ * </tr>
+ * </table>
+ * 
  * @author Stephan Zuercher
  */
-public class MapJavaTask extends Task
+public class MapJavaSubTask extends EnkiTask.SubTask
 {
     private String xmiFile;
     private String outputDir;
+    private String extent;
     private String generatorClsName;
     
-    public void execute() throws BuildException
+    public MapJavaSubTask(String name)
+    {
+        super(name);
+    }
+    
+    void execute() throws BuildException
     {
         if (xmiFile == null) {
             throw new BuildException("missing file attribute");
@@ -45,18 +86,24 @@ public class MapJavaTask extends Task
             throw new BuildException("missing dir attribute");
         }
         
+        if (extent == null) {
+            throw new BuildException("missing extent attribute");
+        }
+        
         if (generatorClsName == null) {
             throw new BuildException("missing generatorClass attribute");
         }
         
-        Class<? extends Generator> generatorCls;
+        Class<? extends MdrGenerator> generatorCls;
         try {
-            generatorCls = Class.forName(generatorClsName).asSubclass(Generator.class);
+            generatorCls = 
+                Class.forName(generatorClsName).asSubclass(MdrGenerator.class);
         } catch (ClassNotFoundException e) {
-            throw new BuildException(e);
+            throw new BuildException(
+                "Generator class must be a subclass of MdrGenerator", e);
         }
         
-        Generator generator;
+        MdrGenerator generator;
         try {
             generator = generatorCls.newInstance();
         } catch (Exception e) {
@@ -68,6 +115,7 @@ public class MapJavaTask extends Task
         
         generator.setOutputDirectory(dir);
         generator.setXmiFile(xmi);
+        generator.setExtentName(extent);
         generator.setUseGenerics(true);
         
         try {
@@ -75,6 +123,13 @@ public class MapJavaTask extends Task
         } catch (GenerationException e) {
             throw new BuildException(e);
         }
+    }
+    
+    boolean isCombinableWith(EnkiTask.SubTask subTask)
+    {
+        // Can't combine since another task might instantiate the MDR 
+        // subsystem with a different configuration.
+        return false;
     }
 
     public void setFile(String xmiFile)
@@ -87,6 +142,11 @@ public class MapJavaTask extends Task
         this.outputDir = outputDir;
     }
 
+    public void setExtent(String extent)
+    {
+        this.extent = extent;
+    }
+    
     public void setGeneratorClass(String generatorClsName)
     {
         this.generatorClsName = generatorClsName;

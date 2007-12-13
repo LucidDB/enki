@@ -34,6 +34,20 @@
   </path>
   <property name="enki.build.classpath" refid="enki.build.classpath"/>
 
+  <!-- classpath for sample build -->
+  <path id="enki.sample.build.classpath">
+    <pathelement path="${enki.build.classpath}"/>
+    <pathelement path="${classes.dir}"/>
+  </path>
+  <property name="enki.sample.build.classpath" refid="enki.sample.build.classpath"/>
+
+  <!-- classpath for sample-dependent build -->
+  <path id="enki.sample.classpath">
+    <pathelement path="${enki.sample.build.classpath}"/>
+    <pathelement path="${sample.jar}"/>
+  </path>
+  <property name="enki.sample.classpath" refid="enki.sample.classpath"/>
+
   <!-- classpath for execution -->
   <path id="enki.run.classpath">
     <pathelement path="${classes.dir}"/>
@@ -42,33 +56,81 @@
   </path>
   <property name="enki.run.classpath" refid="enki.run.classpath"/>
 
+  <property name="test.dir" location="${enki.dir}/test"/>
+  <property name="test.config.dir" location="${test.dir}/config"/>
+  <property name="test.results.dir" location="${test.dir}/results"/>
+  <property name="sample.dir" location="${test.dir}/sample"/>
+  <property name="sample.catalog.dir" location="${sample.dir}/catalog"/>
+  <property 
+    name="sample.model.xmi" 
+    location="${sample.catalog.dir}/xmi/EnkiSampleMetamodel.xmi"/>
+  <property name="sample.jar" location="${sample.dir}/sample.jar"/>
+
+  <!-- 
+    Implementation type.  One of hibernate, netbeans.  Defaults to
+    value from customBuild.properties.
+  -->
+  <property name="enki.impl" value="${enki.impl.default}"/>
+
   <target name="createClasspathFile">
     <delete file="${file.classpath}" quiet="true"/>
     <echo file="${file.classpath}" message="${enki.run.classpath}"/>
   </target>
   <property name="file.classpath" location="${enki.dir}/classpath.gen"/>
 
-  <target name="createSampleRepository" depends="compile,enki.codegen_taskdef">
-    <delete quiet="true">
-      <fileset dir="${enki.dir}" includes="mdr.bt?"/>
-    </delete>
+  <target name="configureSampleRepository">
+    <copy 
+        file="${test.config.dir}/${enki.impl}/TestStorage.properties"
+        tofile="${test.dir}/TestStorage.properties">
+      <filterset begintoken="$${" endtoken="}">
+        <filter token="ENKI_CATALOG_DIR" value="${sample.catalog.dir}"/>
+      </filterset>
+    </copy>
 
-    <ant dir="${sample.dir}" target="clean"/>
+    <path id="sample.jar.ref">
+      <pathelement location="${sample.jar}"/>
+    </path>
+  </target>
+
+  <target 
+      name="cleanSampleRepository"
+      depends="compile.dependencies,enki_mdr.taskdef,configureSampleRepository">
+    <enki.mdr
+        propertiesFile="${test.dir}/TestStorage.properties"
+        modelPathRef="sample.jar.ref">
+      <mdr-tasks>
+        <dropExtent extent="SampleRepository"/>
+      </mdr-tasks>
+    </enki.mdr>
+  </target>
+
+  <target 
+      name="createSampleRepository"
+      depends="clean,compile.dependencies,enki_mdr.taskdef,configureSampleRepository,cleanSampleRepository">
+
+    <!-- Convert metamodel to XMI -->
     <ant dir="${sample.dir}"/>
 
-    <delete quiet="true" includeEmptyDirs="true">
-      <fileset dir="${sample.catalog.dir}/java" includes="**/*"/>
-    </delete>
     <mkdir dir="${sample.catalog.dir}/java"/>
 
-    <enki.codegen
-      file="${sample.model.xmi}"
-      dir="${sample.catalog.dir}/java"
-      generatorClass="org.eigenbase.enki.hibernate.codegen.HibernateGenerator"/>
+    <!-- Choose generator class -->
+    <enki.set-generator-property impl="${enki.impl}" property="gen.cls"/>
+
+    <!-- Synthesize model into Java code -->
+    <enki.mdr>
+      <mdr-tasks>
+        <mapJava
+            file="${sample.model.xmi}"
+            dir="${sample.catalog.dir}/java"
+            extent="SampleMetamodel"
+            generatorClass="${gen.cls}"/>
+      </mdr-tasks>
+    </enki.mdr>
+
     <enki.javac
       srcdir="${sample.catalog.dir}/java"
       destdir="${sample.catalog.dir}/java"
-      classpathref="enki.run.classpath">
+      classpathref="enki.sample.build.classpath">
       <include name="**/*.java"/>
     </enki.javac>
     <jar jarfile="${sample.jar}">
@@ -76,26 +138,106 @@
         <include name="**/*.java"/>
         <include name="**/*.class"/>
         <include name="**/*.xml"/>
+        <include name="**/*.properties"/>
       </fileset>
     </jar>
+
+    <!-- create repository -->
+    <enki.mdr
+        propertiesFile="${test.dir}/TestStorage.properties"
+        modelPathRef="sample.jar.ref">
+      <mdr-tasks>
+        <createExtent name="SampleMetamodel"/>
+        <importXmi 
+            extent="SampleMetamodel"
+            file="${sample.model.xmi}" />
+        <createExtent 
+            name="SampleRepository"
+            extent="SampleMetamodel"
+            package="EEM"/>
+      </mdr-tasks>
+    </enki.mdr>
+    
+    <!-- TODO: write DTD -->
+    <!--
+    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
+      <mdr-tasks>
+        <writeDtd extent="SampleMetamodel" file="some.dtd"/>
+      </mdr-tasks>
+    </enki.mdr>
+    -->
+
+    <antcall target="compile.impl"/>
   </target>
 
-  <target name="compile" depends="init">
+  <target name="compile" depends="compile.dependencies">
+    <antcall target="compile.impl" inheritAll="true" inheritRefs="true"/>
+  </target>
+
+  <target name="compile.impl">
+    <enki.javac
+      srcdir="${src.dir}"
+      destdir="${classes.dir}"
+      classpathref="enki.sample.classpath">
+      <include name="org/eigenbase/enki/prototype/**/*.java"/>
+      <include name="org/eigenbase/enki/hibernate/prototype/**/*.java"/>
+      <include name="org/eigenbase/enki/test/**/*.java"/>
+    </enki.javac>
+  </target>
+
+  <target name="compile.dependencies" depends="init">
     <enki.javac
       srcdir="${src.dir}"
       destdir="${classes.dir}"
       classpathref="enki.build.classpath">
       <include name="**/*.java"/>
+      <exclude name="org/eigenbase/enki/prototype/**/*.java"/>
+      <exclude name="org/eigenbase/enki/hibernate/prototype/**/*.java"/>
+      <exclude name="org/eigenbase/enki/test/**/*.java"/>
     </enki.javac>
+  </target>
+
+  <target name="test" depends="createSampleRepository">
+    <delete>
+      <fileset dir="${test.results.dir}" includes="*.txt"/>
+    </delete>
+
+    <junit
+      printsummary="on"
+      haltonerror="on"
+      haltonfailure="on"
+      fork="yes">
+
+      <classpath>
+        <path refid="enki.run.classpath"/>
+        <pathelement path="${sample.jar}"/>
+      </classpath>
+      <sysproperty key="enki.home" value="${enki.dir}"/>
+      <sysproperty key="enki.test.extent" value="SampleRepository"/>
+      <formatter type="plain"/>
+      <batchtest todir="${test.results.dir}">
+        <fileset dir="${classes.dir}">
+          <include name="**/*Test.class"/>
+        </fileset>
+      </batchtest>
+    </junit>
   </target>
 
   <target name="init">
     <mkdir dir="${classes.dir}"/>
+    <mkdir dir="${test.results.dir}"/>
   </target>
 
   <target name="clean">
     <delete>
       <fileset dir="${classes.dir}" includes="**/*"/>
+      <fileset dir="${enki.dir}" includes="mdr.bt?"/>
+    </delete>
+
+    <!-- Clean up sample -->
+    <ant dir="${sample.dir}" target="clean"/>
+    <delete includeEmptyDirs="true">
+      <fileset dir="${sample.catalog.dir}/java" includes="**/*"/>
     </delete>
   </target>
 

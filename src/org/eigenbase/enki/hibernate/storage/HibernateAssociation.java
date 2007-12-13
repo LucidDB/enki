@@ -101,6 +101,12 @@ public abstract class HibernateAssociation extends HibernateObject
      */
     protected abstract List<HibernateAssociable> get(HibernateAssociable item);
     
+    @Override
+    public boolean checkConstraints(List<String> errors)
+    {
+        return true;
+    }
+    
     /**
      * Test two HibernateAssociable objects for equality.  Equality is based
      * on {@link Object#equals(Object)}.  Null references are handled without

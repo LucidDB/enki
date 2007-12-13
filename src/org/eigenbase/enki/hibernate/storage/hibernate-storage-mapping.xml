@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping
+    PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+     "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping>
+    <class name="org.eigenbase.enki.hibernate.storage.Extent">
+        <id name="id" type="long" column="id" unsaved-value="0">
+            <generator class="identity"/>
+        </id>
+        <property name="extentName" precision="256" unique="true"/>
+        <property name="modelExtentName" precision="256" unique="true"/>
+    </class>
+    
+    <query name="AllExtents" cacheable="true">
+        from org.eigenbase.enki.hibernate.storage.Extent
+    </query>
+    
+    <query name="ExtentByName">
+        from org.eigenbase.enki.hibernate.storage.Extent where extentName = ?
+    </query>
+</hibernate-mapping>

@@ -23,6 +23,9 @@ package org.eigenbase.enki.codegen;
 
 
 /**
+ * XmlHandlerBase extends {@link HandlerBase} with convenience functions for
+ * generating an XML file.
+ * 
  * @author Stephan Zuercher
  */
 public class XmlHandlerBase

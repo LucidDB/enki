@@ -21,112 +21,18 @@
 */
 package org.eigenbase.enki.hibernate.jmi;
 
-import java.util.*;
-
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.storage.*;
 
 /**
- * HibernateRefObject is a base class for {@link RefObject} implementations.
- * 
+ * HibernateRefObject provides a Hibernate-based implementation of 
+ * {@link RefObject}.
+ *
  * @author Stephan Zuercher
  */
 public abstract class HibernateRefObject
     extends HibernateObject
     implements RefObject
 {
-    public RefClass refClass()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public void refDelete()
-    {
-        // TODO Auto-generated method stub
-    }
-
-    public RefFeatured refImmediateComposite()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public boolean refIsInstanceOf(RefObject arg0, boolean arg1)
-    {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    public RefFeatured refOutermostComposite()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Object refGetValue(RefObject arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Object refGetValue(String arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    public Object refInvokeOperation(RefObject arg0, List arg1)
-        throws RefException
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-    
-    @SuppressWarnings("unchecked")
-    public Object refInvokeOperation(String arg0, List arg1)
-        throws RefException
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public void refSetValue(RefObject arg0, Object arg1)
-    {
-        // TODO Auto-generated method stub
-
-    }
-
-    public void refSetValue(String arg0, Object arg1)
-    {
-        // TODO Auto-generated method stub
-
-    }
-
-    public RefPackage refImmediatePackage()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefObject refMetaObject()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefPackage refOutermostPackage()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Collection<?> refVerifyConstraints(boolean arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
 }

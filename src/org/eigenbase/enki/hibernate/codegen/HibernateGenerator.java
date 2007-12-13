@@ -21,8 +21,6 @@
 */
 package org.eigenbase.enki.hibernate.codegen;
 
-import java.io.*;
-
 import org.eigenbase.enki.codegen.*;
 
 /**
@@ -52,34 +50,19 @@ public class HibernateGenerator extends MdrGenerator
         HibernateJavaHandler javaHandler = new HibernateJavaHandler();
         addHandler(javaHandler);
         
-        String prefix = xmiFile.getName();
-        int dot = prefix.indexOf('.');
-        if (dot > 0) {
-            prefix = prefix.substring(0, dot);
-        }
         HibernateMappingHandler mappingHandler = new HibernateMappingHandler();
-        mappingHandler.setMappingFilePrefix(prefix);
+        mappingHandler.setExtentName(getExtentName());
         addHandler(mappingHandler);
+        
+        MofInitHandler metamodelInitHandler = 
+            new MofInitHandler(mappingHandler);
+        addHandler(metamodelInitHandler);
     }
 
     public static void main(String[] args)
     {
-        try {
-            String xmiFileName = args[0];
-            String outputDirName = args[1];
-
-            HibernateGenerator g = new HibernateGenerator();
-            g.setXmiFile(new File(xmiFileName));
-            g.setOutputDirectory(new File(outputDirName));
-            g.setUseGenerics(true);
-            g.execute();
-        }
-        catch(Exception e) {
-            System.err.println(
-                "Usage: java " + HibernateGenerator.class.toString() + 
-                " <xmi-file> <out-dir>");
-            System.err.println();
-            e.printStackTrace();
-        }
+        HibernateGenerator generator = new HibernateGenerator();
+        
+        generator.doMain(args, true);
     }
 }

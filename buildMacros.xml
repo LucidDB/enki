@@ -29,18 +29,14 @@
 
   <property file="customBuild.properties"/>
 
+  <!-- Generator class names.  Normally not overriden. -->
+  <property name="enki.generator.hibernate" value="org.eigenbase.enki.hibernate.codegen.HibernateGenerator"/>
+  <property name="enki.generator.netbeans" value="org.eigenbase.enki.netbeans.codegen.NetbeansGenerator"/>
+
   <property name="classes.dir" location="${enki.dir}/classes"/>
   <property name="src.dir" location="${enki.dir}/src"/>
 
   <property name="thirdparty.dir" location="${enki.dir}/thirdparty"/>
-
-  <property name="test.dir" location="${enki.dir}/test"/>
-  <property name="sample.dir" location="${test.dir}/sample"/>
-  <property name="sample.catalog.dir" location="${sample.dir}/catalog"/>
-  <property 
-    name="sample.model.xmi" 
-    location="${sample.catalog.dir}/xmi/EnkiSampleMetamodel.xmi"/>
-  <property name="sample.jar" location="${sample.dir}/sample.jar"/>
 
   <!-- properties for thirdparty libraries -->
   <property name="commons-collections.dir" location="${thirdparty.dir}/commons-collections"/>
@@ -55,6 +51,7 @@
   <!-- runtime assertion control -->
   <property name="assertions.jvmarg" value="-ea -esa"/>
 
+  <property name="enki.mdr.log.config" location="trace/EnkiTrace.properties"/>
 
   <condition property="notWindows">
     <not>
@@ -161,10 +158,40 @@
     </sequential>
   </macrodef>
 
-  <target name="enki.codegen_taskdef">
+  <target name="enki_mdr.taskdef">
     <taskdef 
-      name="enki.codegen" 
-      classname="org.eigenbase.enki.ant.MapJavaTask"
+      name="enki.mdr.task" 
+      classname="org.eigenbase.enki.ant.EnkiTask"
       classpathref="enki.run.classpath"/>
+
+    <path id="empty.ref.id"/>
+
+    <macrodef name="enki.mdr">
+      <attribute name="propertiesFile" default="NOT SET"/>
+      <attribute name="modelPathRef" default="empty.ref.id"/>
+      <element name="mdr-tasks" optional="false"/>
+      <sequential>
+        <enki.mdr.task
+            propertiesFile="@{propertiesFile}"
+            modelPathRef="@{modelPathRef}"
+            logConfigFile="${enki.mdr.log.config}">
+          <mdr-tasks/>
+        </enki.mdr.task>
+      </sequential>
+    </macrodef>
   </target>
+
+  <macrodef name="enki.set-generator-property">
+    <attribute name="impl"/>
+    <attribute name="property"/>
+    <sequential>
+      <condition property="@{property}" value="${enki.generator.hibernate}">
+        <equals arg1="@{impl}" arg2="hibernate"/>
+      </condition>
+      <condition property="@{property}" value="${enki.generator.netbeans}">
+        <equals arg1="@{impl}" arg2="netbeans"/>
+      </condition>
+      <fail message="Unknown impl '@{impl}'" unless="@{property}"/>
+    </sequential>
+  </macrodef>
 </project>

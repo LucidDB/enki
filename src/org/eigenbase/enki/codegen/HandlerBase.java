@@ -27,6 +27,8 @@ import java.util.*;
 
 import javax.jmi.model.*;
 
+import org.eigenbase.enki.util.*;
+
 /**
  * HandlerBase is an abstract class that provides common functionality for
  * implementations of {@link Handler} and its sub-interfaces.
@@ -184,7 +186,7 @@ public abstract class HandlerBase implements Handler
     protected void close() throws GenerationException
     {
         if (output != null) {
-            if (indentLevel != 0) {
+            if (indentLevel != 0 && pendingEx == null) {
                 pendingEx = 
                     new GenerationException(
                         "Unbalanced indents in '" + currentFile + "'");
@@ -258,8 +260,7 @@ public abstract class HandlerBase implements Handler
     {
         String[] result = new String[entities.size()];
         int i = 0;
-        for(Object o: entities) {
-            E entity = cls.cast(o);
+        for(E entity: GenericCollections.asTypedList(entities, cls)) {
             result[i++] = generator.getTypeName(entity, suffix);
         }
         return result;
@@ -509,28 +510,30 @@ public abstract class HandlerBase implements Handler
         LinkedHashSet<E> result = new LinkedHashSet<E>();
         
         if (search == HierachySearchKindEnum.INCLUDE_SUPERTYPES) {
-            for(Object s: entity.allSupertypes()) {
-                for(Object o: ((Namespace)s).getContents()) {
-                    if (cls.isInstance(o)) {
-                        if (visibility != null && 
-                            !((Feature)o).getVisibility().equals(visibility))
-                        {
-                            continue;
-                        }
-                        
-                        if (scope != null &&
-                            !((Feature)o).getScope().equals(scope))
-                        {
-                            continue;
-                        }
-
-                        result.add(cls.cast(o));
-                    }
-                }
+            for(Namespace namespace: 
+                    GenericCollections.asTypedList(
+                        entity.allSupertypes(), Namespace.class))
+            {
+                result.addAll(
+                    contentsOfType(namespace, visibility, scope, cls));
             }
         }
         
-        for(Object o: entity.getContents()) {
+        result.addAll(
+            contentsOfType(entity, visibility, scope, cls));
+
+        return result;
+    }
+
+    protected <E> Collection<E> contentsOfType(
+        Namespace namespace,
+        VisibilityKind visibility,
+        ScopeKind scope,
+        Class<E> cls)
+    {
+        LinkedHashSet<E> result = new LinkedHashSet<E>();
+
+        for(Object o: namespace.getContents()) {
             if (cls.isInstance(o)) {
                 if (visibility != null && 
                     !((Feature)o).getVisibility().equals(visibility))
@@ -547,7 +550,7 @@ public abstract class HandlerBase implements Handler
                 result.add(cls.cast(o));
             }
         }
-
+        
         return result;
     }
     

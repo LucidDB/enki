@@ -31,6 +31,7 @@ import org.eigenbase.enki.codegen.*;
 import org.eigenbase.enki.codegen.Generator.*;
 import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.hibernate.storage.*;
+import org.eigenbase.enki.jmi.impl.*;
 
 /**
  * HibernateJavaHandler generates Java implementations for the JMI/MOF
@@ -133,6 +134,9 @@ public class HibernateJavaHandler
     public static final JavaClassReference ASSOCIATION_MANY_TO_MANY_IMPL_CLASS = 
         new JavaClassReference(HibernateManyToManyAssociation.class, true);
 
+    public static final JavaClassReference MULTIPLICITY_ENUM =
+        new JavaClassReference(Multiplicity.class, true);
+    
     private static final JavaClassReference LIST_PROXY_CLASS = 
         new JavaClassReference(ListProxy.class, true);
     
@@ -160,6 +164,9 @@ public class HibernateJavaHandler
     private static final JavaClassReference ORDERED_COLLECTION_IMPL_CLASS = 
         new JavaClassReference(ArrayList.class);
 
+    private static final JavaClassReference JAVA_UTIL_LIST_CLASS =
+        new JavaClassReference(List.class, true);
+    
     private static final JavaClassReference[] CLASS_INSTANCE_REFS = {
         OBJECT_IMPL_CLASS,
         ASSOCIABLE_INTERFACE,
@@ -168,6 +175,7 @@ public class HibernateJavaHandler
         ASSOCIATION_ONE_TO_MANY_IMPL_CLASS,
         ASSOCIATION_MANY_TO_MANY_IMPL_CLASS,
         LIST_PROXY_CLASS,
+        JAVA_UTIL_LIST_CLASS,
     };
     
     private final Logger log = 
@@ -197,9 +205,52 @@ public class HibernateJavaHandler
                 typeName, 
                 superClass,
                 new String[] { interfaceName }, 
+                JavaClassReference.computeImports(MULTIPLICITY_ENUM),
                 false,
                 ASSOC_IMPL_COMMENT);
         
+            startConstructorBlock(
+                assoc, 
+                new String[] { REF_PACKAGE_CLASS.toString() }, 
+                new String[] { "container" },
+                true,
+                IMPL_SUFFIX);
+            switch(assocInfo.kind) {
+            case ONE_TO_ONE:
+                writeln(
+                    "super(container, ", 
+                    QUOTE, assocInfo.names[0], QUOTE, ", ", 
+                    QUOTE, assocInfo.names[1], QUOTE, ");");
+                break;
+                
+            case ONE_TO_MANY:
+                writeln(
+                    "super(container, ", 
+                    QUOTE, assocInfo.names[0], QUOTE, ", ", 
+                    QUOTE, assocInfo.names[1], QUOTE, ", ",
+                    MULTIPLICITY_ENUM, ".", 
+                    Multiplicity.fromMultiplicityType(
+                        assocInfo.ends[1].getMultiplicity()),
+                    ");");
+                break;
+
+            case MANY_TO_MANY:
+                writeln(
+                    "super(container, ", 
+                    QUOTE, assocInfo.names[0], QUOTE, ", ", 
+                    MULTIPLICITY_ENUM, ".", 
+                    Multiplicity.fromMultiplicityType(
+                        assocInfo.ends[0].getMultiplicity()), ", ",
+                    QUOTE, assocInfo.names[1], QUOTE, ", ",
+                    MULTIPLICITY_ENUM, ".", 
+                    Multiplicity.fromMultiplicityType(
+                        assocInfo.ends[1].getMultiplicity()),
+                    ");");
+                break;
+            }
+            endBlock();
+            newLine();
+            
             // exists
             startGenericMethodBlock(
                 assoc,
@@ -840,6 +891,7 @@ public class HibernateJavaHandler
                     }
                     
                     writeln(assocInfo.mutatorName, "(assoc);");
+                    writeln("assoc.save();");
                     endBlock();
                     writeln("return ", assocInfo.accessorName, "();");
                     first = false;
@@ -853,6 +905,20 @@ public class HibernateJavaHandler
                 endBlock();
             }
 
+            // TODO: generate constraint checks for association multiplicity
+            // bounds.  E.g., either end of a 1-to-1 may be optional, but
+            // currently they all are because Hibernate won't let us specify
+            // them as not null (inserts with null, then updates).  Check
+            // for not-null here.  Similarly for 1-to-many and many-to-many.            
+            newLine();
+            startBlock(
+                "public boolean checkConstraints(",
+                JAVA_UTIL_LIST_CLASS, 
+                "<String> messages)");
+            writeln("// TODO: implement constraint checking");
+            writeln("return true;");
+            endBlock();
+            
             writeEntityFooter();
         }
         finally {
@@ -881,10 +947,25 @@ public class HibernateJavaHandler
                 false,
                 CLASS_PROXY_IMPL_COMMENT);
             
+            startConstructorBlock(
+                cls,
+                new String[] { REF_PACKAGE_CLASS.toString() },
+                new String[] { "container" },
+                true,
+                CLASS_PROXY_SUFFIX + IMPL_SUFFIX);
+            writeln("super(container);");
+            endBlock();
+            
             if (!cls.isAbstract()) {
                 // No-arg factory method
                 startCreatorBlock(cls, null, "");
-                writeln("return new ", instImplTypeName, "();");
+                String entityImplName = 
+                    generator.getSimpleTypeName(cls, IMPL_SUFFIX);
+                writeln(
+                    entityImplName,
+                    " obj = new ", instImplTypeName, "();");
+                writeln("obj.save();");
+                writeln("return obj;");
                 endBlock();
                 
                 Collection<Attribute> allAttributes =
@@ -910,9 +991,10 @@ public class HibernateJavaHandler
                     ModelElement[] params = 
                         allAttributes.toArray(
                             new ModelElement[allAttributes.size()]);
-                    startCreatorBlock(cls, params, "");                    
+                    startCreatorBlock(cls, params, "");  
                     writeln(
-                        "return new ",
+                        entityImplName,
+                        " obj = new ",
                         instImplTypeName,
                         "(");
                     increaseIndent();
@@ -926,6 +1008,8 @@ public class HibernateJavaHandler
                         writeln(paramInfo[1], i.hasNext() ? "," : ");");
                     }
                     decreaseIndent();
+                    writeln("obj.save();");
+                    writeln("return obj;");
                     endBlock();
                 }
             }
@@ -1011,8 +1095,11 @@ public class HibernateJavaHandler
             startBlock(
                 "public ",
                 generator.getSimpleTypeName(pkg, PACKAGE_SUFFIX + IMPL_SUFFIX),
-                "()");
-
+                "(",
+                REF_PACKAGE_CLASS.toString(), " container)");
+            writeln("super(container);");
+            newLine();
+            
             // initialize nested package fields
             Iterator<String> nameIter;
             Iterator<MofPackage> pkgIter;
@@ -1027,7 +1114,7 @@ public class HibernateJavaHandler
                     " = new ",
                     generator.getTypeName(
                         pkgIter.next(), PACKAGE_SUFFIX + IMPL_SUFFIX),
-                    "();");
+                    "(this);");
             }
             
             // initialize class proxy fields 
@@ -1047,7 +1134,7 @@ public class HibernateJavaHandler
                     " = new ",
                     generator.getTypeName(
                         clsIter.next(), CLASS_PROXY_SUFFIX + IMPL_SUFFIX),
-                    "();");
+                    "(this);");
             }
 
             // initialize association fields
@@ -1068,7 +1155,7 @@ public class HibernateJavaHandler
                     nameIter.next(),
                     " = new ",
                     generator.getTypeName(assocIter.next(), IMPL_SUFFIX),
-                    "();");
+                    "(this);");
             }
             
             endBlock();
@@ -1165,15 +1252,7 @@ public class HibernateJavaHandler
         {
             this.assoc = assoc;
             this.kind = generator.getAssociationKind(assoc);
-            
-            Collection<?> contents = assoc.getContents();
-            assert(contents.size() == 2) : "association must have 2 ends";
-            
-            Iterator<?> iter = contents.iterator();
-            this.ends = new AssociationEnd[] {
-                (AssociationEnd)iter.next(),
-                (AssociationEnd)iter.next()
-            };            
+            this.ends = generator.getAssociationEnds(assoc);
 
             this.names = new String[] {
                 generator.getSimpleTypeName(ends[0]),

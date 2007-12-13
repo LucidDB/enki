@@ -23,6 +23,8 @@ package org.eigenbase.enki.hibernate.jmi;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.jmi.impl.*;
+
 
 /**
  * HibernateOneToOneRefAssociation extends HibernateRefAssociation to implement
@@ -33,6 +35,19 @@ import javax.jmi.reflect.*;
 public abstract class HibernateOneToOneRefAssociation<P, C>
     extends HibernateRefAssociation
 {
+    protected HibernateOneToOneRefAssociation(
+        RefPackage container,
+        String end1Name,
+        String end2Name)
+    {
+        super(
+            container, 
+            end1Name, 
+            Multiplicity.SINGLE,
+            end2Name, 
+            Multiplicity.SINGLE);
+    }
+
     protected boolean exists(P parent, C child)
     {
         // TODO: implement

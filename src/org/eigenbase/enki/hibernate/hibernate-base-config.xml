@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+    <!-- Default Hibernate configuration settings.  Database-specific 
+         configuration is passed into HibernateMDRepository via storage
+         properties at runtime. -->
+
+    <session-factory>
+
+        <!-- no batching -->
+        <property name="jdbc.batch_size">0</property>
+
+        <!-- JDBC connection pool (use the built-in) -->
+        <property name="connection.pool_size">2</property>
+
+        <!-- Enable Hibernate's automatic session context management -->
+        <property name="current_session_context_class">thread</property>
+
+        <!-- Disable the second-level cache  -->
+        <property name="cache.provider_class">org.hibernate.cache.NoCacheProvider</property>
+
+    </session-factory>
+
+</hibernate-configuration>
+

@@ -22,6 +22,7 @@
 package org.eigenbase.enki.codegen;
 
 import javax.jmi.model.*;
+import javax.jmi.reflect.*;
 
 /**
  * ExceptionHandler represents a class that generated code related to a JMI
@@ -34,6 +35,10 @@ public interface ExceptionHandler extends Handler
     /** Suffix for all MofException type names. */
     public static final String EXCEPTION_SUFFIX = "Exception";
 
+    /** The name of the base class for all MofException instances. */
+    public static final JavaClassReference REF_EXCEPTION_CLASS =
+        new JavaClassReference(RefException.class);
+    
     /**
      * Generate code for instances of a MofException.
      * @param ex the {@link MofException} to generate

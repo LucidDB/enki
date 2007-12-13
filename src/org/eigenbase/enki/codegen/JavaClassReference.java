@@ -24,12 +24,13 @@ package org.eigenbase.enki.codegen;
 import java.util.*;
 
 /**
- * ClassReference represents a reference to library class used in code
+ * JavaClassReference represents a reference to library class used in code
  * generation.  This provides two useful functions.  First, by using this
  * class, you guarantee a reference to the class exists in your source code.
  * Having that reference allows IDEs to automatically rename classes and
  * find uses a particular class in code generation.  Second, it provides
- * a mechanism to simplify generated code by using Java import statements.
+ * a mechanism to simplify generated code by automatically generating Java 
+ * import statements.
  *  
  * @author Stephan Zuercher
  */
@@ -89,6 +90,22 @@ public class JavaClassReference
     public boolean useImport()
     {
         return useImport;
+    }
+    
+    /**
+     * Returns a JavaClassReferences that represents the same class as this
+     * instance, but with the import flag set.  This instance is simply 
+     * returned if it already has the import flag set. 
+     *
+     * @return an imported JavaClassReference to this instance's reference
+     */
+    public JavaClassReference asImport()
+    {
+        if (useImport()) {
+            return this;
+        }
+        
+        return new JavaClassReference(this, true);
     }
     
     /**

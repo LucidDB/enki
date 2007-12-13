@@ -21,65 +21,54 @@
 */
 package org.eigenbase.enki.hibernate.storage;
 
+import java.util.*;
+
+import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.jmi.impl.*;
+
 
 /**
+ * HibernateObject is a base class for all stored model entities.
+ * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateObject
+public abstract class HibernateObject extends RefObjectBase
 {
-    /** Width of a formatted MOF ID. See {@link #setRefMofId(long)}. */
-    private static final int MOFID_WIDTH = 18;
+    private boolean saved;
 
-    /** Constant prefix for formatted MOF IDs. */
-    private static final String MOFID_PREFIX = "j:";
-
-    /** 
-     * Character array of zeroes used to widen the hexadecimal portion of a 
-     * MOF ID to the {@link #MOFID_WIDTH}. 
+    protected HibernateObject()
+    {
+        super();
+    }
+    
+    /**
+     * Save this object to the current Hibernate {@link Session}.
+     * 
+     * @throws IllegalStateException if no write transaction is in progress
      */
-    private static final char[] ZEROES = new char[] {
-        '0', '0', '0', '0', '0', '0', '0', '0', 
-        '0', '0', '0', '0', '0', '0', '0', '0',
-    };
-    
-    private long mofId;
-    private String mofIdStr;
-
-    public long getMofId()
+    public void save()
     {
-        return mofId;
-    }
-    
-    public void setMofId(long mofId)
-    {
-        this.mofId = mofId;
-
-        StringBuilder buf = new StringBuilder(18);
-        buf.append(MOFID_PREFIX);
-        buf.append(Long.toHexString(mofId));
-        int len = buf.length();
-        assert(len <= MOFID_WIDTH);
-        if (len < MOFID_WIDTH) {
-            assert(MOFID_PREFIX.length() + ZEROES.length == MOFID_WIDTH);
-            buf.insert(MOFID_PREFIX.length(), ZEROES, 0, MOFID_WIDTH - len);
+        if (saved) {
+            return;
         }
-        this.mofIdStr = buf.toString();
+        
+        if (!HibernateMDRepository.isWriteTransaction()) {
+            throw new IllegalStateException("Not in write transaction");
+        }
+        
+        HibernateMDRepository.scheduleSave(this);
+        
+        saved = true;
     }
     
-    public String refMofId()
-    {
-        return mofIdStr;
-    }
-    
-    public boolean equals(Object other)
-    {
-        return mofId == ((HibernateObject)other).getMofId();
-    }
-    
-    public int hashCode()
-    {
-        return (int)(mofId ^ (mofId >>> 32));
-    }
+    /**
+     * Test if the constraints on this object have been met.  Called just
+     * before the object is persisted to the database.
+     * 
+     * @param errors list of errors that the object may add to
+     * @return true if constraints are met, false otherwise
+     */
+    public abstract boolean checkConstraints(List<String> errors);
 }
 
 // End HibernateObject.java

@@ -23,12 +23,36 @@ package org.eigenbase.enki.hibernate.jmi;
 
 import java.util.*;
 
+import javax.jmi.reflect.*;
+
+import org.eigenbase.enki.jmi.impl.*;
+
 /**
+ * HibernateOneToManyRefAssociation extends {@link HibernateRefAssociation}
+ * to provide an implementation of {@link RefAssociation} for Hibernate-based
+ * one-to-many associations.
+ * 
  * @author Stephan Zuercher
  */
 public abstract class HibernateOneToManyRefAssociation<P, C>
     extends HibernateRefAssociation
 {
+    protected HibernateOneToManyRefAssociation(
+        RefPackage container,
+        String end1Name,
+        String end2Name,
+        Multiplicity end2Multiplicity)
+    {
+        super(
+            container, 
+            end1Name,
+            Multiplicity.SINGLE, 
+            end2Name,
+            end2Multiplicity);
+        
+        assert(end2Multiplicity != Multiplicity.SINGLE);
+    }
+
     protected boolean exists(P parent, C child)
     {
         // TODO: implement
@@ -41,7 +65,7 @@ public abstract class HibernateOneToManyRefAssociation<P, C>
         return null;
     }
 
-    protected Collection<C> getChildrenOf(P parent)
+    protected List<C> getChildrenOf(P parent)
     {
         // TODO: implement
         return null;

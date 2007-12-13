@@ -4,7 +4,7 @@
   <property name="enki.dir" location="../.."/>
   <property name="enki.xmi.dir" location="./catalog/xmi"/>
 
-  <property name="farrago.dir" location="${enki.dir}/../farrago"/>
+  <property name="farrago.dir" location="${enki.dir}/../dev/farrago"/>
   <property name="farrago.xmi.dir" location="${farrago.dir}/catalog/xmi"/>
 
   <property name="mdrlibs.dir" location="${enki.dir}/thirdparty/mdrlibs"/>

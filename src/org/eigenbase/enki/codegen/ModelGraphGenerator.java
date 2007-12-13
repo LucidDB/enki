@@ -27,6 +27,11 @@ import java.util.*;
 import javax.jmi.model.*;
 
 /**
+ * ModelGraphGenerator creates a graph of the given metamodel's MofClass
+ * inheritance hierarchy and then emits a file containing a list of vertices
+ * and edges in the graph.  The vertices represent MofClasses described by
+ * the metamodel and the edges represent super-to-sub-class relationships.
+ * 
  * @author Stephan Zuercher
  */
 public class ModelGraphGenerator

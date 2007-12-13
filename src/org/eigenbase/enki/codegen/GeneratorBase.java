@@ -87,6 +87,8 @@ public abstract class GeneratorBase implements Generator
     
     private List<Handler> handlers;
     
+    private RefBaseObject refBaseObject;
+    
     protected GeneratorBase()
     {
         this.visited = new HashSet<RefObject>();
@@ -101,15 +103,23 @@ public abstract class GeneratorBase implements Generator
     }
 
     // implements Generator
+    public File getXmiFile()
+    {
+        return xmiFile;
+    }
+    
+    // implements Generator
     public void setOutputDirectory(File outputDir)
     {
         this.outputDir = outputDir;
     }
     
     // implements Generator
-    public void setUseGenerics(boolean enable)
+    public boolean setUseGenerics(boolean enableGenerics)
     {
-        this.enableGenerics = enable;
+        boolean oldSetting = this.enableGenerics;
+        this.enableGenerics = enableGenerics;
+        return oldSetting;
     }
     
     // implements Generator
@@ -120,9 +130,17 @@ public abstract class GeneratorBase implements Generator
         handlers.add(handler);
     }
     
+    // implements Generator
+    public final RefBaseObject getRefBaseObject()
+    {
+        return refBaseObject;
+    }
+    
     protected void visitRefBaseObject(RefBaseObject obj)
     throws GenerationException
     {
+        this.refBaseObject = obj;
+        
         invokeGenerationStart();
         
         boolean throwing = true;
@@ -240,7 +258,6 @@ public abstract class GeneratorBase implements Generator
                 }
             }
         }
-    
     }
 
     protected boolean generatObject(RefObject obj)
@@ -456,6 +473,10 @@ public abstract class GeneratorBase implements Generator
             result[0] = getTypeName((StructuralFeature)param);
         } else if (param instanceof Parameter) {
             result[0] = getTypeName((Parameter)param);            
+        } else if (param instanceof TypedElement) {
+            result[0] = getTypeName((TypedElement)param);
+        } else {
+            assert(false);
         }
         
         String name = getTagValue(param, TAGID_SUBSTITUTE_NAME);
@@ -481,7 +502,12 @@ public abstract class GeneratorBase implements Generator
         return getTypeName(param, param.getMultiplicity());
     }
     
-    private String getTypeName(TypedElement elem, MultiplicityType mult)
+    public String getTypeName(TypedElement type)
+    {
+        return getTypeName(type, (MultiplicityType)null);
+    }
+    
+    public String getTypeName(TypedElement elem, MultiplicityType mult)
     {
         ModelElement type = elem.getType();
         if (type instanceof AliasType) {
@@ -598,6 +624,14 @@ public abstract class GeneratorBase implements Generator
                         : IdentifierType.CAMELCASE_INIT_LOWER);
         }
 
+        // SPECIAL CASE: If the name happens to end with Exception, don't
+        // double it.
+        if (ExceptionHandler.EXCEPTION_SUFFIX.equals(suffix) &&
+            name.endsWith(suffix))
+        {
+            return name;
+        }
+        
         return name + suffix;
     }
     
@@ -810,16 +844,41 @@ public abstract class GeneratorBase implements Generator
         return mangleIdentifier(literal, IdentifierType.CAMELCASE_INIT_LOWER);
     }
     
-    public AssociationKindEnum getAssociationKind(Association assoc)
+    public AssociationEnd[] getAssociationEnds(Association assoc)
     {
         List<?> contents = assoc.getContents();
-        assert(contents.size() == 2);
-        
-        int[] upperBounds = new int[2];
+
+        AssociationEnd[] ends = new AssociationEnd[2];
         Iterator<?> endIter = contents.iterator();
+        int i = 0;
+        while(endIter.hasNext()) {
+            Object o = endIter.next();
+            if (o instanceof AssociationEnd) {
+                if (i >= 2) {
+                    throw new IllegalStateException(
+                        "Association has more than two ends");
+                }
+                
+                AssociationEnd end = (AssociationEnd)o;
+                
+                ends[i++] = end;
+            }
+        }
+        if (i != 2) {
+            throw new IllegalStateException(
+                "Association does not have exactly two ends");
+        }
+        
+        return ends;
+    }
+    
+    public AssociationKindEnum getAssociationKind(Association assoc)
+    {
+        AssociationEnd ends[] = getAssociationEnds(assoc);
+        int[] upperBounds = new int[2];
         for(int i = 0; i < 2; i++) {
-            AssociationEnd end = (AssociationEnd)endIter.next();
-            
+            AssociationEnd end = (AssociationEnd)ends[i];
+                
             upperBounds[i] = end.getMultiplicity().getUpper();
         }
         

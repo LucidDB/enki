@@ -25,6 +25,9 @@ import java.util.*;
 
 
 /**
+ * HibernateOneToOneAssociation extends HibernateAssociation and stores
+ * one-to-one associations. 
+ * 
  * @author Stephan Zuercher
  */
 public class HibernateOneToOneAssociation

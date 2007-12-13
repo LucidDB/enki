@@ -28,13 +28,16 @@ import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 /**
+ * JavaHandlerBase extends {@link HandlerBase} to provide convenience functions
+ * for generator Java code.
+ * 
  * @author Stephan Zuercher
  */
 public abstract class JavaHandlerBase
     extends HandlerBase
 {
     /** 
-     * Contains a warning about subclassing generated interfaces.
+     * Contains a warning about sub-classing generated interfaces.
      */
     public static final String HEADER_WARNING =
         "<p><em><strong>Note:</strong> This type should not be subclassed or implemented by clients. It is generated from a MOF metamodel and implemented by Enki or MDR.</em></p>";
@@ -166,6 +169,13 @@ public abstract class JavaHandlerBase
     private static final String METHOD_MUTATOR_PARAM_COMMENT = 
         "New value to be set.";
 
+    private boolean displayHeaderWarning = true;
+    
+    protected void setDisplayHeaderWarning(boolean displayHeaderWarning)
+    {
+        this.displayHeaderWarning = displayHeaderWarning;
+    }
+    
     /**
      * Generates the start of a Java interface.
      * 
@@ -349,25 +359,28 @@ public abstract class JavaHandlerBase
             interfaceNames, 
             imports,
             false,
-            isFinal, comment);
+            isFinal,
+            comment);
     }
     
     /**
      * Generates a class or interface header as specified. The common header is
      * emitted immediately, if set.  Then writes a package clause, class
-     * JavaDoc, and entity declaration.
+     * JavaDoc, and entity declaration.  There may only be multiple super
+     * class names if isInterface is true.  Likewise, if isInterface is 
+     * true, there may not be any interface names.
      * 
      * <p>Automatically increases the indent level.
      * 
      * @param entity entity the class represents
      * @param className type name of the class
+     * @param superClassNames explicit super classes, if any
      * @param interfaceNames zero or more implemented interfaces
      * @param imports names of classes to import (e.g. "java.util.List"
      *                or "java.text.*")
      * @param isInterface if true the class is an interface
      * @param isFinal if true the class is marked final
      * @param comment JavaDoc comment
-     * @param superClassName an explicit super class, if any
      * @see {@link #writeEntityDeclarationStart(String, String[], String[], boolean, boolean)}
      */
     private void writeEntityHeader(
@@ -377,29 +390,37 @@ public abstract class JavaHandlerBase
         String[] interfaceNames,
         String[] imports,
         boolean isInterface,
-        boolean isFinal, String comment)
+        boolean isFinal,
+        String comment)
     {
         if (commonHeader != null) {
             writeln("/*");
-            writeWrapped(" *", commonHeader);
-            writeln(" */");
+            writeWrapped("// ", commonHeader);
+            writeln("*/");
             newLine();
         }
         
         writePackageClause(className);
-        if (imports != null) {
-            for(String imp: imports) {
-                writeln("import ", imp, ";");
-            }
-            newLine();
+        writeImports(imports);
+        if (entity != null) {
+            writeClassJavaDoc(entity, comment);
         }
-        writeClassJavaDoc(entity, comment);
         writeEntityDeclarationStart(
             className,
             superClassNames, 
             interfaceNames, 
             isInterface,
             isFinal);
+    }
+
+    private void writeImports(String[] imports)
+    {
+        if (imports != null) {
+            for(String imp: imports) {
+                writeln("import ", imp, ";");
+            }
+            newLine();
+        }
     }
     
     /**
@@ -435,8 +456,10 @@ public abstract class JavaHandlerBase
         }
         
         writeWrapped(" *", entity.getAnnotation());
-        writeWrapped(" *", " ");
-        writeWrapped(" *", HEADER_WARNING);
+        if (displayHeaderWarning) {
+            writeWrapped(" *", " ");
+            writeWrapped(" *", HEADER_WARNING);
+        }
         writeln(" */");
     }
 
@@ -561,7 +584,8 @@ public abstract class JavaHandlerBase
         ModelElement[] params,
         String suffix)
     {
-        writeCreator(entity, comment, returnComment, params, suffix, true);
+        writeCreator(
+            entity, comment, returnComment, params, suffix, true, true);
         newLine();
     }
     
@@ -570,7 +594,19 @@ public abstract class JavaHandlerBase
         ModelElement[] params,
         String suffix)
     {
-        writeCreator(entity, null, null, params, suffix, false);
+        writeCreator(entity, null, null, params, suffix, false, true);
+        writeln("{");
+        increaseIndent();
+    }
+    
+    protected void startCreatorBlock(
+        GeneralizableElement entity,
+        ModelElement[] params,
+        boolean returnSimpleType,
+        String suffix)
+    {
+        writeCreator(
+            entity, null, null, params, suffix, false, returnSimpleType);
         writeln("{");
         increaseIndent();
     }
@@ -581,9 +617,14 @@ public abstract class JavaHandlerBase
         String returnComment,
         ModelElement[] params,
         String suffix,
-        boolean isAbstract)
+        boolean isAbstract,
+        boolean returnSimpleType)
     {
         String entityName = generator.getSimpleTypeName(entity);
+        String returnTypeName = entityName;
+        if (!returnSimpleType) {
+            returnTypeName = generator.getTypeName(entity);
+        }
         
         if (comment != null) {
             writeMethodJavaDoc(
@@ -598,7 +639,7 @@ public abstract class JavaHandlerBase
         if (params == null || params.length == 0) {
             writeln(
                 "public ", 
-                entityName,
+                returnTypeName,
                 suffix,
                 " create",
                 entityName,
@@ -607,7 +648,7 @@ public abstract class JavaHandlerBase
         } else {
             writeln(
                 "public ", 
-                entityName,
+                returnTypeName,
                 suffix,
                 " create",
                 entityName,
@@ -633,14 +674,21 @@ public abstract class JavaHandlerBase
         String comment,
         String returnDescription)
     {
-        writeAccessor(feature, comment, returnDescription, true, null);
+        writeAccessor(feature, comment, returnDescription, true, null, false);
         newLine();
     }
-    
+
     protected void startAccessorBlock(
         StructuralFeature feature)
     {
-        writeAccessor(feature, null, null, false, null);
+        startAccessorBlock(feature, false);
+    }
+    
+    protected void startAccessorBlock(
+        StructuralFeature feature,
+        boolean useJavaUtilImport)
+    {
+        writeAccessor(feature, null, null, false, null, useJavaUtilImport);
         writeln("{");
         increaseIndent();
     }
@@ -648,7 +696,16 @@ public abstract class JavaHandlerBase
     protected void startAccessorBlock(
         StructuralFeature feature, String methodSuffix)
     {
-        writeAccessor(feature, null, null, false, methodSuffix);
+        startAccessorBlock(feature, methodSuffix, false);
+    }
+
+    protected void startAccessorBlock(
+        StructuralFeature feature,
+        String methodSuffix, 
+        boolean useJavaUtilImport)
+    {
+        writeAccessor(
+            feature, null, null, false, methodSuffix, useJavaUtilImport);
         writeln("{");
         increaseIndent();
     }
@@ -658,9 +715,13 @@ public abstract class JavaHandlerBase
         String comment,
         String returnDescription,
         boolean isAbstract,
-        String methodSuffix)
+        String methodSuffix, 
+        boolean useJavaUtilImport)
     {
         String typeName = generator.getTypeName(feature);
+        if (useJavaUtilImport && typeName.startsWith("java.util.")) {
+            typeName = typeName.substring(10);
+        }
         
         String methodName = generator.getAccessorName(feature);
         if (methodName == null) {
@@ -745,9 +806,24 @@ public abstract class JavaHandlerBase
         String[] paramNames,
         String suffix)
     {
+        startConstructorBlock(
+            entity,
+            paramTypes,
+            paramNames,
+            false,
+            suffix);
+    }
+    
+    protected void startConstructorBlock(
+        ModelElement entity,
+        String[] paramTypes,
+        String[] paramNames,
+        boolean isPublic,
+        String suffix)
+    {
         writeGenericMethod(
             entity, 
-            "",
+            isPublic ? "public" : "",
             null,
             null,
             null, 
@@ -766,15 +842,24 @@ public abstract class JavaHandlerBase
         ModelElement[] params,
         String suffix)
     {
+        startConstructorBlock(entity, params, false, suffix);
+    }
+    
+    protected void startConstructorBlock(
+        ModelElement entity,
+        ModelElement[] params,
+        boolean isPublic,
+        String suffix)
+    {
         String[] paramTypes = new String[params.length];
         String[] paramNames = new String[params.length];
         for(int i = 0; i < params.length; i++) {
             String[] paramInfo = generator.getParam(params[i]);
-            paramTypes[i] = paramInfo[1];
-            paramNames[i] = paramInfo[0];
+            paramTypes[i] = paramInfo[0];
+            paramNames[i] = paramInfo[1];
         }
 
-        startConstructorBlock(entity, paramNames, paramTypes, suffix);
+        startConstructorBlock(entity, paramTypes, paramNames, isPublic, suffix);
     }
     
     private void writeGenericMethod(
@@ -1288,6 +1373,11 @@ public abstract class JavaHandlerBase
         return new File(parent, filename);
     }
     
+    protected void emitSuppressWarningsAnnotation()
+    {
+        writeln("@SuppressWarnings(", QUOTE, "unchecked", QUOTE, ")");
+    }
+
     public static enum CondType
     {
         IF,

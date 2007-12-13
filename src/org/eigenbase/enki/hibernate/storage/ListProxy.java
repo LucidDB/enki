@@ -24,6 +24,10 @@ package org.eigenbase.enki.hibernate.storage;
 import java.util.*;
 
 /**
+ * ListProxy implements {@link List} to assist subclasses of 
+ * {@link HibernateAssociation} in the management of associations with
+ * an upper bound greater than 1.
+ * 
  * @author Stephan Zuercher
  */
 public class ListProxy<E> implements List<E>

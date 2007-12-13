@@ -25,76 +25,62 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.jmi.impl.*;
+
 /**
+ * HibernateRefAssociation provides a Hibernate-based implementation of 
+ * {@link RefAssociation}.
+ *
  * @author Stephan Zuercher
  */
 public abstract class HibernateRefAssociation
+    extends RefAssociationBase
     implements RefAssociation
 {
+    protected HibernateRefAssociation(
+        RefPackage container,
+        String end1Name,
+        Multiplicity end1Multiplicity,
+        String end2Name,
+        Multiplicity end2Multiplicity)
+    {
+        super(
+            container, end1Name, end1Multiplicity, end2Name, end2Multiplicity);
+    }
 
     public boolean refAddLink(RefObject arg0, RefObject arg1)
     {
-        // TODO Auto-generated method stub
+        // TODO: hibernate add link code
         return false;
     }
 
     public Collection<?> refAllLinks()
     {
-        // TODO Auto-generated method stub
+        // TODO: hibernate all links query
         return null;
     }
 
     public boolean refLinkExists(RefObject arg0, RefObject arg1)
     {
-        // TODO Auto-generated method stub
+        // TODO: hibernate link exists query
         return false;
     }
 
     public Collection<?> refQuery(RefObject arg0, RefObject arg1)
     {
-        // TODO Auto-generated method stub
+        // TODO: hibernate links end query
         return null;
     }
 
     public Collection<?> refQuery(String arg0, RefObject arg1)
     {
-        // TODO Auto-generated method stub
+        // TODO: hibernate links end query
         return null;
     }
 
     public boolean refRemoveLink(RefObject arg0, RefObject arg1)
     {
-        // TODO Auto-generated method stub
+        // TODO: hibernate remove link code
         return false;
-    }
-
-    public RefPackage refImmediatePackage()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefObject refMetaObject()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public String refMofId()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RefPackage refOutermostPackage()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public Collection<?> refVerifyConstraints(boolean arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
     }
 }
