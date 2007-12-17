@@ -40,9 +40,9 @@ public interface PackageHandler extends Handler
         new JavaClassReference(RefPackage.class);
 
     /**
-     * Generate code for instances of a MofPackage.
-     * @param pkg the {@link MofPackage} to generate
+     * Generates code for instances of a MofPackage.
      * 
+     * @param pkg the {@link MofPackage} to generate
      * @throws GenerationException if there is an error
      */    
     public void generatePackage(MofPackage pkg) 

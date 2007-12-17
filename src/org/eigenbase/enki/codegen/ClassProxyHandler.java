@@ -41,9 +41,9 @@ public interface ClassProxyHandler extends Handler
         new JavaClassReference(RefClass.class);
     
     /**
-     * Generate code for proxies of a MofClass.
-     * @param cls the {@link MofClass} to generate
+     * Generates code for proxies of a MofClass.
      * 
+     * @param cls the {@link MofClass} to generate
      * @throws GenerationException if there is an error
      */
     public void generateClassProxy(MofClass cls) 

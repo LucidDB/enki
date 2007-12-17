@@ -144,7 +144,7 @@ public class JavaClassReference
     }
     
     /**
-     * For the given array of JavaClassReference instances, compute a list
+     * For the given array of JavaClassReference instances, computes a list
      * class names for import statements.  The resulting array is compatible
      * with {@link JavaHandlerBase#writeClassHeader(
      *          javax.jmi.model.ModelElement, String, String, String[], 

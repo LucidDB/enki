@@ -37,9 +37,9 @@ public interface AssociationHandler extends Handler
         new JavaClassReference(RefAssociation.class);
     
     /**
-     * Generate code for an Association.
-     * @param assoc the {@link Association} to generate
+     * Generates code for an Association.
      * 
+     * @param assoc the {@link Association} to generate
      * @throws GenerationException if there is an error
      */
     public void generateAssociation(Association assoc) 

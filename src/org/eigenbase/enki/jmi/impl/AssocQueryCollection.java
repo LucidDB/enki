@@ -26,6 +26,11 @@ import java.util.*;
 import javax.jmi.reflect.*;
 
 /**
+ * AssocQueryCollection implements a {@link Collection} of {@link RefObject}
+ * that automatically updates the {@link RefAssociationBase} object responsible
+ * for managing an association.  Modifications to the collection or association
+ * are reflect from one to the other. 
+ * 
  * @author Stephan Zuercher
  */
 class AssocQueryCollection implements Collection<RefObject>

@@ -27,6 +27,13 @@ import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 /**
+ * DependsOnBase is a special case of {@link RefAssociationBase} for the
+ * MOF model DependsOn association.  It exists because the DependsOn
+ * association is not changeable.  The links for the association are
+ * generated automatically at run-time via the 
+ * {@link ModelElement#findRequiredElements(Collection, boolean)} operation
+ * on {@link ModelElement}.
+ * 
  * @author Stephan Zuercher
  */
 public class DependsOnBase extends RefAssociationBase

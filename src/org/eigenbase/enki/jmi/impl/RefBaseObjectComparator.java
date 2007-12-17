@@ -26,6 +26,9 @@ import java.util.*;
 import javax.jmi.reflect.*;
 
 /**
+ * RefBaseObjectComparator compares {@link RefBaseObject} instances by
+ * MOF ID.
+ * 
  * @author Stephan Zuercher
  */
 class RefBaseObjectComparator implements Comparator<RefBaseObject>

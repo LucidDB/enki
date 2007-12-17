@@ -36,9 +36,9 @@ public interface EnumerationClassHandler extends Handler
     public static final String ENUM_CLASS_SUFFIX = "Enum";
 
     /**
-     * Generate enumeration class code for instances of an EnumerationType.
-     * @param enumType the {@link EnumerationType} to generate
+     * Generates enumeration class code for instances of an EnumerationType.
      * 
+     * @param enumType the {@link EnumerationType} to generate
      * @throws GenerationException if there is an error
      */
     public void generateEnumerationClass(EnumerationType enumType)

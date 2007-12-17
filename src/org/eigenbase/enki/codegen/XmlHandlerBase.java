@@ -61,14 +61,14 @@ public class XmlHandlerBase
     }
     
     /**
-     * Set the XML namespace (and namespace URI) going forward.  The next
+     * Sets the XML namespace (and namespace URI) going forward.  The next
      * emitted non-empty element will emit an "xmlns:xxx" attribute.  
      * That element and all subsequent elements will use the namespace by 
      * default.  It is the caller's responsibility to clear or reset the 
      * namespace at the appropriate scope.
      * 
-     * @param ns
-     * @param uri
+     * @param ns XML namespace to use
+     * @param uri XML namespace's URI
      */
     protected void setXmlNamespace(String ns, String uri)
     {
@@ -83,7 +83,7 @@ public class XmlHandlerBase
     }
     
     /**
-     * Start an element. 
+     * Starts an element. 
      * 
      * @param name element name
      * @param attribs alternating attribute names and un-escaped values.
@@ -186,6 +186,11 @@ public class XmlHandlerBase
         }
     }
 
+    /**
+     * Ends the given element after decreasing the current indent.
+     * 
+     * @param name element name
+     */
     protected void endElem(String name)
     {
         decreaseIndent();
@@ -193,7 +198,7 @@ public class XmlHandlerBase
     }
     
     /**
-     * Write an empty element. 
+     * Writes an empty element. 
      * 
      * @param name element name
      * @param attribs alternating attribute names and un-escaped values.
@@ -257,6 +262,14 @@ public class XmlHandlerBase
         }
     }
     
+    /**
+     * Writes a simple element.  A simple element contains only text content.
+     * 
+     * @param name element name
+     * @param value element content 
+     * @param attribs attributes and values
+     * @throws GenerationException if length of attribs is not even or 0
+     */
     protected void writeSimpleElem(
         String name, 
         String value, 
@@ -274,6 +287,11 @@ public class XmlHandlerBase
         }
     }
     
+    /**
+     * Writes text output with XML escaping.
+     * 
+     * @param strings objects to convert to strings before output
+     */
     protected void writeText(Object... strings)
     {
         StringBuilder buffer = new StringBuilder();
@@ -284,6 +302,11 @@ public class XmlHandlerBase
         writeWrapped("", text);
     }
     
+    /**
+     * Writes an XML CDATA section.
+     * 
+     * @param strings objects to convert to strings for output
+     */
     protected void writeCData(Object...strings)
     {
         write("<![CDATA[");
@@ -291,6 +314,11 @@ public class XmlHandlerBase
         writeln("]]>");
     }
     
+    /**
+     * Writes an XML comment with wrapping.
+     * 
+     * @param strings comment contents
+     */
     protected void writeComment(Object... strings)
     {
         int len = 0;
@@ -317,6 +345,12 @@ public class XmlHandlerBase
         }
     }
     
+    /**
+     * Escapes the given value for use in an XML attribute.
+     * 
+     * @param value attribute value to escape
+     * @return escaped value
+     */
     protected String escapeAttrib(String value)
     {
         value = 
@@ -329,9 +363,17 @@ public class XmlHandlerBase
         return value;
     }
     
+    /**
+     * Escapes the given text for use as text in an XML document.
+     * 
+     * @param value text data
+     * @return escaped text data
+     */
     protected String escapeText(String value)
     {
-         return escapeAttrib(value);
+        // TODO: test escaped value for XML validity (e.g., no control 
+        // characters except tab, NL, CR, and so on) 
+        return escapeAttrib(value);
     }
 }
 

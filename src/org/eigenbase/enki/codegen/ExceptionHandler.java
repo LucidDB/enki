@@ -40,9 +40,9 @@ public interface ExceptionHandler extends Handler
         new JavaClassReference(RefException.class);
     
     /**
-     * Generate code for instances of a MofException.
-     * @param ex the {@link MofException} to generate
+     * Generates code for instances of a MofException.
      * 
+     * @param ex the {@link MofException} to generate
      * @throws GenerationException if there is an error
      */
     public void generateException(MofException ex) 

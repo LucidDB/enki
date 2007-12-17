@@ -37,9 +37,10 @@ public interface EnumerationInterfaceHandler extends Handler
         new JavaClassReference(RefEnum.class);
     
      /**
-      * Generate enumeration interface code for instances of a EnumerationType.
-     * @param enumType the {@link EnumerationType} to generate
+      * Generates enumeration interface code for instances of a
+      * EnumerationType.
       * 
+      * @param enumType the {@link EnumerationType} to generate
       * @throws GenerationException if there is an error
       */     
     public void generateEnumerationInterface(EnumerationType enumType) 

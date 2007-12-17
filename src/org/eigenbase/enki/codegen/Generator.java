@@ -44,7 +44,7 @@ public interface Generator
         "javax.jmi.substituteName";
 
     /**
-     * Configure the XMI file containing the model for which code will be
+     * Configures the XMI file containing the model for which code will be
      * generated.
      * 
      * @param xmiFile a filename
@@ -52,7 +52,7 @@ public interface Generator
     public void setXmiFile(File xmiFile);
 
     /**
-     * Retrieve the XMI file containing the model for which code is geing
+     * Retrieves the XMI file containing the model for which code is being
      * generated.
      * 
      * @return the XMI file's name
@@ -60,7 +60,7 @@ public interface Generator
     public File getXmiFile();
     
     /**
-     * Configure the directory where code generated for the model will be
+     * Configures the directory where code generated for the model will be
      * written.
      * 
      * @param outputDir an existing directory
@@ -68,7 +68,7 @@ public interface Generator
     public void setOutputDirectory(File outputDir);
 
     /**
-     * Enable or disable generic types.  If enabled, collections include 
+     * Enables or disables generic types.  If enabled, collections include 
      * generic type specifications.  If disabled, the generic types are 
      * commented out (e.g., <tt>List/*&lt;SomeType&gt;*&#x2f;</tt>) 
      * 
@@ -79,7 +79,7 @@ public interface Generator
     public boolean setUseGenerics(boolean enable);
 
     /**
-     * Add a {@link Handler} implementation to the list of handlers for this
+     * Adds a {@link Handler} implementation to the list of handlers for this
      * generator.  All calls to this method must occur <b>before</b> 
      * {@link #execute()} or as part of a callback initiated by that method.
      * The Generator implementation must call 
@@ -93,7 +93,7 @@ public interface Generator
     public void addHandler(Handler handler);
 
     /**
-     * Generate code with the given configuration.
+     * Generates code with the given configuration.
      * 
      * @throws GenerationException if there is a file or other error during
      *                             code generation
@@ -101,14 +101,14 @@ public interface Generator
     public void execute() throws GenerationException;
 
     /**
-     * Retrieve the RefBaseObject for the current metamodel.
+     * Retrieves the RefBaseObject for the current metamodel.
      * 
      * @return the RefBaseObject for the current metamodel.
      */
     public RefBaseObject getRefBaseObject();
     
     /**
-     * Retrieve the value associated with the given tag identifier on the
+     * Retrieves the value associated with the given tag identifier on the
      * given model element.  If multiple values are associated with the tag,
      * returns only one.
      *  
@@ -119,7 +119,7 @@ public interface Generator
     public String getTagValue(ModelElement elem, String tagId);
 
     /**
-     * Retrieve the values associated with the given tag identifier on the
+     * Retrieves the values associated with the given tag identifier on the
      * given model element.
      *  
      * @param elem a model element
@@ -130,7 +130,7 @@ public interface Generator
     public Collection<String> getTagValues(ModelElement elem, String tagId);
 
     /**
-     * Retrieve the Tag associated with the given tag identifier on the
+     * Retrieves the Tag associated with the given tag identifier on the
      * given model element.
      * 
      * @param elem a model element
@@ -190,8 +190,8 @@ public interface Generator
     public String getTypeName(TypedElement type, MultiplicityType mult);
     
     /**
-     * Convert a collection and element type into a single, possibly 
-     * genericized type name.  For example, "java.util.List" and 
+     * Converts a collection and element type into a single, possibly 
+     * generic type name.  For example, "java.util.List" and 
      * "java.lang.String" are combined into one of:
      * 
      * <ul>
@@ -209,7 +209,7 @@ public interface Generator
         JavaClassReference collectionType, String elementType);
 
     /**
-     * Convert a simple ModelElement into a type name.
+     * Converts a simple ModelElement into a type name.
      * 
      * @param elem ModelElement for which a type name should be generated
      * @return type name
@@ -217,7 +217,7 @@ public interface Generator
     public String getTypeName(ModelElement elem);
 
     /**
-     * Convert a simple ModelElement into a type name with a given suffix.
+     * Converts a simple ModelElement into a type name with a given suffix.
      * 
      * @param elem ModelElement for which a type name should be generated
      * @param suffix suffix for the type name
@@ -226,7 +226,7 @@ public interface Generator
     public String getTypeName(ModelElement elem, String suffix);
 
     /**
-     * Convert a simple ModelElement into a type name without any package 
+     * Converts a simple ModelElement into a type name without any package 
      * names.
      * 
      * @param elem ModelElement for which a simple type name should be 
@@ -236,7 +236,7 @@ public interface Generator
     public String getSimpleTypeName(ModelElement elem);
 
     /**
-     * Convert a simple ModelElement into a type name without any package 
+     * Converts a simple ModelElement into a type name without any package 
      * names, but with the given suffix.
      * 
      * @param elem ModelElement for which a simple type name should be 
@@ -324,7 +324,7 @@ public interface Generator
     public String getClassFieldName(String literal);
 
     /**
-     * Retrieve the two ends of the association, ignoring other contents.
+     * Retrieves the two ends of the association, ignoring other contents.
      * 
      * @param assoc an Association
      * @return the (exactly) two ends of the Association

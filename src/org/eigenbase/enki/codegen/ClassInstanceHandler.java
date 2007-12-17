@@ -39,9 +39,9 @@ public interface ClassInstanceHandler extends Handler
         new JavaClassReference(RefObject.class);
 
     /**
-     * Generate code for instances of a MofClass.
-     * @param cls the {@link MofClass} to generate
+     * Generates code for instances of a MofClass.
      * 
+     * @param cls the {@link MofClass} to generate
      * @throws GenerationException if there is an error
      */
     public void generateClassInstance(MofClass cls)  

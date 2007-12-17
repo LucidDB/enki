@@ -22,7 +22,7 @@
 package org.eigenbase.enki.mdr;
 
 /**
- * DropFailedException is thrown by {@link EnkiMDRepository} when it is
+ * EnkiDropFailedException is thrown by {@link EnkiMDRepository} when it is
  * unable to drop storage for a given extent.
  * 
  * @author Stephan Zuercher

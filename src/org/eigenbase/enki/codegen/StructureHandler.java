@@ -32,9 +32,9 @@ import javax.jmi.model.*;
 public interface StructureHandler extends Handler
 {
     /**
-     * Generate code for instances of a StructureType.
-     * @param struct the {@link StructureType} to generate
+     * Generates code for instances of a StructureType.
      * 
+     * @param struct the {@link StructureType} to generate
      * @throws GenerationException if there is an error
      */
     public void generateStructure(StructureType struct)

@@ -24,6 +24,8 @@ package org.eigenbase.enki.jmi.impl;
 import javax.jmi.reflect.*;
 
 /**
+ * RefAssociationLink implements {@link javax.jmi.reflect.RefAssociationLink}.
+ * 
  * @author Stephan Zuercher
  */
 public class RefAssociationLink

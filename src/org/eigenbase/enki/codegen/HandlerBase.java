@@ -112,7 +112,7 @@ public abstract class HandlerBase implements Handler
     }
     
     /**
-     * Configure the output directory.  Called automatically by 
+     * Configures the output directory.  Called automatically by 
      * {@link Generator#addHandler(Handler)}.  Do not call 
      * this method on an instance of {@link HandlerBase} that has
      * already been added to a {@link Generator}.
@@ -176,7 +176,7 @@ public abstract class HandlerBase implements Handler
     }
     
     /**
-     * Close the current open file.  Closes the file opened by
+     * Closes the current open file.  Closes the file opened by
      * {@link #open(String)}.  This method may store an exception
      * in {@link #pendingEx} which will be thrown by the next call to
      * {@link #open(String)}.  In particular, this method checks for
@@ -266,6 +266,15 @@ public abstract class HandlerBase implements Handler
         return result;
     }
     
+    /**
+     * Writes the given objects to the output as strings.  Presumes that
+     * the result of each object's {@link #toString()} method is the 
+     * desired output.  If the output is currently at the start of a line,
+     * makes a call to {@link #indent()} before writing the strings.
+     * 
+     * @param strings objects to write to the output
+     * @throws NullPointerException if any object in strings is null
+     */
     protected void write(Object... strings)
     {
         if (startOfLine) {
@@ -282,6 +291,13 @@ public abstract class HandlerBase implements Handler
         }
     }
     
+    /**
+     * Writes the given objects to the output and starts a new line.
+     * Equivalent to calling {@link #write(Object...)} followed by
+     * {@link #newLine()}.
+     * 
+     * @param strings objects to conver to strings and write to the output
+     */
     protected void writeln(Object... strings)
     {
         write(strings);
@@ -289,12 +305,18 @@ public abstract class HandlerBase implements Handler
         startOfLine = true;
     }
     
+    /**
+     * Starts a new line of output.
+     */
     protected void newLine()
     {
         output.println();
         startOfLine = true;
     }
     
+    /**
+     * Emits {@link #INDENT} once for each indent level.
+     */
     protected void indent()
     {
         for(int i = 0; i < indentLevel; i++) {
@@ -302,16 +324,27 @@ public abstract class HandlerBase implements Handler
         }
     }
     
+    /**
+     * Returns the current indent level.
+     * @return the current indent level.
+     */
     protected int getIndentLevel()
     {
         return indentLevel;
     }
     
+    /**
+     * Increases the current indent by one level.
+     */
     protected void increaseIndent()
     {
         indentLevel++;
     }
     
+    /**
+     * Decreases the indent by one level.  The indent cannot be reduced
+     * below zero.
+     */
     protected void decreaseIndent()
     {
         indentLevel--;
@@ -321,11 +354,33 @@ public abstract class HandlerBase implements Handler
         }
     }
     
+    /**
+     * Resets the indent level to 0.
+     */
     protected void resetIndent()
     {
         indentLevel = 0;
     }
     
+    /**
+     * Writes the given objects as strings wrapping long lines.  Wrapping is
+     * achieved by converting the given objects to strings and concatenating
+     * them.  The result is then split into lines if there are any embedded
+     * new line characters.  Each line is then wrapped to a width of
+     * {@link #WRAP_WIDTH}, taking into account the given prefix and current
+     * indent level.
+     * 
+     * <p>This method converts consecutive spaces into single spaces.  It 
+     * converts consecutive blank lines (e.g., multiple new lines separated
+     * with nothing but tabs or spaces) into a single blank line.  A blank
+     * space is emitted after the prfix.
+     * 
+     * @param prefix wrapped-line prefix (e.g., " *" for multi-line Java-style
+     *               comments
+     * @param strings zero of more objects to be converted to strings and
+     *                wrapped 
+     *                
+     */
     protected void writeWrapped(String prefix, Object... strings)
     {
         StringBuilder buffer = new StringBuilder();
@@ -348,6 +403,8 @@ public abstract class HandlerBase implements Handler
         for(String line: lines) {
             StringBuilder indent = new StringBuilder();
             int indentEnd = 0;
+            
+            // Put beginning-of-line indent into indent and trim it from line.
             while(indentEnd < line.length())
             {
                 char ch = line.charAt(indentEnd);
@@ -364,6 +421,7 @@ public abstract class HandlerBase implements Handler
             }
             line = line.trim();
             
+            // Collapse consecutive blank lines.
             if (line.length() == 0) {
                 if (consecutiveBlank < 1) {
                     writeln(prefix);
@@ -378,6 +436,7 @@ public abstract class HandlerBase implements Handler
             if (indent.length() > 0) {
                 buffer.append(indent);
             } else {
+                // prefix is written directly, but we place a space after it
                 buffer.append(' ');
             }
             boolean justIndent = true;
@@ -525,6 +584,18 @@ public abstract class HandlerBase implements Handler
         return result;
     }
 
+    /**
+     * Iterates over contents of the namespace and returns a collection 
+     * containing all contents of the given type with the given visibility and
+     * scope.
+     * 
+     * @param <E> content type
+     * @param entity entity to search over
+     * @param visibility content visibility
+     * @param scope content scope
+     * @param cls Class for E
+     * @return collection of E that are contents of entity
+     */
     protected <E> Collection<E> contentsOfType(
         Namespace namespace,
         VisibilityKind visibility,
@@ -554,13 +625,21 @@ public abstract class HandlerBase implements Handler
         return result;
     }
     
+    /**
+     * Returns the given string with its first character converted to lower
+     * case.
+     * 
+     * @param str any string
+     * @return the given string with its first character converted to lower
+     *         case.
+     */
     protected static String toInitialLower(String str)
     {
-        StringBuilder buf = new StringBuilder();
         if (str == null) {
             return null;
         }
         
+        StringBuilder buf = new StringBuilder();
         int len = str.length();
         if (len > 0) {
             buf.append(Character.toLowerCase(str.charAt(0)));
@@ -572,6 +651,10 @@ public abstract class HandlerBase implements Handler
         return buf.toString();
     }
 
+    /**
+     * HierarchySearchKindEnum is used as a flag to control methods that may
+     * either search only an entity or the entity and its super types.
+     */
     protected static enum HierachySearchKindEnum
     {
         ENTITY_ONLY,

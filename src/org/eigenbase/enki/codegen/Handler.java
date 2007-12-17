@@ -39,7 +39,7 @@ public interface Handler
     public void setGenerator(Generator generator);
     
     /**
-     * Configure the output directory.  Called automatically by 
+     * Configures the output directory.  Called automatically by 
      * {@link Generator#addHandler(Handler)}.  Do not call 
      * this method on an instance of {@link HandlerBase} that has
      * already been added to a {@link Generator}.
