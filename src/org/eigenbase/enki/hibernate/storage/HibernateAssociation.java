@@ -23,13 +23,17 @@ package org.eigenbase.enki.hibernate.storage;
 
 import java.util.*;
 
+import javax.jmi.reflect.*;
+
 /**
  * HibernateAssociation is an abstract base class for association storage
  * classes. 
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateAssociation extends HibernateObject
+public abstract class HibernateAssociation 
+    extends HibernateObject
+    implements Iterable<RefAssociationLink>
 {
     /** Name of the association type. */
     private String type;
@@ -44,15 +48,6 @@ public abstract class HibernateAssociation extends HibernateObject
         this.type = type;
     }
     
-    protected String getType2()
-    {
-        return type;
-    }
-    
-    protected void setType2(String type2)
-    {
-    }
-    
     /**
      * Generically add an association between left and right.  One of the
      * parameters left or right must be part of this association already
@@ -62,7 +57,7 @@ public abstract class HibernateAssociation extends HibernateObject
      * @param left left-side of association
      * @param right right-side of association
      */
-    public abstract void add(
+    public abstract boolean add(
         HibernateAssociable left, HibernateAssociable right);
     
     /**
@@ -93,6 +88,14 @@ public abstract class HibernateAssociation extends HibernateObject
      * Generically remove all associations relate to the given item.
      */
     public abstract void clear(HibernateAssociable item);
+    
+    /**
+     * Returns an iterator over all the {@link RefAssociationLink} objects
+     * represented by this association.
+     * 
+     * @return {@link RefAssociationLink} iterator
+     */
+    public abstract Iterator<RefAssociationLink> iterator();
     
     /**
      * Get a List of the remote end(s) of the association for the given item.

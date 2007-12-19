@@ -26,7 +26,6 @@ import java.util.*;
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
 
-
 /**
  * HibernateObject is a base class for all stored model entities.
  * 
@@ -35,7 +34,8 @@ import org.eigenbase.enki.jmi.impl.*;
 public abstract class HibernateObject extends RefObjectBase
 {
     private boolean saved;
-
+    private boolean deleted;
+    
     protected HibernateObject()
     {
         super();
@@ -48,6 +48,10 @@ public abstract class HibernateObject extends RefObjectBase
      */
     public void save()
     {
+        if (deleted) {
+            throw new IllegalStateException("Saving deleted object");
+        }
+        
         if (saved) {
             return;
         }
@@ -59,6 +63,21 @@ public abstract class HibernateObject extends RefObjectBase
         HibernateMDRepository.scheduleSave(this);
         
         saved = true;
+    }
+    
+    public void delete()
+    {
+        if (deleted) {
+            return;
+        }
+        
+        if (!HibernateMDRepository.isWriteTransaction()) {
+            throw new IllegalStateException("Not in write transaction");
+        }
+        
+        HibernateMDRepository.scheduleDelete(this);
+        
+        deleted = true;        
     }
     
     /**

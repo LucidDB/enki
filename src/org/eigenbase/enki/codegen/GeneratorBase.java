@@ -28,6 +28,8 @@ import java.util.regex.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.util.*;
+
 /**
  * GeneratorBase is an abstract base class for Enki code generators.
  * It manages an XMI file (the code generator input), an output directory
@@ -55,29 +57,6 @@ public abstract class GeneratorBase implements Generator
     private static final String ORDERED_COLLECTION_INTERFACE = 
         List.class.getName();
 
-    // conversion table between object type names and primitive type names
-    private static final Map<String, String> primitiveTypeMap;
-    static {
-        HashMap<String, String> map = new HashMap<String, String>();
-        
-        // REVIEW: SWZ: 11/7/2007: See review comment in 
-        // getTypeName(ModelElement, String).
-        map.put("java.lang.Short", "short");
-        map.put("java.lang.Integer", "int");
-        map.put("java.lang.Float", "float");
-        map.put("java.lang.Double", "double");
-        map.put("java.lang.Boolean", "boolean");
-        map.put("java.lang.Character", "char");
-        map.put("java.lang.Long", "long");
-        map.put("Short", "short");
-        map.put("Integer", "int");
-        map.put("Float", "float");
-        map.put("Double", "double");
-        map.put("Boolean", "boolean");
-        map.put("Character", "char");
-        map.put("Long", "long");
-        primitiveTypeMap = Collections.unmodifiableMap(map);
-    }
 
     protected File xmiFile;
     protected File outputDir;
@@ -522,10 +501,12 @@ public abstract class GeneratorBase implements Generator
             } else {
                 collType = COLLECTION_INTERFACE;
             }
-        } else if ((mult == null || mult.getLower() >= 1) && 
-            primitiveTypeMap.containsKey(typeName))
-        {
-            typeName = primitiveTypeMap.get(typeName);
+        } else if (mult == null || mult.getLower() >= 1) {
+            String primitiveTypeName = 
+                Primitives.convertTypeNameToPrimitive(typeName);
+            if (primitiveTypeName != null) {
+                typeName = primitiveTypeName;
+            }
         }
         
         if (collType != null) {
@@ -574,7 +555,7 @@ public abstract class GeneratorBase implements Generator
             // extraneous "java.lang".  This differs from Netbeans MDR and
             // could cause problems if a model has unpackaged elements with
             // the same names as the Java primitive wrapper classes.  Note
-            // that primitiveTypeMap contains entries for the bare and fully
+            // that Primitives contains entries for the bare and fully
             // qualified versions.
             
             return /*"java.lang." + */ name;

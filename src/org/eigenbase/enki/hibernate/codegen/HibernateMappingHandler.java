@@ -273,6 +273,7 @@ public class HibernateMappingHandler
             rightLength = Math.max(rightLength, key.length());
         }
 
+        // TODO: distinct tables/names for multi-extent repositories
         startElem(
             "class",
             "name", ASSOCIATION_ONE_TO_ONE_IMPL_CLASS,
@@ -346,6 +347,7 @@ public class HibernateMappingHandler
             childLength = Math.max(childLength, key.length());
         }
         
+        // TODO: distinct tables/names for multi-extent repositories
         startElem(
             "class",
             "name", ASSOCIATION_ONE_TO_MANY_IMPL_CLASS,
@@ -427,7 +429,8 @@ public class HibernateMappingHandler
             rightLength = Math.max(rightLength, key.length());
         }
         int length = Math.max(leftLength, rightLength);
-        
+
+        // TODO: distinct tables/names for multi-extent repositories
         startElem(
             "class",
             "name", ASSOCIATION_MANY_TO_MANY_IMPL_CLASS,

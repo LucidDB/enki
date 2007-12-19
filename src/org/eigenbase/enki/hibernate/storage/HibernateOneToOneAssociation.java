@@ -23,6 +23,7 @@ package org.eigenbase.enki.hibernate.storage;
 
 import java.util.*;
 
+import javax.jmi.reflect.*;
 
 /**
  * HibernateOneToOneAssociation extends HibernateAssociation and stores
@@ -71,7 +72,7 @@ public class HibernateOneToOneAssociation
     }
 
     @Override
-    public void add(HibernateAssociable newLeft, HibernateAssociable newRight)
+    public boolean add(HibernateAssociable newLeft, HibernateAssociable newRight)
     {
         final String type = getType();
         
@@ -79,7 +80,7 @@ public class HibernateOneToOneAssociation
             // Nothing to do.
             assert(this.equals(newLeft.getAssociation(type)));
             assert(this.equals(newRight.getAssociation(type)));
-            return;
+            return false;
         }
         
         if (equals(getLeft(), newLeft)) {
@@ -121,6 +122,8 @@ public class HibernateOneToOneAssociation
 
         // REVIEW: SWZ: 11/14/2007: get Hibernate session and delete dangling
         // associations? Or does that happen auto-magically?
+        
+        return true;
     }
 
     @Override
@@ -166,6 +169,16 @@ public class HibernateOneToOneAssociation
         } else {
             return Collections.emptyList();
         }
+    }
+    
+    @Override
+    public Iterator<RefAssociationLink> iterator()
+    {
+        RefAssociationLink link = 
+            new org.eigenbase.enki.jmi.impl.RefAssociationLink(
+                getLeft(), getRight());
+        
+        return Collections.singleton(link).iterator();
     }
 }
 

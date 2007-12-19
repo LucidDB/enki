@@ -1,5 +1,7 @@
 /*
-//  $Id$
+//  $Id:
+//  //open/enki/src/org/eigenbase/enki/codegen/MofImplementationGenerator.java#1
+//  $
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
 //  Copyright (C) 2007-2007 The Eigenbase Project
 //  Copyright (C) 2007-2007 Disruptive Tech
@@ -57,7 +59,7 @@ public class DependsOn
         javax.jmi.model.ModelElement provider)
     {
         return super.refQuery(
-            "dependent", provider);
+            "provider", provider);
     }
 
     @SuppressWarnings("unchecked")
@@ -65,7 +67,7 @@ public class DependsOn
         javax.jmi.model.ModelElement dependent)
     {
         return super.refQuery(
-            "provider", dependent);
+            "dependent", dependent);
     }
 
 }

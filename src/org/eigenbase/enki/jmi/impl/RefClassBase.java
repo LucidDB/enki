@@ -26,6 +26,8 @@ import java.util.*;
 import javax.jmi.reflect.*;
 
 /**
+ * RefClassBase is a base class for {@link RefClass} implementations.
+ * 
  * @author Stephan Zuercher
  */
 public abstract class RefClassBase extends RefFeaturedBase implements RefClass
@@ -37,12 +39,12 @@ public abstract class RefClassBase extends RefFeaturedBase implements RefClass
         this.container = container;
     }
     
-    // Implement RefBaseObjectBase/RefBaseObject
+    // Implement RefBaseObject
     public RefPackage refImmediatePackage()
     {
         return container;
     }
-
+    
     @SuppressWarnings("unchecked")
     public Collection refAllOfClass()
     {
@@ -58,11 +60,7 @@ public abstract class RefClassBase extends RefFeaturedBase implements RefClass
     @SuppressWarnings("unchecked")
     public RefObject refCreateInstance(List params)
     {
-        String typeName = getClass().getSimpleName();
-        assert(typeName.endsWith("Class"));
-        typeName = typeName.substring(0, typeName.length() - 5);
-        
-        return createInstance(null, typeName, params, RefObject.class);
+        return createInstance(refMetaObject(), null, params, RefObject.class);
     }
 
     @SuppressWarnings("unchecked")

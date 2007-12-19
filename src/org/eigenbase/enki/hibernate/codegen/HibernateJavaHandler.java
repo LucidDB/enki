@@ -21,6 +21,7 @@
 */
 package org.eigenbase.enki.hibernate.codegen;
 
+import java.security.*;
 import java.util.*;
 import java.util.logging.*;
 
@@ -32,6 +33,7 @@ import org.eigenbase.enki.codegen.Generator.*;
 import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
+import org.eigenbase.enki.util.*;
 
 /**
  * HibernateJavaHandler generates Java implementations for the JMI/MOF
@@ -49,9 +51,8 @@ public class HibernateJavaHandler
         PackageHandler
 {
     // REVIEW: SWZ: 11/7/2007: Relies on JmiTemplateHandler to throw
-    // for cases (e.g., Import, StructureType) that we don't handle.    
+    // for cases (e.g., Import, StructureType) that we don't handle yet.    
 
-    
     /** 
      * Suffix for implementation class names and association implementation
      * methods.
@@ -167,6 +168,9 @@ public class HibernateJavaHandler
     private static final JavaClassReference JAVA_UTIL_LIST_CLASS =
         new JavaClassReference(List.class, true);
     
+    private static final JavaClassReference METAMODEL_INITIALIZER_CLASS =
+        new JavaClassReference(MetamodelInitializer.class, true);
+    
     private static final JavaClassReference[] CLASS_INSTANCE_REFS = {
         OBJECT_IMPL_CLASS,
         ASSOCIABLE_INTERFACE,
@@ -181,6 +185,15 @@ public class HibernateJavaHandler
     private final Logger log = 
         Logger.getLogger(HibernateJavaHandler.class.getName());
 
+    private Map<MofClass, String> classIdentifierMap;
+    
+    public HibernateJavaHandler()
+    {
+        super();
+        
+        this.classIdentifierMap = new HashMap<MofClass, String>();
+    }
+    
     public void generateAssociation(Association assoc)
         throws GenerationException
     {
@@ -219,15 +232,21 @@ public class HibernateJavaHandler
             case ONE_TO_ONE:
                 writeln(
                     "super(container, ", 
-                    QUOTE, assocInfo.names[0], QUOTE, ", ", 
-                    QUOTE, assocInfo.names[1], QUOTE, ");");
+                    QUOTE, assocInfo.baseName, QUOTE, ", ",
+                    QUOTE, assocInfo.names[0], QUOTE, ", ",
+                    assocInfo.types[0], ".class, ",
+                    QUOTE, assocInfo.names[1], QUOTE, ", ",
+                    assocInfo.types[1], ".class);");
                 break;
                 
             case ONE_TO_MANY:
                 writeln(
                     "super(container, ", 
-                    QUOTE, assocInfo.names[0], QUOTE, ", ", 
+                    QUOTE, assocInfo.baseName, QUOTE, ", ",
+                    QUOTE, assocInfo.names[0], QUOTE, ", ",
+                    assocInfo.types[0], ".class, ",
                     QUOTE, assocInfo.names[1], QUOTE, ", ",
+                    assocInfo.types[1], ".class, ",
                     MULTIPLICITY_ENUM, ".", 
                     Multiplicity.fromMultiplicityType(
                         assocInfo.ends[1].getMultiplicity()),
@@ -237,17 +256,26 @@ public class HibernateJavaHandler
             case MANY_TO_MANY:
                 writeln(
                     "super(container, ", 
-                    QUOTE, assocInfo.names[0], QUOTE, ", ", 
+                    QUOTE, assocInfo.baseName, QUOTE, ", ",
+                    QUOTE, assocInfo.names[0], QUOTE, ", ",
+                    assocInfo.types[0], ".class, ",
                     MULTIPLICITY_ENUM, ".", 
                     Multiplicity.fromMultiplicityType(
                         assocInfo.ends[0].getMultiplicity()), ", ",
                     QUOTE, assocInfo.names[1], QUOTE, ", ",
+                    assocInfo.types[1], ".class, ",
                     MULTIPLICITY_ENUM, ".", 
                     Multiplicity.fromMultiplicityType(
                         assocInfo.ends[1].getMultiplicity()),
                     ");");
                 break;
             }
+            newLine();
+            writeln(
+                METAMODEL_INITIALIZER_CLASS,
+                ".getCurrentInitializer().setRefMetaObject(this, ", 
+                QUOTE, assoc.getName(), QUOTE, ");");
+
             endBlock();
             newLine();
             
@@ -269,15 +297,17 @@ public class HibernateJavaHandler
             // get end1 from end2
             if (assocInfo.ends[0].isNavigable()) {
                 boolean ordered = assocInfo.isOrdered(0);
-                startGenericMethodBlock(
-                    assoc,
+                String returnTypeName = 
                     end0Single 
                         ? assocInfo.types[0]
                         : generator.getCollectionType(
                             ordered 
                                 ? JmiTemplateHandler.ORDERED_COLLECTION_CLASS
                                 : JmiTemplateHandler.COLLECTION_CLASS,
-                            assocInfo.types[0]),
+                            assocInfo.types[0]);
+                startGenericMethodBlock(
+                    assoc,
+                    returnTypeName,
                     generator.getAccessorName(assocInfo.ends[0], null),
                     new String[] { assocInfo.types[1] },
                     new String[] { assocInfo.names[1] });
@@ -288,7 +318,14 @@ public class HibernateJavaHandler
                     break;
                     
                 case MANY_TO_MANY:
-                    writeln("return getLeftOf(", assocInfo.names[1], ");");
+                    if (assocInfo.isOrdered(1)) {
+                        writeln(
+                            "return (",
+                            returnTypeName,
+                            ")getLeftOf(", assocInfo.names[1], ");");                        
+                    } else {
+                        writeln("return getLeftOf(", assocInfo.names[1], ");");
+                    }
                 }
                 endBlock();
                 newLine();
@@ -297,15 +334,17 @@ public class HibernateJavaHandler
             // get end2 from end1
             if (assocInfo.ends[1].isNavigable()) {
                 boolean ordered = assocInfo.isOrdered(1);
-                startGenericMethodBlock(
-                    assoc,
+                String returnTypeName = 
                     end1Single 
                         ? assocInfo.types[1]
                         : generator.getCollectionType(
                             ordered 
                                 ? JmiTemplateHandler.ORDERED_COLLECTION_CLASS
                                 : JmiTemplateHandler.COLLECTION_CLASS,
-                            assocInfo.types[1]),
+                            assocInfo.types[1]);
+                startGenericMethodBlock(
+                    assoc,
+                    returnTypeName,
                     generator.getAccessorName(assocInfo.ends[1], null),
                     new String[] { assocInfo.types[0] },
                     new String[] { assocInfo.names[0] });
@@ -315,11 +354,27 @@ public class HibernateJavaHandler
                     break;
 
                 case ONE_TO_MANY:
-                    writeln("return getChildrenOf(", assocInfo.names[0], ");");
+                    if (assocInfo.isOrdered(1)) {
+                        writeln(
+                            "return (",
+                            returnTypeName,
+                            ")getChildrenOf(", assocInfo.names[0], ");");
+                    } else {
+                        writeln(
+                            "return getChildrenOf(", assocInfo.names[0], ");");
+                    }
                     break;
                     
                 case MANY_TO_MANY:
-                    writeln("return getRightOf(", assocInfo.names[0], ");");
+                    if (assocInfo.isOrdered(1)) {
+                        writeln(
+                            "return (",
+                            returnTypeName,
+                            ")getRightOf(", assocInfo.names[0], ");");
+                    } else {
+                        writeln(
+                            "return getRightOf(", assocInfo.names[0], ");");
+                    }
                 }
                 endBlock();
                 newLine();
@@ -408,6 +463,11 @@ public class HibernateJavaHandler
                 JavaClassReference.computeImports(CLASS_INSTANCE_REFS),
                 false,
                 CLASS_COMMENT);
+            
+            String classIdentifier = getClassIdentifier(cls);
+            writeConstant(
+                "String", "_id", "\"" + classIdentifier + "\"", true);
+            newLine();
             
             // fields
             writeln("// Attribute Fields");
@@ -919,6 +979,11 @@ public class HibernateJavaHandler
             writeln("return true;");
             endBlock();
             
+            newLine();
+            startBlock("protected String getClassIdentifier()");
+            writeln("return _id;");
+            endBlock();
+            
             writeEntityFooter();
         }
         finally {
@@ -933,7 +998,8 @@ public class HibernateJavaHandler
         
         String typeName = interfaceName + IMPL_SUFFIX;
 
-        String instImplTypeName = generator.getTypeName(cls, IMPL_SUFFIX);
+        String instanceInterfaceTypeName = generator.getTypeName(cls);
+        String instanceImplTypeName = generator.getTypeName(cls, IMPL_SUFFIX);
         
         log.fine("Generating Class Proxy Implementation '" + typeName + "'");
 
@@ -944,8 +1010,14 @@ public class HibernateJavaHandler
                 typeName, 
                 REF_CLASS_IMPL_CLASS.toString(),
                 new String[] { interfaceName }, 
+                JavaClassReference.computeImports(METAMODEL_INITIALIZER_CLASS),
                 false,
                 CLASS_PROXY_IMPL_COMMENT);
+            
+            String classIdentifier = getClassIdentifier(cls);
+            writeConstant(
+                "String", "_id", "\"" + classIdentifier + "\"", true);
+            newLine();
             
             startConstructorBlock(
                 cls,
@@ -953,17 +1025,28 @@ public class HibernateJavaHandler
                 new String[] { "container" },
                 true,
                 CLASS_PROXY_SUFFIX + IMPL_SUFFIX);
-            writeln("super(container);");
+            writeln(
+                "super(container, ",
+                instanceImplTypeName, ".class, ",
+                instanceInterfaceTypeName, ".class);");
+            
+            newLine();
+            writeln(
+                METAMODEL_INITIALIZER_CLASS,
+                ".getCurrentInitializer().setRefMetaObject(this, ", 
+                QUOTE, cls.getName(), QUOTE, ");");
+            
             endBlock();
             
             if (!cls.isAbstract()) {
                 // No-arg factory method
+                newLine();
                 startCreatorBlock(cls, null, "");
                 String entityImplName = 
                     generator.getSimpleTypeName(cls, IMPL_SUFFIX);
                 writeln(
                     entityImplName,
-                    " obj = new ", instImplTypeName, "();");
+                    " obj = new ", instanceImplTypeName, "();");
                 writeln("obj.save();");
                 writeln("return obj;");
                 endBlock();
@@ -995,7 +1078,7 @@ public class HibernateJavaHandler
                     writeln(
                         entityImplName,
                         " obj = new ",
-                        instImplTypeName,
+                        instanceImplTypeName,
                         "(");
                     increaseIndent();
                     for(Iterator<Attribute> i = allAttributes.iterator(); 
@@ -1014,13 +1097,18 @@ public class HibernateJavaHandler
                 }
             }
 
+            newLine();
+            startBlock("protected String getClassIdentifier()");
+            writeln("return _id;");
+            endBlock();
+            
             writeEntityFooter();
         }
         finally {
             close();
         }
     }
-
+    
     public void generatePackage(MofPackage pkg)
         throws GenerationException
     {
@@ -1038,6 +1126,7 @@ public class HibernateJavaHandler
                 typeName, 
                 REF_PACKAGE_IMPL_CLASS.toString(),
                 new String[] { interfaceName }, 
+                JavaClassReference.computeImports(METAMODEL_INITIALIZER_CLASS),
                 false,
                 PACKAGE_IMPL_COMMENT);
             
@@ -1098,8 +1187,16 @@ public class HibernateJavaHandler
                 "(",
                 REF_PACKAGE_CLASS.toString(), " container)");
             writeln("super(container);");
+
             newLine();
+            writeln(
+                METAMODEL_INITIALIZER_CLASS,
+                ".getCurrentInitializer().setRefMetaObject(this, ", 
+                QUOTE, pkg.getName(), QUOTE, ");");
             
+            if (hasPackages) {
+                newLine();
+            }
             // initialize nested package fields
             Iterator<String> nameIter;
             Iterator<MofPackage> pkgIter;
@@ -1232,6 +1329,79 @@ public class HibernateJavaHandler
         }
         finally {
             close();
+        }
+    }
+    
+    private String getClassIdentifier(MofClass cls) throws GenerationException
+    {
+        if (classIdentifierMap.containsKey(cls)) {
+            return classIdentifierMap.get(cls);
+        }
+
+        try {
+            MessageDigest sha1md = MessageDigest.getInstance("SHA-1");
+            
+            // All super types, in hierarchical order
+            List<MofClass> clsHierarchy = new ArrayList<MofClass>();
+            clsHierarchy.add(cls);
+            for(int i = 0; i < clsHierarchy.size(); i++) {
+                MofClass type = clsHierarchy.get(i);
+                
+                clsHierarchy.addAll(
+                    GenericCollections.asTypedList(
+                        type.getSupertypes(), MofClass.class));
+                
+                String superTypeName = generator.getTypeName(type);
+                sha1md.update(superTypeName.getBytes());
+            }
+            
+            for(MofClass type: clsHierarchy) {
+                for(Attribute attrib: 
+                        contentsOfType(
+                            type, 
+                            HierachySearchKindEnum.ENTITY_ONLY,
+                            VisibilityKindEnum.PUBLIC_VIS,
+                            Attribute.class)) 
+                {
+                    String attribType = generator.getTypeName(attrib);
+                    String attribName = attrib.getName();
+                    
+                    sha1md.update(attribType.getBytes());
+                    sha1md.update(attribName.getBytes());
+                }
+
+                for(Reference ref: 
+                    contentsOfType(
+                        type, 
+                        HierachySearchKindEnum.ENTITY_ONLY,
+                        VisibilityKindEnum.PUBLIC_VIS,
+                        Reference.class)) 
+                {
+                    String attribType = generator.getTypeName(ref);
+                    String attribName = ref.getName();
+                    
+                    sha1md.update(attribType.getBytes());
+                    sha1md.update(attribName.getBytes());
+                }
+            }
+            
+            byte[] digest = sha1md.digest();
+            
+            StringBuffer digestStrBuf = new StringBuffer();
+            for(int i = 0; i < digest.length; i++) {
+                String digestByteStr = 
+                    Integer.toHexString((int)digest[i] & 0xFF);
+                if (digestByteStr.length() < 2) {
+                    digestStrBuf.append('0');
+                }
+                digestStrBuf.append(digestByteStr);
+            }
+            
+            String digestStr = digestStrBuf.toString();
+            classIdentifierMap.put(cls, digestStr);
+            return digestStr;
+        } catch (NoSuchAlgorithmException e) {
+            throw new GenerationException(e);
         }
     }
     

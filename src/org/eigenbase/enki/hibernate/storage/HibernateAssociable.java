@@ -21,13 +21,15 @@
 */
 package org.eigenbase.enki.hibernate.storage;
 
+import javax.jmi.reflect.*;
+
 /**
  * HibernateAssociable represents a stored class that will participate in an 
  * association.
  * 
  * @author Stephan Zuercher
  */
-public interface HibernateAssociable
+public interface HibernateAssociable extends RefObject
 {
     /**
      * Retrieves the {@link HibernateAssociation} instance associated with

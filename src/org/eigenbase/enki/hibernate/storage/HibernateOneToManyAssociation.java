@@ -23,6 +23,8 @@ package org.eigenbase.enki.hibernate.storage;
 
 import java.util.*;
 
+import javax.jmi.reflect.*;
+
 /**
  * HibernateOneToManyAssociation extends HibernateAssociation and stores
  * one-to-many associations.  Specifically this class handles 0..1 to 0..*, 
@@ -72,7 +74,7 @@ public class HibernateOneToManyAssociation
     }
 
     @Override
-    public void add(
+    public boolean add(
         HibernateAssociable newParent, HibernateAssociable newChild)
     {
         final String type = getType();
@@ -82,7 +84,7 @@ public class HibernateOneToManyAssociation
             // Nothing to do here.
             assert(newParent.getAssociation(type).equals(this));
             assert(newChild.getAssociation(type).equals(this));
-            return;
+            return false;
         }
         
         // Remove child from previous association, if any. (FYI, if not same
@@ -115,6 +117,8 @@ public class HibernateOneToManyAssociation
             
             // TODO: delete this association if there are no children left?
         }
+        
+        return true;
     }
 
     public void add(
@@ -199,6 +203,21 @@ public class HibernateOneToManyAssociation
         }
         
         return children;
+    }
+
+    @Override
+    public Iterator<RefAssociationLink> iterator()
+    {
+        ArrayList<RefAssociationLink> links = 
+            new ArrayList<RefAssociationLink>();
+        HibernateAssociable parent = getParent();
+        for(HibernateAssociable child: getChildren()) {
+            RefAssociationLink link =
+                new org.eigenbase.enki.jmi.impl.RefAssociationLink(
+                    parent, child);
+            links.add(link);
+        }
+        return links.iterator();
     }
 }
 

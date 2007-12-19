@@ -81,7 +81,8 @@
   <target name="configureSampleRepository">
     <copy 
         file="${test.config.dir}/${enki.impl}/TestStorage.properties"
-        tofile="${test.dir}/TestStorage.properties">
+        tofile="${test.dir}/TestStorage.properties"
+        overwrite="true">
       <filterset begintoken="$${" endtoken="}">
         <filter token="ENKI_CATALOG_DIR" value="${sample.catalog.dir}"/>
       </filterset>
@@ -102,6 +103,17 @@
         <dropExtent extent="SampleRepository"/>
       </mdr-tasks>
     </enki.mdr>
+
+    <if>
+      <equals arg1="${enki.impl}" arg2="netbeans"/>
+      <then>
+        <delete>
+          <fileset dir="${sample.catalog.dir}">
+            <include name="EnkiCatalog.*"/>
+          </fileset>
+        </delete>
+      </then>
+    </if>
   </target>
 
   <target 

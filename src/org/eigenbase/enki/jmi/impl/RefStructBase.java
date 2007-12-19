@@ -27,7 +27,7 @@ import java.util.*;
 import javax.jmi.reflect.*;
 
 /**
- * RefStructBase implements the JMI interface {@link RefStruct}.
+ * RefStructBase is a base class for {@link RefStruct} implementations.
  * 
  * @author Stephan Zuercher
  */

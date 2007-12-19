@@ -25,7 +25,10 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
+import org.eigenbase.enki.util.*;
+import org.hibernate.*;
 
 /**
  * HibernateManyToManyRefAssociation extends {@link HibernateRefAssociation}
@@ -34,51 +37,122 @@ import org.eigenbase.enki.jmi.impl.*;
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateManyToManyRefAssociation<L, R>
+public abstract class HibernateManyToManyRefAssociation<L extends RefObject, R extends RefObject>
     extends HibernateRefAssociation
 {
+    private final Class<L> leftClass;
+    private final Class<R> rightClass;
+    
     protected HibernateManyToManyRefAssociation(
         RefPackage container,
+        String type,
         String end1Name,
+        Class<L> end1Class,
         Multiplicity end1Multiplicity,
         String end2Name,
+        Class<R> end2Class,
         Multiplicity end2Multiplicity)
     {
         super(
-            container, end1Name, end1Multiplicity, end2Name, end2Multiplicity);
+            container,
+            type, 
+            end1Name,
+            end1Multiplicity, 
+            end2Name, 
+            end2Multiplicity);
      
         assert(end1Multiplicity != Multiplicity.SINGLE);
         assert(end2Multiplicity != Multiplicity.SINGLE);
+        
+        this.leftClass = end1Class;
+        this.rightClass = end2Class;
+    }
+
+    protected Query getAllLinksQuery(Session session)
+    {
+        // TODO: make named query
+        Query query = 
+            session.createQuery(
+                "from " + HibernateManyToManyAssociation.class.getName() +
+                "where type = ?");
+        
+        return query;
     }
 
     protected boolean exists(L left, R right)
     {
-        // TODO: implement
-        return false;
+        return super.refLinkExists(left, right);
     }
 
-    protected List<L> getLeftOf(R right)
+    protected Query getExistsQuery(Session session)
     {
-        // TODO: implement
-        return null;
+        // TODO: make named query
+        Query query = 
+            session.createQuery(
+                "from " + HibernateManyToManyAssociation.class.getName() +
+                "where type = ? and source = ? and ? in elements(target)");
+        
+        return query;
     }
 
-    protected List<R> getRightOf(L left)
+    protected Collection<L> getLeftOf(R right)
     {
-        // TODO: implement
-        return null;
+        Collection<RefObject> c = super.query(false, right);
+        if (c instanceof List) {
+            return GenericCollections.asTypedList(
+                (List<RefObject>)c, leftClass);
+        } else {
+            return GenericCollections.asTypedCollection(c, leftClass);
+        }
+    }
+
+    protected Collection<R> getRightOf(L left)
+    {
+        Collection<RefObject> c = super.query(true, left);
+        if (c instanceof List) {
+            return GenericCollections.asTypedList(
+                (List<RefObject>)c, rightClass);
+        } else {
+            return GenericCollections.asTypedCollection(c, rightClass);
+        }
+    }
+
+    protected Query getQueryQuery(Session session, boolean givenLeftEnd)
+    {
+        // TODO: make named queries
+        Query query;
+        if (givenLeftEnd) {
+            query = 
+                session.createQuery(
+                    "select target " +
+                    "from " + HibernateOneToOneAssociation.class.getName() +
+                    " where type = ? and source = ?");
+        } else {
+            query = 
+                session.createQuery(
+                    "select source " +
+                    "from " + HibernateOneToOneAssociation.class.getName() +
+                    " where type = ? and ? in elements(target)");
+        }
+        return query;
     }
 
     public boolean add(L left, R right)
     {
-        // TODO: implement
-        return false;
+        HibernateAssociable associableLeft = (HibernateAssociable)left;
+        HibernateAssociable associableRight = (HibernateAssociable)right;
+        
+        return associableLeft.getAssociation(type).add(
+            associableLeft, associableRight);
     }
 
     public boolean remove(L left, R right)
     {
-        // TODO: implement
-        return false;
+        HibernateAssociable associableLeft = (HibernateAssociable)left;
+        HibernateAssociable associableRight = (HibernateAssociable)right;
+        
+        return associableLeft.getAssociation(type).remove(
+            associableLeft, associableRight);
     }
 
 }

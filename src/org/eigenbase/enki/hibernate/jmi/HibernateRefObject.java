@@ -35,4 +35,18 @@ public abstract class HibernateRefObject
     extends HibernateObject
     implements RefObject
 {
+    @Override
+    public RefClass refClass()
+    {
+        return HibernateRefClassRegistry.instance().findRefClass(
+            getClassIdentifier());
+    }
+    
+    @Override
+    public void refDelete()
+    {
+        super.delete();
+    }
+    
+    protected abstract String getClassIdentifier();
 }

@@ -318,7 +318,7 @@ public class MofImplementationHandler
             writeln("super.refQuery(");
             increaseIndent();
             writeln(
-                QUOTE, assocInfo.names[getIndex], QUOTE, ", ", 
+                QUOTE, assocInfo.names[fromIndex], QUOTE, ", ", 
                 assocInfo.names[fromIndex], ");");
             decreaseIndent();
             

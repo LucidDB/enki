@@ -27,6 +27,11 @@ import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 /**
+ * RefObjectBase is a base class for {@link RefObject} implementations.
+ * It provides implementations of various MOF mode 
+ * {@link Operation Operations}.  These methods are not useful in for 
+ * generic storage implementations, although the JMI methods may be.
+ * 
  * @author Stephan Zuercher
  */
 public abstract class RefObjectBase 
@@ -53,7 +58,8 @@ public abstract class RefObjectBase
     {
         super();
         
-        setRefClass(refClass);
+        this.refClass = refClass;
+        getCurrentInitializer().register(this);
     }
     
     protected RefObjectBase()
@@ -61,20 +67,10 @@ public abstract class RefObjectBase
         super();
     }
     
-    public void setRefClass(RefClass refClass)
-    {
-        if (this.refClass != null) {
-            throw new InternalJmiError("Cannot modify RefClass");
-        }
-        
-        this.refClass = refClass;
-        getCurrentInitializer().register(this);
-    }
-    
     // Implement RefObjectBaseObject/RefObjectBase
     public RefPackage refImmediatePackage()
     {
-        return refClass.refImmediatePackage();
+        return refClass().refImmediatePackage();
     }
     
     public RefClass refClass()
@@ -82,6 +78,18 @@ public abstract class RefObjectBase
         return refClass;
     }
 
+    @Override
+    public RefObject refMetaObject()
+    {
+        return refClass().refMetaObject();
+    }
+    
+    @Override
+    public void setRefMetaObject(RefObject metaObj)
+    {
+        throw new UnsupportedOperationException();
+    }
+    
     public void refDelete()
     {
         throw new UnsupportedOperationException("RefObject.refDelete()");
@@ -89,7 +97,7 @@ public abstract class RefObjectBase
 
     public boolean refIsInstanceOf(RefObject objType, boolean considerSubtypes)
     {
-        if (refClass().equals(objType)) {
+        if (refClass().refMetaObject().equals(objType)) {
             return true;
         }
 
@@ -100,7 +108,8 @@ public abstract class RefObjectBase
         // Consider all our super types.  If one of them is objType, then
         // this is "an object whose class is a subclass of the class
         // described by objType" and we return true.
-        GeneralizableElement thisGenElem = (GeneralizableElement)this;
+        GeneralizableElement thisGenElem = 
+            (GeneralizableElement)this.refMetaObject();
         if (thisGenElem.allSupertypes().contains(objType)) {
             return true;
         }

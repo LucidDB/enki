@@ -25,7 +25,11 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
+import org.eigenbase.enki.util.*;
+import org.hibernate.*;
 
 /**
  * HibernateRefAssociation provides a Hibernate-based implementation of 
@@ -37,50 +41,115 @@ public abstract class HibernateRefAssociation
     extends RefAssociationBase
     implements RefAssociation
 {
+    protected final String type;
+
     protected HibernateRefAssociation(
         RefPackage container,
+        String type,
         String end1Name,
         Multiplicity end1Multiplicity,
         String end2Name,
         Multiplicity end2Multiplicity)
     {
         super(
-            container, end1Name, end1Multiplicity, end2Name, end2Multiplicity);
-    }
-
-    public boolean refAddLink(RefObject arg0, RefObject arg1)
-    {
-        // TODO: hibernate add link code
-        return false;
+            container, 
+            end1Name,
+            end1Multiplicity,
+            end2Name,
+            end2Multiplicity);
+        
+        this.type = type;
     }
 
     public Collection<?> refAllLinks()
     {
-        // TODO: hibernate all links query
-        return null;
+        Session session = HibernateMDRepository.getCurrentSession();
+        
+        Query query = getAllLinksQuery(session);
+        query.setEntity(0, type);
+        
+        ArrayList<javax.jmi.reflect.RefAssociationLink> links = 
+            new ArrayList<javax.jmi.reflect.RefAssociationLink>();
+        List<?> list = query.list();
+        for(HibernateAssociation assoc: 
+                GenericCollections.asTypedList(
+                    list, HibernateAssociation.class))
+        {
+            for(javax.jmi.reflect.RefAssociationLink link: assoc) {
+                links.add(link);
+            }
+        }
+        
+        return links;
     }
 
-    public boolean refLinkExists(RefObject arg0, RefObject arg1)
+    /**
+     * Obtain a query to implement {@link #refAllLinks()} where the query 
+     * parameter is the association type.
+     * 
+     * @param session session to create query in
+     * @return Hibernate Query object as described above
+     */
+    protected abstract Query getAllLinksQuery(Session session);
+    
+    public boolean refLinkExists(RefObject end1, RefObject end2)
     {
-        // TODO: hibernate link exists query
-        return false;
+        Session session = HibernateMDRepository.getCurrentSession();
+        
+        Query query = getExistsQuery(session);
+        query.setEntity(0, type);
+        query.setEntity(1, end1);
+        query.setEntity(2, end2);
+        
+        return !query.list().isEmpty();
     }
 
-    public Collection<?> refQuery(RefObject arg0, RefObject arg1)
+    /**
+     * Obtain a query to implement {@link #refLinkExists(RefObject, RefObject)}
+     * where the query parameters are the association type, and the two ends
+     * of the association (as {@link RefObject} instances).
+     * 
+     * @param session session to create query in
+     * @return Hibernate Query object as described above
+     */
+    protected abstract Query getExistsQuery(Session session);
+    
+    @Override
+    protected Collection<RefObject> query(
+        boolean isFirstEnd, RefObject queryObject)
     {
-        // TODO: hibernate links end query
-        return null;
+        Session session = HibernateMDRepository.getCurrentSession();
+
+        Query query = getQueryQuery(session, isFirstEnd);
+        query.setString(0, type);
+        query.setEntity(1, queryObject);
+        
+        return Collections.unmodifiableCollection(
+            GenericCollections.asTypedCollection(
+                query.list(), RefObject.class));
+    }
+    
+    /**
+     * Obtain a query to implement {@link #refQuery(RefObject, RefObject)} and
+     * {@link #refQuery(String, RefObject)} where the query parameters are the 
+     * association type and the given end of the association (as a 
+     * {@link RefObject} instance).
+     * 
+     * @param session session to create query in
+     * @return Hibernate Query object as described above
+     */
+    protected abstract Query getQueryQuery(
+        Session session, boolean isFirstEnd);
+
+    public boolean refAddLink(RefObject end1, RefObject end2)
+    {
+        return ((HibernateAssociable)end1).getAssociation(type).add(
+            (HibernateAssociable)end1, (HibernateAssociable)end2);
     }
 
-    public Collection<?> refQuery(String arg0, RefObject arg1)
+    public boolean refRemoveLink(RefObject end1, RefObject end2)
     {
-        // TODO: hibernate links end query
-        return null;
-    }
-
-    public boolean refRemoveLink(RefObject arg0, RefObject arg1)
-    {
-        // TODO: hibernate remove link code
-        return false;
+        return ((HibernateAssociable)end1).getAssociation(type).remove(
+            (HibernateAssociable)end1, (HibernateAssociable)end2);
     }
 }

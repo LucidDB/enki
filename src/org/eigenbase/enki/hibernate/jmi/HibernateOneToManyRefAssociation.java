@@ -25,7 +25,10 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
+import org.eigenbase.enki.util.*;
+import org.hibernate.*;
 
 /**
  * HibernateOneToManyRefAssociation extends {@link HibernateRefAssociation}
@@ -34,53 +37,120 @@ import org.eigenbase.enki.jmi.impl.*;
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateOneToManyRefAssociation<P, C>
+public abstract class HibernateOneToManyRefAssociation<P extends RefObject, C extends RefObject>
     extends HibernateRefAssociation
 {
+    private final Class<P> parentClass;
+    private final Class<C> childClass;
+    
     protected HibernateOneToManyRefAssociation(
         RefPackage container,
+        String type,
         String end1Name,
+        Class<P> end1Class,
         String end2Name,
+        Class<C> end2Class,
         Multiplicity end2Multiplicity)
     {
         super(
             container, 
+            type,
             end1Name,
             Multiplicity.SINGLE, 
             end2Name,
             end2Multiplicity);
         
         assert(end2Multiplicity != Multiplicity.SINGLE);
+        
+        this.parentClass = end1Class;
+        this.childClass = end2Class;
+    }
+
+    protected Query getAllLinksQuery(Session session)
+    {
+        // TODO: make named query
+        Query query = 
+            session.createQuery(
+                "from " + HibernateOneToManyAssociation.class.getName() +
+                "where type = ?");
+        
+        return query;
     }
 
     protected boolean exists(P parent, C child)
     {
-        // TODO: implement
-        return false;
+        return refLinkExists(parent, child);
+    }
+
+    protected Query getExistsQuery(Session session)
+    {
+        // TODO: make named query
+        Query query = 
+            session.createQuery(
+                "from " + HibernateOneToManyAssociation.class.getName() +
+                "where type = ? and parent = ? and ? in elements(children)");
+        
+        return query;
     }
 
     protected P getParentOf(C child)
     {
-        // TODO: implement
-        return null;
+        Collection<RefObject> c = super.query(false, child);
+        assert(c.size() <= 1);
+        if (c.isEmpty()) {
+            return null;
+        } else {
+            return parentClass.cast(c.iterator().next());
+        }
     }
 
-    protected List<C> getChildrenOf(P parent)
+    protected Collection<C> getChildrenOf(P parent)
     {
-        // TODO: implement
-        return null;
+        Collection<RefObject> c = super.query(true, parent);
+        if (c instanceof List) {
+            return GenericCollections.asTypedList(
+                (List<RefObject>)c, childClass);
+        } else {
+            return GenericCollections.asTypedCollection(c, childClass);
+        }
+}
+
+    protected Query getQueryQuery(Session session, boolean givenParentEnd)
+    {
+        // TODO: make named queries
+        Query query;
+        if (givenParentEnd) {
+            query = 
+                session.createQuery(
+                    "select children " +
+                    "from " + HibernateOneToOneAssociation.class.getName() +
+                    " where type = ? and parent = ?");
+        } else {
+            query = 
+                session.createQuery(
+                    "select parent " +
+                    "from " + HibernateOneToOneAssociation.class.getName() +
+                    " where type = ? and ? in elements(children)");
+        }
+        return query;
     }
 
     public boolean add(P parent, C child)
     {
-        // TODO: implement
-        return false;
+        HibernateAssociable associableParent = (HibernateAssociable)parent;
+        HibernateAssociable associableChild = (HibernateAssociable)child;
+        
+        return associableParent.getAssociation(type).add(
+            associableParent, associableChild);
     }
 
     public boolean remove(P parent, C child)
     {
-        // TODO: implement
-        return false;
+        HibernateAssociable associableParent = (HibernateAssociable)parent;
+        HibernateAssociable associableChild = (HibernateAssociable)child;
+        
+        return associableParent.getAssociation(type).remove(
+            associableParent, associableChild);
     }
 }
 

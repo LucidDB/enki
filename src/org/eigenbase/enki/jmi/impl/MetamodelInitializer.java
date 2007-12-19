@@ -27,7 +27,12 @@ import java.util.logging.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.util.*;
+
 /**
+ * MetamodelInitializer is an abstract base class used for initializing 
+ * metamodels.
+ * 
  * @author Stephan Zuercher
  */
 public abstract class MetamodelInitializer
@@ -35,13 +40,9 @@ public abstract class MetamodelInitializer
     private static final ThreadLocal<MetamodelInitializer> initializerTls =
         new ThreadLocal<MetamodelInitializer>();
     
-    /** Width of a formatted MOF ID. See {@link #setMofId(long)}. */
-    private static final int MOFID_WIDTH = 18;
-
-    /** Constant prefix for formatted MOF IDs. */
-    private static final String MOFID_PREFIX = "j:";
-
-    private static long nextMofId = 0x4000000000000000L;
+    public static long METAMODEL_MOF_ID_MASK = 0x4000000000000000L; 
+    
+    private static long nextMofId = METAMODEL_MOF_ID_MASK;
     
     private final String metaModelExtent;
     
@@ -49,6 +50,7 @@ public abstract class MetamodelInitializer
     private final Map<String, Object> propertyMap;
     
     private ModelPackage modelPackage;
+    private ModelPackage metaModelPackage;
     
     protected Logger log = 
         Logger.getLogger(MetamodelInitializer.class.getName());
@@ -62,8 +64,10 @@ public abstract class MetamodelInitializer
         this.propertyMap = new HashMap<String, Object>();
     }
     
-    public void init()
+    public void init(ModelPackage metaModelPackage)
     {
+        this.metaModelPackage = metaModelPackage;
+        
         initializerTls.set(this);
         
         initMetamodel();
@@ -90,6 +94,11 @@ public abstract class MetamodelInitializer
         this.modelPackage = modelPackage;
     }
     
+    protected ModelPackage getMetaModelPackage()
+    {
+        return metaModelPackage;
+    }
+    
     public Object getProperty(String name)
     {
         return propertyMap.get(name);
@@ -100,7 +109,7 @@ public abstract class MetamodelInitializer
         return propertyMap.put(name, value);
     }
     
-    static MetamodelInitializer getCurrentInitializer()
+    public static MetamodelInitializer getCurrentInitializer()
     {
         return initializerTls.get();
     }
@@ -119,32 +128,6 @@ public abstract class MetamodelInitializer
         }
     }
     
-    /**
-     * Updates the unformatted MOF ID for this entity and compute the
-     * formatted MOF ID.  The formatted MOF ID is always exactly 
-     * {@link #MOFID_WIDTH} characters wide and always begins with
-     * {@link #MOFID_PREFIX}.
-     * 
-     * <p>This method is normally called only by Hibernate when an existing 
-     * model entity is loaded from the database.
-     * 
-     * @param mofId
-     */
-    protected static String makeMofIdStr(long mofId)
-    {
-        StringBuilder b = new StringBuilder(MOFID_PREFIX);
-        
-        String hexMofId = Long.toHexString(mofId);
-        
-        int padding = MOFID_WIDTH - MOFID_PREFIX.length() - hexMofId.length();
-        while(padding-- > 0) {
-            b.append('0');
-        }
-        b.append(hexMofId);
-        
-        return b.toString();
-    }
-    
     Collection<RefObject> getAllInstancesOf(
         RefClass refClass, boolean includeSubtypes)
     {
@@ -161,16 +144,84 @@ public abstract class MetamodelInitializer
                 return Collections.emptySet();
             }
         }
+
+        ArrayList<RefObject> allInstances = new ArrayList<RefObject>();
+        if (instances != null) {
+            allInstances.addAll(instances);
+        }
         
-        // TODO: finish implementation
-        assert(false);
+        MofClass mofCls = (MofClass)refClass.refMetaObject();
+        Generalizes generalizesAssoc = getModelPackage().getGeneralizes();
         
-        return null;
+        Collection<MofClass> subClasses = 
+            GenericCollections.asTypedCollection(
+                generalizesAssoc.getSubtype(mofCls), MofClass.class);
+        for(MofClass subClass: subClasses) {
+            RefClass refSubClass = 
+                refClass.refImmediatePackage().refClass(subClass.getName());
+            
+            allInstances.addAll(getAllInstancesOf(refSubClass, true));
+        }
+
+        return Collections.unmodifiableCollection(allInstances);
     }
     
     Collection<RefClass> getAllRefClasses()
     {
         return Collections.unmodifiableCollection(objectMap.keySet());
+    }
+    
+    public RefBaseObject getByMofId(String mofId)
+    {
+        ModelPackage modelPkg = getModelPackage();
+        
+        return getByMofId(modelPkg, mofId);
+    }
+
+    private RefBaseObject getByMofId(RefPackage pkg, String mofId)
+    {
+        for(RefAssociation assoc:
+                GenericCollections.asTypedCollection(
+                    pkg.refAllAssociations(), RefAssociation.class))
+        {
+            if (assoc.refMofId().equals(mofId)) {
+                return assoc;
+            }
+        }
+        
+        for(RefPackage subPkg: 
+                GenericCollections.asTypedCollection(
+                    pkg.refAllPackages(), RefPackage.class))
+        {
+            if (subPkg.refMofId().equals(mofId)) {
+                return subPkg;
+            }
+            
+            RefBaseObject recursiveResult = getByMofId(subPkg, mofId);
+            if (recursiveResult != null) {
+                return recursiveResult;
+            }
+        }
+        
+        for(RefClass cls:
+                GenericCollections.asTypedCollection(
+                    pkg.refAllClasses(), RefClass.class))
+        {
+            if (cls.refMofId().equals(mofId)) {
+                return cls;
+            }
+            
+            for(RefObject obj: 
+                    GenericCollections.asTypedCollection(
+                        cls.refAllOfClass(), RefObject.class))
+            {
+                if (obj.refMofId().equals(mofId)) {
+                    return obj;
+                }
+            }
+        }
+        
+        return null;
     }
     
     void register(RefObject refObject)
@@ -192,6 +243,89 @@ public abstract class MetamodelInitializer
             throw new InternalJmiError(
                 "multiple objects with same mofId: " + refObject.refMofId());
         }
+    }
+    
+    protected RefObject findMofClassByName(
+        String name, boolean searchMetaModel)
+    {
+        ModelPackage mp = getModelPackage();
+        if (searchMetaModel && metaModelPackage != null) {
+            mp = metaModelPackage;
+        }
+        
+        for(MofClass mofClass:         
+            GenericCollections.asTypedCollection(
+                mp.getMofClass().refAllOfClass(), MofClass.class)) 
+        {
+            if (mofClass.getName().equals(name)) {
+                return mofClass;
+            }
+        }
+        
+        throw new NoSuchElementException(name);
+    }
+
+    protected RefObject findMofClassByName(String name)
+    {
+        return findMofClassByName(name, false);
+    }
+    
+    protected void setRefMetaObject(RefBaseObject base, RefObject meta)
+    {
+        ((RefBaseObjectBase)base).setRefMetaObject(meta);
+    }
+    
+    protected RefObject findMofPackageByName(String name)
+    {
+        ModelPackage mp = getModelPackage();
+
+        for(MofPackage mofPackage:         
+            GenericCollections.asTypedCollection(
+                mp.getMofPackage().refAllOfClass(), MofPackage.class)) 
+        {
+            if (mofPackage.getName().equals(name)) {
+                return mofPackage;
+            }
+        }
+        
+        throw new NoSuchElementException(name);
+    }
+    
+    public void setRefMetaObject(RefPackageBase pkg, String pkgName)
+    {
+        RefObject metaObj = findMofPackageByName(pkgName);
+
+        pkg.setRefMetaObject(metaObj);
+    }
+
+    public void setRefMetaObject(RefClassBase cls, String clsName)
+    {
+        RefObject metaObj = findMofClassByName(clsName);
+
+        cls.setRefMetaObject(metaObj);
+    }
+
+    protected RefObject findAssociationByName(String name)
+    {
+        ModelPackage mp = getModelPackage();
+
+        for(Association association:         
+            GenericCollections.asTypedCollection(
+                mp.getAssociation().refAllOfClass(), Association.class)) 
+        {
+            if (association.getName().equals(name)) {
+                return association;
+            }
+        }
+        
+        throw new NoSuchElementException(name);
+    }
+    
+    public void setRefMetaObject(RefAssociationBase assoc, String assocName)
+    {
+        RefObject metaObj = findAssociationByName(assocName);
+
+        assoc.setRefMetaObject(metaObj);
     }
 }
 

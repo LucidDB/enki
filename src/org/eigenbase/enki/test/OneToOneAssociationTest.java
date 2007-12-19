@@ -21,6 +21,9 @@
 */
 package org.eigenbase.enki.test;
 
+import java.util.*;
+
+import org.eigenbase.enki.util.*;
 import org.junit.*;
 
 import eem.sample.simple.*;
@@ -37,15 +40,45 @@ public class OneToOneAssociationTest extends SampleModelTestBase
     {
         getRepository().beginTrans(true);
 
-        Entity1 e1 = 
-            getSamplePackage().getSimple().getEntity1().createEntity1();
-        
-        Entity2 e2 =
-            getSamplePackage().getSimple().getEntity2().createEntity2();
-        
-        e1.setEntity2(e2);
-        
-        getRepository().endTrans();
+        try {
+            SimplePackage simplePkg = getSamplePackage().getSimple();
+            
+            Entity1 e1 = 
+                simplePkg.getEntity1().createEntity1();
+            
+            Entity2 e2 =
+                simplePkg.getEntity2().createEntity2();
+            
+            e1.setEntity2(e2);
+        } finally {
+            getRepository().endTrans();
+        }
+    }
+    
+    @Test
+    public void testTraverse()
+    {
+        try {
+            getRepository().beginTrans(false);
+    
+            SimplePackage simplePkg = getSamplePackage().getSimple();
+            
+            Collection<Entity1> all =
+                GenericCollections.asTypedCollection(
+                    simplePkg.getEntity1().refAllOfClass(),
+                    Entity1.class);
+            Assert.assertTrue(all.size() >= 1);
+            
+            for(Entity1 e1: all) {
+                Entity2 e2 = e1.getEntity2();
+                Assert.assertNotNull(e2);
+                
+                System.out.println(
+                    "e1(" + e1.refMofId() + ") -> e2(" + e2.refMofId() + ")");
+            }
+        } finally {
+            getRepository().endTrans();
+        }        
     }
 }
 

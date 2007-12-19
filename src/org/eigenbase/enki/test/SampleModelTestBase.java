@@ -12,9 +12,9 @@ import eem.sample.*;
 public abstract class SampleModelTestBase
     extends ModelTestBase
 {
-    private EemPackage eemPkg;
+    private static EemPackage eemPkg;
     
-    protected EemPackage getEemPackage()
+    protected static EemPackage getEemPackage()
     {
         if (eemPkg == null) {
             eemPkg = (EemPackage)getPackage();
@@ -23,7 +23,7 @@ public abstract class SampleModelTestBase
         return eemPkg;
     }
     
-    protected SamplePackage getSamplePackage()
+    protected static SamplePackage getSamplePackage()
     {
         return getEemPackage().getSample();
     }

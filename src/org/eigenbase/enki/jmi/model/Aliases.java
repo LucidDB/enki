@@ -1,5 +1,7 @@
 /*
-//  $Id$
+//  $Id:
+//  //open/enki/src/org/eigenbase/enki/codegen/MofImplementationGenerator.java#1
+//  $
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
 //  Copyright (C) 2007-2007 The Eigenbase Project
 //  Copyright (C) 2007-2007 Disruptive Tech
@@ -57,14 +59,14 @@ public class Aliases
         javax.jmi.model.Namespace imported)
     {
         return super.refQuery(
-            "importer", imported);
+            "imported", imported);
     }
 
     public javax.jmi.model.Namespace getImported(
         javax.jmi.model.Import importer)
     {
         Collection<?> result = super.refQuery(
-            "imported", importer);
+            "importer", importer);
         Iterator<?> iter = result.iterator();
         if (iter.hasNext()) {
             return (javax.jmi.model.Namespace)iter.next();

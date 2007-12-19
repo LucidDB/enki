@@ -1,5 +1,7 @@
 /*
-//  $Id$
+//  $Id:
+//  //open/enki/src/org/eigenbase/enki/codegen/MofImplementationGenerator.java#1
+//  $
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
 //  Copyright (C) 2007-2007 The Eigenbase Project
 //  Copyright (C) 2007-2007 Disruptive Tech
@@ -56,7 +58,7 @@ public class Contains
         javax.jmi.model.ModelElement containedElement)
     {
         Collection<?> result = super.refQuery(
-            "container", containedElement);
+            "containedElement", containedElement);
         Iterator<?> iter = result.iterator();
         if (iter.hasNext()) {
             return (javax.jmi.model.Namespace)iter.next();
@@ -69,7 +71,7 @@ public class Contains
         javax.jmi.model.Namespace container)
     {
         return (List)super.refQuery(
-            "containedElement", container);
+            "container", container);
     }
 
     public boolean add(

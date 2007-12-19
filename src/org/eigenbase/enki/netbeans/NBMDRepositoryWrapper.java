@@ -40,6 +40,7 @@ import org.netbeans.mdr.*;
 public class NBMDRepositoryWrapper implements EnkiMDRepository
 {
     private final NBMDRepositoryImpl impl;
+    
     private final String jdbcUrl;
     
     public NBMDRepositoryWrapper(NBMDRepositoryImpl impl)
@@ -55,7 +56,7 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     // implement EnkiMDRepository
     public void dropExtentStorage(String extentName)
     {
-        impl.unmountStorage(extentName);
+//        impl.unmountStorage(extentName);
         
         // REVIEW: SWZ: 12/12/07: This is pretty ugly.  Perhaps better to
         // just have the build script delete the catalog files, even if it
@@ -155,8 +156,6 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     {
         impl.shutdown();
     }
-    
-    
 }
 
 // End NBMDRepositoryWrapper.java

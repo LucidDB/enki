@@ -30,14 +30,12 @@ import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.storage.*;
-import org.eigenbase.enki.hibernate.storage.ConstraintViolationException;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.jmi.model.init.*;
 import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 import org.hibernate.*;
 import org.hibernate.cfg.*;
-import org.hibernate.classic.Session;
 import org.hibernate.tool.hbm2ddl.*;
 import org.netbeans.api.mdr.*;
 import org.netbeans.api.mdr.events.*;
@@ -69,7 +67,6 @@ public class HibernateMDRepository
     private final Map<String, ExtentDescriptor> extentMap;
     
     private SessionFactory sessionFactory;
-    private DeferredBeginTrans deferredBeginTrans;
     
     private final Logger log = 
         Logger.getLogger(HibernateMDRepository.class.getName());
@@ -89,23 +86,16 @@ public class HibernateMDRepository
     
     public void beginTrans(boolean write)
     {
-        assert(tls.get() == null);
-        
-        // TODO: locking
-        
-        if (sessionFactory == null) {
-            if (write) {
-                deferredBeginTrans = DeferredBeginTrans.YES_WRITE;
-            } else {
-                deferredBeginTrans = DeferredBeginTrans.YES_READ;
-            }
-        } else {
-            Session session = sessionFactory.getCurrentSession();
-            Transaction txn = session.beginTransaction();
-
-            Context context = new Context(session, txn, write);
-            tls.set(context);
+        if (tls.get() != null) {
+            // TODO: better exception type
+            throw new IllegalStateException("Cannot nest transactions");
         }
+        
+        Session session = sessionFactory.getCurrentSession();
+        Transaction txn = session.beginTransaction();
+
+        Context context = new Context(session, txn, write);
+        tls.set(context);
     }
 
     public void endTrans()
@@ -115,13 +105,9 @@ public class HibernateMDRepository
 
     public void endTrans(boolean rollback)
     {
-        if (deferredBeginTrans != DeferredBeginTrans.NO) {
-            deferredBeginTrans = DeferredBeginTrans.NO;
-            return;
-        }
-
         Context context = tls.get();
         if (context == null) {
+            // TODO: better exception type
             throw new IllegalStateException(
                 "No current transaction on this thread");
         }
@@ -148,10 +134,15 @@ public class HibernateMDRepository
             if (foundConstraintError) {
                 txn.rollback();
                 
-                throw new ConstraintViolationException(constraintErrors);
-            } else {
-                txn.commit();
+                throw new HibernateConstraintViolationException(
+                    constraintErrors);
             }
+
+            for(HibernateObject obj: context.deletes) {
+                session.delete(obj);
+            }
+            
+            txn.commit();
         }
     }
 
@@ -229,10 +220,35 @@ public class HibernateMDRepository
         dropModelStorage(extentDesc.modelDescriptor);
     }
     
-    public RefBaseObject getByMofId(String arg0)
+    public RefBaseObject getByMofId(String mofId)
     {
-        // TODO
-        return null;
+        long mofIdLong = MofIdUtil.parseMofIdStr(mofId); 
+
+        if ((mofIdLong & MetamodelInitializer.METAMODEL_MOF_ID_MASK) != 0) {
+            for(ExtentDescriptor extentDesc: extentMap.values()) {
+                // Only search in metamodels
+                if (extentDesc.modelDescriptor == null ||
+                    extentDesc.modelDescriptor.name.equals(MOF_EXTENT))
+                {
+                    RefBaseObject result = 
+                        extentDesc.initializer.getByMofId(mofId);
+                    if (result != null) {
+                        return result;
+                    }
+                }
+            }
+            
+            return null;
+        } else {
+            Session session = getCurrentSession();
+            
+            Query query = 
+                session.createQuery(
+                    "from " + RefBaseObjectBase.class + " where mofId = ?");
+            query.setLong(0, mofIdLong);
+            
+            return (RefBaseObject)query.uniqueResult();
+        }
     }
 
     public RefPackage getExtent(String name)
@@ -270,7 +286,7 @@ public class HibernateMDRepository
 
     public void addListener(MDRChangeListener listener, int mask)
     {
-        // TODO
+        // TODO: implement MDRChangeSource
     }
 
     public void removeListener(MDRChangeListener listener)
@@ -280,7 +296,7 @@ public class HibernateMDRepository
 
     public void removeListener(MDRChangeListener listener, int mask)
     {
-        // TODO
+        // TODO: implement MDRChangeSource
     }
     
     public SessionFactory getSessionFactory()
@@ -313,6 +329,14 @@ public class HibernateMDRepository
         assert(context != null);
         
         context.saves.add(entity);
+    }
+    
+    public static void scheduleDelete(HibernateObject entity)
+    {
+        Context context = tls.get();
+        assert(context != null);
+        
+        context.deletes.add(entity);
     }
     
     private void loadExistingExtents(List<Extent> extents)
@@ -482,11 +506,6 @@ public class HibernateMDRepository
             }
             
             loadExistingExtents(extents);
-            
-            if (deferredBeginTrans != DeferredBeginTrans.NO) {
-                beginTrans(deferredBeginTrans == DeferredBeginTrans.YES_WRITE);
-                deferredBeginTrans = DeferredBeginTrans.NO;
-            }
         }
     }
 
@@ -678,7 +697,7 @@ public class HibernateMDRepository
                 MOF_EXTENT, mofPkgCls, null, new Properties());
         modelMap.put(MOF_EXTENT, mofModelDesc);
         
-        log.info("Initialized Model Descriptor: " + MOF_EXTENT);
+        log.info("Initializing Model Descriptor: " + MOF_EXTENT);
         
         for(Properties modelProperties: modelPropertiesList) {
             String topLevelPkg = 
@@ -738,6 +757,8 @@ public class HibernateMDRepository
         ModelDescriptor mofDesc = 
             name.equals(MOF_EXTENT) ? null : modelMap.get(MOF_EXTENT);
         
+        log.info("Initialize Extent Descriptor: " + name);
+        
         ExtentDescriptor extentDesc = new ExtentDescriptor(name);
         
         extentDesc.modelDescriptor = mofDesc;
@@ -774,7 +795,13 @@ public class HibernateMDRepository
             }
         }
         
-        init.init();
+        ModelPackage metaModelPackage = null;
+        if (mofDesc != null) {
+            ExtentDescriptor mofExtentDesc = extentMap.get(MOF_EXTENT);
+            
+            metaModelPackage = mofExtentDesc.initializer.getModelPackage();
+        }
+        init.init(metaModelPackage);
         
         extentDesc.extent = init.getModelPackage();
         extentDesc.initializer = init;
@@ -815,13 +842,6 @@ public class HibernateMDRepository
         }
     }
     
-    private static enum DeferredBeginTrans
-    {
-        NO,
-        YES_READ,
-        YES_WRITE;
-    }
-    
     private class Context
     {
         private Session session;
@@ -829,6 +849,7 @@ public class HibernateMDRepository
         private boolean isWrite;
         
         private ArrayList<HibernateObject> saves;
+        private ArrayList<HibernateObject> deletes;
         
         private Context(Session sesson, Transaction transaction, boolean isWrite)
         {
@@ -836,6 +857,7 @@ public class HibernateMDRepository
             this.transaction = transaction;
             this.isWrite = isWrite;
             this.saves = new ArrayList<HibernateObject>();
+            this.deletes = new ArrayList<HibernateObject>();
         }
         
         private HibernateMDRepository getRepository()

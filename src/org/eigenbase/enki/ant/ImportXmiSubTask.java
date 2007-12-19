@@ -96,28 +96,19 @@ public class ImportXmiSubTask extends SubTask
             return;
         }
 
-        task.getMDRepository().beginTrans(true);
-        boolean rollback = true;
-        try {
-            RefPackage refPackage = 
-                task.getMDRepository().getExtent(extent);
-            if (refPackage == null) {
-                throw new BuildException(
-                    "Extent '" + extent + "' does not exist");
-            }
-            
-            XMIReader xmiReader = 
-                XMIReaderFactory.getDefault().createXMIReader();
-            try {
-                xmiReader.read(xmiFile.toURL().toString(), refPackage);
-            } catch (Exception e) {
-                throw new BuildException(e);
-            }
-
-            rollback = false;
+        RefPackage refPackage = 
+            task.getMDRepository().getExtent(extent);
+        if (refPackage == null) {
+            throw new BuildException(
+                "Extent '" + extent + "' does not exist");
         }
-        finally {
-            task.getMDRepository().endTrans(!rollback);
+        
+        XMIReader xmiReader = 
+            XMIReaderFactory.getDefault().createXMIReader();
+        try {
+            xmiReader.read(xmiFile.toURL().toString(), refPackage);
+        } catch (Exception e) {
+            throw new BuildException(e);
         }
     }
 }

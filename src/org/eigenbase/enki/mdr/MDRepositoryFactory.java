@@ -42,8 +42,11 @@ public class MDRepositoryFactory
 {
     public static final String PROPERTY_ENKI_RUNTIME_CONFIG_URL = 
         "enki.runtime.config.url";
+    
     public static final String META_INF_DIR_NAME = "META-INF";
+    
     public static final String ENKI_DIR_NAME = "enki";
+    
     public static final String META_INF_ENKI_DIR = 
         META_INF_DIR_NAME + "/" + ENKI_DIR_NAME;
 
@@ -104,7 +107,8 @@ public class MDRepositoryFactory
         }
     }
 
-    private static MDRepository newNetbeansMDRepository(Properties storageProps)
+    private static MDRepository newNetbeansMDRepository(
+        Properties storageProps)
     {
         Properties sysProps = System.getProperties();
         

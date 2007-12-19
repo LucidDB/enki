@@ -21,10 +21,13 @@
 */
 package org.eigenbase.enki.hibernate.jmi;
 
+import java.util.*;
+
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
-
+import org.hibernate.*;
 
 /**
  * HibernateOneToOneRefAssociation extends HibernateRefAssociation to implement
@@ -32,50 +35,117 @@ import org.eigenbase.enki.jmi.impl.*;
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateOneToOneRefAssociation<P, C>
+public abstract class HibernateOneToOneRefAssociation<P extends RefObject, C extends RefObject>
     extends HibernateRefAssociation
 {
+    private final Class<P> parentClass;
+    private final Class<C> childClass;
+    
     protected HibernateOneToOneRefAssociation(
         RefPackage container,
+        String type,
         String end1Name,
-        String end2Name)
+        Class<P> end1Class,
+        String end2Name,
+        Class<C> end2Class)
     {
         super(
-            container, 
+            container,
+            type,
             end1Name, 
             Multiplicity.SINGLE,
             end2Name, 
             Multiplicity.SINGLE);
+        
+        this.parentClass = end1Class;
+        this.childClass = end2Class;
+    }
+
+    protected Query getAllLinksQuery(Session session)
+    {
+        // TODO: make named query
+        Query query = 
+            session.createQuery(
+                "from " + HibernateOneToOneAssociation.class.getName() +
+                "where type = ?");
+        
+        return query;
     }
 
     protected boolean exists(P parent, C child)
     {
-        // TODO: implement
-        return false;
+        return refLinkExists(parent, child);
+    }
+    
+    protected Query getExistsQuery(Session session)
+    {
+        // TODO: make named query
+        Query query = 
+            session.createQuery(
+                "from " + HibernateOneToOneAssociation.class.getName() +
+                "where type = ? and left = ? and right = ?");
+        
+        return query;
     }
 
     protected P getParentOf(C child)
     {
-        // TODO: implement
-        return null;
+        Collection<RefObject> c = super.query(false, child);
+        assert(c.size() <= 1);
+        if (c.isEmpty()) {
+            return null;
+        } else {
+            return parentClass.cast(c.iterator().next());
+        }
     }
 
     protected C getChildOf(P parent)
     {
-        // TODO: implement
-        return null;
+        Collection<RefObject> c = super.query(true, parent);
+        assert(c.size() <= 1);
+        if (c.isEmpty()) {
+            return null;
+        } else {
+            return childClass.cast(c.iterator().next());
+        }
+    }
+    
+    protected Query getQueryQuery(Session session, boolean givenParentEnd)
+    {
+        // TODO: make named queries
+        Query query;
+        if (givenParentEnd) {
+            query = 
+                session.createQuery(
+                    "select child " +
+                    "from " + HibernateOneToOneAssociation.class.getName() +
+                    " where type = ? and parent = ?");
+        } else {
+            query = 
+                session.createQuery(
+                    "select parent " +
+                    "from " + HibernateOneToOneAssociation.class.getName() +
+                    " where type = ? and child = ?");
+        }
+        return query;
     }
 
     public boolean add(P parent, C child)
     {
-        // TODO: implement
-        return false;
+        HibernateAssociable associableParent = (HibernateAssociable)parent;
+        HibernateAssociable associableChild = (HibernateAssociable)child;
+        
+        return associableParent.getAssociation(type).add(
+            associableParent, associableChild);
     }
 
     public boolean remove(P parent, C child)
     {
-        // TODO: implement
-        return false;
+        HibernateAssociable associableParent = (HibernateAssociable)parent;
+        HibernateAssociable associableChild = (HibernateAssociable)child;
+        
+        return associableParent.getAssociation(type).remove(
+            associableParent, associableChild);
     }
 }
 

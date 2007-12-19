@@ -3483,6 +3483,27 @@ public final class Initializer
         exposesAssocInit();
         refersToAssocInit();
         isOfTypeAssocInit();
+
+        // Pass 3: Meta Objects
+        setRefMetaObject(getModelPackage().getMofClass(), findMofClassByName("Class", true));
+        setRefMetaObject(getModelPackage().getStructureField(), findMofClassByName("StructureField", true));
+        setRefMetaObject(getModelPackage().getAliasType(), findMofClassByName("AliasType", true));
+        setRefMetaObject(getModelPackage().getPrimitiveType(), findMofClassByName("PrimitiveType", true));
+        setRefMetaObject(getModelPackage().getAttribute(), findMofClassByName("Attribute", true));
+        setRefMetaObject(getModelPackage().getStructureType(), findMofClassByName("StructureType", true));
+        setRefMetaObject(getModelPackage().getMofPackage(), findMofClassByName("Package", true));
+        setRefMetaObject(getModelPackage().getImport(), findMofClassByName("Import", true));
+        setRefMetaObject(getModelPackage().getTag(), findMofClassByName("Tag", true));
+        setRefMetaObject(getModelPackage().getConstraint(), findMofClassByName("Constraint", true));
+        setRefMetaObject(getModelPackage().getAssociation(), findMofClassByName("Association", true));
+        setRefMetaObject(getModelPackage().getReference(), findMofClassByName("Reference", true));
+        setRefMetaObject(getModelPackage().getAssociationEnd(), findMofClassByName("AssociationEnd", true));
+        setRefMetaObject(getModelPackage().getOperation(), findMofClassByName("Operation", true));
+        setRefMetaObject(getModelPackage().getEnumerationType(), findMofClassByName("EnumerationType", true));
+        setRefMetaObject(getModelPackage().getCollectionType(), findMofClassByName("CollectionType", true));
+        setRefMetaObject(getModelPackage().getConstant(), findMofClassByName("Constant", true));
+        setRefMetaObject(getModelPackage().getParameter(), findMofClassByName("Parameter", true));
+        setRefMetaObject(getModelPackage().getMofException(), findMofClassByName("Exception", true));
     }
 }
 

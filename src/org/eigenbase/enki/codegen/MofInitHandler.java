@@ -101,6 +101,8 @@ public class MofInitHandler
     private List<MofClass> classes;
     private List<Association> associations;
     private Map<RefObject, Integer> indexMap;
+    private Map<String, String> metaObjInitMap;
+    
     
     private SubordinateHandler subordinateHandler;
     
@@ -111,6 +113,8 @@ public class MofInitHandler
         this.classes = new ArrayList<MofClass>();
         this.associations = new ArrayList<Association>();
         this.indexMap = new IdentityHashMap<RefObject, Integer>();
+        this.metaObjInitMap = new HashMap<String, String>();
+        
         this.subordinateHandler = null;
     }
     
@@ -164,7 +168,8 @@ public class MofInitHandler
     {
         if (!throwing) {
             if (!isMetaMetamodel) {
-                RefBaseObject mofBase = ((MdrGenerator)generator).getExtent("MOF");
+                RefBaseObject mofBase = 
+                    ((MdrGenerator)generator).getExtent("MOF");
                 
                 ModelPackage mofModelPkg = (ModelPackage)mofBase;
                 ModelPackage modelPkg = 
@@ -222,7 +227,16 @@ public class MofInitHandler
             for(Association assoc: associations) {
                 initAssociations(assoc);
             }
-        
+            
+            newLine();
+            writeln("// Pass 3: Meta Objects");
+            for(Map.Entry<String, String> entry: metaObjInitMap.entrySet()) {
+                writeln(
+                    "setRefMetaObject(getModelPackage().get", entry.getKey(),
+                    "(), findMofClassByName(", 
+                    QUOTE, entry.getValue(), QUOTE, ", true));");
+            }
+            
             endBlock();
             writeEntityFooter();
             close();
@@ -297,6 +311,8 @@ public class MofInitHandler
         }
         startBlock("private void ", func, "()");
         
+        metaObjInitMap.put(clsName, cls.getName());
+        
         if (!instances.isEmpty()) {
             writeln(var, " = new ", clsName, "[", instances.size(), "];");
     
@@ -342,6 +358,7 @@ public class MofInitHandler
         throws GenerationException
     {
         if (!isMetaMetamodel) {
+            writeln("// " + assoc.getName());
             return;
         }
         

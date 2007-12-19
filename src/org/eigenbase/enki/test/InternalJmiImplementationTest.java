@@ -38,7 +38,7 @@ public class InternalJmiImplementationTest
     public void testInternalJmiImplementation()
     {
         Initializer initializer = new Initializer("MofExtent");
-        initializer.init();
+        initializer.init(null);
         
         ModelPackage modelPackage = initializer.getModelPackage();
         Contains contains = modelPackage.getContains();

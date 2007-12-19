@@ -1255,9 +1255,6 @@ public abstract class JavaHandlerBase
      * @param fieldName the field's name
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
-     * @param suffix suffix for the type name
-     * 
-     * @return the field's name
      */
     protected void writePrivateField(
         String fieldType,
@@ -1275,6 +1272,30 @@ public abstract class JavaHandlerBase
             ";");
     }
     
+    /**
+     * Writes a private field with the given type, keywords and name.
+     * 
+     * @param fieldType field type
+     * @param fieldName the field's name
+     * @param value the field's value
+     * @param isPrivate if true, make the field private (vs. public)
+     */
+    protected void writeConstant(
+        String fieldType,
+        String fieldName,
+        String value,
+        boolean isPrivate)
+    {
+        writeln(
+            (isPrivate ? "private " : "public "),
+            "static final ",
+            fieldType,
+            " ",
+            fieldName,
+            " = ",
+            value,
+            ";");
+    }
     protected void writeEntityFooter()
     {
         endBlock();

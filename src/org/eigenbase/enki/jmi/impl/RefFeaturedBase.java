@@ -27,7 +27,11 @@ import java.util.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.util.*;
+
 /**
+ * RefFeaturedBase is a base class for {@link RefFeatured} implementations.
+ * 
  * @author Stephan Zuercher
  */
 public abstract class RefFeaturedBase 
@@ -156,6 +160,11 @@ public abstract class RefFeaturedBase
 
         // Value type must by assignable to the methods single parameter
         Class<?> paramType = paramTypes[0];
+        
+        if (paramType.isPrimitive()) {
+            paramType = Primitives.getWrapper(paramType);
+        }
+        
         return 
             paramType.isAssignableFrom(valueType) &&
             !Collection.class.isAssignableFrom(paramType);
@@ -191,6 +200,10 @@ public abstract class RefFeaturedBase
                 for(int i = 0; i < paramTypes.length; i++) {
                     Class<?> paramType = paramTypes[i];
                     Class<?> callerParamType = params.get(i).getClass();
+                    
+                    if (paramType.isPrimitive()) {
+                        paramType = Primitives.getWrapper(paramType);
+                    }
                     
                     if (!paramType.isAssignableFrom(callerParamType)) {
                         throw new TypeMismatchException(

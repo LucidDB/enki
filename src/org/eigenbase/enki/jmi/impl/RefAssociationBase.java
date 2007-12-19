@@ -26,6 +26,11 @@ import java.util.*;
 import javax.jmi.reflect.*;
 
 /**
+ * RefAssociationBase implements {@link RefAssociation}.  
+ * {@link RefAssociationBase} is designed for use with metamodels only. 
+ * It stores, in memory, all links for a particular association instance and
+ * does not allow links to be removed.
+ * 
  * @author Stephan Zuercher
  */
 public abstract class RefAssociationBase 
@@ -38,10 +43,10 @@ public abstract class RefAssociationBase
     private final Map<RefObject, Collection<RefAssociationLink>> firstToSecondMap;
     private final Map<RefObject, Collection<RefAssociationLink>> secondToFirstMap;
     
-    private final String end1Name;
-    private final Multiplicity end1Multiplicity;
-    private final String end2Name;
-    private final Multiplicity end2Multiplicity;
+    protected final String end1Name;
+    protected final Multiplicity end1Multiplicity;
+    protected final String end2Name;
+    protected final Multiplicity end2Multiplicity;
     
     protected RefAssociationBase(
         RefPackage container, 
@@ -196,7 +201,7 @@ public abstract class RefAssociationBase
         }
     }
     
-    private Collection<RefObject> query(
+    protected Collection<RefObject> query(
         boolean isFirstEnd, RefObject queryObject)
     {
         Map<RefObject, Collection<RefAssociationLink>> map;
@@ -208,9 +213,11 @@ public abstract class RefAssociationBase
         
         Collection<RefAssociationLink> links = map.get(queryObject); 
 
+        // isFirstEnd refers to the given end, so check the multiplicity of
+        // the other end to see whether the result should be ordered.
         boolean isOrdered =
-            (isFirstEnd && end1Multiplicity.isOrdered()) ||
-            (!isFirstEnd && end2Multiplicity.isOrdered());
+            (isFirstEnd && end2Multiplicity.isOrdered()) ||
+            (!isFirstEnd && end1Multiplicity.isOrdered());
 
         if (links == null) {
             if (isOrdered) {

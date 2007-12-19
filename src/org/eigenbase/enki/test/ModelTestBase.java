@@ -47,11 +47,11 @@ public abstract class ModelTestBase
 {
     private static final String PROPERTY_ENKI_TEST_EXTENT = "enki.test.extent";
     private static final String PROPERTY_ENKI_HOME = "enki.home";
-    private MDRepository repos;
-    private RefPackage pkg;
+    private static MDRepository repos;
+    private static RefPackage pkg;
     
-    @Before
-    public void setUpTestClass()
+    @BeforeClass
+    public static void setUpTestClass()
     {
         Assert.assertNull(repos);
         Assert.assertNull(pkg);
@@ -59,8 +59,8 @@ public abstract class ModelTestBase
         getPackage();
     }
     
-    @After
-    public void tearDownTestClass()
+    @AfterClass
+    public static void tearDownTestClass()
     {
         MDRepository repository = repos;
         if (repository != null) {
@@ -70,7 +70,7 @@ public abstract class ModelTestBase
         }        
     }
     
-    protected RefPackage getPackage()
+    protected static RefPackage getPackage()
     {
         if (pkg == null) {
             load();
@@ -79,7 +79,7 @@ public abstract class ModelTestBase
         return pkg;
     }
     
-    protected MDRepository getRepository()
+    protected static MDRepository getRepository()
     {
         if (repos == null) {
             load();
@@ -88,7 +88,7 @@ public abstract class ModelTestBase
         return repos;
     }
 
-    private void load()
+    private static void load()
     {
         String enkiHome = System.getProperty(PROPERTY_ENKI_HOME);
         Assert.assertNotNull(enkiHome);

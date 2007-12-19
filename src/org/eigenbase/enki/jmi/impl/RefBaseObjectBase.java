@@ -27,7 +27,13 @@ import java.util.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.util.*;
+
 /**
+ * RefBaseObjectBase is a base class for implementations of 
+ * {@link RefBaseObject}.  Specific storage implementations may need
+ * to override methods to produce the correct results.
+ * 
  * @author Stephan Zuercher
  */
 public abstract class RefBaseObjectBase implements RefBaseObject
@@ -48,16 +54,39 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         }
     }
     
+    /**
+     * Returns the MOF ID configured via {@link #setMofId(long)}.
+     * 
+     * @return the MOF ID configured via {@link #setMofId(long)}.
+     */
+    public String refMofId()
+    {
+        return refMofId;
+    }
+    
+    /**
+     * Returns the {@link RefObject} configured via 
+     * {@link #setRefMetaObject(RefObject)}.
+     * 
+     * @return the {@link RefObject} configured via 
+     * {@link #setRefMetaObject(RefObject)}.
+     */
     public RefObject refMetaObject()
     {
         return metaObj;
     }
 
-    public String refMofId()
+    /**
+     * Sets this instance's reflective meta-object to the given 
+     * {@link RefObject}.
+     * 
+     * @param metaObj new reflective meta-object for this instance
+     */
+    public void setRefMetaObject(RefObject metaObj)
     {
-        return refMofId;
+        this.metaObj = metaObj;
     }
-
+    
     public RefPackage refOutermostPackage()
     {
         if (immediatePackage == null) {
@@ -83,7 +112,7 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     public void setMofId(long refMofId)
     {
         this.mofId = refMofId;
-        this.refMofId= MetamodelInitializer.makeMofIdStr(refMofId);
+        this.refMofId= MofIdUtil.makeMofIdStr(refMofId);
     }
     
     public void setImmediatePackage(RefPackage pkg)
@@ -91,12 +120,6 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         this.immediatePackage = pkg;
     }
     
-    public void setMetaObject(RefObject metaObj)
-    {
-        // TODO: this method needs to be called
-        this.metaObj = metaObj;
-    }
-
     public boolean equals(Object other)
     {
         if (other instanceof RefBaseObjectBase) {
@@ -119,14 +142,47 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     {
         return (int)(mofId ^ (mofId >>> 32));
     }
-        
+
+    /**
+     * Creates an instance of the named or given type by invoking a factory
+     * method implemented by a sub-type.
+     * 
+     * <p>The given meta-object or type name is used to search for a method
+     * that returns the result type.  The method's name must start with the
+     * word "create."  The remainder of the method's name is the meta-object's
+     * name (via {@link ModelElement#getName()} or the given type name.
+     * 
+     * <p>In addition to having the correct name, the number of parameters
+     * must match the given parameter list and the method's parameter types
+     * must be assignable from the objects in the parameter list.
+     * 
+     * @param <E> return type
+     * @param type meta-object for the type to create
+     * @param typeName type name for the type to create
+     * @param params creation parameters
+     * @param resultType return type class
+     * @return an newly created instance matching the type/typeName and 
+     *         resultType
+     * @throws InternalJmiError if type and typeName are both null or both 
+     *                          non-null, or if this instance is not a
+     *                          {@link RefClass} or {@link RefPackage}
+     * @throws WrongSizeException if the number of parameters does not match
+     *                            the factory method.
+     * @throws TypeMismatchException if the parameters cannot be converted to
+     *                               the factory method's parameter types
+     * @throws InvalidCallException if no method matches type
+     * @throws InvalidNameException if no method matches typeName
+     */
     protected <E> E createInstance(
         RefObject type,
         String typeName,
         List<?> params,
         Class<E> resultType)
     {
-        assert(this instanceof RefClass);
+        if (!(this instanceof RefClass || this instanceof RefPackage)) {
+            throw new InternalJmiError(
+                "bad call: createInstance only valid on RefClass/RefPackage");
+        }
         
         if ((type == null && typeName == null) ||
             (type != null && typeName != null)) 
@@ -146,22 +202,37 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         
         Method[] methods = getClass().getMethods();
         
+        WrongSizeException wse = null;
+        TypeMismatchException tme = null;
+        
+        METHOD_SEARCH:
         for(Method method: methods) {
             Class<?>[] paramTypes = method.getParameterTypes();
-            if (RefStruct.class.isAssignableFrom(method.getReturnType()) &&
+            if (resultType.isAssignableFrom(method.getReturnType()) &&
                 method.getName().startsWith("create")) {
     
                 if (paramTypes.length != params.size()) {
-                    throw new WrongSizeException(type, typeName);
+                    if (wse == null) {
+                        wse = new WrongSizeException(type, typeName);
+                    }
+                    continue;
                 }
     
                 for(int i = 0; i < paramTypes.length; i++) {
                     Class<?> paramType = paramTypes[i];
                     Class<?> callerParamType = params.get(i).getClass();
                     
+                    if (paramType.isPrimitive()) {
+                        paramType = Primitives.getWrapper(paramType);
+                    }
+                    
                     if (!paramType.isAssignableFrom(callerParamType)) {
-                        throw new TypeMismatchException(
-                            paramType, params.get(i), type, typeName);
+                        if (tme == null) {
+                            tme = 
+                                new TypeMismatchException(
+                                    paramType, params.get(i), type, typeName);
+                        }
+                        continue METHOD_SEARCH;
                     }
                 }
                 
@@ -172,6 +243,14 @@ public abstract class RefBaseObjectBase implements RefBaseObject
             }
         }
         
+        if (tme != null) {
+            throw tme;
+        }
+        
+        if (wse != null) {
+            throw wse;
+        }
+        
         if (type != null) {
             throw new InvalidCallException(this, type, typeName);
         } else {
@@ -179,10 +258,27 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         }
     }
 
+    /**
+     * Retrieves the specified enumeration literal.
+     * 
+     * @param enumType meta-object representing the enumeration
+     * @param enumTypeName enumeration type name
+     * @param name enumeration literal
+     * @return the RefEnum representing the given enumeration literal
+     * @throws InternalJmiError if enumType and enumTypeName are both null or 
+     *                          both non-null, or if this instance is not a
+     *                          {@link RefClass} or {@link RefPackage}
+     * @throws InvalidCallException if no method matches enumType
+     * @throws InvalidNameException if no method matches enumTypeName
+     * 
+     */
     protected RefEnum getEnum(RefObject enumType, String enumTypeName, String name)
     {
-        assert(this instanceof RefPackage || this instanceof RefClass);
-        
+        if (!(this instanceof RefClass || this instanceof RefPackage)) {
+            throw new InternalJmiError(
+                "bad call: createInstance only valid on RefClass/RefPackage");
+        }
+                
         if ((enumType == null && enumTypeName == null) ||
             (enumType != null && enumTypeName != null)) 
         {
@@ -241,11 +337,35 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         return refEnum;
     }
 
+    /**
+     * Invokes the given method on this instance using reflection.  
+     * The result is cast to be of type <code>cls</code>, 
+     * unless <code>cls == Void.class</code> in which case null is always 
+     * returned.  Invocation exceptions are wrapped in {@link InternalJmiError}.
+     * 
+     * @param <E> return type
+     * @param cls return type class
+     * @param method method to invoke
+     * @return the result of the method invocation (see above)
+     */
     protected <E> E invokeMethod(Class<E> cls, Method method)
     {
         return invokeMethod(cls, this, method);
     }
     
+    /**
+     * Invokes the given method using reflection.  The result is cast to be
+     * of type <code>cls</code>, unless <code>cls == Void.class</code> in
+     * which case null is always returned.  Invocation exceptions are
+     * wrapped in {@link InternalJmiError}.
+     * 
+     * @param <E> return type
+     * @param cls return type class
+     * @param instance instance on which to invoke the method
+     * @param method method to invoke
+     * @param params method parameters
+     * @return the result of the method invocation (see above)
+     */
     protected <E> E invokeMethod(
         Class<E> cls, Object instance, Method method, Object... params)
     {

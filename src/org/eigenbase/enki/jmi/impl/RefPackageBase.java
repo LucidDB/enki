@@ -28,6 +28,8 @@ import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 /**
+ * RefPackageBase is a base class for {@link RefPackage} implementations.
+ * 
  * @author Stephan Zuercher
  */
 public abstract class RefPackageBase 
@@ -41,7 +43,7 @@ public abstract class RefPackageBase
         this.container = container;
     }
 
-    // Implement RefBaseObjectBase/RefBaseObject
+    // Implement RefBaseObject
     public RefPackage refImmediatePackage()
     {
         return container;

@@ -1,5 +1,7 @@
 /*
-//  $Id$
+//  $Id:
+//  //open/enki/src/org/eigenbase/enki/codegen/MofImplementationGenerator.java#1
+//  $
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
 //  Copyright (C) 2007-2007 The Eigenbase Project
 //  Copyright (C) 2007-2007 Disruptive Tech
@@ -57,14 +59,14 @@ public class Exposes
         javax.jmi.model.AssociationEnd exposedEnd)
     {
         return super.refQuery(
-            "referrer", exposedEnd);
+            "exposedEnd", exposedEnd);
     }
 
     public javax.jmi.model.AssociationEnd getExposedEnd(
         javax.jmi.model.Reference referrer)
     {
         Collection<?> result = super.refQuery(
-            "exposedEnd", referrer);
+            "referrer", referrer);
         Iterator<?> iter = result.iterator();
         if (iter.hasNext()) {
             return (javax.jmi.model.AssociationEnd)iter.next();

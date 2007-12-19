@@ -23,6 +23,8 @@ package org.eigenbase.enki.hibernate.storage;
 
 import java.util.*;
 
+import javax.jmi.reflect.*;
+
 /**
  * HibernateManyToManyAssociation extends HibernateAssociation to store
  * many-to-many associations. 
@@ -76,7 +78,7 @@ public class HibernateManyToManyAssociation
     }
 
     @Override
-    public void add(HibernateAssociable left, HibernateAssociable right)
+    public boolean add(HibernateAssociable left, HibernateAssociable right)
     {
         final String type = getType();
 
@@ -87,8 +89,10 @@ public class HibernateManyToManyAssociation
             child = right;
         }
         
+        boolean result = false;
         if (!target.contains(child)) {
             target.add(child);
+            result = true;
         }
         
         HibernateManyToManyAssociation childAssoc = 
@@ -96,7 +100,10 @@ public class HibernateManyToManyAssociation
         
         if (!childAssoc.getTarget().contains(source)) {
             childAssoc.getTarget().add(source);
+            result = true;
         }
+        
+        return result;
     }
 
     @Override
@@ -191,6 +198,21 @@ public class HibernateManyToManyAssociation
         }
         
         return target;
+    }
+
+    @Override
+    public Iterator<RefAssociationLink> iterator()
+    {
+        ArrayList<RefAssociationLink> links = 
+            new ArrayList<RefAssociationLink>();
+        HibernateAssociable source = getSource();
+        for(HibernateAssociable target: getTarget()) {
+            RefAssociationLink link =
+                new org.eigenbase.enki.jmi.impl.RefAssociationLink(
+                    source, target);
+            links.add(link);
+        }
+        return links.iterator();
     }
 }
 

@@ -125,7 +125,8 @@ public class CreateExtentSubTask extends EnkiTask.SubTask
                 if (extentPackage == null) {
                     throw new BuildException(
                         "Package '" + packageName + 
-                        "' does not exist in the extent '" + extentName + "'");
+                        "' does not exist in the extent '" + modelExtentName + 
+                        "'");
                 }
                 
                 repos.createExtent(extentName, extentPackage);

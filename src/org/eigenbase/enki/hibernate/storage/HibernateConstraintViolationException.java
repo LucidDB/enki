@@ -24,17 +24,18 @@ package org.eigenbase.enki.hibernate.storage;
 import java.util.*;
 
 /**
- * ConstraintViolationException represents one or more metamodel constraint
- * violations encountered while persisting one or more model elements.
+ * HibernateConstraintViolationException represents one or more metamodel 
+ * constraint violations encountered while persisting one or more model 
+ * elements.
  * 
  * @author Stephan Zuercher
  */
-public class ConstraintViolationException
+public class HibernateConstraintViolationException
     extends RuntimeException
 {
     private static final long serialVersionUID = -5257723747016060501L;
 
-    public ConstraintViolationException(List<String> messages)
+    public HibernateConstraintViolationException(List<String> messages)
     {
         super(buildMessage(messages));
     }
