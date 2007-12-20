@@ -267,6 +267,8 @@
     </if>
   </target>
 
+  <target name="stop-mysql-server" depends="shutdown-mysql-server"/>
+
   <target name="shutdown-mysql-server">
     <if>
       <available file="${mysql.inst.dir}/bin" type="dir"/>

@@ -25,6 +25,8 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.*;
+
 /**
  * HibernateOneToManyAssociation extends HibernateAssociation and stores
  * one-to-many associations.  Specifically this class handles 0..1 to 0..*, 
@@ -79,102 +81,129 @@ public class HibernateOneToManyAssociation
     {
         final String type = getType();
 
-        boolean sameParent = equals(parent, newParent);
-        if (sameParent && getChildren().contains(newChild)) {
-            // Nothing to do here.
-            assert(newParent.getAssociation(type).equals(this));
-            assert(newChild.getAssociation(type).equals(this));
-            return false;
-        }
-        
-        // Remove child from previous association, if any. (FYI, if not same
-        // parent, childAssoc == this).
-        HibernateOneToManyAssociation childAssoc =
+        // This association must be related to one of the two objects.
+        HibernateOneToManyAssociation parentAssoc = 
+            (HibernateOneToManyAssociation)newParent.getAssociation(type);
+        HibernateOneToManyAssociation childAssoc = 
             (HibernateOneToManyAssociation)newChild.getAssociation(type);
-        if (childAssoc != null) {
-            assert(sameParent || childAssoc.equals(this));
-            childAssoc.remove(childAssoc.getParent(), newChild);
-        }
 
+        boolean sameParent = parentAssoc == this;
+        boolean sameChild = childAssoc == this;
+        assert(sameParent || sameChild);
+        
         if (sameParent) {
-            assert(newParent.getAssociation(type).equals(this));
+            if (sameChild) {
+                // REVIEW: 12/19/07: There's a non-unique multiplicity type
+                // that probably needs to be handled here.
+                assert(equals(getParent(), newParent));
+                assert(getChildren().contains(newChild));
+                return false;
+            }
 
-            // Add child to this association.
-            newChild.setAssociation(type, this);
-            getChildren().add(newChild);
-        } else {
-            HibernateOneToManyAssociation parentAssoc =
-                (HibernateOneToManyAssociation)newParent.getAssociation(type);
-            if (parentAssoc == null) {
-                parentAssoc = new HibernateOneToManyAssociation();
-                parentAssoc.setType(type);
-                parentAssoc.setParent(newParent);
-                newParent.setAssociation(type, parentAssoc);
+            if (childAssoc != null) {
+                // Child associated with another parent.
+                childAssoc.getChildren().remove(newChild);
+                
+                // REVIEW: 12/19/07: Should we delete childAssoc "if (childAssoc.getChildren().isEmpty())"?
             }
             
-            newChild.setAssociation(type, parentAssoc);
-            parentAssoc.getChildren().add(newChild);
-            
-            // TODO: delete this association if there are no children left?
+            newChild.setAssociation(type, this);
+            getChildren().add(newChild);
+            return true;
+        }
+
+        if (parentAssoc == null) {
+            // Parent had no previous association.
+            newParent.setAssociation(type, this);
+            setParent(newParent);
+            return true;
         }
         
-        return true;
+        // Associating child with a new parent.  Invoke parent association's
+        // add method.
+        return parentAssoc.add(newParent, newChild);
     }
 
     public void add(
         int index, 
-        HibernateAssociable left,
-        HibernateAssociable right)
+        HibernateAssociable newParent,
+        HibernateAssociable newChild)
     {
-        assert(equals(left, parent) || equals(right, parent));
-
         final String type = getType();
+
+        // This association must be related to one of the two objects.
+        HibernateOneToManyAssociation parentAssoc = 
+            (HibernateOneToManyAssociation)newParent.getAssociation(type);
+        HibernateOneToManyAssociation childAssoc = 
+            (HibernateOneToManyAssociation)newChild.getAssociation(type);
+
+        boolean sameParent = parentAssoc == this;
+        boolean sameChild = childAssoc == this;
+        assert(sameParent || sameChild);
         
-        HibernateAssociable child = left;
-        if (equals(left, parent)) {
-            child = right;
+        if (sameParent) {
+            if (sameChild) {
+                // REVIEW: 12/19/07: There's a non-unique multiplicity type
+                // that probably needs to be handled here.
+                return;
+            }
+
+            if (childAssoc != null) {
+                // Child associated with another parent.
+                childAssoc.getChildren().remove(newChild);
+                
+                // REVIEW: 12/19/07: Should we delete childAssoc "if (childAssoc.getChildren().isEmpty())"?
+            }
+            
+            newChild.setAssociation(type, this);
+            getChildren().add(index, newChild);
+            return;
+        }
+
+        if (parentAssoc == null) {
+            // Parent had no previous association.
+            newParent.setAssociation(type, this);
+            setParent(newParent);
+            return;
         }
         
-        assert(parent.getAssociation(type).equals(this));
-        
-        // Remove child from previous association, if any.
-        HibernateOneToManyAssociation childAssoc =
-            (HibernateOneToManyAssociation)child.getAssociation(type);
-        if (childAssoc != null) {
-            childAssoc.remove(childAssoc.getParent(), right);
-        }
-        
-        child.setAssociation(type, this);
-        children.add(index, child);
+        // Associating child with a new parent.  Invoke parent association's
+        // add method.
+        parentAssoc.add(index, newParent, newChild);
     }
 
     @Override
-    public boolean remove(HibernateAssociable left, HibernateAssociable right)
+    public boolean remove(
+        HibernateAssociable parent, HibernateAssociable child)
     {
-        assert(equals(left, parent) || equals(right, parent));
-
         final String type = getType();
         
-        HibernateAssociable child = left;
-        if (equals(left, parent)) {
-            child = right;
+        // This association must be related to one of the two objects.
+        HibernateOneToManyAssociation parentAssoc = 
+            (HibernateOneToManyAssociation)parent.getAssociation(type);
+        HibernateOneToManyAssociation childAssoc = 
+            (HibernateOneToManyAssociation)child.getAssociation(type);
+        
+        if (!equals(parentAssoc, childAssoc)) {
+            // Objects aren't association
+            return false;
         }
         
         assert(parent.getAssociation(type).equals(this));
         assert(child.getAssociation(type).equals(this));
-        assert(children.contains(child));
+        assert(equals(getParent(), parent));
+        assert(getChildren().contains(child));
         
         child.setAssociation(type, null);
-        boolean result = children.remove(child);
+        children.remove(child);
         
         if (children.isEmpty()) {
             parent.setAssociation(type, null);
             
-            // REVIEW: SWZ: 11/14/2007: get Hibernate session and delete this?
-            // Or does that happen auto-magically?
+            HibernateMDRepository.getCurrentSession().delete(this);
         }
         
-        return result;
+        return true;
     }
     
     @Override

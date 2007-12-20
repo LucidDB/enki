@@ -25,6 +25,8 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.*;
+
 /**
  * HibernateManyToManyAssociation extends HibernateAssociation to store
  * many-to-many associations. 
@@ -78,28 +80,23 @@ public class HibernateManyToManyAssociation
     }
 
     @Override
-    public boolean add(HibernateAssociable left, HibernateAssociable right)
+    public boolean add(
+        HibernateAssociable newSource, HibernateAssociable newTarget)
     {
         final String type = getType();
 
-        assert(equals(left, source) || equals(right, source));
-        
-        HibernateAssociable child = left;
-        if (equals(left, source)) {
-            child = right;
-        }
-        
         boolean result = false;
-        if (!target.contains(child)) {
-            target.add(child);
+        if (!getTarget().contains(newTarget)) {
+            getTarget().add(newTarget);
             result = true;
         }
         
-        HibernateManyToManyAssociation childAssoc = 
-            (HibernateManyToManyAssociation)child.getOrCreateAssociation(type);
+        HibernateManyToManyAssociation targetAssoc = 
+            (HibernateManyToManyAssociation)newTarget.getOrCreateAssociation(
+                type);
         
-        if (!childAssoc.getTarget().contains(source)) {
-            childAssoc.getTarget().add(source);
+        if (!targetAssoc.getTarget().contains(source)) {
+            targetAssoc.getTarget().add(source);
             result = true;
         }
         
@@ -108,60 +105,48 @@ public class HibernateManyToManyAssociation
 
     @Override
     public void add(
-        int index, HibernateAssociable left, HibernateAssociable right)
+        int index, 
+        HibernateAssociable newSource, 
+        HibernateAssociable newTarget)
     {
         final String type = getType();
 
-        assert(equals(left, source) || equals(right, source));
-        
-        HibernateAssociable child = left;
-        if (equals(left, source)) {
-            child = right;
+        if (!getTarget().contains(newTarget)) {
+            getTarget().add(index, newTarget);
         }
         
-        if (!target.contains(child)) {
-            target.add(index, child);
-        }
-        
-        HibernateManyToManyAssociation childAssoc = 
-            (HibernateManyToManyAssociation)child.getOrCreateAssociation(type);
+        HibernateManyToManyAssociation targetAssoc = 
+            (HibernateManyToManyAssociation)newTarget.getOrCreateAssociation(
+                type);
         
         // TODO: SWZ: 11/15/07: Use index here, too?
-        if (!childAssoc.getTarget().contains(source)) {
-            childAssoc.getTarget().add(source);
+        if (!targetAssoc.getTarget().contains(source)) {
+            targetAssoc.getTarget().add(source);
         }
     }
 
     @Override
-    public boolean remove(HibernateAssociable left, HibernateAssociable right)
+    public boolean remove(
+        HibernateAssociable source, HibernateAssociable target)
     {
         final String type = getType();
 
-        assert(equals(left, source) || equals(right, source));
-        
-        HibernateAssociable child = left;
-        if (equals(left, source)) {
-            child = right;
-        }
-
-        boolean targetResult = target.remove(child);
-        if (target.isEmpty()) {
+        boolean targetResult = getTarget().remove(target);
+        if (getTarget().isEmpty()) {
             source.setAssociation(type, null);
 
-            // REVIEW: SWZ: 11/14/2007: get Hibernate session and delete this?
-            // Or does that happen auto-magically?
+            HibernateMDRepository.getCurrentSession().delete(this);
         }
         
-        HibernateManyToManyAssociation childAssoc = 
-            (HibernateManyToManyAssociation)child.getAssociation(type);
-        assert(childAssoc != null);
+        HibernateManyToManyAssociation targetAssoc = 
+            (HibernateManyToManyAssociation)target.getAssociation(type);
+        assert(targetAssoc != null);
         
-        boolean sourceResult = childAssoc.getTarget().remove(source);
-        if (childAssoc.getTarget().isEmpty()) {
-            child.setAssociation(type, null);
+        boolean sourceResult = targetAssoc.getTarget().remove(source);
+        if (targetAssoc.getTarget().isEmpty()) {
+            target.setAssociation(type, null);
 
-            // REVIEW: SWZ: 11/14/2007: get Hibernate session and delete 
-            // childAssoc? Or does that happen auto-magically?
+            HibernateMDRepository.getCurrentSession().delete(targetAssoc);
         }
         
         return targetResult || sourceResult;

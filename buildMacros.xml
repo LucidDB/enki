@@ -129,15 +129,29 @@
   <macrodef name="start-mysql-server">
     <sequential>
       <echo message="Starting MySQL Server (under MYSQL_HOME: ${mysql.inst.dir}) ..."/>
+
+      <if>
+        <isset property="mysql.logging"/>
+        <then>
+          <property name="start.mysql.with.logging" value="-l"/>
+          <echo message="  (with logging)"/>
+        </then>
+        <else>
+          <property name="start.mysql.with.logging" value=""/>
+        </else>
+      </if>
+
       <if>
         <isset property="notWindows" />
         <then>
           <exec dir="${mysql.inst.dir}" executable="${mysql.inst.dir}/bin/mysqld_safe" failonerror="false" spawn="true">
+            <arg value="${start.mysql.with.logging}"/>
           </exec>
         </then>
         <else>
           <exec dir="${mysql.inst.dir}/bin" executable="${mysql.inst.dir}/bin/mysqld" failonerror="false" spawn="true">
             <arg value="--defaults-file=${mysql.inst.dir}/my.ini"/>
+            <arg value="${start.mysql.with.logging}"/>
           </exec>
         </else>
       </if>

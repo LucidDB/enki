@@ -49,6 +49,7 @@ public abstract class ModelTestBase
     private static final String PROPERTY_ENKI_HOME = "enki.home";
     private static MDRepository repos;
     private static RefPackage pkg;
+    private static String testExtentName;
     
     @BeforeClass
     public static void setUpTestClass()
@@ -88,15 +89,20 @@ public abstract class ModelTestBase
         return repos;
     }
 
+    protected static String getTestExtentName()
+    {
+        return testExtentName;
+    }
+    
     private static void load()
     {
         String enkiHome = System.getProperty(PROPERTY_ENKI_HOME);
         Assert.assertNotNull(enkiHome);
         Assert.assertTrue(enkiHome.length() > 0);
         
-        String extentName = System.getProperty(PROPERTY_ENKI_TEST_EXTENT);
-        Assert.assertNotNull(extentName);
-        Assert.assertTrue(extentName.length() > 0);
+        testExtentName = System.getProperty(PROPERTY_ENKI_TEST_EXTENT);
+        Assert.assertNotNull(testExtentName);
+        Assert.assertTrue(testExtentName.length() > 0);
 
         File storagePropsFile = 
             new File(enkiHome, "test/TestStorage.properties");
@@ -110,7 +116,7 @@ public abstract class ModelTestBase
         
         repos = MDRepositoryFactory.newMDRepository(props);
         
-        pkg = repos.getExtent(extentName);
+        pkg = repos.getExtent(testExtentName);
     }
     
     protected static void fail(Throwable t)

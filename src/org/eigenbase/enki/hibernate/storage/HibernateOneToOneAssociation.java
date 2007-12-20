@@ -25,6 +25,8 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.*;
+
 /**
  * HibernateOneToOneAssociation extends HibernateAssociation and stores
  * one-to-one associations. 
@@ -34,119 +36,114 @@ import javax.jmi.reflect.*;
 public class HibernateOneToOneAssociation
     extends HibernateAssociation
 {
-    private HibernateAssociable left;
-    private HibernateAssociable right;
+    private HibernateAssociable parent;
+    private HibernateAssociable child;
     
     public HibernateOneToOneAssociation()
     {
     }
     
-    public HibernateAssociable getLeft()
+    public HibernateAssociable getParent()
     {
-        return left;
+        return parent;
     }
     
-    public void setLeft(HibernateAssociable left)
+    public void setParent(HibernateAssociable parent)
     {
-        this.left = left;
+        this.parent = parent;
     }
     
-    public <E> E getLeft(Class<E> cls)
+    public <E> E getParent(Class<E> cls)
     {
-        return cls.cast(left);
+        return cls.cast(parent);
     }
 
-    public HibernateAssociable getRight()
+    public HibernateAssociable getChild()
     {
-        return right;
+        return child;
     }
 
-    public void setRight(HibernateAssociable right)
+    public void setChild(HibernateAssociable child)
     {
-        this.right = right;
+        this.child = child;
     }
     
-    public <E> E getRight(Class<E> cls)
+    public <E> E getChild(Class<E> cls)
     {
-        return cls.cast(right);
+        return cls.cast(child);
     }
 
     @Override
-    public boolean add(HibernateAssociable newLeft, HibernateAssociable newRight)
+    public boolean add(
+        HibernateAssociable newParent, HibernateAssociable newChild)
     {
         final String type = getType();
         
-        if (equals(left, newLeft) && equals(right, newRight)) {
-            // Nothing to do.
-            assert(this.equals(newLeft.getAssociation(type)));
-            assert(this.equals(newRight.getAssociation(type)));
-            return false;
-        }
+        HibernateOneToOneAssociation parentAssoc = 
+            (HibernateOneToOneAssociation)newParent.getAssociation(type);
+        HibernateOneToOneAssociation childAssoc = 
+            (HibernateOneToOneAssociation)newChild.getAssociation(type);
         
-        if (equals(getLeft(), newLeft)) {
-            assert(this.equals(newLeft.getAssociation(type)));
-            
-            // Remove association from the old right, if any.
-            if (getRight() != null) {
-                getRight().setAssociation(type, null);
-            }
-
-            // Remove any previous association to the new right. 
-            HibernateOneToOneAssociation newRightAssoc = 
-                (HibernateOneToOneAssociation)newRight.getAssociation(type);
-            if (newRightAssoc != null) {
-                newRightAssoc.getLeft().setAssociation(type, null);
+        boolean sameParent = (parentAssoc == this);
+        boolean sameChild = (childAssoc == this);
+        
+        if (sameParent) {
+            if (sameChild) {
+                // Nothing to do.
+                assert(this.equals(newParent.getAssociation(type)));
+                assert(this.equals(newChild.getAssociation(type)));
+                return false;
             }
             
-            setRight(newRight);
-            newRight.setAssociation(type, this);
-        } else {
-            assert(equals(getRight(), newRight));
-            assert(this.equals(newRight.getAssociation(type)));
-            
-            // Remove association from the old left, if any.
-            if (getLeft() != null) {
-                getLeft().setAssociation(type, null);
+            if (childAssoc != null) {
+                // Child associated with another parent.
+                childAssoc.setChild(null);
+                
+                // REVIEW: 12/19/07: Should we delete childAssoc?
             }
             
-            // Remove any previous association to the new left.
-            HibernateOneToOneAssociation newLeftAssoc =
-                (HibernateOneToOneAssociation)newLeft.getAssociation(type);
-            if (newLeftAssoc != null) {
-                newLeftAssoc.getRight().setAssociation(type, null);
-            }
-            
-            setLeft(newLeft);
-            newLeft.setAssociation(type, this);
+            newChild.setAssociation(type, this);
+            setChild(newChild);
+            return true;
         }
 
-        // REVIEW: SWZ: 11/14/2007: get Hibernate session and delete dangling
-        // associations? Or does that happen auto-magically?
+        if (parentAssoc == null) {
+            newParent.setAssociation(type, this);
+            setParent(newParent);
+            return true;
+        }
         
-        return true;
+        // Associating child with a new parent.  Invoke parent association's
+        // add method.
+        return parentAssoc.add(newParent, newChild);
     }
 
     @Override
     public void add(
-        int index, HibernateAssociable left, HibernateAssociable right)
+        int index, HibernateAssociable parent, HibernateAssociable child)
     {
-        add(left, right);
+        add(parent, child);
     }
     
     @Override
-    public boolean remove(HibernateAssociable left, HibernateAssociable right)
+    public boolean remove(
+        HibernateAssociable parent, HibernateAssociable child)
     {
         final String type = getType();
 
-        assert(equals(getLeft(), left) && equals(getRight(), right));
-        assert(this.equals(left.getAssociation(type)));
-        assert(this.equals(right.getAssociation(type)));
+        if (!equals(parent.getAssociation(type), child.getAssociation(type))) {
+            // Objects not associated.
+            return false;
+        }
         
-        getLeft().setAssociation(type, null);
-        getRight().setAssociation(type, null);
+        assert(equals(getParent(), parent) && equals(getChild(), child));
+        assert(this.equals(parent.getAssociation(type)));
+        assert(this.equals(child.getAssociation(type)));
         
-        // REVIEW: SWZ: 11/14/2007: get Hibernate session and delete ourselves?
-        // Or does that happen auto-magically?
+        getParent().setAssociation(type, null);
+        getChild().setAssociation(type, null);
+        
+        HibernateMDRepository.getCurrentSession().delete(this);
         
         return true;
     }
@@ -154,18 +151,18 @@ public class HibernateOneToOneAssociation
     @Override
     public void clear(HibernateAssociable item)
     {
-        if (equals(getLeft(), item) || equals(getRight(), item)) {
-            remove(getLeft(), getRight());
+        if (equals(getParent(), item) || equals(getChild(), item)) {
+            remove(getParent(), getChild());
         }
     }
     
     @Override
     public List<HibernateAssociable> get(HibernateAssociable item)
     {
-        if (equals(getLeft(), item)) {
-            return Collections.singletonList(getRight());
-        } else if (equals(getRight(), item)) {
-            return Collections.singletonList(getLeft());
+        if (equals(getParent(), item)) {
+            return Collections.singletonList(getChild());
+        } else if (equals(getChild(), item)) {
+            return Collections.singletonList(getParent());
         } else {
             return Collections.emptyList();
         }
@@ -176,7 +173,7 @@ public class HibernateOneToOneAssociation
     {
         RefAssociationLink link = 
             new org.eigenbase.enki.jmi.impl.RefAssociationLink(
-                getLeft(), getRight());
+                getParent(), getChild());
         
         return Collections.singleton(link).iterator();
     }

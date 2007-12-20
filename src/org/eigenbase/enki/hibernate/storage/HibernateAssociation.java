@@ -128,6 +128,25 @@ public abstract class HibernateAssociation
         
         return a1.equals(a2);
     }
+
+    /**
+     * Test two HibernateAssociation objects for equality.  Equality is based
+     * on {@link Object#equals(Object)}.  Null references are handled without
+     * error.
+     * 
+     * @param a1 a HibernateAssociation
+     * @param a2 a HibernateAssociation
+     * @return true if a1.equals(a2) or a1 == null and a2 == null
+     */
+    protected static boolean equals(
+        HibernateAssociation a1, HibernateAssociation a2)
+    {
+        if (a1 == null || a2 == null) {
+            return a1 == a2;
+        }
+        
+        return a1.equals(a2);
+    }
 }
 
 // End HibernateAssociation.java

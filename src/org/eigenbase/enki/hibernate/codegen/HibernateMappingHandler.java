@@ -47,16 +47,16 @@ public class HibernateMappingHandler
     private static final String ASSOC_TYPE_PROPERTY = "type";
 
     private static final String ASSOC_ONE_TO_ONE_TABLE = "AssocOneToOne";
-    private static final String ASSOC_ONE_TO_ONE_LEFT_PROPERTY = "left";
-    private static final String ASSOC_ONE_TO_ONE_LEFT_TYPE_COLUMN = 
-        "left_type";
-    private static final String ASSOC_ONE_TO_ONE_LEFT_ID_COLUMN =
-        "left_id";
-    private static final String ASSOC_ONE_TO_ONE_RIGHT_PROPERTY = "right";
-    private static final String ASSOC_ONE_TO_ONE_RIGHT_TYPE_COLUMN = 
-        "right_type";
-    private static final String ASSOC_ONE_TO_ONE_RIGHT_ID_COLUMN =
-        "right_id";
+    private static final String ASSOC_ONE_TO_ONE_PARENT_PROPERTY = "parent";
+    private static final String ASSOC_ONE_TO_ONE_PARENT_TYPE_COLUMN = 
+        "parent_type";
+    private static final String ASSOC_ONE_TO_ONE_PARENT_ID_COLUMN =
+        "parent_id";
+    private static final String ASSOC_ONE_TO_ONE_CHILD_PROPERTY = "child";
+    private static final String ASSOC_ONE_TO_ONE_CHILD_TYPE_COLUMN = 
+        "child_type";
+    private static final String ASSOC_ONE_TO_ONE_CHILD_ID_COLUMN =
+        "child_id";
 
     private static final String ASSOC_ONE_TO_MANY_TABLE = "AssocOneToMany";
     private static final String ASSOC_ONE_TO_MANY_PARENT_PROPERTY = "parent";
@@ -125,14 +125,14 @@ public class HibernateMappingHandler
         new JavaClassReference(MofIdGenerator.class, false);
 
 
-    private Set<Classifier> oneToOneLeftTypeSet;
-    private Set<Classifier> oneToOneRightTypeSet;
+    private Set<Classifier> oneToOneParentTypeSet;
+    private Set<Classifier> oneToOneChildTypeSet;
 
     private Set<Classifier> oneToManyParentTypeSet;
     private Set<Classifier> oneToManyChildTypeSet;
     
-    private Set<Classifier> manyToManyLeftTypeSet;
-    private Set<Classifier> manyToManyRightTypeSet;
+    private Set<Classifier> manyToManySourceTypeSet;
+    private Set<Classifier> manyToManyTargetTypeSet;
 
     private Map<Classifier, Set<Classifier>> subTypeMap;
     
@@ -149,14 +149,14 @@ public class HibernateMappingHandler
     
     public HibernateMappingHandler()
     {
-        this.oneToOneLeftTypeSet = new LinkedHashSet<Classifier>();
-        this.oneToOneRightTypeSet = new LinkedHashSet<Classifier>();
+        this.oneToOneParentTypeSet = new LinkedHashSet<Classifier>();
+        this.oneToOneChildTypeSet = new LinkedHashSet<Classifier>();
         
         this.oneToManyParentTypeSet = new LinkedHashSet<Classifier>();
         this.oneToManyChildTypeSet = new LinkedHashSet<Classifier>();
         
-        this.manyToManyLeftTypeSet = new LinkedHashSet<Classifier>();
-        this.manyToManyRightTypeSet = new LinkedHashSet<Classifier>();
+        this.manyToManySourceTypeSet = new LinkedHashSet<Classifier>();
+        this.manyToManyTargetTypeSet = new LinkedHashSet<Classifier>();
         
         this.subTypeMap = new HashMap<Classifier, Set<Classifier>>();
     }
@@ -207,7 +207,7 @@ public class HibernateMappingHandler
     public void endGeneration(boolean throwing) throws GenerationException
     {
         if (!throwing) {
-            if (!oneToOneLeftTypeSet.isEmpty()) {
+            if (!oneToOneParentTypeSet.isEmpty()) {
                 writeOneToOneMapping();
                 newLine();
             }
@@ -217,7 +217,7 @@ public class HibernateMappingHandler
                 newLine();
             }
             
-            if (!manyToManyLeftTypeSet.isEmpty()) {
+            if (!manyToManySourceTypeSet.isEmpty()) {
                 writeManyToManyMapping();
             }
             
@@ -259,18 +259,18 @@ public class HibernateMappingHandler
 
     private void writeOneToOneMapping() throws GenerationException
     {
-        Map<String, String> oneToOneLeftTypeMap =
-            buildTypeMap(oneToOneLeftTypeSet);
-        Map<String, String> oneToOneRightTypeMap = 
-            buildTypeMap(oneToOneRightTypeSet);
+        Map<String, String> oneToOneParentTypeMap =
+            buildTypeMap(oneToOneParentTypeSet);
+        Map<String, String> oneToOneChildTypeMap = 
+            buildTypeMap(oneToOneChildTypeSet);
         
-        int leftLength = 64;
-        for(String key: oneToOneLeftTypeMap.keySet()) {
-            leftLength = Math.max(leftLength, key.length());
+        int parentLength = 64;
+        for(String key: oneToOneParentTypeMap.keySet()) {
+            parentLength = Math.max(parentLength, key.length());
         }
-        int rightLength = 64;
-        for(String key: oneToOneRightTypeMap.keySet()) {
-            rightLength = Math.max(rightLength, key.length());
+        int childLength = 64;
+        for(String key: oneToOneChildTypeMap.keySet()) {
+            childLength = Math.max(childLength, key.length());
         }
 
         // TODO: distinct tables/names for multi-extent repositories
@@ -285,15 +285,15 @@ public class HibernateMappingHandler
             "property",
             "name", ASSOC_TYPE_PROPERTY,
             "not-null", "true",
-            "length", String.valueOf(leftLength));
+            "length", String.valueOf(parentLength));
         
         startElem(
             "any",
-            "name", ASSOC_ONE_TO_ONE_LEFT_PROPERTY,
+            "name", ASSOC_ONE_TO_ONE_PARENT_PROPERTY,
             "id-type", "long",
             "meta-type", "string",
             "cascade", "save-update");
-        for(Map.Entry<String, String> entry: oneToOneLeftTypeMap.entrySet())
+        for(Map.Entry<String, String> entry: oneToOneParentTypeMap.entrySet())
         {
             writeEmptyElem(
                 "meta-value",
@@ -302,19 +302,19 @@ public class HibernateMappingHandler
         }
         
         writeEmptyElem(
-            "column", "name", ASSOC_ONE_TO_ONE_LEFT_TYPE_COLUMN);
+            "column", "name", ASSOC_ONE_TO_ONE_PARENT_TYPE_COLUMN);
         writeEmptyElem(
             "column",
-            "name", ASSOC_ONE_TO_ONE_LEFT_ID_COLUMN);
+            "name", ASSOC_ONE_TO_ONE_PARENT_ID_COLUMN);
         endElem("any");
 
         startElem(
             "any",
-            "name", ASSOC_ONE_TO_ONE_RIGHT_PROPERTY,
+            "name", ASSOC_ONE_TO_ONE_CHILD_PROPERTY,
             "id-type", "long",
             "meta-type", "string",
             "cascade", "save-update");
-        for(Map.Entry<String, String> entry: oneToOneRightTypeMap.entrySet())
+        for(Map.Entry<String, String> entry: oneToOneChildTypeMap.entrySet())
         {
             writeEmptyElem(
                 "meta-value",
@@ -323,10 +323,10 @@ public class HibernateMappingHandler
         }
         
         writeEmptyElem(
-            "column", "name", ASSOC_ONE_TO_ONE_RIGHT_TYPE_COLUMN);
+            "column", "name", ASSOC_ONE_TO_ONE_CHILD_TYPE_COLUMN);
         writeEmptyElem(
             "column",
-            "name", ASSOC_ONE_TO_ONE_RIGHT_ID_COLUMN);
+            "name", ASSOC_ONE_TO_ONE_CHILD_ID_COLUMN);
         endElem("any");
         endElem("class");
     }
@@ -415,20 +415,20 @@ public class HibernateMappingHandler
     
     private void writeManyToManyMapping() throws GenerationException
     {
-        Map<String, String> manyToManyLeftTypeMap = 
-            buildTypeMap(manyToManyLeftTypeSet);
-        Map<String, String> manyToManyRightTypeMap = 
-            buildTypeMap(manyToManyRightTypeSet);
+        Map<String, String> manyToManySourceTypeMap = 
+            buildTypeMap(manyToManySourceTypeSet);
+        Map<String, String> manyToManyTargetTypeMap = 
+            buildTypeMap(manyToManyTargetTypeSet);
 
-        int leftLength = 64;
-        for(String key: manyToManyLeftTypeMap.keySet()) {
-            leftLength = Math.max(leftLength, key.length());
+        int sourceLength = 64;
+        for(String key: manyToManySourceTypeMap.keySet()) {
+            sourceLength = Math.max(sourceLength, key.length());
         }
-        int rightLength = 64;
-        for(String key: manyToManyRightTypeMap.keySet()) {
-            rightLength = Math.max(rightLength, key.length());
+        int targetLength = 64;
+        for(String key: manyToManyTargetTypeMap.keySet()) {
+            targetLength = Math.max(targetLength, key.length());
         }
-        int length = Math.max(leftLength, rightLength);
+        int length = Math.max(sourceLength, targetLength);
 
         // TODO: distinct tables/names for multi-extent repositories
         startElem(
@@ -451,14 +451,14 @@ public class HibernateMappingHandler
             "name", ASSOC_MANY_TO_MANY_SOURCE_PROPERTY,
             "id-type", "long",
             "meta-type", "string");
-        for(Map.Entry<String, String> entry: manyToManyLeftTypeMap.entrySet())
+        for(Map.Entry<String, String> entry: manyToManySourceTypeMap.entrySet())
         {
             writeEmptyElem(
                 "meta-value",
                 "value", entry.getKey(),
                 "class", entry.getValue());
         }
-        for(Map.Entry<String, String> entry: manyToManyRightTypeMap.entrySet())
+        for(Map.Entry<String, String> entry: manyToManyTargetTypeMap.entrySet())
         {
             writeEmptyElem(
                 "meta-value",
@@ -487,14 +487,14 @@ public class HibernateMappingHandler
             "many-to-any",
             "id-type", "long", 
             "meta-type", "string");
-        for(Map.Entry<String, String> entry: manyToManyLeftTypeMap.entrySet())
+        for(Map.Entry<String, String> entry: manyToManySourceTypeMap.entrySet())
         {
             writeEmptyElem(
                 "meta-value",
                 "value", entry.getKey(),
                 "class", entry.getValue());
         }
-        for(Map.Entry<String, String> entry: manyToManyRightTypeMap.entrySet())
+        for(Map.Entry<String, String> entry: manyToManyTargetTypeMap.entrySet())
         {
             writeEmptyElem(
                 "meta-value",
@@ -680,12 +680,12 @@ public class HibernateMappingHandler
         
         if (end0Upper != 1 && end1Upper != 1) {
             // Many-to-many
-            manyToManyLeftTypeSet.add(ends[0].getType());
-            manyToManyRightTypeSet.add(ends[1].getType());
+            manyToManySourceTypeSet.add(ends[0].getType());
+            manyToManyTargetTypeSet.add(ends[1].getType());
         } else if (end0Upper == 1 && end1Upper == 1) {
             // One-to-one
-            oneToOneLeftTypeSet.add(ends[0].getType());
-            oneToOneRightTypeSet.add(ends[1].getType());
+            oneToOneParentTypeSet.add(ends[0].getType());
+            oneToOneChildTypeSet.add(ends[1].getType());
         } else if (end0Upper == 1) {
             // One-to-many, end 0 is parent
             oneToManyParentTypeSet.add(ends[0].getType());

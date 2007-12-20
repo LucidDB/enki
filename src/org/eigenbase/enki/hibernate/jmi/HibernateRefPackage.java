@@ -22,8 +22,10 @@
 package org.eigenbase.enki.hibernate.jmi;
 
 import javax.jmi.reflect.*;
+import javax.jmi.reflect.RefAssociationLink;
 
 import org.eigenbase.enki.jmi.impl.*;
+import org.eigenbase.enki.util.*;
 
 /**
  * HibernateRefPackage provides a Hibernate-based implementations of 
@@ -38,5 +40,45 @@ public abstract class HibernateRefPackage
     protected HibernateRefPackage(RefPackage container)
     {
         super(container);
+    }
+    
+    public void refDelete()
+    {
+        deleteObjectsRecursively();
+    }
+    
+    private void deleteObjectsRecursively()
+    {
+        for(HibernateRefPackage refPackage: 
+                GenericCollections.asTypedCollection(
+                    refAllPackages(), HibernateRefPackage.class))
+        {
+            refPackage.deleteObjectsRecursively();
+        }
+        
+        for(RefAssociation refAssociation:
+                GenericCollections.asTypedCollection(
+                    refAllAssociations(), RefAssociation.class))
+        {
+            for(RefAssociationLink link: 
+                    GenericCollections.asTypedCollection(
+                        refAssociation.refAllLinks(), RefAssociationLink.class))
+            {
+                refAssociation.refRemoveLink(
+                    link.refFirstEnd(), link.refSecondEnd());
+            }
+        }
+        
+        for(RefClass refClass: 
+                GenericCollections.asTypedCollection(
+                    refAllClasses(), RefClass.class))
+        {
+            for(RefObject refObject:
+                    GenericCollections.asTypedCollection(
+                        refClass.refAllOfClass(), RefObject.class))
+            {
+                refObject.refDelete();
+            }
+        }        
     }
 }

@@ -67,7 +67,7 @@ public abstract class HibernateOneToOneRefAssociation<P extends RefObject, C ext
         Query query = 
             session.createQuery(
                 "from " + HibernateOneToOneAssociation.class.getName() +
-                "where type = ?");
+                " where type = ?");
         
         return query;
     }
@@ -83,7 +83,7 @@ public abstract class HibernateOneToOneRefAssociation<P extends RefObject, C ext
         Query query = 
             session.createQuery(
                 "from " + HibernateOneToOneAssociation.class.getName() +
-                "where type = ? and left = ? and right = ?");
+                " where type = ? and parent = (?, ?) and child = (?, ?)");
         
         return query;
     }
@@ -119,17 +119,27 @@ public abstract class HibernateOneToOneRefAssociation<P extends RefObject, C ext
                 session.createQuery(
                     "select child " +
                     "from " + HibernateOneToOneAssociation.class.getName() +
-                    " where type = ? and parent = ?");
+                    " where type = ? and parent = (?, ?)");
         } else {
             query = 
                 session.createQuery(
                     "select parent " +
                     "from " + HibernateOneToOneAssociation.class.getName() +
-                    " where type = ? and child = ?");
+                    " where type = ? and child = (?, ?)");
         }
         return query;
     }
 
+    protected Class<? extends RefObject> getFirstEndType()
+    {
+        return parentClass;
+    }
+    
+    protected Class<? extends RefObject> getSecondEndType()
+    {
+        return childClass;
+    }
+    
     public boolean add(P parent, C child)
     {
         HibernateAssociable associableParent = (HibernateAssociable)parent;

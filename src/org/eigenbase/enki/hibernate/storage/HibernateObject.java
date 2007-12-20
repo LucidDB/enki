@@ -60,7 +60,7 @@ public abstract class HibernateObject extends RefObjectBase
             throw new IllegalStateException("Not in write transaction");
         }
         
-        HibernateMDRepository.scheduleSave(this);
+        HibernateMDRepository.getCurrentSession().save(this);
         
         saved = true;
     }
@@ -75,7 +75,7 @@ public abstract class HibernateObject extends RefObjectBase
             throw new IllegalStateException("Not in write transaction");
         }
         
-        HibernateMDRepository.scheduleDelete(this);
+        HibernateMDRepository.getCurrentSession().delete(this);
         
         deleted = true;        
     }

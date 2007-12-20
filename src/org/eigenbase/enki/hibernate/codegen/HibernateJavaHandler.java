@@ -322,9 +322,9 @@ public class HibernateJavaHandler
                         writeln(
                             "return (",
                             returnTypeName,
-                            ")getLeftOf(", assocInfo.names[1], ");");                        
+                            ")getSourceOf(", assocInfo.names[1], ");");                        
                     } else {
-                        writeln("return getLeftOf(", assocInfo.names[1], ");");
+                        writeln("return getSourceOf(", assocInfo.names[1], ");");
                     }
                 }
                 endBlock();
@@ -370,10 +370,10 @@ public class HibernateJavaHandler
                         writeln(
                             "return (",
                             returnTypeName,
-                            ")getRightOf(", assocInfo.names[0], ");");
+                            ")getTargetOf(", assocInfo.names[0], ");");
                     } else {
                         writeln(
-                            "return getRightOf(", assocInfo.names[0], ");");
+                            "return getTargetOf(", assocInfo.names[0], ");");
                     }
                 }
                 endBlock();
@@ -1477,7 +1477,7 @@ public class HibernateJavaHandler
 
             switch(kind) {
             case ONE_TO_ONE:
-                return index == 0 ? "Left" : "Right";
+                return index == 0 ? "Parent" : "Child";
                 
             case ONE_TO_MANY:
                 return index == 0 ? "Parent" : "Children";

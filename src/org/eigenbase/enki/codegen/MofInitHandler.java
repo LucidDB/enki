@@ -197,10 +197,8 @@ public class MofInitHandler
                 {
                     String assocName = mofAssoc.getName();
                     
-                    Collection<?> links =
-                        modelPkg.refAssociation(assocName).refAllLinks();
-                    
-                    generateAssociationImpl(mofAssoc, links);
+                    generateAssociationImpl(
+                        mofAssoc, modelPkg.refAssociation(assocName));
                 }
             }
             
@@ -358,20 +356,17 @@ public class MofInitHandler
         throws GenerationException
     {
         if (!isMetaMetamodel) {
-            writeln("// " + assoc.getName());
             return;
         }
         
         RefAssociation refAssoc =
             assoc.refImmediatePackage().refAssociation(assoc.getName());
         
-        Collection<?> links = refAssoc.refAllLinks();
-
-        generateAssociationImpl(assoc, links);
+        generateAssociationImpl(assoc, refAssoc);
     }
 
     private void generateAssociationImpl(
-        Association assoc, Collection<?> links)
+        Association assoc, RefAssociation refAssociation)
     throws GenerationException
     {
         AssociationEnd[] assocEnds =
@@ -406,64 +401,76 @@ public class MofInitHandler
                 writeln("get", nameElem, "();");
             }
         }
+
+        // Need to preserve collection ordering.  So, determine which end of
+        // the association is ordered (if neither, we behave as if end 2 is
+        // ordered, even though it's not).  We built a list of the unique
+        // query ends (e.g., the instances of the unordered end of the 
+        // association), then query for the associated instances of the ordered
+        // end of the association and emit our initializer in the order that
+        // those objects are returned.
         
-        ArrayList<RefAssociationLink> sortedLinks = 
-            new ArrayList<RefAssociationLink>(
+        boolean queryByFirstEnd = assocEnds[1].getMultiplicity().isOrdered();
+        boolean queryBySecondEnd = assocEnds[0].getMultiplicity().isOrdered();
+        
+        // REVIEW: SWZ: 12/19/07: How would we handle the following case?  Not trying for now.        
+        // One or both must be false.  If both are true, the assertion fails.
+        if (queryByFirstEnd && queryBySecondEnd) {
+            throw new GenerationException(
+                "Internal error: Cannot handle many-to-many ordered associations");
+        }
+
+        // Only keep unique ends, but preserve order.
+        LinkedHashSet<RefObject> queryEnds = new LinkedHashSet<RefObject>();
+        for(RefAssociationLink link: 
                 GenericCollections.asTypedCollection(
-                    links, RefAssociationLink.class));
-        Collections.sort(sortedLinks, new Comparator<RefAssociationLink>() {
-            public int compare(RefAssociationLink o1, RefAssociationLink o2)
-            {
-                RefObject[][] data = {
-                    { o1.refFirstEnd(), o2.refFirstEnd() },
-                    { o1.refSecondEnd(), o2.refSecondEnd() }
-                };
-
-                for(int i = 0; i < data.length; i++) {
-                    RefObject e1 = data[i][0];
-                    RefObject e2 = data[i][1];
-                    
-                    String o1ClassName = 
-                        (String)e1.refClass().refMetaObject().refGetValue(
-                            "name");
-                    String o2ClassName =
-                        (String)e2.refClass().refMetaObject().refGetValue(
-                            "name");
-                
-                    int c = o1ClassName.compareTo(o2ClassName);
-                    if (c != 0) {
-                        return c;
-                    }
-
-                    int o1Index = indexMap.get(e1);
-                    int o2Index = indexMap.get(e2);
-                    
-                    c = o1Index - o2Index;
-                    if (c != 0) {
-                        return c;
-                    }
-                }
-                
-                return 0;
+                    refAssociation.refAllLinks(), RefAssociationLink.class))
+        {
+            if (queryBySecondEnd) {
+                queryEnds.add(link.refSecondEnd());
+            } else {
+                queryEnds.add(link.refFirstEnd());
             }
-        });
+        }
         
         newLine();
-        for(RefAssociationLink link: sortedLinks) {
-            RefObject first = link.refFirstEnd();
-            Classifier firstCls = (Classifier)first.refClass().refMetaObject();
-            String firstFieldName = makeVarName(firstCls);
-            int firstIndex = indexMap.get(first);
+        for(RefObject queryEnd: queryEnds) {
             
-            RefObject second = link.refSecondEnd();
-            Classifier secondCls = 
-                (Classifier)second.refClass().refMetaObject();            
-            String secondFieldName= makeVarName(secondCls);
-            int secondIndex = indexMap.get(second);
+            String queryEndName;
+            if (queryBySecondEnd) {
+                queryEndName = assocEnds[1].getName();
+            } else {
+                queryEndName = assocEnds[0].getName();
+            }
             
-            writeln(
-                var, ".add(", firstFieldName, "[", firstIndex, "], ",
-                secondFieldName, "[", secondIndex, "]);");
+            Collection<RefObject> multiple = 
+                GenericCollections.asTypedCollection(
+                    refAssociation.refQuery(queryEndName, queryEnd), 
+                    RefObject.class);
+            
+            Classifier queryEndCls = 
+                (Classifier)queryEnd.refClass().refMetaObject();
+            String queryEndFieldName = makeVarName(queryEndCls);
+            int queryEndIndex = indexMap.get(queryEnd);
+            
+            for(RefObject otherEnd: multiple) {
+                Classifier otherEndCls = 
+                    (Classifier)otherEnd.refClass().refMetaObject();            
+                String otherEndFieldName= makeVarName(otherEndCls);
+                int otherEndIndex = indexMap.get(otherEnd);
+            
+                if (queryBySecondEnd) {
+                    writeln(
+                        var, 
+                        ".add(", otherEndFieldName, "[", otherEndIndex, "], ",
+                        queryEndFieldName, "[", queryEndIndex, "]);");
+                } else {
+                    writeln(
+                        var, 
+                        ".add(", queryEndFieldName, "[", queryEndIndex, "], ",
+                        otherEndFieldName, "[", otherEndIndex, "]);");
+                }
+            }
         }
         
         endBlock();

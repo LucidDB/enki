@@ -123,12 +123,9 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     public boolean equals(Object other)
     {
         if (other instanceof RefBaseObjectBase) {
-            RefBaseObjectBase that = (RefBaseObjectBase)other;
-            return this.mofId == that.mofId;
+            return this.getMofId() == ((RefBaseObjectBase)other).getMofId();
         } else {
-            RefBaseObject that = (RefBaseObject)other;
-            
-            return this.refMofId.equals(that.refMofId());
+            return this.refMofId().equals(((RefBaseObject)other).refMofId());
         }
     }
     

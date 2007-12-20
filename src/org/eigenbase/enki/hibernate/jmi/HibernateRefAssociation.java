@@ -66,7 +66,7 @@ public abstract class HibernateRefAssociation
         Session session = HibernateMDRepository.getCurrentSession();
         
         Query query = getAllLinksQuery(session);
-        query.setEntity(0, type);
+        query.setString(0, type);
         
         ArrayList<javax.jmi.reflect.RefAssociationLink> links = 
             new ArrayList<javax.jmi.reflect.RefAssociationLink>();
@@ -97,9 +97,11 @@ public abstract class HibernateRefAssociation
         Session session = HibernateMDRepository.getCurrentSession();
         
         Query query = getExistsQuery(session);
-        query.setEntity(0, type);
-        query.setEntity(1, end1);
-        query.setEntity(2, end2);
+        query.setString(0, type);
+        query.setString(1, end1.getClass().getName());
+        query.setLong(2, ((RefObjectBase)end1).getMofId());
+        query.setString(3, end1.getClass().getName());
+        query.setLong(4, ((RefObjectBase)end2).getMofId());
         
         return !query.list().isEmpty();
     }
@@ -107,7 +109,7 @@ public abstract class HibernateRefAssociation
     /**
      * Obtain a query to implement {@link #refLinkExists(RefObject, RefObject)}
      * where the query parameters are the association type, and the two ends
-     * of the association (as {@link RefObject} instances).
+     * of the association (as unformatted MOF ID values).
      * 
      * @param session session to create query in
      * @return Hibernate Query object as described above
@@ -122,7 +124,8 @@ public abstract class HibernateRefAssociation
 
         Query query = getQueryQuery(session, isFirstEnd);
         query.setString(0, type);
-        query.setEntity(1, queryObject);
+        query.setString(1, queryObject.getClass().getName());
+        query.setLong(2, ((RefObjectBase)queryObject).getMofId());
         
         return Collections.unmodifiableCollection(
             GenericCollections.asTypedCollection(
@@ -132,24 +135,73 @@ public abstract class HibernateRefAssociation
     /**
      * Obtain a query to implement {@link #refQuery(RefObject, RefObject)} and
      * {@link #refQuery(String, RefObject)} where the query parameters are the 
-     * association type and the given end of the association (as a 
-     * {@link RefObject} instance).
+     * association type and the given end of the association (as an 
+     * unformatted MOF ID).
      * 
      * @param session session to create query in
      * @return Hibernate Query object as described above
      */
     protected abstract Query getQueryQuery(
         Session session, boolean isFirstEnd);
-
+    
     public boolean refAddLink(RefObject end1, RefObject end2)
     {
-        return ((HibernateAssociable)end1).getAssociation(type).add(
-            (HibernateAssociable)end1, (HibernateAssociable)end2);
+        if (checkTypes(end1, end2)) {
+            RefObject temp = end1;
+            end1 = end2;
+            end2 = temp;
+        }
+        
+        HibernateAssociable assoc1 = (HibernateAssociable)end1;
+        HibernateAssociable assoc2 = (HibernateAssociable)end2;
+        
+        return assoc1.getOrCreateAssociation(type).add(assoc1, assoc2);
     }
 
     public boolean refRemoveLink(RefObject end1, RefObject end2)
     {
-        return ((HibernateAssociable)end1).getAssociation(type).remove(
-            (HibernateAssociable)end1, (HibernateAssociable)end2);
+        if (checkTypes(end1, end2)) {
+            RefObject temp = end1;
+            end1 = end2;
+            end2 = temp;
+        }
+        
+        HibernateAssociable assoc1 = (HibernateAssociable)end1;
+        HibernateAssociable assoc2 = (HibernateAssociable)end2;
+        
+        if (assoc1.getAssociation(type) == null ||
+            assoc2.getAssociation(type) == null) 
+        {
+            // These are not associated
+            return false;
+        }
+        
+        return assoc1.getAssociation(type).remove(assoc1, assoc2);
     }
+
+    protected abstract Class<? extends RefObject> getFirstEndType();
+    protected abstract Class<? extends RefObject> getSecondEndType();
+    
+    private boolean checkTypes(RefObject end1, RefObject end2)
+    {
+        Class<?> end1Type = getFirstEndType();
+        Class<?> end2Type = getSecondEndType();
+        
+        if (!end1Type.isAssignableFrom(end1.getClass())) {
+            // Are the types reversed?
+            if (end1Type.isAssignableFrom(end2.getClass()) &&
+                end2Type.isAssignableFrom(end1.getClass()))
+            {
+                return true;
+            }
+            
+            throw new TypeMismatchException(end1Type, this, end1);
+        }
+        
+        if (!end2Type.isAssignableFrom(end2.getClass())) {
+            throw new TypeMismatchException(end2Type, this, end2);
+        }
+        
+        return false;
+    }    
 }

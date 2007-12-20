@@ -37,20 +37,20 @@ import org.hibernate.*;
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateManyToManyRefAssociation<L extends RefObject, R extends RefObject>
+public abstract class HibernateManyToManyRefAssociation<S extends RefObject, T extends RefObject>
     extends HibernateRefAssociation
 {
-    private final Class<L> leftClass;
-    private final Class<R> rightClass;
+    private final Class<S> sourceClass;
+    private final Class<T> targetClass;
     
     protected HibernateManyToManyRefAssociation(
         RefPackage container,
         String type,
         String end1Name,
-        Class<L> end1Class,
+        Class<S> end1Class,
         Multiplicity end1Multiplicity,
         String end2Name,
-        Class<R> end2Class,
+        Class<T> end2Class,
         Multiplicity end2Multiplicity)
     {
         super(
@@ -64,8 +64,8 @@ public abstract class HibernateManyToManyRefAssociation<L extends RefObject, R e
         assert(end1Multiplicity != Multiplicity.SINGLE);
         assert(end2Multiplicity != Multiplicity.SINGLE);
         
-        this.leftClass = end1Class;
-        this.rightClass = end2Class;
+        this.sourceClass = end1Class;
+        this.targetClass = end2Class;
     }
 
     protected Query getAllLinksQuery(Session session)
@@ -74,14 +74,14 @@ public abstract class HibernateManyToManyRefAssociation<L extends RefObject, R e
         Query query = 
             session.createQuery(
                 "from " + HibernateManyToManyAssociation.class.getName() +
-                "where type = ?");
+                " where type = ?");
         
         return query;
     }
 
-    protected boolean exists(L left, R right)
+    protected boolean exists(S source, T target)
     {
-        return super.refLinkExists(left, right);
+        return super.refLinkExists(source, target);
     }
 
     protected Query getExistsQuery(Session session)
@@ -89,70 +89,81 @@ public abstract class HibernateManyToManyRefAssociation<L extends RefObject, R e
         // TODO: make named query
         Query query = 
             session.createQuery(
-                "from " + HibernateManyToManyAssociation.class.getName() +
-                "where type = ? and source = ? and ? in elements(target)");
+                "from " + 
+                HibernateManyToManyAssociation.class.getName() +
+                " type = ? and source = (?, ?) and (?, ?) in elements(target)");
         
         return query;
     }
 
-    protected Collection<L> getLeftOf(R right)
+    protected Collection<S> getSourceOf(T target)
     {
-        Collection<RefObject> c = super.query(false, right);
+        Collection<RefObject> c = super.query(false, target);
         if (c instanceof List) {
             return GenericCollections.asTypedList(
-                (List<RefObject>)c, leftClass);
+                (List<RefObject>)c, sourceClass);
         } else {
-            return GenericCollections.asTypedCollection(c, leftClass);
+            return GenericCollections.asTypedCollection(c, sourceClass);
         }
     }
 
-    protected Collection<R> getRightOf(L left)
+    protected Collection<T> getTargetOf(S source)
     {
-        Collection<RefObject> c = super.query(true, left);
+        Collection<RefObject> c = super.query(true, source);
         if (c instanceof List) {
             return GenericCollections.asTypedList(
-                (List<RefObject>)c, rightClass);
+                (List<RefObject>)c, targetClass);
         } else {
-            return GenericCollections.asTypedCollection(c, rightClass);
+            return GenericCollections.asTypedCollection(c, targetClass);
         }
     }
 
-    protected Query getQueryQuery(Session session, boolean givenLeftEnd)
+    protected Class<? extends RefObject> getFirstEndType()
+    {
+        return sourceClass;
+    }
+    
+    protected Class<? extends RefObject> getSecondEndType()
+    {
+        return targetClass;
+    }
+    
+    protected Query getQueryQuery(Session session, boolean givenSourceEnd)
     {
         // TODO: make named queries
         Query query;
-        if (givenLeftEnd) {
+        if (givenSourceEnd) {
             query = 
                 session.createQuery(
                     "select target " +
                     "from " + HibernateOneToOneAssociation.class.getName() +
-                    " where type = ? and source = ?");
+                    " where type = ? and source = (?, ?)");
         } else {
             query = 
                 session.createQuery(
-                    "select source " +
-                    "from " + HibernateOneToOneAssociation.class.getName() +
-                    " where type = ? and ? in elements(target)");
+                    "from " + 
+                    HibernateOneToOneAssociation.class.getName() +
+                    " where type = ? and (?, ?) in elements(target)");
         }
         return query;
     }
 
-    public boolean add(L left, R right)
+    public boolean add(S source, T target)
     {
-        HibernateAssociable associableLeft = (HibernateAssociable)left;
-        HibernateAssociable associableRight = (HibernateAssociable)right;
+        HibernateAssociable associableSource = (HibernateAssociable)source;
+        HibernateAssociable associableTarget = (HibernateAssociable)target;
         
-        return associableLeft.getAssociation(type).add(
-            associableLeft, associableRight);
+        return associableSource.getAssociation(type).add(
+            associableSource, associableTarget);
     }
 
-    public boolean remove(L left, R right)
+    public boolean remove(S source, T target)
     {
-        HibernateAssociable associableLeft = (HibernateAssociable)left;
-        HibernateAssociable associableRight = (HibernateAssociable)right;
+        HibernateAssociable associableSource = (HibernateAssociable)source;
+        HibernateAssociable associableTarget = (HibernateAssociable)target;
         
-        return associableLeft.getAssociation(type).remove(
-            associableLeft, associableRight);
+        return associableSource.getAssociation(type).remove(
+            associableSource, associableTarget);
     }
 
 }
