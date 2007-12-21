@@ -60,6 +60,12 @@ public abstract class HibernateObject extends RefObjectBase
             throw new IllegalStateException("Not in write transaction");
         }
         
+        if (getMofId() == 0L) {
+            long mofId = HibernateMDRepository.getMofIdGenerator().nextMofId();
+            
+            setMofId(mofId);
+        }
+        
         HibernateMDRepository.getCurrentSession().save(this);
         
         saved = true;

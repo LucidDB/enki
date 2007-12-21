@@ -21,14 +21,13 @@
  */
 package org.eigenbase.enki.hibernate.storage;
 
-import java.io.*;
+import java.sql.*;
 import java.util.*;
+
 import org.hibernate.*;
+import org.hibernate.cfg.*;
 import org.hibernate.dialect.*;
-import org.hibernate.engine.*;
 import org.hibernate.id.*;
-import org.hibernate.util.*;
-import org.hibernate.type.*;
 
 /**
  * MofIdGenerator extends Hibernate's {@link TableGenerator} to provide a 
@@ -36,79 +35,302 @@ import org.hibernate.type.*;
  * 
  * @author Stephan Zuercher
  */
-public class MofIdGenerator extends TableGenerator
+public class MofIdGenerator
 {
-    public static final String INTERVAL_PARAM = "interval";
+    private static final String PROPERTY_TABLE_NAME = "enki.mofid.table";
+    private static final String PROPERTY_BLOCK_SIZE = "enki.mofid.blocksize";
+    
+    private static final String DEFAULT_TABLE_NAME = "ENKI_MOF_ID_SEQUENCE";
+    
+    private static final String COLUMN_NAME = "NEXT_MOF_ID_BLOCK";
 
-    private static long high = -1L;
-    private static int interval = -1;
-    private static int subInterval = -1;
-    private static Class<?> resultType;
+    private static final int DEFAULT_BLOCK_SIZE = 100;
+    
+    private final SessionFactory sessionFactory;
+    
+    private final String tableName;
+    private final String querySql;
+    private final String updateSql;
+    private final String createDdl;
+    private final String initSql;
+    private final String dropDdl;
+    
+    private final int blockSize;
 
-    public void configure(Type type, Properties params, Dialect d)
+    private long nextMofId;
+    private long lastMofId;
+    
+    public MofIdGenerator(
+        SessionFactory sessionFactory, Configuration config, Properties enkiProps)
     {
-        super.configure(type, params, d);
+        this.sessionFactory = sessionFactory;
 
-        synchronized (MofIdGenerator.class) {
-            if (interval <= 0) {
-                interval = PropertiesHelper.getInt(
-                    INTERVAL_PARAM,
-                    params,
-                    Short.MAX_VALUE);
-                resultType = type.getReturnedClass();
-                if (resultType != Long.class) {
-                    throw new MappingException(
-                        "MofIdGenerator only generates long (64-bit) values");
+        String blockSizeStr = 
+            enkiProps.getProperty(
+                PROPERTY_BLOCK_SIZE, String.valueOf(DEFAULT_BLOCK_SIZE));
+        int blockSize;
+        try {
+            blockSize = Integer.parseInt(blockSizeStr);
+        }
+        catch(NumberFormatException e) {
+            blockSize = DEFAULT_BLOCK_SIZE;
+        }
+        this.blockSize = blockSize;
+        
+        this.tableName = 
+            enkiProps.getProperty(PROPERTY_TABLE_NAME, DEFAULT_TABLE_NAME);
+        
+        Dialect dialect = Dialect.getDialect(config.getProperties());
+        
+        this.querySql = 
+            "select "
+            + COLUMN_NAME
+            + " from "
+            + dialect.appendLockHint(LockMode.UPGRADE, tableName)
+            + dialect.getForUpdateString();
+        
+        this.updateSql = 
+            "update "
+            + tableName 
+            + " set "
+            + COLUMN_NAME
+            + " = ? where "
+            + COLUMN_NAME
+            + " = ?";
+
+        this.createDdl = 
+            "create table " + tableName +
+            " (" + COLUMN_NAME + " " + dialect.getTypeName(Types.BIGINT) + ")";
+        
+        this.dropDdl = "drop table " + tableName;
+        
+        this.initSql = "insert into " + tableName + " values (0)";
+        
+        // Load block on first call to nextMofId()
+        this.nextMofId = 0;
+        this.lastMofId = 0;
+    }
+    
+    public Validity isGeneratorTableValid(Connection conn)
+    {
+        try {
+            PreparedStatement stmt =
+                conn.prepareStatement("select * from " + tableName);
+            try {
+                ResultSet rs = stmt.executeQuery();
+                try {
+                    // Allow extraneous columns
+                    ResultSetMetaData metaData = rs.getMetaData();
+                    if (!metaData.getColumnName(1).equals(COLUMN_NAME) ||
+                        metaData.getColumnType(1) != Types.BIGINT)
+                    {
+                        return Validity.INVALID_WRONG_TABLE_DEFINITION;
+                    }
+                    
+                    if (!rs.next()) {
+                        return Validity.INVALID_MISSING_ROW;
+                    }
+                    
+                    if (rs.next()) {
+                        return Validity.INVALID_TOO_MANY_ROWS;
+                    }
                 }
-                
-                // REVIEW: SWZ: Oct 29, 2007: The implication here is that if
-                // interval is set to its maximum value, up to 2^32 processes
-                // may generate MofIds in a particular database before we run
-                // out of MofId space because each process gets up to 2^31 ids
-                // from 2^32 ranges (for a total of 2^63 MofIds, assuming no
-                // waste and that no one process uses more than 2^31 before
-                // exiting). The processes may be started concurrently or
-                // sequentially, but processes that don't cause a MofId to be
-                // generated don't count. Another issue is that any concurrent
-                // processes must be configured with the same interval and
-                // that the interval can never be reduced. Therefore the
-                // interval should probably be stored in the table and
-                // validated against the parameter's value before use.
-                final int max = Integer.MAX_VALUE;
-                if (interval < 2 || interval > max) {
-                    throw new MappingException(INTERVAL_PARAM
-                        + " parameter must be between 2 and " + max
-                        + ", inclusive");
+                finally {
+                    rs.close();
                 }
-                subInterval = -1;
-                high = 0;
             }
+            finally {
+                stmt.close();
+            }
+
+            return Validity.VALID;
+        }
+        catch(SQLException e) {
+            return Validity.INVALID_MISSING_TABLE;
         }
     }
-
-    public synchronized Serializable generate(
-        SessionImplementor session,
-        Object obj)
-    throws HibernateException
+   
+    public void configureTable()
     {
-        synchronized (MofIdGenerator.class) {
-            if (subInterval >= interval || subInterval < 0) {
-                int nextHigh = (Integer) super.generate(session, obj);
+        StatelessSession session = sessionFactory.openStatelessSession();
+        
+        Connection conn = session.connection();
 
-                subInterval = 0;
-                high = nextHigh * interval;
-
-                // Skip zero.
-                if (high == 0L && subInterval == 0) {
-                    subInterval = 1;
-                }
+        try {
+            Validity validity = isGeneratorTableValid(conn);
+            
+            if (validity == Validity.VALID) {
+                return;
             }
 
-            Number result = IdentifierGeneratorFactory.createNumber(high
-                + subInterval++, resultType);
+            switch(validity) {
+            case INVALID_TOO_MANY_ROWS:
+                throw new HibernateException(
+                    "Too many rows in MOF ID generator table: " + tableName);
+                
+            case INVALID_WRONG_TABLE_DEFINITION:
+                throw new HibernateException(
+                    "Incorrect MOF ID generator table definition: "
+                    + tableName);
+                
+            case INVALID_MISSING_ROW:
+                throw new HibernateException(
+                    "Missing MOF ID generator row in "
+                    + tableName
+                    + "; insert a row with a value exceeding that of the largest MOF ID in the schema");
+                
+            case INVALID_MISSING_TABLE:
+                // Fall through and create the table
+                break;
+                
+            default:
+                throw new AssertionError("Internal error: missing enum case");
+            }
 
-            return result;
+            try {
+                Statement stmt = conn.createStatement();
+                try {
+                    stmt.execute(createDdl);
+                    stmt.executeUpdate(initSql);
+                }
+                finally {
+                    stmt.close();
+                }
+            }
+            catch(SQLException e) {
+                throw new HibernateException(
+                    "Cannot create MOF ID generator table " + tableName, e);
+            }
         }
+        finally {
+            session.close();
+        }
+    }
+    
+    public void dropTable()
+    {
+        StatelessSession session = sessionFactory.openStatelessSession();
+        
+        Connection conn = session.connection();
+
+        try {
+            Validity validity = isGeneratorTableValid(conn);
+            
+            if (validity == Validity.INVALID_MISSING_TABLE) {
+                return;
+            }
+
+            try {
+                Statement stmt = conn.createStatement();
+                try {
+                    stmt.execute(dropDdl);
+                }
+                finally {
+                    stmt.close();
+                }
+            }
+            catch(SQLException e) {
+                throw new HibernateException(
+                    "Failed to drop MOF ID generator table " + tableName, e);
+            }
+        }
+        finally {
+            session.close();
+        }
+    }
+    
+    public synchronized long nextMofId()
+    {
+        if (nextMofId >= lastMofId) {
+            try {
+                readNextBlock();
+            }
+            catch(SQLException e) {
+                throw new HibernateException(e);
+            }
+        }
+        
+        long mofId = nextMofId++;
+        
+        return mofId;
+    }
+    
+    private void readNextBlock() throws SQLException
+    {
+        StatelessSession session = sessionFactory.openStatelessSession();
+        
+        Connection conn = session.connection();
+        if (conn.getAutoCommit()) {
+            conn.setAutoCommit(false);
+        }
+        
+        try {
+            long next;
+            int rows;
+
+            // Repeat this update until we manage to update the row.  If the
+            // update statement doesn't return 1 row modified, some other
+            // MofIdGenerator must have beat us to it.
+            do {
+                PreparedStatement queryStmt = conn.prepareStatement(querySql);
+                try {
+                    ResultSet rs = queryStmt.executeQuery();
+                    if (!rs.next()) {
+                        throw new HibernateException(
+                            "MOF ID sequence table not initialized");
+                    }
+                    
+                    next = rs.getLong(1);
+                    
+                    if (rs.next()) {
+                        throw new HibernateException(
+                            "MOF ID sequence table has multiple rows");
+                    }
+                }
+                finally {
+                    queryStmt.close();
+                }
+                
+                PreparedStatement updateStmt = 
+                    conn.prepareStatement(updateSql);
+                try {
+                    updateStmt.setLong(1, next + (long)blockSize);
+                    updateStmt.setLong(2, next);
+                    rows = updateStmt.executeUpdate();
+                }
+                finally {
+                    updateStmt.close();
+                }
+            } while(rows == 0);
+
+            conn.commit();
+            
+            nextMofId = next;
+            lastMofId = next + (long)blockSize;
+            
+            // Make sure we skip MOF ID 0 to avoid conflicts with the default
+            // value Hibernate will pick should be ever fail to set an object's
+            // MOF ID.
+            if (nextMofId == 0L) {
+                nextMofId++;
+            }
+        }
+        catch(SQLException e) {
+            conn.rollback();
+            throw e;
+        }
+        finally {
+            session.close();
+        }
+    }
+    
+    public static enum Validity
+    {
+        VALID,
+        INVALID_MISSING_TABLE,
+        INVALID_WRONG_TABLE_DEFINITION,
+        INVALID_MISSING_ROW,
+        INVALID_TOO_MANY_ROWS;
     }
 }
 

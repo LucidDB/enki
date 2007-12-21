@@ -91,7 +91,7 @@ public abstract class HibernateManyToManyRefAssociation<S extends RefObject, T e
             session.createQuery(
                 "from " + 
                 HibernateManyToManyAssociation.class.getName() +
-                " type = ? and source = (?, ?) and (?, ?) in elements(target)");
+                " where type = ? and source = (?, ?) and (?, ?) in elements(target)");
         
         return query;
     }

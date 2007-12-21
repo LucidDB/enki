@@ -86,7 +86,7 @@ public class JmiWriteTest extends JmiTestBase
 //    @Test
     public void testRefPackageDelete()
     {
-        // TODO: refDelete (Not support by Enki; only on outermost package for Netbeans)
+        // TODO: refDelete (only on outermost package for Netbeans, check for that exception in Hibernate storage)
     }
     
     @Test

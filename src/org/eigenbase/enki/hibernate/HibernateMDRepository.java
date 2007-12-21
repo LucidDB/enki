@@ -67,6 +67,7 @@ public class HibernateMDRepository
     private final Map<String, ExtentDescriptor> extentMap;
     
     private SessionFactory sessionFactory;
+    private MofIdGenerator mofIdGenerator;
     
     private final Logger log = 
         Logger.getLogger(HibernateMDRepository.class.getName());
@@ -120,26 +121,14 @@ public class HibernateMDRepository
         } else {
             ArrayList<String> constraintErrors = new ArrayList<String>();
             boolean foundConstraintError = false;
-            Session session = context.session;
-            for(HibernateObject obj: context.saves) {
-                if (!obj.checkConstraints(constraintErrors)) {
-                    foundConstraintError = true;
-                }
-                
-                if (!foundConstraintError) {
-                    session.save(obj);
-                }
-            }
-            
+
+            // TODO: check for constraint violations (somehow)
+
             if (foundConstraintError) {
                 txn.rollback();
                 
                 throw new HibernateConstraintViolationException(
                     constraintErrors);
-            }
-
-            for(HibernateObject obj: context.deletes) {
-                session.delete(obj);
             }
             
             txn.commit();
@@ -318,27 +307,16 @@ public class HibernateMDRepository
     
     public static boolean isWriteTransaction()
     {
-        Context context = tls.get();
-        assert(context != null);
-        return context.transaction.isActive() && context.isWrite;
+        assert(tls.get() != null);
+        return tls.get().isWrite;
     }
-    
-    public static void scheduleSave(HibernateObject entity)
+
+    public static MofIdGenerator getMofIdGenerator()
     {
-        Context context = tls.get();
-        assert(context != null);
-        
-        context.saves.add(entity);
+        assert(tls.get() != null);
+        return tls.get().getMofIdGenerator();
     }
-    
-    public static void scheduleDelete(HibernateObject entity)
-    {
-        Context context = tls.get();
-        assert(context != null);
-        
-        context.deletes.add(entity);
-    }
-    
+
     private void loadExistingExtents(List<Extent> extents)
     {
         for(Extent extent: extents) {
@@ -493,6 +471,10 @@ public class HibernateMDRepository
             
             sessionFactory = config.buildSessionFactory();
             
+            mofIdGenerator = 
+                new MofIdGenerator(sessionFactory, config, storageProperties);
+            mofIdGenerator.configureTable();
+            
             List<Extent> extents = null;
             Session session = sessionFactory.getCurrentSession();
                 
@@ -550,7 +532,7 @@ public class HibernateMDRepository
     private void initProviderStorage(Configuration config)
     {
         SessionFactory tempSessionFactory = config.buildSessionFactory();
-        
+
         Session session = tempSessionFactory.getCurrentSession();
         
         boolean exists = false;
@@ -655,14 +637,25 @@ public class HibernateMDRepository
         log.info("Dropping schema for model '" + modelDesc.name + "'");
         
         SchemaExport export = new SchemaExport(config);
-        export.drop(false, true);
-        
+        export.drop(false, true);        
         List<?> exceptions = export.getExceptions();
         if (exceptions != null && !exceptions.isEmpty()) {
             throw new EnkiDropFailedException(
                 "Schema drop for model '" + modelDesc.name + 
                 "' failed (cause is first exception)",
                 (Throwable)exceptions.get(0));
+        }
+        
+        SessionFactory tempSessionFactory = config.buildSessionFactory();
+
+        try {
+            MofIdGenerator mofIdGenerator = 
+                new MofIdGenerator(
+                    tempSessionFactory, config, storageProperties);
+            mofIdGenerator.dropTable();
+        }
+        finally {
+            tempSessionFactory.close();
         }
     }
     
@@ -848,21 +841,22 @@ public class HibernateMDRepository
         private Transaction transaction;
         private boolean isWrite;
         
-        private ArrayList<HibernateObject> saves;
-        private ArrayList<HibernateObject> deletes;
-        
-        private Context(Session sesson, Transaction transaction, boolean isWrite)
+        private Context(
+            Session sesson, Transaction transaction, boolean isWrite)
         {
             this.session = sesson;
             this.transaction = transaction;
             this.isWrite = isWrite;
-            this.saves = new ArrayList<HibernateObject>();
-            this.deletes = new ArrayList<HibernateObject>();
         }
         
         private HibernateMDRepository getRepository()
         {
             return HibernateMDRepository.this;
+        }
+        
+        private MofIdGenerator getMofIdGenerator()
+        {
+            return HibernateMDRepository.this.mofIdGenerator;
         }
     }
 }

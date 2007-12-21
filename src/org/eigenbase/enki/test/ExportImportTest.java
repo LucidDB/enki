@@ -22,6 +22,7 @@
 package org.eigenbase.enki.test;
 
 import java.io.*;
+import java.util.*;
 
 import javax.jmi.reflect.*;
 import javax.jmi.xmi.*;
@@ -46,6 +47,23 @@ public class ExportImportTest extends SampleModelTestBase
         
         boolean rollback = true;
         try {
+            String[] springfieldStateNames = {
+                "Arkansas", "Colorado", "Florida", "Georgia", "Illinois", 
+                "Indiana", "Iowa", "Kentucky", "Louisana", "Maine", 
+                "Massachussets", "Michigan", "Minnesota", "Missouri",
+                "Nebraska", "New Hampshire", "New Jersey", "New York", 
+                "Ohio", "Oregon", "Pennsylvania", "South Carolina",
+                "South Dakota", "Tennesee", "Vermont", "Virginia", 
+                "West Virginia", "Wisconsin"
+            };
+            
+            StateClass stateClass = getSamplePackage().getState();
+            ArrayList<State> springfieldStates = new ArrayList<State>();
+            for(String stateName: springfieldStateNames) {
+                State state = stateClass.createState(stateName);
+                springfieldStates.add(state);
+            }
+            
             Driver homerSimpson = 
                 getSamplePackage().getDriver().createDriver(
                     "Homer J. Simpson", "XXX000");
@@ -55,6 +73,9 @@ public class ExportImportTest extends SampleModelTestBase
             
             blueCar.setOwner(homerSimpson);
             blueCar.setDriver(homerSimpson);
+            for(int i = 0; i < springfieldStates.size() / 4 * 3; i++) {
+                blueCar.getRegistrar().add(springfieldStates.get(i));
+            }
             
             Bus schoolBus = getSamplePackage().getBus().createBus(
                 "MCI", "Yellow School Bus", 3);
@@ -78,7 +99,13 @@ public class ExportImportTest extends SampleModelTestBase
             schoolBus.setDriver(ottoMann);
             schoolBus.getRider().add(lisaSimpson);
             schoolBus.getRider().add(ralphWiggum);
-            
+            for(int i = springfieldStates.size() / 4;
+                i < springfieldStates.size(); 
+                i++)
+            {
+                schoolBus.getRegistrar().add(springfieldStates.get(i));
+            }
+
             rollback = false;
         } finally {
             getRepository().endTrans(rollback);

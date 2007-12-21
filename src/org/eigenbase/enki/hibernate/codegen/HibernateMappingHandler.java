@@ -29,7 +29,6 @@ import javax.jmi.model.*;
 
 import org.eigenbase.enki.codegen.*;
 import org.eigenbase.enki.hibernate.*;
-import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 
@@ -120,10 +119,6 @@ public class HibernateMappingHandler
     public static final JavaClassReference ASSOCIATION_MANY_TO_MANY_IMPL_CLASS = 
         new JavaClassReference(
             HibernateJavaHandler.ASSOCIATION_MANY_TO_MANY_IMPL_CLASS, false);
-
-    public static final JavaClassReference MOF_ID_GENERATOR_CLASS = 
-        new JavaClassReference(MofIdGenerator.class, false);
-
 
     private Set<Classifier> oneToOneParentTypeSet;
     private Set<Classifier> oneToOneChildTypeSet;
@@ -659,10 +654,7 @@ public class HibernateMappingHandler
             "id",
             "name", "mofId",
             "column", "mofId");
-        startElem("generator", "class", MOF_ID_GENERATOR_CLASS);
-        // TODO: specify non-default names for the underlying table/column 
-        // TODO: parameterize the interval
-        writeSimpleElem("param", "100", "name", "interval");
+        startElem("generator", "class", "assigned");
         endElem("generator");
         endElem("id");
     }

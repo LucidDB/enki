@@ -219,7 +219,7 @@ public class XmiFileComparator
         
         public void finish()
         {
-            Collections.sort(children, ElementNameComparator.instance);
+            Collections.sort(children, ElementComparator.instance);
             
             String chars = characters.toString().trim();
             characters.setLength(0);
@@ -270,15 +270,76 @@ public class XmiFileComparator
         }
     }
     
-    private static class ElementNameComparator 
+    private static class ElementComparator 
         implements Comparator<Element>
     {
-        private static final ElementNameComparator instance = 
-            new ElementNameComparator();
+        private static final ElementComparator instance = 
+            new ElementComparator();
         
         public int compare(Element o1, Element o2)
         {
-            return o1.name.compareTo(o2.name);
+            int c = o1.name.compareTo(o2.name);
+            if (c != 0) {
+                return c;
+            }
+            
+            if (!o1.attributes.isEmpty() || !o2.attributes.isEmpty()) {
+                Iterator<Map.Entry<String, String>> iter1 =
+                    o1.attributes.entrySet().iterator();
+                Iterator<Map.Entry<String, String>> iter2 =
+                    o2.attributes.entrySet().iterator();
+                while(iter1.hasNext() && iter2.hasNext()) {
+                    Map.Entry<String, String> e1 = iter1.next();
+                    Map.Entry<String, String> e2 = iter2.next();
+                    
+                    c = e1.getKey().compareTo(e2.getKey());
+                    if (c != 0) {
+                        return c;
+                    }
+
+                    c = e1.getValue().compareTo(e2.getValue());
+                    if (c != 0) {
+                        return c;
+                    }
+                }
+                
+                if (iter1.hasNext()) {
+                    return 1;
+                } else if (iter2.hasNext()) {
+                    return -1;
+                }
+            }
+
+            if (o1.isReference || o2.isReference) {
+                Element subst1 = 
+                    o1.isReference ? o1.getReferencedElement() : o1;
+                Element subst2 = 
+                    o2.isReference ? o2.getReferencedElement() : o2;
+                    
+                c = compare(subst1, subst2);
+                if (c != 0) {
+                    return c;
+                }
+            }
+            
+            if (o1.characters.length() > 0 || o2.characters.length() > 0) {
+                c = o1.characters.toString().compareTo(
+                    o2.characters.toString());
+                if (c != 0) {
+                    return c;
+                }                
+            }
+            
+            if (o1.xmiId != null && o2.xmiId != null) {
+                if (o1.isReference == o2.isReference) {
+                    c = o1.xmiId.compareTo(o2.xmiId);
+                    if (c != 0) {
+                        return c;
+                    }
+                }
+            }
+            
+            return 0;
         }
     }
     

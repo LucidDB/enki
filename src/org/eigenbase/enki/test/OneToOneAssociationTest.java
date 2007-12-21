@@ -56,6 +56,26 @@ public class OneToOneAssociationTest extends SampleModelTestBase
     }
     
     @Test
+    public void testReverseCreate()
+    {
+        getRepository().beginTrans(true);
+
+        try {
+            SimplePackage simplePkg = getSamplePackage().getSimple();
+            
+            Entity1 e1 = 
+                simplePkg.getEntity1().createEntity1();
+            
+            Entity2 e2 =
+                simplePkg.getEntity2().createEntity2();
+            
+            e2.setEntity1(e1);
+        } finally {
+            getRepository().endTrans();
+        }
+    }
+    
+    @Test
     public void testTraverse()
     {
         try {
