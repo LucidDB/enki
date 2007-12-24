@@ -2,6 +2,7 @@ package org.eigenbase.enki.test;
 
 import eem.*;
 import eem.sample.*;
+import eem.sample.simple.*;
 
 /**
  * SampleModelTestBase provides access to an instance of the Enki sample model
@@ -26,6 +27,11 @@ public abstract class SampleModelTestBase
     protected static SamplePackage getSamplePackage()
     {
         return getEemPackage().getSample();
+    }
+    
+    protected static SimplePackage getSimplePackage()
+    {
+        return getSamplePackage().getSimple();
     }
 }
 

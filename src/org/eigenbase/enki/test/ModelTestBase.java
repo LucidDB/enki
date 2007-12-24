@@ -51,6 +51,9 @@ public abstract class ModelTestBase
     private static RefPackage pkg;
     private static String testExtentName;
     
+    private static List<String> mofIdsToDelete;
+    private static Properties storageProps;
+    
     @BeforeClass
     public static void setUpTestClass()
     {
@@ -58,17 +61,62 @@ public abstract class ModelTestBase
         Assert.assertNull(pkg);
         
         getPackage();
+        
+        mofIdsToDelete = new ArrayList<String>();
     }
     
     @AfterClass
     public static void tearDownTestClass()
     {
+        if (mofIdsToDelete != null && !mofIdsToDelete.isEmpty()) {
+            repos.beginTrans(true);
+            try {
+                for(ListIterator<String> iter = 
+                        mofIdsToDelete.listIterator(mofIdsToDelete.size());
+                    iter.hasPrevious(); )
+                {
+                    RefObject refObject = 
+                        (RefObject)repos.getByMofId(iter.previous());
+                    
+                    if (refObject != null) {
+                        refObject.refDelete();            
+                    }
+                }
+            }
+            finally {
+                repos.endTrans();
+            }
+        }
+        
         MDRepository repository = repos;
         if (repository != null) {
             pkg = null;
             repos = null;
             repository.shutdown();
         }        
+    }
+
+    protected <E> E findEntity(String refMofId, Class<E> cls)
+    {
+        RefBaseObject refBaseObject = repos.getByMofId(refMofId);
+        try {
+            return cls.cast(refBaseObject);
+        }
+        catch(ClassCastException e) {
+            fail(
+                "RebBaseObject (" + refMofId + ") is not a " + cls.getName(),
+                e);
+            return null; // unreachable
+        }
+    }
+    
+    protected static void scheduleForDelete(RefObject refObject)
+    {
+        if (mofIdsToDelete.contains(refObject.refMofId())) {
+            return;
+        }
+        
+        mofIdsToDelete.add(refObject.refMofId());
     }
     
     protected static RefPackage getPackage()
@@ -89,6 +137,19 @@ public abstract class ModelTestBase
         return repos;
     }
 
+    protected static MdrProvider getMdrProvider()
+    {
+        if (repos == null) {
+            load();
+        }
+        
+        String enkiImplType = 
+            storageProps.getProperty(MDRepositoryFactory.ENKI_IMPL_TYPE);
+        MdrProvider implType = MdrProvider.valueOf(enkiImplType);
+        return implType;
+
+    }
+    
     protected static String getTestExtentName()
     {
         return testExtentName;
@@ -107,14 +168,14 @@ public abstract class ModelTestBase
         File storagePropsFile = 
             new File(enkiHome, "test/TestStorage.properties");
         
-        Properties props = new Properties();
+        storageProps = new Properties();
         try {
-            props.load(new FileInputStream(storagePropsFile));
+            storageProps.load(new FileInputStream(storagePropsFile));
         } catch (IOException e) {
             fail(e);
         }
         
-        repos = MDRepositoryFactory.newMDRepository(props);
+        repos = MDRepositoryFactory.newMDRepository(storageProps);
         
         pkg = repos.getExtent(testExtentName);
     }

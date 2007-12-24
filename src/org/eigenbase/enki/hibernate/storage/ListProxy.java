@@ -111,6 +111,7 @@ public class ListProxy<E> implements List<E>
     {
         if (assoc != null) {
             assoc.clear(source);
+            assoc = null;
         }
     }
     
@@ -193,7 +194,12 @@ public class ListProxy<E> implements List<E>
     public boolean remove(Object o)
     {
         if (o instanceof HibernateAssociable && assoc != null) {
-            return assoc.remove(source, (HibernateAssociable)o);
+            boolean result = assoc.remove(source, (HibernateAssociable)o);
+            if (source.getAssociation(type) == null) {
+                // Deleted last child.
+                assoc = null;
+            }
+            return result;
         }
         
         return false;
@@ -355,11 +361,14 @@ public class ListProxy<E> implements List<E>
         
         private int index;
     
+        private boolean modified;
+        
         IteratorProxy(int index)
         {
             this.index = index;
             this.offset = 0;
             this.length = -1;
+            this.modified = false;
         }
     
         IteratorProxy(int index, int offset, int length)
@@ -367,11 +376,12 @@ public class ListProxy<E> implements List<E>
             this.index = index;
             this.offset = offset;
             this.length = length;
+            this.modified = false;
         }
     
         public boolean hasNext()
         {
-            if (offset > 0) {
+            if (length >= 0) {
                 return index < length;
             } else {
                 return index < ListProxy.this.size();
@@ -385,9 +395,12 @@ public class ListProxy<E> implements List<E>
     
         public E next()
         {
+            modified = false;
+
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
+
             return ListProxy.this.getInternal(index++ + offset);
         }
     
@@ -398,6 +411,8 @@ public class ListProxy<E> implements List<E>
     
         public E previous()
         {
+            modified = false;
+
             if (!hasPrevious()) {
                 throw new NoSuchElementException();
             }
@@ -413,25 +428,48 @@ public class ListProxy<E> implements List<E>
         public void add(E o)
         {
             ListProxy.this.add(index + offset, o);
-
-            if (offset > 0) {
+            
+            index++;
+            if (length >= 0) {
                 length++;
             }
+            modified = true;
         }
 
         public void set(E o)
         {
-            ListProxy.this.set(index + offset, o);
+            if (modified) {
+                throw new IllegalStateException(
+                    "set() after add() or remove() w/o intervening next()");
+            }
+            
+            if (index == 0) {
+                throw new IllegalStateException("set() before next()");
+            }
+            
+            ListProxy.this.set(index + offset - 1, o);
         }
         
         public void remove()
         {
-            ListProxy.this.remove(index + offset - 1);
+            if (modified) {
+                throw new IllegalStateException(
+                    "remove() after add() or remove() w/o intervening next()");
+            }
+                    
+            if (index == 0) {
+                throw new IllegalStateException("remove() before next()");
+            }
+
+            index--;
+            ListProxy.this.remove(index + offset);
             
-            if (offset > 0) {
+            if (length >= 0) {
                 length--;
             }
-        }    
+
+            modified = true;
+        }   
     }
 }
 

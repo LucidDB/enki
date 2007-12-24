@@ -152,29 +152,30 @@ public class HibernateManyToManyAssociation
         return targetResult || sourceResult;
     }
     
-    public void clear(HibernateAssociable item)
+    @Override
+    public void removeAll(HibernateAssociable item)
     {
-        if (equals(item, source)) {
+        if (!equals(item, getSource())) {
+            assert(getTarget().contains(item));
+            
+            remove(getSource(), item);
             return;
         }
         
-        final String type = getType();
-
-        for(HibernateAssociable trg: target) {
-            HibernateManyToManyAssociation trgAssoc =
-                (HibernateManyToManyAssociation)trg.getAssociation(type);
-            trgAssoc.remove(trg, source);
-            if (trgAssoc.getTarget().isEmpty()) {
-                trg.setAssociation(type, null);
-            }
+        while(!getTarget().isEmpty()) {
+            HibernateAssociable trg = getTarget().get(0);
+            remove(item, trg);
         }
-        target.clear();
-        source.setAssociation(type, null);
-
-        // REVIEW: SWZ: 11/14/2007: get Hibernate session and delete this?
-        // Or does that happen auto-magically?
     }
     
+    @Override
+    public void clear(HibernateAssociable item)
+    {
+        assert(equals(getSource(), item));
+        
+        removeAll(item);
+    }
+
     @Override
     protected List<HibernateAssociable> get(HibernateAssociable item)
     {

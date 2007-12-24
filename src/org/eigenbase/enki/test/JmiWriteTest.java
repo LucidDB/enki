@@ -38,32 +38,7 @@ import eem.sample.*;
  */
 public class JmiWriteTest extends JmiTestBase
 {
-    private static Set<String> existingCarMofIds; 
-    private static int carsCreated;
-    
-    @BeforeClass
-    public static void collectExistingCarMofIds()
-    {
-        getRepository().beginTrans(true);
-        try {
-            Set<String> existing = new HashSet<String>();
-        
-        
-            RefClass carClass = getSamplePackage().getCar();
-            
-            Collection<?> allCars = carClass.refAllOfClass();
-            for(Object o: allCars) {
-                RefObject car = (RefObject)o;
-                
-                existing.add(car.refMofId());
-            }
-            
-            existingCarMofIds = Collections.unmodifiableSet(existing);
-            carsCreated = 0;
-        } finally {
-            getRepository().endTrans();
-        }
-    }
+    private List<String> carMofIds = new ArrayList<String>();
     
     @Before
     public void startWriteTransaction()
@@ -101,10 +76,12 @@ public class JmiWriteTest extends JmiTestBase
         car1.setModel("Gallardo Superleggera");
         car1.setDoors(2);
         
-        refCarClass.refCreateInstance(
-            Arrays.asList(new Object[] { "Koenigsegg", "CCX", 2 }));
+        Car car2 =
+            (Car)refCarClass.refCreateInstance(
+                Arrays.asList(new Object[] { "Koenigsegg", "CCX", 2 }));
         
-        carsCreated += 2;
+        carMofIds.add(car1.refMofId());
+        carMofIds.add(car2.refMofId());
     }
     
 //    @Test
@@ -149,7 +126,8 @@ public class JmiWriteTest extends JmiTestBase
         car2.refSetValue(model, "Roadster");
         car2.refSetValue(doors, Integer.valueOf(2));
         
-        carsCreated += 2;
+        carMofIds.add(car1.refMofId());
+        carMofIds.add(car2.refMofId());
     }
     
     @Test
@@ -162,7 +140,7 @@ public class JmiWriteTest extends JmiTestBase
         for(Object o: allCars) {
             RefObject car = (RefObject)o;
 
-            if (existingCarMofIds.contains(car.refMofId())) {
+            if (!carMofIds.contains(car.refMofId())) {
                 continue;
             }
             
@@ -170,7 +148,7 @@ public class JmiWriteTest extends JmiTestBase
             carsDeleted++;
         }
 
-        Assert.assertEquals(carsCreated, carsDeleted);
+        Assert.assertEquals(carMofIds.size(), carsDeleted);
     }
 }
 

@@ -63,8 +63,7 @@ public abstract class HibernateAssociation
     /**
      * Generically add an association between left and right at the given
      * index.  One of the parameters left or right must be part of this 
-     * association already unless this association contains no members at all 
-     * (e.g., it is newly constructed).
+     * association already.
      *  
      * @param index position of new item
      * @param left left-side of association
@@ -85,7 +84,16 @@ public abstract class HibernateAssociation
         HibernateAssociable left, HibernateAssociable right);
     
     /**
-     * Generically remove all associations relate to the given item.
+     * Generically removes all associations of this type for the given 
+     * association end.  The item may be at either end of the association. 
+     * 
+     * @param item an association end
+     */
+    public abstract void removeAll(HibernateAssociable item);
+    
+    /**
+     * Generically remove all associations related to the given item, which
+     * must be the first end of the association.
      */
     public abstract void clear(HibernateAssociable item);
     

@@ -209,7 +209,9 @@
     </enki.javac>
   </target>
 
-  <target name="test" depends="createSampleRepository">
+  <target name="test" depends="createSampleRepository,test-only"/>
+
+  <target name="test-only">
     <delete>
       <fileset dir="${test.results.dir}" includes="*.txt"/>
     </delete>
@@ -253,8 +255,6 @@
     </delete>
   </target>
 
-  <target name="restart-mysql-server" depends="shutdown-mysql-server,start-mysql-server"/>
-
   <target name="start-mysql-server">
     <if>
       <available file="${mysql.inst.dir}/bin" type="dir"/>
@@ -266,6 +266,22 @@
       </else>
     </if>
   </target>
+
+  <target name="start-mysql-server-with-logging">
+    <if>
+      <available file="${mysql.inst.dir}/bin" type="dir"/>
+      <then>
+        <start-mysql-server with-logging="true"/>
+      </then>
+      <else>
+        <fail message="MYSQL_HOME is not set, or not set properly."/>
+      </else>
+    </if>
+  </target>
+
+  <target name="restart-mysql-server" depends="shutdown-mysql-server,start-mysql-server"/>
+
+  <target name="restart-mysql-server-with-logging" depends="shutdown-mysql-server,start-mysql-server-with-logging"/>
 
   <target name="stop-mysql-server" depends="shutdown-mysql-server"/>
 

@@ -61,10 +61,9 @@ public class JmiTestBase extends SampleModelTestBase
         Entity1 e1;
         Car car;
         try {
-            e1 = getSamplePackage().getSimple().getEntity1().createEntity1();
+            e1 = getSimplePackage().getEntity1().createEntity1();
             
-            Entity2 e2 =
-                getSamplePackage().getSimple().getEntity2().createEntity2();
+            Entity2 e2 = getSimplePackage().getEntity2().createEntity2();
             
             e1.setEntity2(e2);
             
@@ -83,13 +82,40 @@ public class JmiTestBase extends SampleModelTestBase
     }
 
     /**
+     * Deletes the entities created for use in tests.
+     * 
+     * @see #createEntities()
+     */
+    @AfterClass
+    public static void deleteEntities()
+    {
+        getRepository().beginTrans(true);
+    
+        boolean rollback = true;
+        try {
+            Entity1 e1 = getEntity1Instance();
+            Entity2 e2 = e1.getEntity2();
+            
+            e1.refDelete();
+            e2.refDelete();
+            
+            Car car = getCarInstance();
+            car.refDelete();
+            
+            rollback = false;
+        } finally {
+            getRepository().endTrans(rollback);
+        }
+    }
+    
+    /**
      * @return the instance of Entity1 created by {@link #createEntities()}.
      */
-    protected Entity1 getEntity1Instance()
+    protected static Entity1 getEntity1Instance()
     {
         Collection<Entity1> all =
             GenericCollections.asTypedCollection(
-                getSamplePackage().getSimple().getEntity1().refAllOfClass(),
+                getSimplePackage().getEntity1().refAllOfClass(),
                 Entity1.class);
         Assert.assertTrue(all.size() >= 1);
         
@@ -106,7 +132,7 @@ public class JmiTestBase extends SampleModelTestBase
     /**
      * @return the instance of Car created by {@link #createEntities()}.
      */
-    protected Car getCarInstance()
+    protected static Car getCarInstance()
     {
         Collection<Car> all =
             GenericCollections.asTypedCollection(
@@ -132,7 +158,7 @@ public class JmiTestBase extends SampleModelTestBase
      * @return List of Attribute instances for the object's type and 
      *         super-types
      */
-    protected List<Attribute> getAttributes(MofClass type)
+    protected static List<Attribute> getAttributes(MofClass type)
     {
         ArrayList<Attribute> attribs = new ArrayList<Attribute>();
         

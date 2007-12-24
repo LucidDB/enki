@@ -45,8 +45,12 @@ public abstract class HibernateRefObject
     @Override
     public void refDelete()
     {
+        removeAssociations();
+        
         super.delete();
     }
+    
+    protected abstract void removeAssociations();
     
     protected abstract String getClassIdentifier();
 }

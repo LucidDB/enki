@@ -231,9 +231,11 @@ public class HibernateMDRepository
         } else {
             Session session = getCurrentSession();
             
+            // TODO: convert to named query
             Query query = 
                 session.createQuery(
-                    "from " + RefBaseObjectBase.class + " where mofId = ?");
+                    "from " + RefBaseObject.class.getName() 
+                    + " where mofId = ?");
             query.setLong(0, mofIdLong);
             
             return (RefBaseObject)query.uniqueResult();

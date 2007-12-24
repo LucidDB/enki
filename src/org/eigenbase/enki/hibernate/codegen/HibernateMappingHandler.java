@@ -59,8 +59,6 @@ public class HibernateMappingHandler
 
     private static final String ASSOC_ONE_TO_MANY_TABLE = "AssocOneToMany";
     private static final String ASSOC_ONE_TO_MANY_PARENT_PROPERTY = "parent";
-    private static final String ASSOC_ONE_TO_MANY_UNIQUE_CONSTRAINT =
-        "parent_id_type_unique";
     private static final String ASSOC_ONE_TO_MANY_PARENT_TYPE_COLUMN = 
         "parent_type";
     private static final String ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN =
@@ -80,8 +78,6 @@ public class HibernateMappingHandler
         "child_id";
     
     private static final String ASSOC_MANY_TO_MANY_TABLE = "AssocManyToMany";
-    private static final String ASSOC_MANY_TO_MANY_UNIQUE_CONSTRAINT =
-        "source_id_type_unique";
     private static final String ASSOC_MANY_TO_MANY_SOURCE_PROPERTY = "source";
     private static final String ASSOC_MANY_TO_MANY_SOURCE_TYPE_COLUMN = 
         "source_type";
@@ -354,7 +350,6 @@ public class HibernateMappingHandler
             "property",
             "name", ASSOC_TYPE_PROPERTY,
             "not-null", "true",
-            "unique-key", ASSOC_ONE_TO_MANY_UNIQUE_CONSTRAINT,
             "length", String.valueOf(parentLength));
         
         startElem(
@@ -374,8 +369,7 @@ public class HibernateMappingHandler
             "column", "name", ASSOC_ONE_TO_MANY_PARENT_TYPE_COLUMN);
         writeEmptyElem(
             "column",
-            "name", ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN,
-            "unique-key", ASSOC_ONE_TO_MANY_UNIQUE_CONSTRAINT);
+            "name", ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN);
         endElem("any");
         
         startElem(
@@ -437,7 +431,6 @@ public class HibernateMappingHandler
             "property",
             "name", ASSOC_TYPE_PROPERTY,
             "not-null", "true",
-            "unique-key", ASSOC_MANY_TO_MANY_UNIQUE_CONSTRAINT,
             "length", String.valueOf(length));
 
         
@@ -465,8 +458,7 @@ public class HibernateMappingHandler
             "column", "name", ASSOC_MANY_TO_MANY_SOURCE_TYPE_COLUMN);
         writeEmptyElem(
             "column",
-            "name", ASSOC_MANY_TO_MANY_SOURCE_ID_COLUMN,
-            "unique-key", ASSOC_MANY_TO_MANY_UNIQUE_CONSTRAINT);
+            "name", ASSOC_MANY_TO_MANY_SOURCE_ID_COLUMN);
         endElem("any");
 
         startElem(

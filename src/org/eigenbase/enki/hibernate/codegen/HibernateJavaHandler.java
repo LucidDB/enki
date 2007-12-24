@@ -659,7 +659,7 @@ public class HibernateJavaHandler
                             newLine();
                             startMutatorBlock(ref);
                             
-                            // Get existing association if any.
+                            writeln("// Get the existing association object");
                             writeln(
                                 ASSOCIATION_BASE_CLASS,
                                 " assoc = getAssociation(",
@@ -667,7 +667,8 @@ public class HibernateJavaHandler
                             startConditionalBlock(
                                 CondType.IF, 
                                 "assoc == null && newValue != null");
-                            // If non exists, get the new value's association.
+                            writeln(
+                                "// If none exists, get the new value's association.");
                             writeln(
                                 "assoc = ((", 
                                 ASSOCIABLE_INTERFACE, 
@@ -677,13 +678,20 @@ public class HibernateJavaHandler
 
                             startConditionalBlock(
                                 CondType.IF, "assoc == null");
-                            // Create an association if we haven't found one.
+                            startConditionalBlock(
+                                CondType.IF, "newValue == null");
+                            writeln(
+                                "// User is clearing a non-existent association: do nothing");
+                            writeln("return;");
+                            endBlock();
                             writeln(
                                 "assoc = getOrCreateAssociation(",
                                 QUOTE, assocInfo.baseName, QUOTE,
                                 ");");
                             endBlock();
 
+                            startConditionalBlock(
+                                CondType.IF, "newValue != null");
                             if (assocInfo.getEndIndex(ref, false) == 0) {
                                 writeln(
                                     "assoc.add(this, (", 
@@ -695,6 +703,10 @@ public class HibernateJavaHandler
                                     ASSOCIABLE_INTERFACE,
                                     ")newValue, this);");
                             }
+                            startConditionalBlock(CondType.ELSE);
+                            writeln("// remove any existing association");
+                            writeln("assoc.removeAll(this);");
+                            endBlock();
                             endBlock();                        
                         }
                         break;
@@ -749,6 +761,7 @@ public class HibernateJavaHandler
                         if (hasParent && ref.isChangeable()) {
                             newLine();
                             startMutatorBlock(ref);
+                            writeln("// get existing association, if any");
                             writeln(
                                 ASSOCIATION_BASE_CLASS,
                                 " assoc = getAssociation(",
@@ -756,7 +769,8 @@ public class HibernateJavaHandler
                             startConditionalBlock(
                                 CondType.IF, 
                                 "assoc == null && newValue != null");
-                            // If non exists, get the new value's association.
+                            writeln(
+                                "// None exists, get the new value's association.");
                             writeln(
                                 "assoc = ((", 
                                 ASSOCIABLE_INTERFACE, 
@@ -766,14 +780,21 @@ public class HibernateJavaHandler
 
                             startConditionalBlock(
                                 CondType.IF, "assoc == null");
-                            // Create an association if we haven't found one.
+                            startConditionalBlock(
+                                CondType.IF, "newValue == null");
+                            writeln(
+                                "// User is clearing a non-existent association: do nothing");
+                            writeln("return;");
+                            endBlock();
                             writeln(
                                 "assoc = getOrCreateAssociation(",
                                 QUOTE, assocInfo.baseName, QUOTE,
                                 ");");
                             endBlock();
 
-                            // NOTE: we don't cast to the "$Impl" type here 
+                            startConditionalBlock(
+                                CondType.IF, "newValue != null");
+                            // NOTE: we don't cast to the "_Impl" type here 
                             // because they do not inherit from each other
                             // and there may be multiple implementations of
                             // the parent interface.
@@ -781,6 +802,10 @@ public class HibernateJavaHandler
                                 "assoc.add((",
                                 ASSOCIABLE_INTERFACE,
                                 ")newValue, this);");
+                            startConditionalBlock(CondType.ELSE);
+                            writeln("// remove any existing association");
+                            writeln("assoc.removeAll(this);");
+                            endBlock();
                             endBlock();                        
                         }
                         break;
@@ -962,6 +987,23 @@ public class HibernateJavaHandler
                     QUOTE, "Unknown assoc type '", QUOTE,
                     " + type + ", QUOTE, "'", QUOTE, ");");
                 endBlock();
+                endBlock();
+
+                newLine();
+                writeln("// Implement HibernateRefObject");
+                startBlock("protected void removeAssociations()");
+                for(Reference ref: instanceReferences) {
+                    AssociationInfo assocInfo = refInfo.get(ref);
+                    startConditionalBlock(
+                        CondType.IF, assocInfo.accessorName, "() != null");
+                    writeln(assocInfo.accessorName, "().removeAll(this);");
+                    endBlock();
+                }
+                endBlock();
+            } else {
+                newLine();
+                writeln("// Implement HibernateRefObject");
+                startBlock("protected void removeAssociations()");
                 endBlock();
             }
 

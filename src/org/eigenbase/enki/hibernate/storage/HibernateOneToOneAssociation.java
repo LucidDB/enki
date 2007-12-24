@@ -83,9 +83,9 @@ public class HibernateOneToOneAssociation
             (HibernateOneToOneAssociation)newParent.getAssociation(type);
         HibernateOneToOneAssociation childAssoc = 
             (HibernateOneToOneAssociation)newChild.getAssociation(type);
-        
-        boolean sameParent = (parentAssoc == this);
-        boolean sameChild = (childAssoc == this);
+                
+        boolean sameParent = parentAssoc != null && parentAssoc.equals(this);
+        boolean sameChild = childAssoc != null && childAssoc.equals(this);
         
         if (sameParent) {
             if (sameChild) {
@@ -108,6 +108,9 @@ public class HibernateOneToOneAssociation
         }
 
         if (parentAssoc == null) {
+            if (getParent() != null) {
+                getParent().setAssociation(type, null);
+            }
             newParent.setAssociation(type, this);
             setParent(newParent);
             return true;
@@ -149,11 +152,19 @@ public class HibernateOneToOneAssociation
     }
     
     @Override
+    public void removeAll(HibernateAssociable item)
+    {
+        assert(equals(getParent(), item) || equals(getChild(), item));
+        
+        remove(getParent(), getChild());
+    }
+
+    @Override
     public void clear(HibernateAssociable item)
     {
-        if (equals(getParent(), item) || equals(getChild(), item)) {
-            remove(getParent(), getChild());
-        }
+        assert(equals(getParent(), item));
+        
+        remove(getParent(), getChild());
     }
     
     @Override

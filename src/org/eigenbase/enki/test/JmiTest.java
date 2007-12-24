@@ -104,8 +104,7 @@ public class JmiTest extends JmiTestBase
     @Test
     public void testRefClassRefMetaObject()
     {
-        RefClass refClass = 
-            getEemPackage().getSample().getSimple().getEntity1();
+        RefClass refClass =  getSimplePackage().getEntity1();
         
         List<RefObject> metaObjs = getMetaObjects("Entity1 Class", refClass);
         Assert.assertEquals(2, metaObjs.size());
@@ -196,13 +195,11 @@ public class JmiTest extends JmiTestBase
 
         // Test refClass()
         RefClass e1RefClass = e1.refClass();
-        Assert.assertSame(
-            getSamplePackage().getSimple().getEntity1(), e1RefClass);
+        Assert.assertSame(getSimplePackage().getEntity1(), e1RefClass);
         
         RefClass e2RefClass = e2.refClass();
         
-        Assert.assertSame(
-            getSamplePackage().getSimple().getEntity2(), e2RefClass);
+        Assert.assertSame(getSimplePackage().getEntity2(), e2RefClass);
         
         // TODO: Test refImmediateComposite
         
@@ -210,9 +207,9 @@ public class JmiTest extends JmiTestBase
         
         // Test refIsInstanceOf
         MofClass e1MofClass =
-            (MofClass)getSamplePackage().getSimple().getEntity1().refMetaObject();
+            (MofClass)getSimplePackage().getEntity1().refMetaObject();
         MofClass e2MofClass =
-            (MofClass)getSamplePackage().getSimple().getEntity2().refMetaObject();
+            (MofClass)getSimplePackage().getEntity2().refMetaObject();
 
         Assert.assertTrue(e1.refIsInstanceOf(e1MofClass, false));
         Assert.assertTrue(e1.refIsInstanceOf(e1MofClass, true));
@@ -281,25 +278,25 @@ public class JmiTest extends JmiTestBase
         
         RefClass e1RefClassByName = refSimplePackage.refClass("Entity1");
         Assert.assertSame(
-            getSamplePackage().getSimple().getEntity1(), e1RefClassByName);
+            getSimplePackage().getEntity1(), e1RefClassByName);
         
         RefClass e2RefClassByName = refSimplePackage.refClass("Entity2");
         Assert.assertSame(
-            getSamplePackage().getSimple().getEntity2(), e2RefClassByName);
+            getSimplePackage().getEntity2(), e2RefClassByName);
 
         RefObject mofEntity1Class = 
-            getSamplePackage().getSimple().getEntity1().refMetaObject();
+            getSimplePackage().getEntity1().refMetaObject();
         RefClass e1RefClassByInstance = 
             refSimplePackage.refClass(mofEntity1Class);
         Assert.assertSame(
-            getSamplePackage().getSimple().getEntity1(), e1RefClassByInstance);
+            getSimplePackage().getEntity1(), e1RefClassByInstance);
         
         RefObject mofEntity2Class = 
-            getSamplePackage().getSimple().getEntity2().refMetaObject();
+            getSimplePackage().getEntity2().refMetaObject();
         RefClass e2RefClassByInstance = 
             refSimplePackage.refClass(mofEntity2Class);
         Assert.assertSame(
-            getSamplePackage().getSimple().getEntity2(), e2RefClassByInstance);
+            getSimplePackage().getEntity2(), e2RefClassByInstance);
 
         // refPackage(String/RefObject)
         EemPackage eemPackage = getEemPackage();
@@ -313,7 +310,7 @@ public class JmiTest extends JmiTestBase
         
 
         // refAssociation(String/RefObject)
-        SimplePackage simplePackage = getSamplePackage().getSimple();
+        SimplePackage simplePackage = getSimplePackage();
         
         HasAnEntity2 hasAnEntity2 = simplePackage.getHasAnEntity2();
         RefAssociation refHasAnEntityAssoc = 
