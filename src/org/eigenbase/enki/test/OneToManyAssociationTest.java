@@ -125,9 +125,14 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             if (byFirstEnd) {
                 Entity10 e10a = findEntity(e10aRefMofId, Entity10.class);
 
-                // TODO: Fix Netbeans/Enki-Hibernate discrepancy.
-                // Netbeans requires the remove(e11) on the old Entity10
-                e10a.getEntity11().remove(e11);
+                // REVIEW: SWZ: 12/26/07: Netbeans/Enki-Hibernate discrepancy.
+                // Netbeans requires the remove(e11) on the old Entity10.  I
+                // contend that since the e11 can only refer to one Entity10,
+                // it should automatically be removed.  (Or else it should be
+                // a constraint violation exception.)
+                if (getMdrProvider() == MdrProvider.NETBEANS_MDR) {
+                    e10a.getEntity11().remove(e11);
+                }
                 e10b.getEntity11().add(e11);
             } else {
                 e11.setEntity10(e10b);
@@ -166,17 +171,8 @@ public class OneToManyAssociationTest extends SampleModelTestBase
         
         String e16bRefMofId = createEntity16(0, null, false);
         
-        int pick = N / 2;
-        String e17RefMofId = null;
-        for(Iterator<String> iter = e17RefMofIds.iterator(); iter.hasNext(); )
-        {
-            e17RefMofId = iter.next();
-            
-            if (pick-- == 0) {
-                iter.remove();
-                break;
-            }
-        }
+        String e17RefMofId = e17RefMofIds.get(N / 2);
+        e17RefMofIds.remove(N / 2);
 
         getRepository().beginTrans(true);
         
@@ -188,9 +184,14 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             if (byFirstEnd) {
                 Entity16 e16a = findEntity(e16aRefMofId, Entity16.class);
                 
-                // TODO: Fix Netbeans/Enki-Hibernate discrepancy.
-                // Netbeans requires the remove(e17) on the old Entity16
-                e16a.getEntity17().remove(e17);
+                // REVIEW: SWZ: 12/26/07: Netbeans/Enki-Hibernate discrepancy.
+                // Netbeans requires the remove(e17) on the old Entity16.  I
+                // contend that since the e17 can only refer to one Entity16,
+                // it should automatically be removed.  (Or else it should be
+                // a constraint violation exception.)
+                if (getMdrProvider() == MdrProvider.NETBEANS_MDR) {
+                    e16a.getEntity17().remove(e17);
+                }
                 e16b.getEntity17().add(e17);
             } else {
                 e17.setEntity16(e16b);
@@ -293,7 +294,7 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             getRepository().endTrans();
         }
 
-        traverseHasEntity17(e16RefMofId, e17RefMofIds, true);
+        traverseHasEntity17(e16RefMofId, e17RefMofIds);
 
         // Remove two via index
         getRepository().beginTrans(true);
@@ -315,7 +316,7 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             getRepository().endTrans();
         }
 
-        traverseHasEntity17(e16RefMofId, e17RefMofIds, true);
+        traverseHasEntity17(e16RefMofId, e17RefMofIds);
         
         if (getMdrProvider() != MdrProvider.NETBEANS_MDR) {
             // Remove two via sublist
@@ -338,7 +339,7 @@ public class OneToManyAssociationTest extends SampleModelTestBase
                 getRepository().endTrans();
             }
     
-            traverseHasEntity17(e16RefMofId, e17RefMofIds, true);
+            traverseHasEntity17(e16RefMofId, e17RefMofIds);
         } else {
             System.out.println(
                 "skipping remove by subList -- not support in Netbeans");
@@ -402,7 +403,7 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             getRepository().endTrans();
         }
 
-        traverseHasEntity17(e16RefMofId, e17RefMofIds, true);
+        traverseHasEntity17(e16RefMofId, e17RefMofIds);
     }
 
     @Test
@@ -434,7 +435,7 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             getRepository().endTrans();
         }
 
-        traverseHasEntity17(e16RefMofId, e17RefMofIds, true);
+        traverseHasEntity17(e16RefMofId, e17RefMofIds);
     }
     
     private String createEntity10(

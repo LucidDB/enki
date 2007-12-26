@@ -236,7 +236,63 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
     
     private void testOrderedReassociation(boolean byFirstEnd)
     {
+        List<String> e23RefMofIds = new ArrayList<String>();
         
+        String e22aRefMofId = 
+            createEntities22(1, N, e23RefMofIds, false).iterator().next();
+        
+        String e22bRefMofId = 
+            createEntities22(1, 0, null, false).iterator().next();
+        
+        String reassocE23RefMofId = e23RefMofIds.get(N / 2);
+        e23RefMofIds.remove(N / 2);
+
+        getRepository().beginTrans(true);
+        
+        try {
+            Entity23 e23 = findEntity(reassocE23RefMofId, Entity23.class);
+            
+            Entity22 e22a = findEntity(e22aRefMofId, Entity22.class);
+            Entity22 e22b = findEntity(e22bRefMofId, Entity22.class);
+            
+            if (byFirstEnd) {
+                e22a.getEntity23().remove(e23);
+                e22b.getEntity23().add(e23);
+            } else {
+                e23.getEntity22().add(e22b);
+                e23.getEntity22().remove(e22a);
+            }
+            
+            traverseEntity22to23(e22aRefMofId, e23RefMofIds, false);
+            traverseEntity22to23(
+                e22bRefMofId, 
+                Collections.singletonList(reassocE23RefMofId), false);
+            for(String e23RefMofId: e23RefMofIds) {
+                traverseEntity23to22(
+                    e23RefMofId,
+                    Collections.singletonList(e22aRefMofId), 
+                    false);
+            }
+            traverseEntity23to22(
+                reassocE23RefMofId, 
+                Collections.singletonList(e22bRefMofId), 
+                false);
+        }
+        finally {
+            getRepository().endTrans();
+        }
+        
+        // Verify in separate txn
+        traverseEntity22to23(e22aRefMofId, e23RefMofIds);
+        traverseEntity22to23(
+            e22bRefMofId, Collections.singletonList(reassocE23RefMofId));
+        
+        for(String e23RefMofId: e23RefMofIds) {
+            traverseEntity23to22(
+                e23RefMofId, Collections.singletonList(e22aRefMofId));
+        }
+        traverseEntity23to22(
+            reassocE23RefMofId, Collections.singletonList(e22bRefMofId));
     }
     
     @Test
@@ -253,19 +309,157 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
     
     private void testUnorderedReassociation(boolean byFirstEnd)
     {
+        Set<String> e21RefMofIds = new HashSet<String>();
         
+        String e20aRefMofId = 
+            createEntities20(1, N, e21RefMofIds, false).iterator().next();
+        
+        String e20bRefMofId = 
+            createEntities20(1, 0, null, false).iterator().next();
+        
+        int pick = N / 2;
+        String reassocE21RefMofId = null;
+        for(Iterator<String> iter = e21RefMofIds.iterator(); iter.hasNext(); )
+        {
+            reassocE21RefMofId = iter.next();
+            
+            if (pick-- == 0) {
+                iter.remove();
+                break;
+            }
+        }
+
+        getRepository().beginTrans(true);
+        
+        try {
+            Entity21 e21 = findEntity(reassocE21RefMofId, Entity21.class);
+            
+            Entity20 e20a = findEntity(e20aRefMofId, Entity20.class);
+            Entity20 e20b = findEntity(e20bRefMofId, Entity20.class);
+            if (byFirstEnd) {
+                e20a.getEntity21().remove(e21);
+                e20b.getEntity21().add(e21);
+            } else {
+                e21.getEntity20().add(e20b);
+                e21.getEntity20().remove(e20a);
+            }
+            
+            traverseEntity20to21(e20aRefMofId, e21RefMofIds, false);
+            traverseEntity20to21(
+                e20bRefMofId,
+                Collections.singleton(reassocE21RefMofId),
+                false);
+        }
+        finally {
+            getRepository().endTrans();
+        }
+        
+        // Verify in separate txn
+        traverseEntity20to21(e20aRefMofId, e21RefMofIds);
+        traverseEntity20to21(
+            e20bRefMofId, Collections.singleton(reassocE21RefMofId));
+        
+        for(String e21RefMofId: e21RefMofIds) {
+            traverseEntity21to20(
+                e21RefMofId, Collections.singleton(e20aRefMofId));
+        }
+        traverseEntity21to20(
+            reassocE21RefMofId, Collections.singleton(e20bRefMofId));
     }
     
     @Test
     public void testReorder()
     {
+        List<String> e23RefMofIds = new ArrayList<String>();
         
+        String e22RefMofId = 
+            createEntities22(1, N, e23RefMofIds, false).iterator().next();
+
+        final int seed = 20050612;
+        Random rng = new Random();
+
+        getRepository().beginTrans(true);
+        
+        try {
+            Entity22 e22 = findEntity(e22RefMofId, Entity22.class);
+            
+            List<Entity23> entities23 = e22.getEntity23();
+            
+            // In theory we should be able to shuffle entites23 directly,
+            // but ListProxy doesn't handle the necessary arbitrary 
+            // set(int,Object) calls that (and if the association
+            // were marked unique it shouldn't work anyway since shuffle
+            // might temporarily place the same object in the list in two
+            // separate locations).
+            rng.setSeed(seed);
+            ArrayList<Entity23> copy = new ArrayList<Entity23>(entities23);            
+            Collections.shuffle(copy, rng);
+            entities23.clear();
+            entities23.addAll(copy);
+            
+            rng.setSeed(seed);
+            Collections.shuffle(e23RefMofIds, rng);
+            
+            traverseEntity22to23(e22RefMofId, e23RefMofIds, false);
+            for(String e23RefMofId: e23RefMofIds) {
+                traverseEntity23to22(
+                    e23RefMofId,
+                    Collections.singletonList(e22RefMofId), 
+                    false);
+            }
+        }
+        finally {
+            getRepository().endTrans();
+        }
+
+        traverseEntity22to23(e22RefMofId, e23RefMofIds);
+        for(String e23RefMofId: e23RefMofIds) {
+            traverseEntity23to22(
+                e23RefMofId, Collections.singletonList(e22RefMofId));
+        }
     }
     
     @Test
     public void testOrderedInsert()
     {
+        List<String> e23RefMofIds = new ArrayList<String>();
         
+        String e22RefMofId = 
+            createEntities22(1, N, e23RefMofIds, false).iterator().next();
+
+        getRepository().beginTrans(true);
+        
+        try {
+            Entity22 e22 = findEntity(e22RefMofId, Entity22.class);
+            
+            Entity23 e23a = getSimplePackage().getEntity23().createEntity23();
+            Entity23 e23b = getSimplePackage().getEntity23().createEntity23();
+
+            List<Entity23> entities23 = e22.getEntity23();
+
+            entities23.add(N / 4, e23b);
+            entities23.add(0, e23a);
+            
+            e23RefMofIds.add(N / 4, e23b.refMofId());
+            e23RefMofIds.add(0, e23a.refMofId());
+            
+            traverseEntity22to23(e22RefMofId, e23RefMofIds, false);
+            for(String e23RefMofId: e23RefMofIds) {
+                traverseEntity23to22(
+                    e23RefMofId,
+                    Collections.singletonList(e22RefMofId), 
+                    false);
+            }
+        }
+        finally {
+            getRepository().endTrans();
+        }
+
+        traverseEntity22to23(e22RefMofId, e23RefMofIds);
+        for(String e23RefMofId: e23RefMofIds) {
+            traverseEntity23to22(
+                e23RefMofId, Collections.singletonList(e22RefMofId));
+        }
     }
     
     private Set<String> createEntities20(
