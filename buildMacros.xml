@@ -38,6 +38,9 @@
 
   <property name="thirdparty.dir" location="${enki.dir}/thirdparty"/>
 
+  <property name="dist.dir" location="${enki.dir}/dist"/>
+  <property name="enki.dist.jar" location="${dist.dir}/enki.jar"/>
+
   <!-- properties for thirdparty libraries -->
   <property name="commons-collections.dir" location="${thirdparty.dir}/commons-collections"/>
   <property name="commons-logging.dir" location="${thirdparty.dir}/commons-logging"/>

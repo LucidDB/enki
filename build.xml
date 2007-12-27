@@ -182,6 +182,18 @@
     <antcall target="compile.impl"/>
   </target>
 
+  <target name="jar" depends="compile">
+    <mkdir dir="${dist.dir}"/>
+    <jar jarfile="${enki.dist.jar}">
+      <fileset dir="${classes.dir}">
+        <include name="**/*.class"/>
+      </fileset>
+      <fileset dir="${src.dir}">
+        <include name="**/*.xml"/>
+      </fileset>
+    </jar>
+  </target>
+
   <target name="compile" depends="compile.dependencies">
     <antcall target="compile.impl" inheritAll="true" inheritRefs="true"/>
   </target>
