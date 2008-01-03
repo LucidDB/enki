@@ -33,6 +33,7 @@ import java.util.*;
 public class ListProxy<E> implements List<E>
 {
     private final String type;
+    private final boolean firstEnd;
     private final Class<E> cls;
     private HibernateAssociation assoc;
     private final HibernateAssociable source;
@@ -40,17 +41,24 @@ public class ListProxy<E> implements List<E>
     public ListProxy(
         HibernateAssociation assoc, 
         HibernateAssociable source,
+        boolean firstEnd,
         Class<E> cls)
     {
         this.type = assoc.getType();
+        this.firstEnd = firstEnd;
         this.cls = cls;
         this.assoc = assoc;
         this.source = source;
     }
     
-    public ListProxy(String type, HibernateAssociable source, Class<E> cls)
+    public ListProxy(
+        String type,
+        boolean firstEnd, 
+        HibernateAssociable source,
+        Class<E> cls)
     {
         this.type = type;
+        this.firstEnd = firstEnd;
         this.cls = cls;
         this.assoc = null;
         this.source = source;
@@ -59,7 +67,7 @@ public class ListProxy<E> implements List<E>
     private void checkAssoc()
     {
         if (assoc == null) {
-            assoc = source.getOrCreateAssociation(type);
+            assoc = source.getOrCreateAssociation(type, firstEnd);
         }
     }
 
@@ -71,7 +79,11 @@ public class ListProxy<E> implements List<E>
     public boolean add(E e)
     {
         checkAssoc();
-        assoc.add(source, (HibernateAssociable)e);
+        if (firstEnd) {
+            assoc.add(source, (HibernateAssociable)e);
+        } else {
+            assoc.add((HibernateAssociable)e, source);
+        }
         return true;
     }
 
@@ -81,7 +93,11 @@ public class ListProxy<E> implements List<E>
         if (index < 0 || index > assoc.get(source).size()) {
             throw new IndexOutOfBoundsException();
         }
-        assoc.add(index, source, (HibernateAssociable)element);
+        if (firstEnd) {
+            assoc.add(index, source, (HibernateAssociable)element);
+        } else {
+            assoc.add(index, (HibernateAssociable)element, source);
+        }
     }
 
     public boolean addAll(Collection<? extends E> c)
@@ -194,8 +210,14 @@ public class ListProxy<E> implements List<E>
     public boolean remove(Object o)
     {
         if (o instanceof HibernateAssociable && assoc != null) {
-            boolean result = assoc.remove(source, (HibernateAssociable)o);
-            if (source.getAssociation(type) == null) {
+            boolean result;
+            if (firstEnd) {
+                result = assoc.remove(source, (HibernateAssociable)o);
+            } else {
+                result = assoc.remove((HibernateAssociable)o, source);
+            }
+
+            if (source.getAssociation(type, firstEnd) == null) {
                 // Deleted last child.
                 assoc = null;
             }
@@ -262,7 +284,11 @@ public class ListProxy<E> implements List<E>
         }
         
         E item = getInternal(index);
-        assoc.remove(source, (HibernateAssociable)item);
+        if (firstEnd) {
+            assoc.remove(source, (HibernateAssociable)item);
+        } else {
+            assoc.remove((HibernateAssociable)item, source);
+        }
         add(index, element);
         return item;
     }

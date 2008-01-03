@@ -36,27 +36,35 @@ public interface HibernateAssociable extends RefObject
      * the given type of association for this instance.
      *  
      * @param type name of the type of association to retrieve
+     * @param firstEnd if true, get the HibernateAssociation object where this 
+     *                 is the first end (to distinguish circular associations)
      * @return the HibernateAssociation for the given name or null if not set
      */
-    public HibernateAssociation getAssociation(String type);
+    public HibernateAssociation getAssociation(String type, boolean firstEnd);
 
     /**
      * Set the {@link HibernateAssociation} associated with the given type of 
      * association for this instance. 
      *  
      * @param type name of the type of association to set
+     * @param firstEnd if true, get the HibernateAssociation object where this 
+     *                 is the first end (to distinguish circular associations)
      * @param assoc the association to store
      */
-    public void setAssociation(String type, HibernateAssociation assoc);
+    public void setAssociation(
+        String type, boolean firstEnd, HibernateAssociation assoc);
 
     /**
      * Retrieves or creates the {@link HibernateAssociation} instance 
      * associated with the given type association for this instance.
      * 
      * @param type name of the type of association to get or create
+     * @param firstEnd if true, get the HibernateAssociation object where this 
+     *                 is the first end (to distinguish circular associations)
      * @return the HibernateAssociation for the given name
      */
-    public HibernateAssociation getOrCreateAssociation(String type);
+    public HibernateAssociation getOrCreateAssociation(
+        String type, boolean firstEnd);
 }
 
 // End HibernateAssociable.java

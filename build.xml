@@ -140,12 +140,16 @@
       file="${test.dir}/TestStorage.properties" 
       prefix="cleanSampleRepos"/>
 
+    <echo>
+      Executing:
+        ${cleanSampleRepos.org.eigenbase.enki.dev.dropStorage}
+        ${cleanSampleRepos.org.eigenbase.enki.dev.createStorage}
+    </echo>
     <sql
         driver="${cleanSampleRepos.hibernate.connection.driver_class}"
         url="${cleanSampleRepos.hibernate.connection.url}" 
         userid="${cleanSampleRepos.hibernate.connection.username}"
-        password="${cleanSampleRepos.hibernate.connection.password}"
-        print="true">
+        password="${cleanSampleRepos.hibernate.connection.password}">
       ${cleanSampleRepos.org.eigenbase.enki.dev.dropStorage}
       ${cleanSampleRepos.org.eigenbase.enki.dev.createStorage}
     </sql>

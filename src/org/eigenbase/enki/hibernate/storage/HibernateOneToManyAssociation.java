@@ -83,9 +83,11 @@ public class HibernateOneToManyAssociation
 
         // This association must be related to one of the two objects.
         HibernateOneToManyAssociation parentAssoc = 
-            (HibernateOneToManyAssociation)newParent.getAssociation(type);
+            (HibernateOneToManyAssociation)newParent.getAssociation(
+                type, true);
         HibernateOneToManyAssociation childAssoc = 
-            (HibernateOneToManyAssociation)newChild.getAssociation(type);
+            (HibernateOneToManyAssociation)newChild.getAssociation(
+                type, false);
 
         boolean sameParent = parentAssoc != null && parentAssoc.equals(this);
         boolean sameChild = childAssoc != null && childAssoc.equals(this);
@@ -105,7 +107,7 @@ public class HibernateOneToManyAssociation
                 childAssoc.removeAll(newChild);
             }
             
-            newChild.setAssociation(type, this);
+            newChild.setAssociation(type, false, this);
             getChildren().add(newChild);
             return true;
         }
@@ -116,7 +118,7 @@ public class HibernateOneToManyAssociation
             // Parent had no previous association.
             if (getParent() == null) {
                 // child association is brand new, just set the parent
-                newParent.setAssociation(type, this);
+                newParent.setAssociation(type, true, this);
                 setParent(newParent);
                 return true;
             }
@@ -125,7 +127,7 @@ public class HibernateOneToManyAssociation
             // parent.
             parentAssoc = 
                 (HibernateOneToManyAssociation)
-                newParent.getOrCreateAssociation(type);                
+                newParent.getOrCreateAssociation(type, true);                
         }
         
         return parentAssoc.add(newParent, newChild);
@@ -141,9 +143,11 @@ public class HibernateOneToManyAssociation
 
         // This association must be related to one of the two objects.
         HibernateOneToManyAssociation parentAssoc = 
-            (HibernateOneToManyAssociation)newParent.getAssociation(type);
+            (HibernateOneToManyAssociation)newParent.getAssociation(
+                type, true);
         HibernateOneToManyAssociation childAssoc = 
-            (HibernateOneToManyAssociation)newChild.getAssociation(type);
+            (HibernateOneToManyAssociation)newChild.getAssociation(
+                type, false);
 
         boolean sameParent = parentAssoc != null && parentAssoc.equals(this);
         boolean sameChild = childAssoc != null && childAssoc.equals(this);
@@ -163,14 +167,14 @@ public class HibernateOneToManyAssociation
                 // REVIEW: 12/19/07: Should we delete childAssoc "if (childAssoc.getChildren().isEmpty())"?
             }
             
-            newChild.setAssociation(type, this);
+            newChild.setAssociation(type, false, this);
             getChildren().add(index, newChild);
             return;
         }
 
         if (parentAssoc == null) {
             // Parent had no previous association.
-            newParent.setAssociation(type, this);
+            newParent.setAssociation(type, true, this);
             setParent(newParent);
             return;
         }
@@ -188,25 +192,27 @@ public class HibernateOneToManyAssociation
         
         // This association must be related to one of the two objects.
         HibernateOneToManyAssociation parentAssoc = 
-            (HibernateOneToManyAssociation)parent.getAssociation(type);
+            (HibernateOneToManyAssociation)parent.getAssociation(
+                type, true);
         HibernateOneToManyAssociation childAssoc = 
-            (HibernateOneToManyAssociation)child.getAssociation(type);
+            (HibernateOneToManyAssociation)child.getAssociation(
+                type, false);
         
         if (!equals(parentAssoc, childAssoc)) {
             // Objects aren't association
             return false;
         }
         
-        assert(parent.getAssociation(type).equals(this));
-        assert(child.getAssociation(type).equals(this));
+        assert(parent.getAssociation(type, true).equals(this));
+        assert(child.getAssociation(type, false).equals(this));
         assert(equals(getParent(), parent));
         assert(getChildren().contains(child));
         
-        child.setAssociation(type, null);
+        child.setAssociation(type, false, null);
         children.remove(child);
         
         if (children.isEmpty()) {
-            parent.setAssociation(type, null);
+            parent.setAssociation(type, true, null);
             
             HibernateMDRepository.getCurrentSession().delete(this);
         }

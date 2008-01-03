@@ -151,7 +151,7 @@ public abstract class HibernateOneToManyRefAssociation<P extends RefObject, C ex
         HibernateAssociable associableParent = (HibernateAssociable)parent;
         HibernateAssociable associableChild = (HibernateAssociable)child;
         
-        return associableParent.getAssociation(type).add(
+        return associableParent.getAssociation(type, true).add(
             associableParent, associableChild);
     }
 
@@ -160,7 +160,7 @@ public abstract class HibernateOneToManyRefAssociation<P extends RefObject, C ex
         HibernateAssociable associableParent = (HibernateAssociable)parent;
         HibernateAssociable associableChild = (HibernateAssociable)child;
         
-        return associableParent.getAssociation(type).remove(
+        return associableParent.getAssociation(type, true).remove(
             associableParent, associableChild);
     }
 }

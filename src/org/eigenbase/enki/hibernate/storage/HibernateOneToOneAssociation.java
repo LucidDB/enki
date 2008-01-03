@@ -80,9 +80,11 @@ public class HibernateOneToOneAssociation
         final String type = getType();
         
         HibernateOneToOneAssociation parentAssoc = 
-            (HibernateOneToOneAssociation)newParent.getAssociation(type);
+            (HibernateOneToOneAssociation)newParent.getAssociation(
+                type, true);
         HibernateOneToOneAssociation childAssoc = 
-            (HibernateOneToOneAssociation)newChild.getAssociation(type);
+            (HibernateOneToOneAssociation)newChild.getAssociation(
+                type, false);
                 
         boolean sameParent = parentAssoc != null && parentAssoc.equals(this);
         boolean sameChild = childAssoc != null && childAssoc.equals(this);
@@ -90,8 +92,8 @@ public class HibernateOneToOneAssociation
         if (sameParent) {
             if (sameChild) {
                 // Nothing to do.
-                assert(this.equals(newParent.getAssociation(type)));
-                assert(this.equals(newChild.getAssociation(type)));
+                assert(this.equals(newParent.getAssociation(type, true)));
+                assert(this.equals(newChild.getAssociation(type, false)));
                 return false;
             }
             
@@ -102,16 +104,16 @@ public class HibernateOneToOneAssociation
                 // REVIEW: 12/19/07: Should we delete childAssoc?
             }
             
-            newChild.setAssociation(type, this);
+            newChild.setAssociation(type, false, this);
             setChild(newChild);
             return true;
         }
 
         if (parentAssoc == null) {
             if (getParent() != null) {
-                getParent().setAssociation(type, null);
+                getParent().setAssociation(type, true, null);
             }
-            newParent.setAssociation(type, this);
+            newParent.setAssociation(type, true, this);
             setParent(newParent);
             return true;
         }
@@ -134,17 +136,20 @@ public class HibernateOneToOneAssociation
     {
         final String type = getType();
 
-        if (!equals(parent.getAssociation(type), child.getAssociation(type))) {
+        if (!equals(
+                parent.getAssociation(type, true), 
+                child.getAssociation(type, false)))
+        {
             // Objects not associated.
             return false;
         }
         
         assert(equals(getParent(), parent) && equals(getChild(), child));
-        assert(this.equals(parent.getAssociation(type)));
-        assert(this.equals(child.getAssociation(type)));
+        assert(this.equals(parent.getAssociation(type, true)));
+        assert(this.equals(child.getAssociation(type, false)));
         
-        getParent().setAssociation(type, null);
-        getChild().setAssociation(type, null);
+        getParent().setAssociation(type, true, null);
+        getChild().setAssociation(type, false, null);
         
         HibernateMDRepository.getCurrentSession().delete(this);
         

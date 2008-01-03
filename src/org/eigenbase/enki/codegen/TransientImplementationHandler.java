@@ -619,7 +619,7 @@ public abstract class TransientImplementationHandler
                 if (refInfo.isSingle() && refInfo.isChangeable()) {
                     newLine();
                     startMutatorBlock(ref);
-                    if (refInfo.isFirstEnd()) {
+                    if (refInfo.isReferencedEndFirst()) {
                         writeln(
                             refInfo.getFieldName(),
                             ".add(newValue, this);");

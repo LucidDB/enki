@@ -153,7 +153,7 @@ public abstract class HibernateManyToManyRefAssociation<S extends RefObject, T e
         HibernateAssociable associableSource = (HibernateAssociable)source;
         HibernateAssociable associableTarget = (HibernateAssociable)target;
         
-        return associableSource.getAssociation(type).add(
+        return associableSource.getAssociation(type, true).add(
             associableSource, associableTarget);
     }
 
@@ -162,7 +162,7 @@ public abstract class HibernateManyToManyRefAssociation<S extends RefObject, T e
         HibernateAssociable associableSource = (HibernateAssociable)source;
         HibernateAssociable associableTarget = (HibernateAssociable)target;
         
-        return associableSource.getAssociation(type).remove(
+        return associableSource.getAssociation(type, true).remove(
             associableSource, associableTarget);
     }
 

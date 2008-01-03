@@ -43,7 +43,7 @@ public class ReferenceInfo extends AssociationInfo
     private final String fieldName;
     private final String accessorName;
     
-    private final boolean isFirstEnd;
+    private final boolean isReferenceEndFirst;
     
     public ReferenceInfo(Generator generator, Reference ref)
             throws GenerationException
@@ -60,7 +60,7 @@ public class ReferenceInfo extends AssociationInfo
         this.fieldName = StringUtil.toInitialLower(referencedEnd.getName());
         this.accessorName = generator.getAccessorName(referencedEnd, null);
         
-        this.isFirstEnd = (getEnd(0) == referencedEnd);
+        this.isReferenceEndFirst = (getEnd(0) == referencedEnd);
     }
     
     public AssociationEnd getReferencedEnd()
@@ -108,19 +108,24 @@ public class ReferenceInfo extends AssociationInfo
         return referencedEnd.isChangeable();
     }
     
-    public boolean isFirstEnd()
+    public boolean isReferencedEndFirst()
     {
-        return isFirstEnd;
+        return isReferenceEndFirst;
+    }
+    
+    public boolean isExposedEndFirst()
+    {
+        return !isReferenceEndFirst;
     }
     
     public int getReferencedEndIndex()
     {
-        return isFirstEnd ? 0 : 1;
+        return isReferenceEndFirst ? 0 : 1;
     }
     
     public int getExposedEndIndex()
     {
-        return isFirstEnd ? 1 : 0;
+        return isReferenceEndFirst ? 1 : 0;
     }
 }
 

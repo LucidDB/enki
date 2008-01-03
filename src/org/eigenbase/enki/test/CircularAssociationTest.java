@@ -21,6 +21,10 @@
 */
 package org.eigenbase.enki.test;
 
+import java.util.*;
+
+import javax.swing.text.*;
+
 import org.junit.*;
 
 import eem.sample.special.*;
@@ -37,45 +41,146 @@ import eem.sample.special.*;
 public class CircularAssociationTest
     extends SampleModelTestBase
 {
-    @Ignore
+    private static final String CONTAINER_NAME_PREFIX = "container";
+    private static final String ENTITY_NAME_PREFIX = "entity";
+
     @Test
     public void testCircularAssociations()
     {
+        String topContainerMofId = createContainmentHierarchy(3, 3);
+        
+        validateContainmentHierarchy(topContainerMofId, 3, 3);
+    }
+    
+    private String createContainmentHierarchy(final int depth, final int width)
+    {
+        Assert.assertTrue(depth > 0);
+        Assert.assertTrue(width > 0);
+        
         getRepository().beginTrans(true);
         
-        SampleContainerClass containerClass = 
-            getSpecialPackage().getSampleContainer();
-        SampleEntityClass entityClass =
-            getSpecialPackage().getSampleEntity();
-        
-        SampleContainer top = 
-            containerClass.createSampleContainer("top");
-        SampleEntity topEntity1 =
-            entityClass.createSampleEntity("topEntity1");
-        scheduleForDelete(topEntity1);
-        SampleContainer middle = 
-            containerClass.createSampleContainer("middle");
-        SampleEntity topEntity2 =
-            entityClass.createSampleEntity("topEntity2");
-        top.getContainedEntity().add(topEntity1);
-        top.getContainedEntity().add(middle);
-        top.getContainedEntity().add(topEntity2);
-        
-        SampleEntity middleEntity1 = 
-            entityClass.createSampleEntity("middleEntity1");
-        SampleEntity middleEntity2 = 
-            entityClass.createSampleEntity("middleEntity2");
-        middle.getContainedEntity().add(middleEntity1);
-        middle.getContainedEntity().add(middleEntity2);
+        try {
+            SampleContainerClass containerClass = 
+                getSpecialPackage().getSampleContainer();
+            SampleEntityClass entityClass =
+                getSpecialPackage().getSampleEntity();
+            
+            SampleContainer top = 
+                containerClass.createSampleContainer("top");
+            scheduleForDelete(top);
+            
+            SampleContainer container = top;
+            int d = depth;
+            do {
+                d--;
+                Entity[] entities = new Entity[width];
+            
+                int containerIndex = -1;
+                if (d > 0) {
+                    containerIndex = d % width;
+                }
+                
+                SampleContainer nextContainer = null;
+                for(int i = 0; i < width; i++) {
+                    String prefix = ENTITY_NAME_PREFIX;
+                    if (i == containerIndex) {
+                        nextContainer = containerClass.createSampleContainer();
+                        entities[i] = nextContainer;
+                        prefix = CONTAINER_NAME_PREFIX;
+                    } else {
+                        entities[i] = entityClass.createSampleEntity();
+                    }
 
-        scheduleForDelete(top);
-        scheduleForDelete(topEntity1);
-        scheduleForDelete(topEntity2);
-        scheduleForDelete(middle);
-        scheduleForDelete(middleEntity1);
-        scheduleForDelete(middleEntity2);
-
-        getRepository().endTrans();
+                    entities[i].setName(
+                        prefix + ": " + (depth - d) + ": " + i);
+                    
+                    container.getContainedEntity().add(entities[i]);
+                    scheduleForDelete(entities[i]);
+                }
+                
+                container = nextContainer;
+            } while(d > 0);
+            
+            return top.refMofId();
+        }
+        finally {
+            getRepository().endTrans();
+        }
+    }
+    
+    private void validateContainmentHierarchy(
+        String topMofId, final int depth, final int width)
+    {
+        getRepository().beginTrans(false);
+        
+        try {
+            SampleContainer top = 
+                (SampleContainer)getRepository().getByMofId(topMofId);
+            
+            SampleContainer container = top;
+            int d = depth;
+            do {
+                d--;
+                Collection<Entity> entities = container.getContainedEntity();
+                
+                Set<Integer> expectedContainerPositions = 
+                    Collections.emptySet();
+                int containerIndex = -1;
+                if (d > 0) {
+                    containerIndex = d % width;
+                    expectedContainerPositions = 
+                        new HashSet<Integer>(
+                            Collections.singleton(containerIndex));
+                }
+                
+                Set<Integer> expectedEntityPositions = new HashSet<Integer>();
+                for(int i = 0; i < width; i++) {
+                    if (i != containerIndex) {
+                        expectedEntityPositions.add(i);
+                    }
+                }
+                
+                Assert.assertEquals(width, entities.size());
+                
+                SampleContainer nextContainer = null;
+                for(Entity entity: entities) {
+                    boolean isContainer = false;
+                    String expectedPrefix =  ENTITY_NAME_PREFIX;
+                    if (entity instanceof SampleContainer) {
+                        nextContainer = (SampleContainer)entity;
+                        expectedPrefix =  CONTAINER_NAME_PREFIX;
+                        isContainer = true;
+                    } else {
+                        Assert.assertTrue(entity instanceof SampleEntity);
+                    }
+                    
+                    expectedPrefix += ": " + (depth - d) + ": ";
+                    Assert.assertTrue(
+                        entity.getName().startsWith(expectedPrefix));
+                    int position = 
+                        Integer.parseInt(
+                            entity.getName().substring(
+                                expectedPrefix.length()));
+                    if (isContainer) {
+                        Assert.assertTrue(
+                            expectedContainerPositions.contains(position));
+                        expectedContainerPositions.remove(position);
+                    } else {
+                        Assert.assertTrue(
+                            expectedEntityPositions.contains(position));
+                        expectedEntityPositions.remove(position);
+                    }
+                }
+                
+                Assert.assertTrue(expectedEntityPositions.isEmpty());
+                Assert.assertTrue(expectedContainerPositions.isEmpty());
+                
+                container = nextContainer;
+            } while(d > 0);
+        }
+        finally {
+            getRepository().endTrans();
+        }
     }
 }
 

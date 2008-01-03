@@ -155,7 +155,7 @@ public abstract class HibernateRefAssociation
         HibernateAssociable assoc1 = (HibernateAssociable)end1;
         HibernateAssociable assoc2 = (HibernateAssociable)end2;
         
-        return assoc1.getOrCreateAssociation(type).add(assoc1, assoc2);
+        return assoc1.getOrCreateAssociation(type, true).add(assoc1, assoc2);
     }
 
     public boolean refRemoveLink(RefObject end1, RefObject end2)
@@ -169,14 +169,14 @@ public abstract class HibernateRefAssociation
         HibernateAssociable assoc1 = (HibernateAssociable)end1;
         HibernateAssociable assoc2 = (HibernateAssociable)end2;
         
-        if (assoc1.getAssociation(type) == null ||
-            assoc2.getAssociation(type) == null) 
+        if (assoc1.getAssociation(type, true) == null ||
+            assoc2.getAssociation(type, false) == null) 
         {
             // These are not associated
             return false;
         }
         
-        return assoc1.getAssociation(type).remove(assoc1, assoc2);
+        return assoc1.getAssociation(type, true).remove(assoc1, assoc2);
     }
 
     protected abstract Class<? extends RefObject> getFirstEndType();

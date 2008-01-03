@@ -85,18 +85,21 @@ public class HibernateManyToManyAssociation
     {
         final String type = getType();
 
+        HibernateManyToManyAssociation sourceAssoc =
+            (HibernateManyToManyAssociation)newSource.getOrCreateAssociation(
+                type, true);
+        HibernateManyToManyAssociation targetAssoc =
+            (HibernateManyToManyAssociation)newTarget.getOrCreateAssociation(
+                type, false);
+        
         boolean result = false;
-        if (!getTarget().contains(newTarget)) {
-            getTarget().add(newTarget);
+        if (!sourceAssoc.getTarget().contains(newTarget)) {
+            sourceAssoc.getTarget().add(newTarget);
             result = true;
         }
         
-        HibernateManyToManyAssociation targetAssoc = 
-            (HibernateManyToManyAssociation)newTarget.getOrCreateAssociation(
-                type);
-        
-        if (!targetAssoc.getTarget().contains(source)) {
-            targetAssoc.getTarget().add(source);
+        if (!targetAssoc.getTarget().contains(newSource)) {
+            targetAssoc.getTarget().add(newSource);
             result = true;
         }
         
@@ -111,18 +114,33 @@ public class HibernateManyToManyAssociation
     {
         final String type = getType();
 
-        if (!getTarget().contains(newTarget)) {
-            getTarget().add(index, newTarget);
-        }
-        
-        HibernateManyToManyAssociation targetAssoc = 
+        HibernateManyToManyAssociation sourceAssoc =
+            (HibernateManyToManyAssociation)newSource.getOrCreateAssociation(
+                type, true);
+        HibernateManyToManyAssociation targetAssoc =
             (HibernateManyToManyAssociation)newTarget.getOrCreateAssociation(
-                type);
+                type, false);
+
+        boolean indexOnSourceAssoc = equals(sourceAssoc, this);
+        boolean indexOnTargetAssoc = equals(targetAssoc, this);
+        assert(indexOnSourceAssoc || indexOnTargetAssoc);
         
-        // TODO: SWZ: 11/15/07: Use index here, too?
-        if (!targetAssoc.getTarget().contains(source)) {
-            targetAssoc.getTarget().add(source);
+        if (!sourceAssoc.getTarget().contains(newTarget)) {
+            if (indexOnSourceAssoc) {
+                sourceAssoc.getTarget().add(index, newTarget);
+            } else {
+                sourceAssoc.getTarget().add(newTarget);
+            }
         }
+        
+        if (!targetAssoc.getTarget().contains(newSource)) {
+            if (indexOnTargetAssoc) {
+                targetAssoc.getTarget().add(index, newSource);
+            } else {
+                targetAssoc.getTarget().add(newSource);
+            }
+        }
+        
     }
 
     @Override
@@ -131,25 +149,35 @@ public class HibernateManyToManyAssociation
     {
         final String type = getType();
 
-        boolean targetResult = getTarget().remove(target);
-        if (getTarget().isEmpty()) {
-            source.setAssociation(type, null);
+        HibernateManyToManyAssociation sourceAssoc =
+            (HibernateManyToManyAssociation)source.getAssociation(type, true);
+        HibernateManyToManyAssociation targetAssoc =
+            (HibernateManyToManyAssociation)target.getAssociation(type, false);
 
-            HibernateMDRepository.getCurrentSession().delete(this);
+        assert(equals(sourceAssoc, this) || equals(targetAssoc, this));
+        
+        boolean result = false;
+        if (sourceAssoc.getTarget().remove(target)) {
+            result = true;
+            
+            if (sourceAssoc.getTarget().isEmpty()) {
+                source.setAssociation(type, true, null);
+    
+                HibernateMDRepository.getCurrentSession().delete(sourceAssoc);
+            }
         }
         
-        HibernateManyToManyAssociation targetAssoc = 
-            (HibernateManyToManyAssociation)target.getAssociation(type);
-        assert(targetAssoc != null);
-        
-        boolean sourceResult = targetAssoc.getTarget().remove(source);
-        if (targetAssoc.getTarget().isEmpty()) {
-            target.setAssociation(type, null);
+        if (targetAssoc.getTarget().remove(source)) {
+            result = true;
 
-            HibernateMDRepository.getCurrentSession().delete(targetAssoc);
+            if (targetAssoc.getTarget().isEmpty()) {
+                target.setAssociation(type, false, null);
+    
+                HibernateMDRepository.getCurrentSession().delete(targetAssoc);
+            }
         }
         
-        return targetResult || sourceResult;
+        return result;
     }
     
     @Override
