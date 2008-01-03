@@ -168,12 +168,24 @@ public class ModelGraphGenerator
                 edges.add(edge);
             }
         }
+        
+        public int getNumPasses()
+        {
+            return 1;
+        }
 
-        public void beginGeneration()
-            throws GenerationException
+        public void beginGeneration() throws GenerationException
         {
         }
 
+        public void beginPass(int passIndex)
+        {
+        }
+        
+        public void endPass(int passIndex)
+        {    
+        }
+        
         public void endGeneration(boolean throwing)
             throws GenerationException
         {

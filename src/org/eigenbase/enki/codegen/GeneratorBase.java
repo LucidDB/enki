@@ -64,15 +64,23 @@ public abstract class GeneratorBase implements Generator
     
     private Set<RefObject> visited;
     
+    /** All configured handlers. */
+    private List<Handler> allHandlers;
+    
+    /** Handlers to be invoked during the current pass. */
     private List<Handler> handlers;
     
     private RefBaseObject refBaseObject;
     
+    private int passIndex;
+    
     protected GeneratorBase()
     {
         this.visited = new HashSet<RefObject>();
+        this.allHandlers = new ArrayList<Handler>();
         this.handlers = new ArrayList<Handler>();
         this.enableGenerics = false;
+        this.passIndex = -1;
     }
 
     // implements Generator
@@ -106,7 +114,7 @@ public abstract class GeneratorBase implements Generator
     {
         handler.setGenerator(this);
         handler.setOutputDir(outputDir);
-        handlers.add(handler);
+        allHandlers.add(handler);
     }
     
     // implements Generator
@@ -120,20 +128,41 @@ public abstract class GeneratorBase implements Generator
     {
         this.refBaseObject = obj;
         
+        int numPasses = 1;
+        for(Handler handler: allHandlers) {
+            numPasses = Math.max(numPasses, handler.getNumPasses());
+        }
+        
         invokeGenerationStart();
         
         boolean throwing = true;
         try {
-            if (obj instanceof RefPackage) {
-                visitRefPackage((RefPackage)obj);
-            } else if (obj instanceof RefObject) {
-                visitRefObject((RefObject)obj);
-            } else if (obj instanceof RefAssociation) {
-                visitRefAssociation((RefAssociation)obj);
-            } else if (obj instanceof RefClass) {
-                visitRefClass((RefClass)obj);
+            for(int i = 0; i < numPasses; i++) {
+                passIndex = i;
+                
+                // Set up for this pass.
+                visited.clear();
+                handlers.clear();
+                for(Handler handler: allHandlers) {
+                    if (i < handler.getNumPasses()) {
+                        handlers.add(handler);
+                    }
+                }
+                
+                invokeBeginPass();
+                
+                if (obj instanceof RefPackage) {
+                    visitRefPackage((RefPackage)obj);
+                } else if (obj instanceof RefObject) {
+                    visitRefObject((RefObject)obj);
+                } else if (obj instanceof RefAssociation) {
+                    visitRefAssociation((RefAssociation)obj);
+                } else if (obj instanceof RefClass) {
+                    visitRefClass((RefClass)obj);
+                }
+                
+                invokeEndPass();
             }
-            
             throwing = false;
         } finally {
             invokeGenerationEnd(throwing);
@@ -250,7 +279,7 @@ public abstract class GeneratorBase implements Generator
 
     private void invokeGenerationStart() throws GenerationException
     {
-        for(Handler h: handlers) {
+        for(Handler h: allHandlers) {
             h.beginGeneration();
         }
     }
@@ -258,11 +287,25 @@ public abstract class GeneratorBase implements Generator
     private void invokeGenerationEnd(boolean throwing) 
     throws GenerationException
     {
-        for(Handler h: handlers) {
+        for(Handler h: allHandlers) {
             h.endGeneration(throwing);
         }
     }
     
+    private void invokeBeginPass() throws GenerationException
+    {
+        for(Handler h: handlers) {
+            h.beginPass(passIndex);
+        }
+    }
+    
+    private void invokeEndPass() throws GenerationException
+    {
+        for(Handler h: handlers) {
+            h.endPass(passIndex);
+        }
+    }
+
     private void invokeAssociationTemplate(Association assoc) 
         throws GenerationException
     {
@@ -401,9 +444,6 @@ public abstract class GeneratorBase implements Generator
     // implements Generator
     public String getTagValue(ModelElement elem, String tagId)
     {
-        // REVIEW: SWZ: 10/31/2007: Netbeans' implementation caches the results
-        // of this operation.  We'll stay simple for now and optimize later.
-        
         Collection<String> values = getTagValues(elem, tagId);
 
         if (values != null && !values.isEmpty()) {
@@ -476,6 +516,12 @@ public abstract class GeneratorBase implements Generator
     }
     
     // implements Generator
+    public String getTypeName(StructuralFeature feature, String suffix)
+    {
+        return getTypeName(feature, feature.getMultiplicity(), suffix);
+    }
+    
+    // implements Generator
     public String getTypeName(Parameter param)
     {
         return getTypeName(param, param.getMultiplicity());
@@ -488,11 +534,17 @@ public abstract class GeneratorBase implements Generator
     
     public String getTypeName(TypedElement elem, MultiplicityType mult)
     {
+        return getTypeName(elem, mult, null);
+    }
+    
+    public String getTypeName(
+        TypedElement elem, MultiplicityType mult, String suffix)
+    {
         ModelElement type = elem.getType();
         if (type instanceof AliasType) {
             type = ((AliasType)type).getType();
         }
-        String typeName = getTypeName(type);
+        String typeName = getTypeName(type, suffix);
         
         String collType = null;
         if (mult != null && (mult.getUpper() > 1 || mult.getUpper() == -1)) {

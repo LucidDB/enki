@@ -160,6 +160,18 @@ public interface Generator
     public String getTypeName(StructuralFeature feature);
 
     /**
+     * Returns the type name for the given {@link StructuralFeature}.  
+     * Queries the underlying type (via the {@link TypedElement} subclass)
+     * and combines it with the StructuralFeature's {@link MultiplicityType}
+     * to return the correct type name. 
+     * 
+     * @param feature StructuralFeature for which to compute a type name
+     * @param suffix suffix for the type name
+     * @return a type name string (e.g., "List&lt;a.b.Class&gt;").
+     */
+    public String getTypeName(StructuralFeature feature, String suffix);
+
+    /**
      * Returns the type name for the given {@link Parameter}.  
      * Queries the underlying type (via the {@link TypedElement} subclass)
      * and combines it with the Parameter's {@link MultiplicityType}

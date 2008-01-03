@@ -29,20 +29,26 @@ import javax.jmi.model.*;
 
 import org.eigenbase.enki.codegen.*;
 import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 
 /**
  * HibernateMappingHandler generates Hibernate mapping file and an Enki
- * Hibernate provider configuration file.
+ * Hibernate provider configuration file.  HibernateMappingHandler takes
+ * two passes over the model.  The first pass is used to generate Hibernate
+ * typedef declarations for enumerations.  The second pass generates Hibernate
+ * class declarations for persistent entities.
  * 
  * @author Stephan Zuercher
  */
 public class HibernateMappingHandler
     extends XmlHandlerBase
     implements ClassInstanceHandler, AssociationHandler, PackageHandler, 
-               MofInitHandler.SubordinateHandler
+               EnumerationClassHandler, MofInitHandler.SubordinateHandler
 {
+    private static final String TYPEDEF_SUFFIX = "Type";
+
     private static final String ASSOC_TYPE_PROPERTY = "type";
 
     private static final String ASSOC_ONE_TO_ONE_TABLE = "AssocOneToOne";
@@ -116,6 +122,12 @@ public class HibernateMappingHandler
         new JavaClassReference(
             HibernateJavaHandler.ASSOCIATION_MANY_TO_MANY_IMPL_CLASS, false);
 
+    private static final JavaClassReference BOOLEAN_PROPERTY_ACCESSOR_CLASS =
+        new JavaClassReference(BooleanPropertyAccessor.class, false);
+    
+    private static final JavaClassReference ENUM_USER_TYPE_CLASS =
+        new JavaClassReference(EnumUserType.class, false);
+    
     private Set<Classifier> oneToOneParentTypeSet;
     private Set<Classifier> oneToOneChildTypeSet;
 
@@ -160,6 +172,12 @@ public class HibernateMappingHandler
     public void setInitializerClassName(String initializerName)
     {
         this.initializerName = initializerName;
+    }
+    
+    @Override
+    public int getNumPasses()
+    {
+        return 2;
     }
     
     // Implement Handler
@@ -540,6 +558,17 @@ public class HibernateMappingHandler
     public void generateClassInstance(MofClass cls)
         throws GenerationException
     {
+        if (getPassIndex() == 0) {
+            return;
+        }
+        
+        if (HibernateJavaHandler.isTransient(cls)) {
+            log.fine(
+                "Skipping Transient Class Instance Mapping for '" 
+                + cls.getName() + "'");
+            return;
+        }
+        
         String typeName = 
             generator.getTypeName(cls, HibernateJavaHandler.IMPL_SUFFIX);
         
@@ -591,7 +620,42 @@ public class HibernateMappingHandler
             
             String fieldName = attrib.getName();
             fieldName = generator.getClassFieldName(fieldName);
-            writeEmptyElem("property", "name", fieldName);
+            
+            final Classifier attribType = attrib.getType();
+            if (attribType instanceof DataType) {
+                boolean isBooleanAttrib = isBooleanType(attribType);
+                boolean isEnumAttrib = isEnumType(attribType);
+                
+                if (isBooleanAttrib) {
+                    writeEmptyElem(
+                        "property", 
+                        "name", fieldName,
+                        "column", hibernateQuote(fieldName),
+                        "access", BOOLEAN_PROPERTY_ACCESSOR_CLASS);
+                } else if (isEnumAttrib) {
+                    String typedefName = 
+                        generator.getSimpleTypeName(
+                            attrib.getType(), TYPEDEF_SUFFIX);
+                    
+                    writeEmptyElem(
+                        "property", 
+                        "name", fieldName,
+                        "column", hibernateQuote(fieldName),
+                        "type", typedefName);
+                } else {
+                    writeEmptyElem(
+                        "property", 
+                        "name", fieldName,
+                        "column", hibernateQuote(fieldName));
+                }
+            } else {
+                writeEmptyElem(
+                    "many-to-one",
+                    "name", fieldName + HibernateJavaHandler.IMPL_SUFFIX,
+                    "column", hibernateQuote(fieldName),
+                    "unique", "true",
+                    "cascade", "save-update");
+            }
         }
 
         // References
@@ -602,21 +666,15 @@ public class HibernateMappingHandler
                 VisibilityKindEnum.PUBLIC_VIS,
                 Reference.class);
         for(Reference ref: instanceReferences) {
-            Association assoc = 
-                (Association)ref.getExposedEnd().getContainer();
-            AssociationEnd[] ends = generator.getAssociationEnds(assoc);
-            
-          int end0Upper = ends[0].getMultiplicity().getUpper();
-          int end1Upper = ends[1].getMultiplicity().getUpper();
+            ReferenceInfo refInfo = new ReferenceInfo(generator, ref);
 
-            String fieldName = generator.getSimpleTypeName(assoc);
-            fieldName = toInitialLower(fieldName);
+            String fieldName = refInfo.getFieldName();
 
             JavaClassReference classRef = ASSOCIATION_ONE_TO_MANY_IMPL_CLASS;
 
-            if (end0Upper == 1 && end1Upper == 1) {
+            if (refInfo.isSingle(0) && refInfo.isSingle(1)) {
                 classRef = ASSOCIATION_ONE_TO_ONE_IMPL_CLASS;
-            } else if (end0Upper != 1 && end1Upper != 1) {
+            } else if (!refInfo.isSingle(0) && !refInfo.isSingle(1)) {
                 classRef = ASSOCIATION_MANY_TO_MANY_IMPL_CLASS;
             }
 
@@ -629,7 +687,7 @@ public class HibernateMappingHandler
             writeEmptyElem(
                 "many-to-one",
                 "name", fieldName + HibernateJavaHandler.IMPL_SUFFIX,
-                "column", fieldName,
+                "column", hibernateQuote(fieldName),
                 "class", classRef,
                 "not-null", "false",
                 "cascade", "save-update");
@@ -637,6 +695,33 @@ public class HibernateMappingHandler
         
         endElem("class");
         newLine();
+    }
+
+    private String hibernateQuote(String fieldName)
+    {
+        return "`" + fieldName + "`";
+    }
+
+    private boolean isBooleanType(Classifier type)
+    {
+        if (type instanceof PrimitiveType) {
+            return type.getName().equalsIgnoreCase("boolean");
+        } else if (type instanceof AliasType) {
+            return isBooleanType(((AliasType)type).getType());
+        } else {
+            return false;
+        }
+    }
+    
+    private boolean isEnumType(Classifier type)
+    {
+        if (type instanceof EnumerationType) {
+            return true;
+        } else if (type instanceof AliasType) {
+            return isEnumType(((AliasType)type).getType());
+        }
+        
+        return false;
     }
 
     private void writeIdBlock()
@@ -651,8 +736,20 @@ public class HibernateMappingHandler
         endElem("id");
     }
     
-    public void generateAssociation(Association assoc)
+    public void generateAssociation(Association assoc) 
+        throws GenerationException
     {
+        if (getPassIndex() == 0) {
+            return;
+        }
+        
+        if (HibernateJavaHandler.isTransient(assoc)) {
+            log.fine(
+                "Skipping Transient Association Mapping for '" 
+                + assoc.getName() + "'");
+            return;
+        }
+        
         String interfaceName = generator.getTypeName(assoc);
         
         log.fine("Analyzing Association Mapping '" + interfaceName + "'");
@@ -681,9 +778,33 @@ public class HibernateMappingHandler
         }
     }
 
+    public void generateEnumerationClass(EnumerationType enumType)
+        throws GenerationException
+    {
+        if (getPassIndex() != 0) {
+            return;
+        }
+
+        String typeName = generator.getTypeName(enumType, ENUM_CLASS_SUFFIX);
+
+        String typedefName = 
+            generator.getSimpleTypeName(enumType, TYPEDEF_SUFFIX);
+        
+        startElem(
+            "typedef", "name", typedefName, "class", ENUM_USER_TYPE_CLASS);
+        writeSimpleElem(
+            "param", typeName, "name", EnumUserType.ENUM_CLASS_PARAM);
+        endElem("typedef");
+        newLine();
+    }
+
     public void generatePackage(MofPackage pkg)
         throws GenerationException
     {
+        if (getPassIndex() != 0) {
+            return;
+        }
+        
         if (pkg.getContainer() == null && 
             !pkg.getName().equals("PrimitiveTypes"))
         {

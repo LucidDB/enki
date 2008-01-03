@@ -59,12 +59,21 @@
   <property name="test.dir" location="${enki.dir}/test"/>
   <property name="test.config.dir" location="${test.dir}/config"/>
   <property name="test.results.dir" location="${test.dir}/results"/>
+
+  <!-- Sample Catalog properties -->
   <property name="sample.dir" location="${test.dir}/sample"/>
   <property name="sample.catalog.dir" location="${sample.dir}/catalog"/>
   <property 
     name="sample.model.xmi" 
     location="${sample.catalog.dir}/xmi/EnkiSampleMetamodel.xmi"/>
   <property name="sample.jar" location="${sample.dir}/sample.jar"/>
+
+  <!-- classpath for Sample model implementation JAR -->
+  <path id="sample.mdr.classpath">
+    <pathelement location="${sample.jar}"/>
+    <path refid="enki.run.classpath"/>
+    <path refid="ant.classpath"/>
+  </path>
 
   <!-- 
     Implementation type.  One of hibernate, netbeans.  Defaults to
@@ -87,22 +96,32 @@
         <filter token="ENKI_CATALOG_DIR" value="${sample.catalog.dir}"/>
       </filterset>
     </copy>
-
-    <path id="sample.jar.ref">
-      <pathelement location="${sample.jar}"/>
-    </path>
   </target>
 
   <target 
       name="cleanSampleRepository"
       depends="compile.dependencies,enki_mdr.taskdef,configureSampleRepository">
-    <enki.mdr
-        propertiesFile="${test.dir}/TestStorage.properties"
-        modelPathRef="sample.jar.ref">
-      <mdr-tasks>
-        <dropExtent extent="SampleRepository"/>
-      </mdr-tasks>
-    </enki.mdr>
+    <property 
+      file="${test.dir}/TestStorage.properties" 
+      prefix="cleanSampleRepos"/>
+
+    <if>
+      <and>
+        <not>
+          <equals arg1="${enki.impl}" arg2="netbeans"/>
+        </not>
+        <length
+            string="${cleanSampleRepos.hibernate.connection.driver_class}" 
+            trim="true"
+            when="greater"
+            length="0"/>
+      </and>
+      <then>
+        <enki.antFork
+          target="forked_cleanDbStorage"
+          classpathref="enki.3p.ant.run.classpath"/>
+      </then>
+    </if>
 
     <if>
       <equals arg1="${enki.impl}" arg2="netbeans"/>
@@ -116,17 +135,33 @@
     </if>
   </target>
 
+  <target name="forked_cleanDbStorage">
+    <property 
+      file="${test.dir}/TestStorage.properties" 
+      prefix="cleanSampleRepos"/>
+
+    <sql
+        driver="${cleanSampleRepos.hibernate.connection.driver_class}"
+        url="${cleanSampleRepos.hibernate.connection.url}" 
+        userid="${cleanSampleRepos.hibernate.connection.username}"
+        password="${cleanSampleRepos.hibernate.connection.password}"
+        print="true">
+      ${cleanSampleRepos.org.eigenbase.enki.dev.dropStorage}
+      ${cleanSampleRepos.org.eigenbase.enki.dev.createStorage}
+    </sql>
+  </target>
+
   <target 
       name="createSampleRepository"
       depends="clean,compile.dependencies,enki_mdr.taskdef,configureSampleRepository,cleanSampleRepository">
+
+    <!-- Choose generator class -->
+    <enki.set-generator-property impl="${enki.impl}" property="gen.cls"/>
 
     <!-- Convert metamodel to XMI -->
     <ant dir="${sample.dir}"/>
 
     <mkdir dir="${sample.catalog.dir}/java"/>
-
-    <!-- Choose generator class -->
-    <enki.set-generator-property impl="${enki.impl}" property="gen.cls"/>
 
     <!-- Synthesize model into Java code -->
     <enki.mdr>
@@ -155,9 +190,24 @@
     </jar>
 
     <!-- create repository -->
-    <enki.mdr
-        propertiesFile="${test.dir}/TestStorage.properties"
-        modelPathRef="sample.jar.ref">
+    <enki.antFork 
+      target="forked_importSampleMetamodel"
+      classpathref="sample.mdr.classpath"/>
+
+    <!-- TODO: write DTD -->
+    <!--
+    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
+      <mdr-tasks>
+        <writeDtd extent="SampleMetamodel" file="some.dtd"/>
+      </mdr-tasks>
+    </enki.mdr>
+    -->
+
+    <antcall target="compile.impl"/>
+  </target>
+
+  <target name="forked_importSampleMetamodel" depends="enki_mdr.taskdef">
+    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
       <mdr-tasks>
         <createExtent name="SampleMetamodel"/>
         <importXmi 
@@ -169,17 +219,6 @@
             package="EEM"/>
       </mdr-tasks>
     </enki.mdr>
-    
-    <!-- TODO: write DTD -->
-    <!--
-    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
-      <mdr-tasks>
-        <writeDtd extent="SampleMetamodel" file="some.dtd"/>
-      </mdr-tasks>
-    </enki.mdr>
-    -->
-
-    <antcall target="compile.impl"/>
   </target>
 
   <target name="jar" depends="compile">
@@ -309,4 +348,137 @@
     </if>
   </target>
 
+  <!-- ==================================================================== -->
+  <!-- TEMPORARY PLACEHOLDER FOR FARRAGO DEV TESTING -->
+
+  <!-- Farrago Catalog properties -->
+  <property name="farrago.xmi.dir" location="../dev/farrago/catalog/xmi"/>
+  <property name="farrago.cwm.xmi" location="${farrago.xmi.dir}/cwm-1.1.xml"/>
+
+  <property name="farrago.dir" location="${test.dir}/farrago"/>
+  <property name="farrago.catalog.dir" location="${farrago.dir}/catalog"/>
+  <property 
+    name="FarragoExtMetamodelTransformed.xmi"
+    location="${farrago.catalog.dir}/xmi/FarragoExtMetamodelTransformed.xmi"/>
+  <property 
+    name="farrago.model.xmi" 
+    location="${farrago.catalog.dir}/xmi/FarragoMetamodel.xmi"/>
+  <property 
+    name="farrago-catalog.jar"
+    location="${farrago.dir}/farrago-catalog.jar"/>
+
+
+  <target name="configureFarragoRepository">
+    <copy 
+        file="${test.config.dir}/${enki.impl}/TestStorage.properties"
+        tofile="${test.dir}/TestStorage.properties"
+        overwrite="true">
+      <filterset begintoken="$${" endtoken="}">
+        <filter token="ENKI_CATALOG_DIR" value="${farrago.catalog.dir}"/>
+      </filterset>
+    </copy>
+
+    <!-- classpath for Farrago model implementation JAR -->
+    <path id="farrago-catalog.jar.ref">
+      <pathelement location="${farrago-catalog.jar}"/>
+    </path>
+  </target>
+
+  <!--
+    Macro to merge CWM and FEM
+  -->
+  <macrodef name="farrago.synthesizeMetamodel">
+    <attribute name="xmiDir" default="unspecified" />
+    <attribute name="extMofBasename" default="unspecified" />
+    <attribute name="extPresent" default="true" />
+    <sequential>
+      <xslt style="${farrago.xmi.dir}/transformCWM.xsl"
+        in="${farrago.cwm.xmi}"
+        out="@{xmiDir}/FarragoMetamodelUnresolved.xmi">
+        <param name="femXmiFilename"
+          expression="${FarragoExtMetamodelTransformed.xmi}"/>
+        <param name="extXmiFilename"
+          expression="@{xmiDir}/@{extMofBasename}Transformed.xmi"/>
+        <param name="extPresent" expression="@{extPresent}"/>
+      </xslt>
+      <xslt style="${farrago.xmi.dir}/resolveCwmRefs.xsl"
+        in="@{xmiDir}/FarragoMetamodelUnresolved.xmi"
+        out="@{xmiDir}/FarragoMetamodel.xmi"/>
+    </sequential>
+  </macrodef>
+
+
+  <target 
+      name="createFarragoRepository"
+      depends="clean,compile.dependencies,enki_mdr.taskdef,configureFarragoRepository">
+
+    <!-- Choose generator class -->
+    <enki.set-generator-property impl="${enki.impl}" property="gen.cls"/>
+
+    <!-- Convert metamodel to XMI -->
+    <ant dir="${farrago.dir}"/>
+
+    <mkdir dir="${farrago.catalog.dir}/java"/>
+
+    <!-- Synthesize model into Java code -->
+    <farrago.synthesizeMetamodel
+      xmiDir="${farrago.catalog.dir}/xmi"
+      extMofBasename="ExtModel"
+      extPresent=""/>
+
+    <enki.mdr>
+      <mdr-tasks>
+        <mapJava
+            file="${farrago.model.xmi}"
+            dir="${farrago.catalog.dir}/java"
+            extent="FarragoMetamodel"
+            generatorClass="${gen.cls}"/>
+      </mdr-tasks>
+    </enki.mdr>
+
+    <enki.javac
+      srcdir="${farrago.catalog.dir}/java"
+      destdir="${farrago.catalog.dir}/java"
+      classpathref="enki.sample.build.classpath">
+      <include name="**/*.java"/>
+    </enki.javac>
+    <jar jarfile="${farrago-catalog.jar}">
+      <fileset dir="${farrago.catalog.dir}/java">
+        <include name="**/*.java"/>
+        <include name="**/*.class"/>
+        <include name="**/*.xml"/>
+        <include name="**/*.properties"/>
+      </fileset>
+    </jar>
+
+    <!-- create repository -->
+    <enki.mdr 
+        propertiesFile="${test.dir}/TestStorage.properties"
+        modelPathRef="farrago-catalog.jar.ref">
+      <mdr-tasks>
+        <createExtent name="FarragoMetamodel"/>
+        <importXmi 
+            extent="FarragoMetamodel"
+            file="${farrago.model.xmi}" />
+        <createExtent 
+            name="FarragoCatalog"
+            extent="FarragoMetamodel"
+            package="Farrago"/>
+      </mdr-tasks>
+    </enki.mdr>
+    
+    <!-- TODO: write DTD -->
+    <!--
+    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
+      <mdr-tasks>
+        <writeDtd extent="FarragoMetamodel" file="some.dtd"/>
+      </mdr-tasks>
+    </enki.mdr>
+    -->
+
+    <antcall target="compile.impl"/>
+  </target>
+
+  <!-- END TEMPORARY PLACEHOLDER FOR FARRAGO DEV TESTING -->
+  <!-- ==================================================================== -->
 </project>

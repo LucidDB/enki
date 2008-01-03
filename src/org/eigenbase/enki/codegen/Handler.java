@@ -68,4 +68,33 @@ public interface Handler
      * @throws GenerationException for any error condition
      */
     public void endGeneration(boolean throwing) throws GenerationException;
+    
+    /**
+     * Returns the number of passes required by this handler.  The
+     * {@link Generator} will query the Handler to determine the number of
+     * passes it requires before the call to {@link #beginGeneration()}.
+     * The methods {@link #beginPass(int)} and {@link #endPass(int)} are
+     * called before and after each pass with the pass index.
+     *  
+     * @return the number of passes this handler requires
+     */
+    public int getNumPasses();
+    
+    /**
+     * Indicates the start of a given pass.  This method will be called at
+     * most {@link #getNumPasses()} times.
+     * 
+     * @param passIndex the 0-based pass index
+     * @throws GenerationException for any error condition
+     */
+    public void beginPass(int passIndex) throws GenerationException;
+
+    /**
+     * Indicates the end of a given pass.  This method will be called at
+     * most {@link #getNumPasses()} times.
+     * 
+     * @param passIndex the 0-based pass index
+     * @throws GenerationException for any error condition
+     */
+    public void endPass(int passIndex) throws GenerationException;
 }

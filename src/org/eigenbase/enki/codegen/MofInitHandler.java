@@ -565,7 +565,7 @@ public class MofInitHandler
     {
         StringBuilder varName = new StringBuilder();
         
-        varName.append(toInitialLower(modelElem.getName()));
+        varName.append(StringUtil.toInitialLower(modelElem.getName()));
         
         if (modelElem instanceof MofPackage) {
             varName.append("Pkg");

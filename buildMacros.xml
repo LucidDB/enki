@@ -115,6 +115,38 @@
   </path>
   <property name="enki.3p.run.classpath" refid="enki.3p.run.classpath"/>
 
+  <!-- xerces path -->
+  <path id="xerces.classpath">
+    <fileset dir=".">
+    </fileset>
+  </path>
+
+  <!-- classpath for reentrantly invoking ant -->
+  <path id="ant.classpath">
+    <pathelement location="${ant.home}/lib/ant.jar"/>
+    <pathelement location="${ant.home}/lib/ant-launcher.jar"/>
+    <pathelement location="${ant.home}/lib/junit.jar"/>
+    <pathelement location="${ant.home}/lib/ant-contrib.jar"/>
+    <pathelement location="${ant.home}/lib/ant-junit.jar"/>
+    <pathelement location="${ant.home}/lib/ant-nodeps.jar"/>
+    <pathelement location="${ant.home}/lib/ant-trax.jar"/>
+    <pathelement location="${enk.jre.dir}/lib/endorsed/xercesImpl.jar"/>
+  </path>
+  <property name="ant.classpath" refid="ant.classpath"/>
+
+  <path id="enki.3p.ant.run.classpath">
+    <pathelement path="${enki.3p.run.classpath}"/>
+    <pathelement path="${ant.classpath}"/>
+  </path>
+  <property 
+    name="enki.3p.ant.run.classpath" refid="enki.3p.ant.run.classpath"/>
+
+  <property name="enki.jre.dir" location="${env.JAVA_HOME}"/>
+
+  <!-- forked ant verbosity control -->
+  <property name="enki.forkOutputStyle" value="-e"/>
+  <property name="enki.forkVerbosity" value=""/>
+
   <!-- MACROS -->
 
   <!-- Customization for javac task -->
@@ -128,6 +160,30 @@
       <jvmarg line="${assertions.jvmarg}"/>
     </java>
   </presetdef>
+
+  <!-- Macro for forking ant -->
+  <macrodef name="enki.antFork">
+    <attribute name="dir" default="."/>
+    <attribute name="target" default="unspecifiedTarget"/>
+    <attribute name="classpathref" default="ant.classpath"/>
+    <attribute name="jvm" default="${enki.jre.dir}/bin/java"/>
+    <attribute name="failonerror" default="true"/>
+    <element name="jvmargs" optional="yes"/>
+    <sequential>
+      <java 
+          classname="org.apache.tools.ant.Main"
+          fork="true"
+          failonerror="@{failonerror}"
+          dir="@{dir}"
+          classpathref="@{classpathref}"
+          jvm="@{jvm}">
+        <jvmargs/>
+        <arg value="${enki.forkOutputStyle}"/>
+        <arg value="${enki.forkVerbosity}"/>
+        <arg value="@{target}"/>
+      </java>
+    </sequential>
+  </macrodef>
 
   <macrodef name="start-mysql-server">
     <attribute name="with-logging" default="false"/>

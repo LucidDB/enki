@@ -176,8 +176,10 @@ public abstract class ModelTestBase
         }
         
         repos = MDRepositoryFactory.newMDRepository(storageProps);
+        Assert.assertNotNull(repos);
         
         pkg = repos.getExtent(testExtentName);
+        Assert.assertNotNull(pkg);        
     }
     
     protected static void fail(Throwable t)

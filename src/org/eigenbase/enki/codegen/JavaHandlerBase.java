@@ -674,7 +674,8 @@ public abstract class JavaHandlerBase
         String comment,
         String returnDescription)
     {
-        writeAccessor(feature, comment, returnDescription, true, null, false);
+        writeAccessor(
+            feature, comment, returnDescription, true, null, null, false);
         newLine();
     }
 
@@ -688,7 +689,8 @@ public abstract class JavaHandlerBase
         StructuralFeature feature,
         boolean useJavaUtilImport)
     {
-        writeAccessor(feature, null, null, false, null, useJavaUtilImport);
+        writeAccessor(
+            feature, null, null, false, null, null, useJavaUtilImport);
         writeln("{");
         increaseIndent();
     }
@@ -700,12 +702,33 @@ public abstract class JavaHandlerBase
     }
 
     protected void startAccessorBlock(
+        StructuralFeature feature, String methodSuffix, String typeSuffix)
+    {
+        startAccessorBlock(feature, methodSuffix, typeSuffix, false);
+    }
+    
+    protected void startAccessorBlock(
         StructuralFeature feature,
         String methodSuffix, 
         boolean useJavaUtilImport)
     {
+        startAccessorBlock(feature, methodSuffix, null, useJavaUtilImport);
+    }
+    
+    protected void startAccessorBlock(
+        StructuralFeature feature,
+        String methodSuffix, 
+        String typeSuffix,
+        boolean useJavaUtilImport)
+    {
         writeAccessor(
-            feature, null, null, false, methodSuffix, useJavaUtilImport);
+            feature, 
+            null, 
+            null,
+            false,
+            methodSuffix, 
+            typeSuffix,
+            useJavaUtilImport);
         writeln("{");
         increaseIndent();
     }
@@ -716,9 +739,10 @@ public abstract class JavaHandlerBase
         String returnDescription,
         boolean isAbstract,
         String methodSuffix, 
+        String typeSuffix,
         boolean useJavaUtilImport)
     {
-        String typeName = generator.getTypeName(feature);
+        String typeName = generator.getTypeName(feature, typeSuffix);
         if (useJavaUtilImport && typeName.startsWith("java.util.")) {
             typeName = typeName.substring(10);
         }
@@ -931,13 +955,13 @@ public abstract class JavaHandlerBase
         StructuralFeature feature, 
         String comment)
     {
-        writeMutator(feature, comment, true, null);
+        writeMutator(feature, comment, true, null, null);
         newLine();
     }
     
     protected void startMutatorBlock(StructuralFeature feature)
     {
-        writeMutator(feature, null, false, null);
+        writeMutator(feature, null, false, null, null);
         writeln("{");
         increaseIndent();
     }
@@ -945,7 +969,12 @@ public abstract class JavaHandlerBase
     protected void startMutatorBlock(
         StructuralFeature feature, String methodSuffix)
     {
-        writeMutator(feature, null, false, methodSuffix);
+        startMutatorBlock(feature, methodSuffix, null);
+    }
+    protected void startMutatorBlock(
+        StructuralFeature feature, String methodSuffix, String typeSuffix)
+    {
+        writeMutator(feature, null, false, methodSuffix, typeSuffix);
         writeln("{");
         increaseIndent();
     }
@@ -954,9 +983,13 @@ public abstract class JavaHandlerBase
         StructuralFeature feature, 
         String comment,
         boolean isAbstract,
-        String methodSuffix)
+        String methodSuffix,
+        String typeSuffix)
     {
         String typeName = generator.getTypeName(feature);
+        if (typeSuffix != null) {
+            typeName += typeSuffix;
+        }
         
         String methodName = generator.getMutatorName(feature);
         if (methodName == null) {
@@ -1161,6 +1194,39 @@ public abstract class JavaHandlerBase
     
     /**
      * Writes a private field with the given type and keywords and with a name 
+     * generated from type's name.
+     * 
+     * @param feature field type
+     * @param isFinal controls whether field is final
+     * @param isStatic controls whether field is static
+     * @param typeSuffix suffix for the type (and therefore field) name
+     * 
+     * @return the field's name
+     */
+    protected String writePrivateField(
+        StructuralFeature feature, 
+        String typeSuffix,
+        boolean isFinal, 
+        boolean isStatic)
+    {
+        String fieldName = feature.getName();
+        fieldName = generator.getClassFieldName(fieldName);
+        if (typeSuffix != null) {
+            fieldName += typeSuffix;
+        }
+        
+        writePrivateField(
+            feature, 
+            fieldName, 
+            isFinal,
+            isStatic,
+            typeSuffix);
+        
+        return fieldName;
+    }
+    
+    /**
+     * Writes a private field with the given type and keywords and with a name 
      * generated from the feature's name.
      * 
      * @param fieldType field type
@@ -1195,7 +1261,7 @@ public abstract class JavaHandlerBase
      * @param type field type
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
-     * @param suffix suffix for the type (and therefore field) name
+     * @param typeSuffix suffix for the type (and therefore field) name
      * 
      * @return the field's name
      */
@@ -1203,9 +1269,9 @@ public abstract class JavaHandlerBase
         ModelElement type, 
         boolean isFinal, 
         boolean isStatic, 
-        String suffix)
+        String typeSuffix)
     {
-        String fieldName = generator.getSimpleTypeName(type, suffix);
+        String fieldName = generator.getSimpleTypeName(type, typeSuffix);
         fieldName = generator.getClassFieldName(fieldName);
         
         writePrivateField(
@@ -1213,7 +1279,7 @@ public abstract class JavaHandlerBase
             fieldName, 
             isFinal,
             isStatic,
-            suffix);
+            typeSuffix);
         
         return fieldName;
     }
@@ -1225,7 +1291,7 @@ public abstract class JavaHandlerBase
      * @param name the field's name
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
-     * @param suffix suffix for the type name
+     * @param typeSuffix suffix for the type name
      * 
      * @return the field's name
      */
@@ -1234,15 +1300,14 @@ public abstract class JavaHandlerBase
         String name, 
         boolean isFinal, 
         boolean isStatic, 
-        String suffix)
+        String typeSuffix)
     {
         String fieldType;
         if (type instanceof StructuralFeature) {
-            assert(suffix == null || suffix.length() == 0);
             fieldType = 
-                generator.getTypeName((StructuralFeature)type);
+                generator.getTypeName((StructuralFeature)type, typeSuffix);
         } else {
-            fieldType = generator.getTypeName(type, suffix);
+            fieldType = generator.getTypeName(type, typeSuffix);
         }
 
         writePrivateField(fieldType, name, isFinal, isStatic);

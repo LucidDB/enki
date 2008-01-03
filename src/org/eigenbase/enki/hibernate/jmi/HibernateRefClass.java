@@ -49,20 +49,17 @@ public abstract class HibernateRefClass
     {
         super(container);
         
-        this.classImplementationName = classImplementationName.getName();
+        if (classImplementationName != null) {
+            this.classImplementationName = classImplementationName.getName();
+        } else {
+            this.classImplementationName = null;
+        }
+        
         this.classInterfaceName = classInterfaceName.getName();
         
         HibernateRefClassRegistry.instance().registerRefClass(
             getClassIdentifier(),
             this);
-        
-        // TODO: 
-        // x1. Create RefClass registry class (singleton or all-static)
-        // x2. Insert [getClassIdentifier(), this] into the registry here.
-        // 3. Burn a class identifier (meta-model specific) into each 
-        //    class proxy (returned by getClassIdentifier()) 
-        // 4. Burn a static class identifier into each instance class and
-        //    use it in HibernateObject to look up the RefClass
     }
 
     protected abstract String getClassIdentifier();
@@ -71,13 +68,18 @@ public abstract class HibernateRefClass
     @SuppressWarnings("unchecked")
     public Collection<?> refAllOfClass()
     {
-        Session session = HibernateMDRepository.getCurrentSession();
+        if (classImplementationName != null) {
+            Session session = HibernateMDRepository.getCurrentSession();
+            
+            // Polymorphic query against implementation type will return only
+            // instances of this exact class.
+            Query query = 
+                session.createQuery("from " + classImplementationName);
+    
+            return Collections.unmodifiableList(query.list());
+        }
         
-        // Polymorphic query against implementation type will return only
-        // instances of this exact class.
-        Query query = session.createQuery("from " + classImplementationName);
-
-        return Collections.unmodifiableList(query.list());
+        return Collections.emptyList();
     }
 
     @Override

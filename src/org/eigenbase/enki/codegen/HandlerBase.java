@@ -102,8 +102,12 @@ public abstract class HandlerBase implements Handler
     /** {@link #close()} can store an exception here to be thrown later. */
     private GenerationException pendingEx;
     
+    /** The current pass index. */
+    private int passIndex;
+    
     public HandlerBase()
     {
+        this.passIndex = -1;
     }
 
     public void setGenerator(Generator generator)
@@ -135,6 +139,43 @@ public abstract class HandlerBase implements Handler
         if (!throwing) {
             checkPendingException();
         }
+    }
+    
+    // Implement Handler
+    public int getNumPasses()
+    {
+        return 1;
+    }
+    
+    // Implement Handler
+    public void beginPass(int passIndex) throws GenerationException
+    {
+        if (passIndex >= getNumPasses()) {
+            throw new GenerationException(
+                "Invalid internal state: too many passes");
+        }
+        this.passIndex = passIndex;
+    }
+    
+    // Implement Handler
+    public void endPass(int passIndex) throws GenerationException
+    {
+        if (this.passIndex != passIndex) {
+            throw new GenerationException(
+                "Invalid internal state: passIndex mismatch");
+        }
+        
+        this.passIndex = -1;
+    }
+    
+    protected int getPassIndex() throws GenerationException
+    {
+        if (this.passIndex == -1) {
+            throw new GenerationException(
+                "Invalid internal state: passIndex == -1");
+        }
+        
+        return passIndex;
     }
     
     protected void open(File file) throws GenerationException
@@ -625,32 +666,6 @@ public abstract class HandlerBase implements Handler
         return result;
     }
     
-    /**
-     * Returns the given string with its first character converted to lower
-     * case.
-     * 
-     * @param str any string
-     * @return the given string with its first character converted to lower
-     *         case.
-     */
-    protected static String toInitialLower(String str)
-    {
-        if (str == null) {
-            return null;
-        }
-        
-        StringBuilder buf = new StringBuilder();
-        int len = str.length();
-        if (len > 0) {
-            buf.append(Character.toLowerCase(str.charAt(0)));
-            if (len > 1) {
-                buf.append(str.substring(1));
-            }
-        }
-        
-        return buf.toString();
-    }
-
     /**
      * HierarchySearchKindEnum is used as a flag to control methods that may
      * either search only an entity or the entity and its super types.
