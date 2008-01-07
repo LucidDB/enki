@@ -23,8 +23,6 @@ package org.eigenbase.enki.test;
 
 import java.util.*;
 
-import javax.swing.text.*;
-
 import org.junit.*;
 
 import eem.sample.special.*;

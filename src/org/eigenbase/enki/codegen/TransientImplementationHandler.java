@@ -948,6 +948,8 @@ public abstract class TransientImplementationHandler
             }
             newLine();
             
+            generateCustomPackageInit(pkg);
+            
             // initialize nested package fields
             Iterator<String> nameIter;
             Iterator<MofPackage> pkgIter;
@@ -1130,6 +1132,10 @@ public abstract class TransientImplementationHandler
         finally {
             close();
         }
+    }
+    
+    protected void generateCustomPackageInit(MofPackage pkg)
+    {
     }
     
     public void generateStructure(StructureType struct)

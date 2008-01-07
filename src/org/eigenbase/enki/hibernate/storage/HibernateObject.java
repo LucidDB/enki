@@ -22,6 +22,7 @@
 package org.eigenbase.enki.hibernate.storage;
 
 import java.util.*;
+import java.util.logging.*;
 
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
@@ -33,6 +34,9 @@ import org.eigenbase.enki.jmi.impl.*;
  */
 public abstract class HibernateObject extends RefObjectBase
 {
+    private static final Logger log = 
+        Logger.getLogger(HibernateObject.class.getName());
+    
     private boolean saved;
     private boolean deleted;
     
@@ -53,9 +57,11 @@ public abstract class HibernateObject extends RefObjectBase
         }
         
         if (saved) {
+            log.finer(
+                "Double save on '" + getClass().getName() + "':" + refMofId());
             return;
         }
-        
+
         if (!HibernateMDRepository.isWriteTransaction()) {
             throw new IllegalStateException("Not in write transaction");
         }
@@ -67,6 +73,9 @@ public abstract class HibernateObject extends RefObjectBase
         }
         
         HibernateMDRepository.getCurrentSession().save(this);
+        
+        log.finer(
+            "Save on '" + getClass().getName() + "':" + refMofId());
         
         saved = true;
     }

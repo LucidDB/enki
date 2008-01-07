@@ -28,6 +28,7 @@ import javax.jmi.reflect.*;
 import org.apache.tools.ant.*;
 import org.eigenbase.enki.ant.EnkiTask.*;
 import org.eigenbase.enki.mdr.*;
+import org.netbeans.api.mdr.*;
 import org.netbeans.api.xmi.*;
 
 /**
@@ -88,16 +89,17 @@ public class ImportXmiSubTask extends SubTask
         
         File xmiFile = new File(file);
         
-        MdrProvider implType = getMdrProvider();
-        if (implType != MdrProvider.NETBEANS_MDR) {            
+        MDRepository repos = task.getMDRepository(true);
+
+        boolean builtIn = ((EnkiMDRepository)repos).isExtentBuiltIn(extent);
+        if (builtIn) {            
             // TODO: perform import for Hibernate implementation
             System.out.println(
-                "Ignoring import step for '" + implType + "' provider");
+                "Ignoring import step for built-in extent '" + extent + "'");
             return;
         }
 
-        RefPackage refPackage = 
-            task.getMDRepository().getExtent(extent);
+        RefPackage refPackage = repos.getExtent(extent);
         if (refPackage == null) {
             throw new BuildException(
                 "Extent '" + extent + "' does not exist");

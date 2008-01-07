@@ -24,6 +24,7 @@ package org.eigenbase.enki.codegen;
 import java.io.*;
 import java.text.*;
 import java.util.*;
+import java.util.logging.*;
 
 import javax.jmi.model.*;
 
@@ -105,6 +106,8 @@ public abstract class HandlerBase implements Handler
     /** The current pass index. */
     private int passIndex;
     
+    private final Logger log = Logger.getLogger(HandlerBase.class.getName());
+
     public HandlerBase()
     {
         this.passIndex = -1;
@@ -646,24 +649,87 @@ public abstract class HandlerBase implements Handler
         LinkedHashSet<E> result = new LinkedHashSet<E>();
 
         for(Object o: namespace.getContents()) {
-            if (cls.isInstance(o)) {
-                if (visibility != null && 
-                    !((Feature)o).getVisibility().equals(visibility))
-                {
-                    continue;
-                }
-                
-                if (scope != null &&
-                    !((Feature)o).getScope().equals(scope))
-                {
-                    continue;
-                }
-
-                result.add(cls.cast(o));
+            if (!cls.isInstance(o)) {
+                logDiscard(
+                    namespace, 
+                    visibility, 
+                    scope, 
+                    cls, 
+                    "wrong type", 
+                    o.getClass().getName());
+                continue;
             }
+            
+            if (visibility != null && 
+                !((Feature)o).getVisibility().equals(visibility))
+            {
+                logDiscard(
+                    namespace, 
+                    visibility, 
+                    scope, 
+                    cls,
+                    "wrong visibility", 
+                    ((Feature)o).getVisibility().toString());
+                continue;
+            }
+            
+            if (scope != null &&
+                !((Feature)o).getScope().equals(scope))
+            {
+                logDiscard(
+                    namespace, 
+                    visibility, 
+                    scope, 
+                    cls,
+                    "wrong scope", 
+                    ((Feature)o).getScope().toString());
+                continue;
+            }
+
+            logAccept(namespace, visibility, scope, cls);
+
+            result.add(cls.cast(o));
         }
         
         return result;
+    }
+
+    private <E> void logAccept(
+        Namespace namespace,
+        VisibilityKind visibility,
+        ScopeKind scope,
+        Class<E> cls)
+    {
+        if (!log.isLoggable(Level.FINEST)) {
+            return;
+        }
+
+        log.finest(
+            "contentsOfType(" +
+            namespace.getName() + ": " +
+            (visibility == null ? "<any-vis>" : visibility.toString()) + ", " +
+            (scope == null ? "<any-scope>" : scope.toString()) + ", " +
+            cls.getName() + "): ok");
+    }
+    
+    private void logDiscard(
+        Namespace namespace, 
+        VisibilityKind visibility, 
+        ScopeKind scope, 
+        Class<?> cls, 
+        String desc, 
+        String value)
+    {
+        if (!log.isLoggable(Level.FINEST)) {
+            return;
+        }
+        
+        log.finest(
+            "contentsOfType(" +
+            namespace.getName() + ": " +
+            (visibility == null ? "<any-vis>" : visibility.toString()) + ", " +
+            (scope == null ? "<any-scope>" : scope.toString()) + ", " +
+            cls.getName() + "): " + desc + ": " + value);
     }
     
     /**

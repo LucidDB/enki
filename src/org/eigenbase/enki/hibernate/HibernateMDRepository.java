@@ -290,6 +290,21 @@ public class HibernateMDRepository
         // TODO: implement MDRChangeSource
     }
     
+    // Implement EnkiMDRepository
+    public boolean isExtentBuiltIn(String name)
+    {
+        initStorage();
+        
+        ExtentDescriptor extentDesc = extentMap.get(name);
+        if (extentDesc == null) {
+            return false;
+        }
+        
+        assert(extentDesc.modelDescriptor != null);
+        
+        return extentDesc.builtIn;        
+    }
+    
     public SessionFactory getSessionFactory()
     {
         return sessionFactory;
@@ -800,6 +815,7 @@ public class HibernateMDRepository
         
         extentDesc.extent = init.getModelPackage();
         extentDesc.initializer = init;
+        extentDesc.builtIn = true;
         
         extentMap.put(name, extentDesc);
     }
@@ -830,6 +846,7 @@ public class HibernateMDRepository
         private ModelDescriptor modelDescriptor;
         private RefPackage extent;
         private MetamodelInitializer initializer;
+        private boolean builtIn;
         
         private ExtentDescriptor(String name)
         {

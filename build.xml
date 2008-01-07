@@ -371,6 +371,12 @@
     name="farrago-catalog.jar"
     location="${farrago.dir}/farrago-catalog.jar"/>
 
+  <!-- classpath for Farrago model implementation JAR -->
+  <path id="farrago.mdr.classpath">
+    <pathelement location="${farrago-catalog.jar}"/>
+    <path refid="enki.run.classpath"/>
+    <path refid="ant.classpath"/>
+  </path>
 
   <target name="configureFarragoRepository">
     <copy 
@@ -381,11 +387,6 @@
         <filter token="ENKI_CATALOG_DIR" value="${farrago.catalog.dir}"/>
       </filterset>
     </copy>
-
-    <!-- classpath for Farrago model implementation JAR -->
-    <path id="farrago-catalog.jar.ref">
-      <pathelement location="${farrago-catalog.jar}"/>
-    </path>
   </target>
 
   <!--
@@ -414,7 +415,7 @@
 
   <target 
       name="createFarragoRepository"
-      depends="clean,compile.dependencies,enki_mdr.taskdef,configureFarragoRepository">
+      depends="clean,compile.dependencies,enki_mdr.taskdef,configureFarragoRepository,cleanFarragoRepository">
 
     <!-- Choose generator class -->
     <enki.set-generator-property impl="${enki.impl}" property="gen.cls"/>
@@ -456,20 +457,9 @@
     </jar>
 
     <!-- create repository -->
-    <enki.mdr 
-        propertiesFile="${test.dir}/TestStorage.properties"
-        modelPathRef="farrago-catalog.jar.ref">
-      <mdr-tasks>
-        <createExtent name="FarragoMetamodel"/>
-        <importXmi 
-            extent="FarragoMetamodel"
-            file="${farrago.model.xmi}" />
-        <createExtent 
-            name="FarragoCatalog"
-            extent="FarragoMetamodel"
-            package="Farrago"/>
-      </mdr-tasks>
-    </enki.mdr>
+    <enki.antFork
+      target="forked_importFarragoMetamodel"
+      classpathref="farrago.mdr.classpath"/>
     
     <!-- TODO: write DTD -->
     <!--
@@ -481,6 +471,76 @@
     -->
 
     <antcall target="compile.impl"/>
+  </target>
+
+  <target name="forked_importFarragoMetamodel" depends="enki_mdr.taskdef">
+    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
+      <mdr-tasks>
+        <createExtent name="FarragoMetamodel"/>
+        <importXmi 
+            extent="FarragoMetamodel"
+            file="${farrago.model.xmi}" />
+        <createExtent 
+            name="FarragoCatalog"
+            extent="FarragoMetamodel"
+            package="Farrago"/>
+      </mdr-tasks>
+    </enki.mdr>
+  </target>
+
+  <target name="importFarragoCatalog" depends="createFarragoRepository,importFarragoCatalog-only"/>
+
+  <target name="importFarragoCatalog-only">
+    <enki.antFork
+      target="forked_importFarragoCatalog"
+      classpathref="farrago.mdr.classpath"/>
+  </target>
+
+  <target name="forked_importFarragoCatalog" depends="enki_mdr.taskdef">
+    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
+      <mdr-tasks>
+        <importXmi 
+            extent="FarragoCatalog"
+            file="FarragoCatalogExport.xmi"/>
+      </mdr-tasks>
+    </enki.mdr>
+  </target>
+
+  <target 
+      name="cleanFarragoRepository"
+      depends="compile.dependencies,enki_mdr.taskdef,configureFarragoRepository">
+    <property 
+      file="${test.dir}/TestStorage.properties" 
+      prefix="cleanFarragoRepos"/>
+
+    <if>
+      <and>
+        <not>
+          <equals arg1="${enki.impl}" arg2="netbeans"/>
+        </not>
+        <length
+            string="${cleanFarragoRepos.hibernate.connection.driver_class}" 
+            trim="true"
+            when="greater"
+            length="0"/>
+      </and>
+      <then>
+        <enki.antFork
+          target="forked_cleanDbStorage"
+          classpathref="enki.3p.ant.run.classpath"/>
+      </then>
+    </if>
+
+    <if>
+      <equals arg1="${enki.impl}" arg2="netbeans"/>
+      <then>
+        <delete>
+          <fileset dir="${sample.catalog.dir}">
+            <include name="EnkiCatalog.*"/>
+          </fileset>
+        </delete>
+      </then>
+    </if>
   </target>
 
   <!-- END TEMPORARY PLACEHOLDER FOR FARRAGO DEV TESTING -->

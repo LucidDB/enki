@@ -23,11 +23,11 @@ package org.eigenbase.enki.codegen;
 
 import java.io.*;
 import java.util.*;
-import java.util.regex.*;
 
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
 
 /**
@@ -43,14 +43,6 @@ import org.eigenbase.enki.util.*;
  */
 public abstract class GeneratorBase implements Generator
 {
-    /** Regular expression use to divide a UML name into "words." */
-    private static final Pattern ALPHANUMERIC_WORD_BOUNDARY =
-        Pattern.compile("\\P{Alnum}+");
-    
-    /** Regular expression use to divide a CamelCase name into "words." */
-    private static final Pattern CAMELCASE_WORD_BOUNDARY =
-        Pattern.compile("\\p{Lower}\\p{Upper}");
-    
     private static final String COLLECTION_INTERFACE = 
         Collection.class.getName();
 
@@ -206,7 +198,7 @@ public abstract class GeneratorBase implements Generator
         }
         
         String ignoreLifecycleString =
-            getTagValue(outermost, TAGID_IGNORE_LIFECYCLE);
+            getTagValue(outermost, TagIdConstants.TAGID_IGNORE_LIFECYCLE);
         boolean ignoreLifecycle = Boolean.parseBoolean(ignoreLifecycleString);
 
         if (obj instanceof Association) {
@@ -498,13 +490,13 @@ public abstract class GeneratorBase implements Generator
             assert(false);
         }
         
-        String name = getTagValue(param, TAGID_SUBSTITUTE_NAME);
+        String name = getTagValue(param, TagIdConstants.TAGID_SUBSTITUTE_NAME);
         if (name == null) {
             name = param.getName();
         }
         
         result[1] = 
-            mangleIdentifier(name, IdentifierType.CAMELCASE_INIT_LOWER);
+            StringUtil.mangleIdentifier(name, StringUtil.IdentifierType.CAMELCASE_INIT_LOWER);
         
         return result;
     }
@@ -629,7 +621,7 @@ public abstract class GeneratorBase implements Generator
     // implements Generator
     public String getSimpleTypeName(ModelElement elem, String suffix)
     {
-        String name = getTagValue(elem, TAGID_SUBSTITUTE_NAME);
+        String name = getTagValue(elem, TagIdConstants.TAGID_SUBSTITUTE_NAME);
         if (name == null) {
             name = elem.getName();
         }
@@ -637,7 +629,7 @@ public abstract class GeneratorBase implements Generator
         if (elem instanceof PrimitiveType) {
             return name;
         } else if (elem instanceof Constant) {
-            name = mangleIdentifier(name, IdentifierType.ALL_CAPS);
+            name = StringUtil.mangleIdentifier(name, StringUtil.IdentifierType.ALL_CAPS);
         } else {
             boolean initCaps = 
                 elem instanceof MofClass || 
@@ -650,11 +642,11 @@ public abstract class GeneratorBase implements Generator
                 elem instanceof Import ||
                 elem instanceof Attribute;
             name = 
-                mangleIdentifier(
+                StringUtil.mangleIdentifier(
                     name, 
                     initCaps 
-                        ? IdentifierType.CAMELCASE_INIT_UPPER 
-                        : IdentifierType.CAMELCASE_INIT_LOWER);
+                        ? StringUtil.IdentifierType.CAMELCASE_INIT_UPPER 
+                        : StringUtil.IdentifierType.CAMELCASE_INIT_LOWER);
         }
 
         // SPECIAL CASE: If the name happens to end with Exception, don't
@@ -668,93 +660,6 @@ public abstract class GeneratorBase implements Generator
         return name + suffix;
     }
     
-    /**
-     * Takes an identifier and modifies to match the JMI Specification.
-     * 
-     * <p>The specification identifies four styles of identifier:
-     * <ul>
-     * <li>Package name identifiers are all-lower-case.</li>
-     * <li>Class name identifiers are camel-case with an initial upper-case 
-     *     letter.</li>
-     * <li>Operation and attribute name identifiers are camel-case with an
-     *     initial lower-case letter.</li>
-     * <li>Constants and enumeration literals are all-upper-case with 
-     *     underscores separating words.</li>
-     * </ul>
-     * 
-     * @see JSR 40 Final Specification, Section 4.7.2, Rules for Generating 
-     *      Identifiers
-     * @param ident identifier to mangle
-     * @param idType type of identifier
-     * @return mangled identifier
-     */
-    private String mangleIdentifier(String ident, IdentifierType idType)
-    {
-        // JMI says all identifiers are alphabetic only.  Netbeans accepts 
-        // numbers, so we do as well.  First divide identifier into words based
-        // on non-alphanumeric characters.
-        String[] words = ALPHANUMERIC_WORD_BOUNDARY.split(ident); 
-        
-        StringBuilder mangledIdent = new StringBuilder();
-        
-        for(String word: words) {
-            // Each word may already be CamelCase, so iterate over the 
-            // sub-words. JMI spec just says "words" are converted to initial 
-            // caps. Netbeans splits CamelCase into words, which is prettier.
-            Matcher matcher = CAMELCASE_WORD_BOUNDARY.matcher(word);
-            
-            int start = 0;
-            while(start < word.length()) {
-                int end;
-                if (matcher.find(start)) {
-                    end = matcher.end() - 1;
-                } else {
-                    end = word.length();
-                }
-                
-                String subword = word.substring(start, end);
-            
-                switch(idType) {
-                case ALL_CAPS:
-                    if (mangledIdent.length() > 0) {
-                        mangledIdent.append('_');
-                    }
-                    mangledIdent.append(subword.toUpperCase(Locale.US));
-                    break;
-                    
-                case CAMELCASE_INIT_LOWER:
-                case CAMELCASE_INIT_UPPER:
-                    subword = subword.toLowerCase(Locale.US);
-    
-                    if (idType == IdentifierType.CAMELCASE_INIT_UPPER ||
-                        mangledIdent.length() > 0)
-                    {
-                        // Capitalize
-                        mangledIdent.append(
-                            Character.toUpperCase(subword.charAt(0)));
-                        mangledIdent.append(subword.substring(1));
-                    } else {
-                        // Initial lower-case word
-                        mangledIdent.append(subword);
-                    }
-                    break;
-                    
-                case ALL_LOWER:
-                    mangledIdent.append(subword.toLowerCase(Locale.US));
-                    break;
-                    
-                default:
-                    throw new IllegalArgumentException(
-                        "unknown identifier type");
-                }
-                
-                start = end;
-            }
-        }
-        
-        return mangledIdent.toString();
-    }
-
     private StringBuilder getTypePrefix(
         ModelElement elem, StringBuilder buffer)
     {
@@ -766,7 +671,8 @@ public abstract class GeneratorBase implements Generator
 
         Namespace container = pkg.getContainer();
         if (container == null) {
-            String pkgPrefix = getTagValue(pkg, TAGID_PACKAGE_PREFIX);
+            String pkgPrefix = 
+                getTagValue(pkg, TagIdConstants.TAGID_PACKAGE_PREFIX);
             if (pkgPrefix != null) {
                 // Package names are all-lowercase alphabetic.
                 // REVIEW: SWZ: 10/31/2007: Make sure pkgPrefix doesn't 
@@ -777,10 +683,11 @@ public abstract class GeneratorBase implements Generator
             getTypePrefix(container, buffer).append('.');
         }
 
-        String packageName = getTagValue(pkg, TAGID_SUBSTITUTE_NAME);
+        String packageName =
+            getTagValue(pkg, TagIdConstants.TAGID_SUBSTITUTE_NAME);
         if (packageName == null) {
             packageName = 
-                mangleIdentifier(pkg.getName(), IdentifierType.ALL_LOWER);
+                StringUtil.mangleIdentifier(pkg.getName(), StringUtil.IdentifierType.ALL_LOWER);
         }
 
         // Package names are all-lowercase
@@ -868,13 +775,13 @@ public abstract class GeneratorBase implements Generator
     // implements Generator
     public String getEnumFieldName(String literal)
     {
-        return mangleIdentifier(literal, IdentifierType.ALL_CAPS);
+        return StringUtil.mangleIdentifier(literal, StringUtil.IdentifierType.ALL_CAPS);
     }
     
     // implements Generator
     public String getClassFieldName(String literal)
     {
-        return mangleIdentifier(literal, IdentifierType.CAMELCASE_INIT_LOWER);
+        return StringUtil.mangleIdentifier(literal, StringUtil.IdentifierType.CAMELCASE_INIT_LOWER);
     }
     
     public AssociationEnd[] getAssociationEnds(Association assoc)
@@ -922,17 +829,5 @@ public abstract class GeneratorBase implements Generator
         } else {
             return AssociationKindEnum.ONE_TO_MANY;
         }
-    }
-    
-    /**
-     * Identifies various types of identifiers based on how their names
-     * are mangled.
-     */
-    private enum IdentifierType
-    {
-        ALL_CAPS,
-        CAMELCASE_INIT_LOWER,
-        CAMELCASE_INIT_UPPER,
-        ALL_LOWER;
     }
 }

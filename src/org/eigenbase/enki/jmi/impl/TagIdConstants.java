@@ -19,22 +19,24 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
-package org.eigenbase.enki.mdr;
-
-import org.netbeans.api.mdr.*;
+package org.eigenbase.enki.jmi.impl;
 
 /**
- * EnkiMDRepository extends {@link MDRepository} to provide a mechanism for
- * dropping an extent's storage.
+ * TagIdConstants contains {@link org.eigenbase.enki.jmi.model.Tag} identifier
+ * constants.
  * 
  * @author Stephan Zuercher
  */
-public interface EnkiMDRepository extends MDRepository
+public class TagIdConstants
 {
-    public void dropExtentStorage(String extentName) 
-        throws EnkiDropFailedException;
-    
-    public boolean isExtentBuiltIn(String extentName);
+
+    public static final String TAGID_IGNORE_LIFECYCLE = 
+    "javax.jmi.ignoreLifecycle";
+    public static final String TAGID_PACKAGE_PREFIX = 
+    "javax.jmi.packagePrefix";
+    public static final String TAGID_SUBSTITUTE_NAME = 
+    "javax.jmi.substituteName";
+
 }
 
-// End EnkiMDRepository.java
+// End TagIdConstants.java

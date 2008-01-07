@@ -48,19 +48,55 @@ public class ReferenceInfo extends AssociationInfo
     public ReferenceInfo(Generator generator, Reference ref)
             throws GenerationException
     {
-        super(generator, (Association)ref.getExposedEnd().getContainer());
+        this(
+            generator,
+            (Association)ref.getExposedEnd().getContainer(),
+            ref.getReferencedEnd(),
+            false);
+    }
+    
+    public ReferenceInfo(
+        Generator generator, Association assoc, AssociationEnd referencedEnd)
+    {
+        this(generator, assoc, referencedEnd, true);
+    }
+
+    private ReferenceInfo(
+        Generator generator, Association assoc, AssociationEnd referencedEnd,
+        boolean prefixWithAssocName)
+    {
+        super(generator, assoc);
         
-        this.referencedEnd = ref.getReferencedEnd();
+        this.referencedEnd = referencedEnd;
         this.referencedType = referencedEnd.getType();
         this.referencedTypeName = 
             generator.getTypeName(referencedType);
         
-        this.referenceEndBaseName = 
-            StringUtil.toInitialUpper(referencedEnd.getName());
-        this.fieldName = StringUtil.toInitialLower(referencedEnd.getName());
+        String baseName;
+        if (prefixWithAssocName) {
+            baseName = 
+                StringUtil.toInitialUpper(assoc.getName()) + "_" +
+                StringUtil.toInitialUpper(referencedEnd.getName());
+        } else {
+            baseName = StringUtil.toInitialUpper(referencedEnd.getName());
+        }
+        
+        String fieldName;
+        if (prefixWithAssocName) {
+            fieldName = 
+                StringUtil.toInitialLower(assoc.getName()) + "_" +
+                StringUtil.toInitialUpper(referencedEnd.getName());
+        } else {
+            fieldName = StringUtil.toInitialLower(referencedEnd.getName());
+        }
+
+        
+        this.referenceEndBaseName = baseName;
+        this.fieldName = fieldName;
         this.accessorName = generator.getAccessorName(referencedEnd, null);
         
         this.isReferenceEndFirst = (getEnd(0) == referencedEnd);
+        
     }
     
     public AssociationEnd getReferencedEnd()

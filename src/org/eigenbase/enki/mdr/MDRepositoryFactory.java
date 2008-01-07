@@ -61,6 +61,9 @@ public class MDRepositoryFactory
     public static final String PROPERTY_ENKI_TOP_LEVEL_PKG = 
         "enki.top-level-pkg";
     
+    private static final String SYS_PROPERTY_ENKI_IGNORE_EXTENT = 
+        "enki.ignore.extent";
+
     private static final String NETBEANS_MDR_CLASS_NAME_PROP = 
         "org.netbeans.mdr.storagemodel.StorageFactoryClassName";
     
@@ -182,6 +185,9 @@ public class MDRepositoryFactory
                 META_INF_ENKI_DIR + "/" + 
                 HibernateMDRepository.CONFIG_PROPERTIES);
         
+        String ignoreExtent = 
+            System.getProperty(SYS_PROPERTY_ENKI_IGNORE_EXTENT);
+        
         while(configUrls.hasMoreElements()) {
             URL configUrl = configUrls.nextElement();
             
@@ -189,6 +195,13 @@ public class MDRepositoryFactory
 
             Properties props = new Properties();
             props.load(configUrl.openStream());
+        
+            if (ignoreExtent!= null &&
+                ignoreExtent.equals(props.get(PROPERTY_ENKI_EXTENT)))
+            {
+                log.info("Ignore Config URL: " + configUrl.toString());
+                continue;
+            }
             
             assert(!props.containsKey(PROPERTY_ENKI_RUNTIME_CONFIG_URL));
             

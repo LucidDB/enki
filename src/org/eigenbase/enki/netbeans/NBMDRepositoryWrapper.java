@@ -156,6 +156,12 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     {
         impl.shutdown();
     }
+    
+    // Implement EnkiMDRepository
+    public boolean isExtentBuiltIn(String name)
+    {
+        return false;
+    }
 }
 
 // End NBMDRepositoryWrapper.java

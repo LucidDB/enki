@@ -42,7 +42,6 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     
     private long mofId;
     private String refMofId;
-    private RefPackage immediatePackage;
     private RefObject metaObj;
     
     protected RefBaseObjectBase()
@@ -89,12 +88,12 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     
     public RefPackage refOutermostPackage()
     {
-        if (immediatePackage == null) {
+        if (refImmediatePackage() == null) {
             assert(this instanceof RefPackage);
             return (RefPackage)this;
         }
         
-        return immediatePackage.refOutermostPackage();
+        return refImmediatePackage().refOutermostPackage();
     }
 
     @SuppressWarnings("unchecked")
@@ -113,11 +112,6 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     {
         this.mofId = refMofId;
         this.refMofId= MofIdUtil.makeMofIdStr(refMofId);
-    }
-    
-    public void setImmediatePackage(RefPackage pkg)
-    {
-        this.immediatePackage = pkg;
     }
     
     public boolean equals(Object other)
@@ -216,8 +210,14 @@ public abstract class RefBaseObjectBase implements RefBaseObject
                 }
     
                 for(int i = 0; i < paramTypes.length; i++) {
+                    Object param = params.get(i);
+                    if (param == null) {
+                        // Assume a type match.
+                        continue;
+                    }
+                    
+                    Class<?> callerParamType = param.getClass();
                     Class<?> paramType = paramTypes[i];
-                    Class<?> callerParamType = params.get(i).getClass();
                     
                     if (paramType.isPrimitive()) {
                         paramType = Primitives.getWrapper(paramType);
@@ -289,11 +289,48 @@ public abstract class RefBaseObjectBase implements RefBaseObject
 
             // REVIEW: Should this differ for a call from a class proxy?
             List<?> qualifiedName = modelElem.getQualifiedName();
-            for(Object o: qualifiedName) {
+            
+            RefPackage pkg = null;
+            Iterator<?> iter =  qualifiedName.iterator();
+            while(iter.hasNext()) {
+                String part = iter.next().toString();
+                
+                boolean lastPart = !iter.hasNext();
+                if (!lastPart) {
+                    if (pkg == null) {
+                        pkg = refOutermostPackage();
+                    } else {
+                        try {
+                            pkg = pkg.refPackage(part);
+                        }
+                        catch(InvalidNameException e) {
+                            throw new InvalidCallException(this, enumType);
+                        }
+                    }
+    
+                    ModelElement pkgElem = (ModelElement)pkg.refMetaObject();
+                    String pkgPrefix = 
+                        getTag(pkgElem, TagIdConstants.TAGID_PACKAGE_PREFIX);
+                    if (pkgPrefix != null) {
+                        className.append(pkgPrefix);
+                    }
+                }
+                
                 if (className.length() > 0) {
                     className.append('.');
                 }
-                className.append(o.toString());
+                
+                if (lastPart) {
+                    className.append(
+                        StringUtil.mangleIdentifier(
+                            part, 
+                            StringUtil.IdentifierType.CAMELCASE_INIT_UPPER));
+                } else {
+                    className.append(
+                        StringUtil.mangleIdentifier(
+                            part, StringUtil.IdentifierType.ALL_LOWER));
+                }
+                
             }
             className.append("Enum");
         } else {
@@ -394,6 +431,23 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         } else {
             return initializer;
         }
+    }
+    
+    protected String getTag(ModelElement modelElem, String tagId)
+    {
+        RefAssociation attachesTo =
+            refMetaObject().refImmediatePackage().refAssociation("AttachesTo");
+        
+        Collection<Tag> tags =
+            GenericCollections.asTypedCollection(
+                attachesTo.refQuery("modelElement", modelElem), Tag.class);
+        for(Tag tag: tags) {
+            if (tag.getTagId().equals(tagId)) {
+                return tag.getValues().get(0).toString();
+            }
+        }
+        
+        return null;
     }
 }
 

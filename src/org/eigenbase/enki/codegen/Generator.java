@@ -27,6 +27,8 @@ import java.util.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.jmi.impl.*;
+
 /**
  * Generator represents a class that generates JMI code for a UML model.
  * 
@@ -34,15 +36,6 @@ import javax.jmi.reflect.*;
  */
 public interface Generator
 {
-    public static final String TAGID_IGNORE_LIFECYCLE = 
-        "javax.jmi.ignoreLifecycle";
-
-    public static final String TAGID_PACKAGE_PREFIX = 
-        "javax.jmi.packagePrefix";
-
-    public static final String TAGID_SUBSTITUTE_NAME = 
-        "javax.jmi.substituteName";
-
     /**
      * Configures the XMI file containing the model for which code will be
      * generated.
@@ -113,7 +106,8 @@ public interface Generator
      * returns only one.
      *  
      * @param elem a model element
-     * @param tagId tag id (see, for instance, {@link #TAGID_SUBSTITUTE_NAME})
+     * @param tagId tag id (see, for instance, 
+     *              {@link TagIdConstants#TAGID_SUBSTITUTE_NAME})
      * @return the value associated with the tag or null if none is found
      */
     public String getTagValue(ModelElement elem, String tagId);
@@ -123,7 +117,8 @@ public interface Generator
      * given model element.
      *  
      * @param elem a model element
-     * @param tagId tag id (see, for instance, {@link #TAGID_SUBSTITUTE_NAME})
+     * @param tagId tag id (see, for instance, 
+     *              {@link TagIdConstants#TAGID_SUBSTITUTE_NAME})
      * @return a collection of Strings containing the value(s) associated with
      *         the tag or null if none are found
      */
@@ -134,7 +129,8 @@ public interface Generator
      * given model element.
      * 
      * @param elem a model element
-     * @param tagId tag id (see, for instance, {@link #TAGID_SUBSTITUTE_NAME})
+     * @param tagId tag id (see, for instance, 
+     *              {@link TagIdConstants#TAGID_SUBSTITUTE_NAME})
      * @return the value associated with the tag, or null if none is found
      */
     public Tag getTag(ModelElement elem, String tagId);

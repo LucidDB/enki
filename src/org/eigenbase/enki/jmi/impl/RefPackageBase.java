@@ -27,6 +27,8 @@ import java.util.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.util.*;
+
 /**
  * RefPackageBase is a base class for {@link RefPackage} implementations.
  * 
@@ -122,7 +124,12 @@ public abstract class RefPackageBase
 
     public RefPackage refPackage(String nestedPackageName)
     {
-        return invokeAccessor(RefPackage.class, nestedPackageName);
+        String mangledName = 
+            StringUtil.mangleIdentifier(
+                nestedPackageName, StringUtil.IdentifierType.ALL_LOWER);
+        return invokeAccessor(
+            RefPackage.class, 
+            StringUtil.toInitialUpper(mangledName));
     }
 
     private <E> Collection<E> getAllOfTypeByReflection(Class<E> cls)
@@ -160,7 +167,7 @@ public abstract class RefPackageBase
     private <E> E invokeAccessorByType(Class<E> cls, RefObject refObj)
     {
         ModelElement modelElem = (ModelElement)refObj;
-        String typeName = modelElem.getName();
+        String typeName = getTypeName(modelElem);
         
         Method method;
         try {
@@ -170,6 +177,19 @@ public abstract class RefPackageBase
         }
         
         return invokeMethod(cls, method);
+    }
+    
+    private String getTypeName(ModelElement modelElem)
+    {
+        String baseName = modelElem.getName();
+
+        String substName = getTag(modelElem, TagIdConstants.TAGID_SUBSTITUTE_NAME);
+        if (substName != null) {
+            baseName = substName;
+        }
+
+        return StringUtil.mangleIdentifier(
+            baseName, StringUtil.IdentifierType.CAMELCASE_INIT_UPPER);
     }
 }
 

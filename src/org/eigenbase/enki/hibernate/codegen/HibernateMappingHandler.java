@@ -149,7 +149,9 @@ public class HibernateMappingHandler
     private String extentName;
     
     private String initializerName;
-    
+
+    private Map<Association, AssociationInfo> assocInfoMap;
+
     public HibernateMappingHandler()
     {
         this.oneToOneParentTypeSet = new LinkedHashSet<Classifier>();
@@ -162,6 +164,8 @@ public class HibernateMappingHandler
         this.manyToManyTargetTypeSet = new LinkedHashSet<Classifier>();
         
         this.subTypeMap = new HashMap<Classifier, Set<Classifier>>();
+
+        this.assocInfoMap = new LinkedHashMap<Association, AssociationInfo>();
     }
 
     public void setExtentName(String extentName)
@@ -562,7 +566,7 @@ public class HibernateMappingHandler
             return;
         }
         
-        if (HibernateJavaHandler.isTransient(cls)) {
+        if (HibernateCodeGenUtils.isTransient(cls)) {
             log.fine(
                 "Skipping Transient Class Instance Mapping for '" 
                 + cls.getName() + "'");
@@ -622,39 +626,66 @@ public class HibernateMappingHandler
             fieldName = generator.getClassFieldName(fieldName);
             
             final Classifier attribType = attrib.getType();
-            if (attribType instanceof DataType) {
-                boolean isBooleanAttrib = isBooleanType(attribType);
-                boolean isEnumAttrib = isEnumType(attribType);
-                
-                if (isBooleanAttrib) {
-                    writeEmptyElem(
-                        "property", 
-                        "name", fieldName,
-                        "column", hibernateQuote(fieldName),
-                        "access", BOOLEAN_PROPERTY_ACCESSOR_CLASS);
-                } else if (isEnumAttrib) {
-                    String typedefName = 
-                        generator.getSimpleTypeName(
-                            attrib.getType(), TYPEDEF_SUFFIX);
-                    
-                    writeEmptyElem(
-                        "property", 
-                        "name", fieldName,
-                        "column", hibernateQuote(fieldName),
-                        "type", typedefName);
-                } else {
-                    writeEmptyElem(
-                        "property", 
-                        "name", fieldName,
-                        "column", hibernateQuote(fieldName));
-                }
-            } else {
+            MappingType mappingType = getMappingType(attribType);
+            switch (mappingType) {
+            case BOOLEAN:
+                // Boolean type; use a custom accessor since the method names
+                // used by JMI don't match Hibernate's default accessor
+                writeEmptyElem(
+                    "property",
+                    "name", fieldName,
+                    "column", hibernateQuote(fieldName),
+                    "access", BOOLEAN_PROPERTY_ACCESSOR_CLASS);
+                break;
+
+            case ENUMERATION: {
+                // Enumeration type; use a custom type definition
+                String typedefName = generator.getSimpleTypeName(
+                    attrib.getType(),
+                    TYPEDEF_SUFFIX);
+
+                writeEmptyElem(
+                    "property",
+                    "name", fieldName,
+                    "column", hibernateQuote(fieldName),
+                    "type", typedefName);
+                break;
+            }
+
+            case CLASS:
+                // MofClass as an attribute; use a Hibernate association
                 writeEmptyElem(
                     "many-to-one",
                     "name", fieldName + HibernateJavaHandler.IMPL_SUFFIX,
                     "column", hibernateQuote(fieldName),
                     "unique", "true",
                     "cascade", "save-update");
+                break;
+
+            case STRING:
+                // String types; use Hibernate text type to force CLOB/TEXT
+                // columns.
+                
+                // TODO: Consider using MOF tags to allow specification of
+                // max field size (Hibernate default is 255)
+                writeEmptyElem(
+                    "property",
+                    "name", fieldName,
+                    "column", hibernateQuote(fieldName),
+                    "type", "text");
+                break;
+
+            case OTHER_DATA_TYPE:
+                // Generic type
+                writeEmptyElem(
+                    "property",
+                    "name", fieldName,
+                    "column", hibernateQuote(fieldName));
+                break;
+
+            default:
+                throw new GenerationException("Unknown mapping type '"
+                    + mappingType + "'");
             }
         }
 
@@ -668,33 +699,59 @@ public class HibernateMappingHandler
         for(Reference ref: instanceReferences) {
             ReferenceInfo refInfo = new ReferenceInfo(generator, ref);
 
-            String fieldName = refInfo.getFieldName();
-
-            JavaClassReference classRef = ASSOCIATION_ONE_TO_MANY_IMPL_CLASS;
-
-            if (refInfo.isSingle(0) && refInfo.isSingle(1)) {
-                classRef = ASSOCIATION_ONE_TO_ONE_IMPL_CLASS;
-            } else if (!refInfo.isSingle(0) && !refInfo.isSingle(1)) {
-                classRef = ASSOCIATION_MANY_TO_MANY_IMPL_CLASS;
-            }
-
-            // NOTE: Cannot specify not-null=true here because Hibernate
-            // may try to insert the object without the association and
-            // then circle back to create the association.  Instead, the
-            // lower multiplicity bound is checked at run-time.  See
-            // HibernateJavaHandler and HibernateObject.checkConstraints().
-            
-            writeEmptyElem(
-                "many-to-one",
-                "name", fieldName + HibernateJavaHandler.IMPL_SUFFIX,
-                "column", hibernateQuote(fieldName),
-                "class", classRef,
-                "not-null", "false",
-                "cascade", "save-update");
+            generateAssociationField(refInfo);
         }
+        
+        // Unreferenced associations
+        Map<Association, ReferenceInfo> unrefAssocRefInfoMap =
+            new HashMap<Association, ReferenceInfo>();
+        
+        Collection<Association> unreferencedAssociations = 
+            HibernateCodeGenUtils.findUnreferencedAssociations(
+                generator,
+                assocInfoMap,
+                cls,
+                instanceReferences, 
+                unrefAssocRefInfoMap);
+
+        for(Association unref: unreferencedAssociations) {
+            ReferenceInfo refInfo = unrefAssocRefInfoMap.get(unref);
+            
+            generateAssociationField(refInfo);
+        }
+        newLine();
+
         
         endElem("class");
         newLine();
+    }
+
+    private void generateAssociationField(ReferenceInfo refInfo)
+        throws GenerationException
+    {
+        String fieldName = refInfo.getFieldName();
+
+        JavaClassReference classRef = ASSOCIATION_ONE_TO_MANY_IMPL_CLASS;
+
+        if (refInfo.isSingle(0) && refInfo.isSingle(1)) {
+            classRef = ASSOCIATION_ONE_TO_ONE_IMPL_CLASS;
+        } else if (!refInfo.isSingle(0) && !refInfo.isSingle(1)) {
+            classRef = ASSOCIATION_MANY_TO_MANY_IMPL_CLASS;
+        }
+
+        // NOTE: Cannot specify not-null=true here because Hibernate
+        // may try to insert the object without the association and
+        // then circle back to create the association.  Instead, the
+        // lower multiplicity bound is checked at run-time.  See
+        // HibernateJavaHandler and HibernateObject.checkConstraints().
+        
+        writeEmptyElem(
+            "many-to-one",
+            "name", fieldName + HibernateJavaHandler.IMPL_SUFFIX,
+            "column", hibernateQuote(fieldName),
+            "class", classRef,
+            "not-null", "false",
+            "cascade", "save-update");
     }
 
     private String hibernateQuote(String fieldName)
@@ -702,28 +759,27 @@ public class HibernateMappingHandler
         return "`" + fieldName + "`";
     }
 
-    private boolean isBooleanType(Classifier type)
+    private MappingType getMappingType(Classifier type)
     {
         if (type instanceof PrimitiveType) {
-            return type.getName().equalsIgnoreCase("boolean");
+            if (type.getName().equalsIgnoreCase("boolean")) {
+                return MappingType.BOOLEAN;
+            } else if (type.getName().equalsIgnoreCase("string")) {
+                return MappingType.STRING;
+            } else {
+                return MappingType.OTHER_DATA_TYPE;
+            }
+        } else if (type instanceof EnumerationType) {
+            return MappingType.ENUMERATION;
+        } else if (!(type instanceof DataType)) {
+            return MappingType.CLASS;
         } else if (type instanceof AliasType) {
-            return isBooleanType(((AliasType)type).getType());
+            return getMappingType(((AliasType)type).getType());
         } else {
-            return false;
+            return MappingType.OTHER_DATA_TYPE;
         }
     }
     
-    private boolean isEnumType(Classifier type)
-    {
-        if (type instanceof EnumerationType) {
-            return true;
-        } else if (type instanceof AliasType) {
-            return isEnumType(((AliasType)type).getType());
-        }
-        
-        return false;
-    }
-
     private void writeIdBlock()
         throws GenerationException
     {
@@ -740,10 +796,13 @@ public class HibernateMappingHandler
         throws GenerationException
     {
         if (getPassIndex() == 0) {
+            AssociationInfo assocInfo = new AssociationInfo(generator, assoc);
+            assocInfoMap.put(assoc, assocInfo);
+
             return;
         }
         
-        if (HibernateJavaHandler.isTransient(assoc)) {
+        if (HibernateCodeGenUtils.isTransient(assoc)) {
             log.fine(
                 "Skipping Transient Association Mapping for '" 
                 + assoc.getName() + "'");
@@ -814,6 +873,15 @@ public class HibernateMappingHandler
                 generator.getTypeName(
                     pkg, PACKAGE_SUFFIX + HibernateJavaHandler.IMPL_SUFFIX);
         }
+    }
+    
+    private enum MappingType
+    {
+        BOOLEAN,          // Primitive boolean
+        STRING,           // Primitive string
+        ENUMERATION,      // any EnumerationType
+        OTHER_DATA_TYPE,  // any other DataType
+        CLASS;            // MofClass from the model
     }
 }
 
