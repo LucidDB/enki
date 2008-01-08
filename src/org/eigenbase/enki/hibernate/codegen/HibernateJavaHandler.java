@@ -195,12 +195,17 @@ public class HibernateJavaHandler
         UNSUPPORTED_OPERATION_EXCEPTION,
     };
     
+    private static final int numPasses = 2;
+    private int numTransientPasses;
+    
     private final Logger log = 
         Logger.getLogger(HibernateJavaHandler.class.getName());
 
     private final TransientImplementationHandler transientHandler;
     
     private Map<MofClass, String> classIdentifierMap;
+    
+    private Map<Association, AssociationInfo> assocInfoMap;
     
     public HibernateJavaHandler()
     {
@@ -222,9 +227,19 @@ public class HibernateJavaHandler
                 }
                 return IMPL_SUFFIX;
             }
+            
+            @Override
+            protected void generateCustomPackageInit(MofPackage pkg)
+            {
+                writeln(
+                    METAMODEL_INITIALIZER_CLASS,
+                    ".getCurrentInitializer().setRefMetaObject(this, ", 
+                    QUOTE, pkg.getName(), QUOTE, ");");
+            }
         };
         
         this.classIdentifierMap = new HashMap<MofClass, String>();
+        this.assocInfoMap = new LinkedHashMap<Association, AssociationInfo>();
     }
     
     @Override
@@ -243,6 +258,14 @@ public class HibernateJavaHandler
         transientHandler.setOutputDir(outputDir);
     }
 
+    @Override
+    public int getNumPasses()
+    {
+        numTransientPasses = transientHandler.getNumPasses();
+        
+        return Math.max(numPasses, numTransientPasses);
+    }
+    
     @Override
     public void beginGeneration()
         throws GenerationException
@@ -264,12 +287,18 @@ public class HibernateJavaHandler
     public void generateAssociation(Association assoc)
         throws GenerationException
     {
-        if (isTransient(assoc)) {
-            log.fine("Delegating Transient Association Implementation");
-            transientHandler.generateAssociation(assoc);
+        if (HibernateCodeGenUtils.isTransient(assoc)) {
+            if (getPassIndex() < numTransientPasses) {
+                log.fine("Delegating Transient Association Implementation");
+                transientHandler.generateAssociation(assoc);
+            }
             return;
         }
 
+        if (getPassIndex() > 0) {
+            return;
+        }
+        
         String interfaceName = generator.getTypeName(assoc);
         
         String typeName = interfaceName + IMPL_SUFFIX;
@@ -277,6 +306,7 @@ public class HibernateJavaHandler
         log.fine("Generating Association Implementation '" + typeName + "'");
 
         AssociationInfo assocInfo = new AssociationInfo(generator, assoc);
+        assocInfoMap.put(assoc, assocInfo);
         
         open(typeName);
         try {
@@ -510,9 +540,15 @@ public class HibernateJavaHandler
     public void generateClassInstance(MofClass cls)
         throws GenerationException
     {
-        if (isTransient(cls)) {
-            log.fine("Delegating Transient Class Instance Implementation");
-            transientHandler.generateClassInstance(cls);
+        if (HibernateCodeGenUtils.isTransient(cls)) {
+            if (getPassIndex() < numTransientPasses) {
+                log.fine("Delegating Transient Class Instance Implementation");
+                transientHandler.generateClassInstance(cls);
+            }
+            return;
+        }
+        
+        if (checkPassIndex(1)) {
             return;
         }
         
@@ -535,6 +571,17 @@ public class HibernateJavaHandler
                 HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                 VisibilityKindEnum.PUBLIC_VIS,
                 Reference.class);
+
+        Map<Association, ReferenceInfo> unrefAssocRefInfoMap =
+            new HashMap<Association, ReferenceInfo>();
+        
+        Collection<Association> unreferencedAssociations = 
+            HibernateCodeGenUtils.findUnreferencedAssociations(
+                generator,
+                assocInfoMap,
+                cls,
+                instanceReferences, 
+                unrefAssocRefInfoMap);
 
         open(typeName);
         try {            
@@ -596,600 +643,101 @@ public class HibernateJavaHandler
             }
             newLine();
             
-            // reference fields
-            writeln("// Reference Fields");
             Map<Reference, ReferenceInfo> refInfoMap =
                 new HashMap<Reference, ReferenceInfo>();
-            
-            for(Reference ref: instanceReferences) {
-                ReferenceInfo refInfo = new ReferenceInfo(generator, ref);
-                writePrivateField(
-                    makeType(refInfo),
-                    refInfo.getFieldName(), 
-                    false, 
-                    false);
 
-                refInfoMap.put(ref, refInfo);
-            }
-            newLine();
-            
-            // zero-arg constructor
-            startConstructorBlock(cls, null, null, IMPL_SUFFIX);
-            writeln("super();");
-            for(Attribute attrib: nonDerivedAttribs) {
-                MultiplicityType mult = attrib.getMultiplicity();
-                int upper = mult.getUpper();
-                if (upper == -1 || upper > 1) {
-                    // Multiple values -- initialize collection
-                    String fieldName = nonDerivedAttribNames.get(attrib);
-
-                    String suffix = null;
-                    if (nonDataTypeAttribs.contains(attrib)) {
-                        suffix = IMPL_SUFFIX;
-                    }
-                    
-                    String elemTypeName = 
-                        generator.getTypeName(attrib.getType(), suffix);
-                    
-                    String collTypeName;
-                    if (mult.isOrdered()) {
-                        collTypeName = 
-                            generator.getCollectionType(
-                                ORDERED_COLLECTION_IMPL_CLASS, elemTypeName);
-                    } else {
-                        collTypeName = 
-                            generator.getCollectionType(
-                                COLLECTION_IMPL_CLASS, elemTypeName);
-                    }
-                    
-                    writeln(
-                        "this.",
-                        fieldName,
-                        " = new ",
-                        collTypeName,
-                        "();");
+            if (!instanceReferences.isEmpty()) {
+                // reference fields
+                writeln("// Reference Fields");
+                for(Reference ref: instanceReferences) {
+                    ReferenceInfo refInfo = new ReferenceInfo(generator, ref);
+                    writePrivateField(
+                        makeType(refInfo.getKind()),
+                        refInfo.getFieldName(), 
+                        false, 
+                        false);
+    
+                    refInfoMap.put(ref, refInfo);
                 }
-            }
-            endBlock();
-            
-            // constructor
-            if (instanceAttributes.size() > 0) {
                 newLine();
-                ModelElement[] params = 
-                    nonDerivedAttribs.toArray(
-                        new ModelElement[nonDerivedAttribs.size()]);
-                startConstructorBlock(cls, params, IMPL_SUFFIX);
-                writeln("this();");
-                for(Attribute attrib: nonDerivedAttribs) {
-                    String fieldName = nonDerivedAttribNames.get(attrib);
-                    String[] paramInfo = generator.getParam(attrib);
-                    boolean isNonDataType = 
-                        nonDataTypeAttribs.contains(attrib);
-                    MultiplicityType mult = attrib.getMultiplicity();
-                    int upper = mult.getUpper();
-                    if (upper == -1 || upper > 1) {
-                        // Copy the collection
-                        if (isNonDataType) {
-                            boolean isOrdered = mult.isOrdered();
-                            String elemTypeName = 
-                                generator.getTypeName(
-                                    attrib.getType(), IMPL_SUFFIX);
-                            String asClause = 
-                                isOrdered 
-                                    ? "asTypedList" 
-                                    : "asTypedCollection";
-                            writeln(
-                                "this.",
-                                fieldName,
-                                ".addAll(",
-                                GENERIC_COLLECTIONS_CLASS,
-                                ".", asClause, "(",
-                                paramInfo[1], ",",
-                                elemTypeName, ".class));");
-                        } else {
-                            writeln(
-                                "this.",
-                                fieldName,
-                                ".addAll(",
-                                paramInfo[1],
-                                ");");
-                        }
-                    } else {
-                        if (isNonDataType) {
-                            writeln(
-                                "this.",
-                                fieldName,
-                                " = (",
-                                generator.getTypeName(
-                                    attrib.getType(), IMPL_SUFFIX),
-                                ")",
-                                paramInfo[1],
-                                ";");                            
-                        } else {
-                            writeln(
-                                "this.",
-                                fieldName,
-                                " = ",
-                                paramInfo[1],
-                                ";");
-                        }
-                    }       
-                }
-                endBlock();
             }
+            
+            if (!unreferencedAssociations.isEmpty()) {
+                // TODO: doesn't handle self-referential un-referenced 
+                // associations (assuming such a thing is even valid)
+                
+                // unreferenced association fields
+                writeln("// Unreferenced Association Fields");
+                for(Association unref: unreferencedAssociations) {
+                    ReferenceInfo refInfo = unrefAssocRefInfoMap.get(unref);
+                    
+                    writePrivateField(
+                        makeType(refInfo.getKind()),
+                        refInfo.getFieldName(),
+                        false,
+                        false);
+                }
+                newLine();
+            }
+            
+            // Constructors
+            generateClassInstanceConstructors(
+                cls,
+                instanceAttributes,
+                nonDerivedAttribs,
+                nonDerivedAttribNames,
+                nonDataTypeAttribs);
             
             // attribute methods
-            for(Attribute attrib: instanceAttributes) {
-                String fieldName = nonDerivedAttribNames.get(attrib);
-                if (fieldName == null) {
-                    throw new UnsupportedOperationException(
-                        "derived attributes not supported");
-                }
-                
-                boolean isNonDataType = nonDataTypeAttribs.contains(attrib);
-                String suffix = isNonDataType ? IMPL_SUFFIX : null;
-                
-                int upper = attrib.getMultiplicity().getUpper();
-                if (upper == 1) {
-                    newLine();
-                    startAccessorBlock(attrib, suffix, suffix);
-                    writeln("return ", fieldName, ";");
-                    endBlock();
-                    
-                    newLine();
-                    startMutatorBlock(attrib, suffix, suffix);
-                    // REVIEW: SWZ: 12/31/07: Some attributes are not 
-                    // changeable, but Hibernate will still use this method to
-                    // set the value at load time.  This method isn't in the
-                    // class instance interface, but perhaps there's a way to
-                    // detect user invocation and throw an exception.
-                    writeln("this.", fieldName, " = newValue;");
-                    endBlock();                        
-                } else if (upper != 0) {
-                    newLine();
-                    startAccessorBlock(attrib, suffix, suffix);
-                    
-                    if (attrib.isChangeable()) {
-                        writeln("return ", fieldName, ";");
-                    } else {
-                        if (attrib.getMultiplicity().isOrdered()) {
-                            writeln(
-                                "return ", 
-                                JAVA_UTIL_COLLECTIONS_CLASS, 
-                                ".unmodifiableList(", 
-                                fieldName,
-                                ");");
-                        } else {
-                            writeln(
-                                "return ",
-                                JAVA_UTIL_COLLECTIONS_CLASS, 
-                                ".unmodifiableSet(",
-                                fieldName,
-                                ");");                            
-                        }
-                    }
-                    endBlock();
-                }
-                
-                if (isNonDataType) {
-                    // Go back and implement the interface methods in terms
-                    // of the attribute's interface type (as opposed to the
-                    // concrete type)
-                    if (upper == 1) {
-                        newLine();
-                        startAccessorBlock(attrib);
-                        writeln(
-                            "return ",
-                            generator.getAccessorName(attrib), 
-                            IMPL_SUFFIX,
-                            "();");
-                        endBlock();
-                        
-                        if (attrib.isChangeable()) {
-                            newLine();
-                            startMutatorBlock(attrib);
-                            writeln(
-                                generator.getMutatorName(attrib), IMPL_SUFFIX,
-                                "((",
-                                generator.getTypeName(
-                                    attrib.getType(), IMPL_SUFFIX),
-                                ")newValue);");
-                            endBlock();                        
-                        }
-                    } else if (upper != 0) {
-                        newLine();
-                        startAccessorBlock(attrib);
-                        
-                        String asClause = 
-                            attrib.getMultiplicity().isOrdered()
-                                ? "asTypedList"
-                                : "asTypedCollection";
-                        writeln(
-                            "return ",
-                            GENERIC_COLLECTIONS_CLASS,
-                            ".", asClause, "(", 
-                            generator.getAccessorName(attrib), IMPL_SUFFIX,
-                            ", ",
-                            generator.getTypeName(attrib.getType()),
-                            ".class);");
-                        endBlock();
-                    }
-                    
-                }
-            }
+            generateClassInstanceAttribMethods(
+                instanceAttributes,
+                nonDerivedAttribNames,
+                nonDataTypeAttribs);
             
             // reference methods
-            for(Reference ref: instanceReferences) {
-                newLine();
+            generateClassInstanceRefMethods(instanceReferences, refInfoMap);
 
-                ReferenceInfo refInfo = refInfoMap.get(ref);
-                if (refInfo == null) {
-                    throw new GenerationException(
-                        "unknown reference '" + ref.getName() + "'");
-                }
-                switch(refInfo.getKind()) {
-                case ONE_TO_ONE:
-                    {
-                        startAccessorBlock(ref);
-                        startConditionalBlock(
-                            CondType.IF,
-                            getReferenceAccessorName(refInfo),
-                            "() == null");
-                        writeln("return null;");
-                        endBlock();
-
-                        writeln(
-                            "return ", 
-                            getReferenceAccessorName(refInfo),
-                            "().get", getReferenceEndName(refInfo, true), "(",
-                            refInfo.getReferencedTypeName(),
-                            ".class",
-                            ");");
-                        endBlock();
-                        
-                        if (ref.isChangeable()) {
-                            newLine();
-                            startMutatorBlock(ref);
-                            
-                            writeln("// Get the existing association object");
-                            writeln(
-                                ASSOCIATION_BASE_CLASS,
-                                " assoc = getAssociation(",
-                                QUOTE, refInfo.getBaseName(), QUOTE, ");");
-                            startConditionalBlock(
-                                CondType.IF, 
-                                "assoc == null && newValue != null");
-                            writeln(
-                                "// If none exists, get the new value's association.");
-                            writeln(
-                                "assoc = ((", 
-                                ASSOCIABLE_INTERFACE, 
-                                ")newValue).getAssociation(",
-                                QUOTE, refInfo.getBaseName(), QUOTE, ");");
-                            endBlock();
-
-                            startConditionalBlock(
-                                CondType.IF, "assoc == null");
-                            startConditionalBlock(
-                                CondType.IF, "newValue == null");
-                            writeln(
-                                "// User is clearing a non-existent association: do nothing");
-                            writeln("return;");
-                            endBlock();
-                            writeln(
-                                "assoc = getOrCreateAssociation(",
-                                QUOTE, refInfo.getBaseName(), QUOTE,
-                                ");");
-                            endBlock();
-
-                            startConditionalBlock(
-                                CondType.IF, "newValue != null");
-                            if (!refInfo.isFirstEnd()) {
-                                writeln(
-                                    "assoc.add(this, (", 
-                                    ASSOCIABLE_INTERFACE,
-                                    ")newValue);");
-                            } else {
-                                writeln(
-                                    "assoc.add((", 
-                                    ASSOCIABLE_INTERFACE,
-                                    ")newValue, this);");
-                            }
-                            startConditionalBlock(CondType.ELSE);
-                            writeln("// remove any existing association");
-                            writeln("assoc.removeAll(this);");
-                            endBlock();
-                            endBlock();                        
-                        }
-                        break;
-                    }
+            // unreferenced association methods
+            for(Association unrefAssoc: unreferencedAssociations) {
+                ReferenceInfo refInfo = unrefAssocRefInfoMap.get(unrefAssoc);
                 
-                case ONE_TO_MANY: 
-                    {
-                        startAccessorBlock(ref);
-                        boolean hasParent = 
-                            ref.getMultiplicity().getUpper() == 1;
-                        if (hasParent) {
-                            startConditionalBlock(
-                                CondType.IF, 
-                                getReferenceAccessorName(refInfo),
-                                "() == null");
-                            writeln("return null;");
-                            endBlock();
-                            writeln(
-                                "return (",
-                                refInfo.getEndType(refInfo.isSingle(0) ? 0 : 1),                            
-                                ")", 
-                                getReferenceAccessorName(refInfo), 
-                                "().getParent();");
-                        } else {
-                            String listElemType = 
-                                refInfo.getEndType(refInfo.isSingle(0) ? 1 : 0);
-                            // TODO: Cache ListProxy in a field?
-                            startConditionalBlock(
-                                CondType.IF, 
-                                getReferenceAccessorName(refInfo),
-                                "() == null");
-                            writeln(
-                                "return new ", 
-                                LIST_PROXY_CLASS,
-                                "<", listElemType, ">",
-                                "(", QUOTE, refInfo.getBaseName(), QUOTE,
-                                ", this, ",
-                                listElemType, ".class);");
-                            startConditionalBlock(CondType.ELSE);
-                            writeln(
-                                "return new ",
-                                LIST_PROXY_CLASS,
-                                "<", listElemType, ">",
-                                "(",
-                                getReferenceAccessorName(refInfo),
-                                "(), this, ",
-                                listElemType, ".class);");
-                            endBlock();
-                        }
-                        endBlock();
-                        
-                        if (hasParent && ref.isChangeable()) {
-                            newLine();
-                            startMutatorBlock(ref);
-                            writeln("// get existing association, if any");
-                            writeln(
-                                ASSOCIATION_BASE_CLASS,
-                                " assoc = getAssociation(",
-                                QUOTE, refInfo.getBaseName(), QUOTE, ");");
-                            startConditionalBlock(
-                                CondType.IF, 
-                                "assoc == null && newValue != null");
-                            writeln(
-                                "// None exists, get the new value's association.");
-                            writeln(
-                                "assoc = ((", 
-                                ASSOCIABLE_INTERFACE, 
-                                ")newValue).getAssociation(",
-                                QUOTE, refInfo.getBaseName(), QUOTE, ");");
-                            endBlock();
-
-                            startConditionalBlock(
-                                CondType.IF, "assoc == null");
-                            startConditionalBlock(
-                                CondType.IF, "newValue == null");
-                            writeln(
-                                "// User is clearing a non-existent association: do nothing");
-                            writeln("return;");
-                            endBlock();
-                            writeln(
-                                "assoc = getOrCreateAssociation(",
-                                QUOTE, refInfo.getBaseName(), QUOTE,
-                                ");");
-                            endBlock();
-
-                            startConditionalBlock(
-                                CondType.IF, "newValue != null");
-                            // NOTE: we don't cast to the "_Impl" type here 
-                            // because they do not inherit from each other
-                            // and there may be multiple implementations of
-                            // the parent interface.
-                            writeln(
-                                "assoc.add((",
-                                ASSOCIABLE_INTERFACE,
-                                ")newValue, this);");
-                            startConditionalBlock(CondType.ELSE);
-                            writeln("// remove any existing association");
-                            writeln("assoc.removeAll(this);");
-                            endBlock();
-                            endBlock();                        
-                        }
-                        break;
-                    }
-                
-                case MANY_TO_MANY:
-                    {
-                        startAccessorBlock(ref);
-                        String listElemType = 
-                            getReferenceEndType(refInfo, true);
-                        // TODO: Cache ListProxy in a field?
-                        startConditionalBlock(
-                            CondType.IF,
-                            getReferenceAccessorName(refInfo),
-                            "() == null");
-                        writeln(
-                            "return new ", 
-                            LIST_PROXY_CLASS,
-                            "<", listElemType, ">",
-                            "(", QUOTE, refInfo.getBaseName(), QUOTE,
-                            ", this, ",
-                            listElemType, ".class);");
-                        startConditionalBlock(CondType.ELSE);
-                        writeln(
-                            "return new ",
-                            LIST_PROXY_CLASS,
-                            "<", listElemType, ">",
-                            "(", 
-                            getReferenceAccessorName(refInfo), "(), this, ",
-                            listElemType, ".class);");
-                        endBlock();
-                        endBlock();
-                        break;
-                    }
-                }
-
-                newLine();
-                writeln("// Internal use only");
-                startBlock(
-                    "public ",
-                    makeType(refInfo),
-                    " ",
-                    getReferenceAccessorName(refInfo),
-                    "()");
-                writeln("return ", refInfo.getFieldName(), ";");
-                endBlock();
-
-                newLine();
-                writeln("// Internal use only");
-                startBlock(
-                    "public void ",
-                    getReferenceMutatorName(refInfo),
-                    "(",
-                    makeType(refInfo),
-                    " newValue)");
-                writeln("this.", refInfo.getFieldName(), " = newValue;");
-                endBlock();
+                generateClassInstanceAssocMethods(refInfo);
             }
-
-            // TODO: Emit private static final fields for the assoc base names.
+            
+            // TODO: Emit private static final fields for the assoc base names?
             
             // Implement HibernateAssociable
             if (!instanceReferences.isEmpty()) {
                 newLine();
-                writeln("// Implement HibernateAssociable");
-                startBlock(
-                    "public ",
-                    ASSOCIATION_BASE_CLASS,
-                    " getAssociation(String type)");
-                boolean first = true;
-                for(Reference ref: instanceReferences) {
-                    ReferenceInfo refInfo = refInfoMap.get(ref);
-                    
-                    startConditionalBlock(
-                        first ? CondType.IF : CondType.ELSEIF,
-                        QUOTE,
-                        refInfo.getBaseName(),
-                        QUOTE,
-                        ".equals(type)");
-                    writeln(
-                        "return ", getReferenceAccessorName(refInfo), "();");
-                    first = false;
-                }
-                startConditionalBlock(CondType.ELSE);
-                writeln(
-                    "throw new IllegalArgumentException(",
-                    QUOTE, "Unknown assoc type '", QUOTE,
-                    " + type + ", QUOTE, "'", QUOTE, ");");
-                endBlock();
-                endBlock();
+                generateGetAssociationMethod(
+                    instanceReferences, refInfoMap,
+                    unreferencedAssociations, unrefAssocRefInfoMap);
 
                 newLine();
-                writeln("// Implement HibernateAssociable");
-                startBlock(
-                    "public void setAssociation(String type, ",
-                    ASSOCIATION_BASE_CLASS, " assoc)");
-                first = true;
-                for(Reference ref: instanceReferences) {
-                    ReferenceInfo refInfo = refInfoMap.get(ref);
-                    
-                    startConditionalBlock(
-                        first ? CondType.IF : CondType.ELSEIF,
-                        QUOTE,
-                        refInfo.getBaseName(),
-                        QUOTE,
-                        ".equals(type)");
-                    writeln(
-                        getReferenceMutatorName(refInfo),
-                        "((",
-                        makeType(refInfo),
-                        ")assoc);");
-                    first = false;
-                }
-                startConditionalBlock(CondType.ELSE);
-                writeln(
-                    "throw new IllegalArgumentException(",
-                    QUOTE, "Unknown assoc type '", QUOTE,
-                    " + type + ", QUOTE, "'", QUOTE, ");");
-                endBlock();
-                endBlock();
+                generateSetAssociationMethod(
+                    instanceReferences, refInfoMap,
+                    unreferencedAssociations, unrefAssocRefInfoMap);
 
                 newLine();
-                writeln("// Implement HibernateAssociable");
-                startBlock(
-                    "public ",
-                    ASSOCIATION_BASE_CLASS,
-                    " getOrCreateAssociation(String type)");
-                first = true;
-                for(Reference ref: instanceReferences) {
-                    ReferenceInfo refInfo = refInfoMap.get(ref);
-                    startConditionalBlock(
-                        first ? CondType.IF : CondType.ELSEIF,
-                        QUOTE,
-                        refInfo.getBaseName(),
-                        QUOTE,
-                        ".equals(type)");
-                    startConditionalBlock(
-                        CondType.IF, getReferenceAccessorName(refInfo), "() == null");
-                        
-                    writeln(
-                        makeType(refInfo),
-                        " assoc = new ",
-                        makeType(refInfo),
-                        "();");
-                    writeln("assoc.setType(type);");
-                    
-                    // Set up the local end of the association.
-                    switch(refInfo.getKind()) {
-                    case ONE_TO_ONE:
-                        writeln(
-                            "assoc.set",
-                            getReferenceEndName(refInfo, false),
-                            "(this);");
-                        break;
-                        
-                    case MANY_TO_MANY:
-                        writeln("assoc.setSource(this);");
-                        break;
-                        
-                    case ONE_TO_MANY:
-                        boolean hasParent = 
-                            ref.getMultiplicity().getUpper() == 1;
-                        if (!hasParent) {
-                            writeln("assoc.setParent(this);");
-                        } else {
-                            writeln("assoc.getChildren().add(this);");
-                        }
-                        break;
-                    }
-                    
-                    writeln(getReferenceMutatorName(refInfo), "(assoc);");
-                    writeln("assoc.save();");
-                    endBlock();
-                    writeln("return ", getReferenceAccessorName(refInfo), "();");
-                    first = false;
-                }
-                startConditionalBlock(CondType.ELSE);
-                writeln(
-                    "throw new IllegalArgumentException(",
-                    QUOTE, "Unknown assoc type '", QUOTE,
-                    " + type + ", QUOTE, "'", QUOTE, ");");
-                endBlock();
-                endBlock();
+                generateGetOrCreateAssociationMethod(
+                    instanceReferences, refInfoMap,
+                    unreferencedAssociations, unrefAssocRefInfoMap);
 
                 newLine();
                 writeln("// Implement HibernateRefObject");
                 startBlock("protected void removeAssociations()");
-                for(Reference ref: instanceReferences) {
-                    ReferenceInfo refInfo = refInfoMap.get(ref);
+                
+                List<ReferenceInfo> refInfos = 
+                    gatherRefInfos(
+                        instanceReferences, refInfoMap, 
+                        unreferencedAssociations, unrefAssocRefInfoMap);
+                for(ReferenceInfo refInfo: refInfos) {
                     startConditionalBlock(
-                        CondType.IF, getReferenceAccessorName(refInfo), "() != null");
-                    writeln(getReferenceAccessorName(refInfo), "().removeAll(this);");
+                        CondType.IF, 
+                        getReferenceAccessorName(refInfo), "() != null");
+                    writeln(
+                        getReferenceAccessorName(refInfo), 
+                        "().removeAll(this);");
                     endBlock();
                 }
                 endBlock();
@@ -1226,15 +774,711 @@ public class HibernateJavaHandler
         }
     }
 
-    public void generateClassProxy(MofClass cls)
+    private void generateGetAssociationMethod(
+        Collection<Reference> instanceReferences,
+        Map<Reference, ReferenceInfo> refInfoMap,
+        Collection<Association> unreferencedAssociations,
+        Map<Association, ReferenceInfo> unrefAssocRefInfoMap)
+    {
+        writeln("// Implement HibernateAssociable");
+        startBlock(
+            "public ",
+            ASSOCIATION_BASE_CLASS,
+            " getAssociation(String type, boolean firstEnd)");
+
+        List<ReferenceInfo> refInfos = 
+            gatherRefInfos(
+                instanceReferences,
+                refInfoMap,
+                unreferencedAssociations,
+                unrefAssocRefInfoMap);
+        
+        boolean first = true;
+        for(ReferenceInfo refInfo: refInfos) {
+            boolean exposedEndFirst = getExposedEndFirst(refInfo);
+            startConditionalBlock(
+                first ? CondType.IF : CondType.ELSEIF,
+                QUOTE,
+                refInfo.getBaseName(),
+                QUOTE,
+                ".equals(type) && ",
+                exposedEndFirst ? "firstEnd" : "!firstEnd");
+            writeln(
+                "return ", getReferenceAccessorName(refInfo), "();");
+            first = false;
+        }
+        startConditionalBlock(CondType.ELSE);
+        generateThrowUnknownAssocTypeException();
+        endBlock();
+        endBlock();
+    }
+
+    private void generateSetAssociationMethod(
+        Collection<Reference> instanceReferences,
+        Map<Reference, ReferenceInfo> refInfoMap,
+        Collection<Association> unreferencedAssociations,
+        Map<Association, ReferenceInfo> unrefAssocRefInfoMap)
+    {
+        writeln("// Implement HibernateAssociable");
+        startBlock(
+            "public void setAssociation(String type, boolean firstEnd, ",
+            ASSOCIATION_BASE_CLASS, " assoc)");
+
+        List<ReferenceInfo> refInfos = 
+            gatherRefInfos(
+                instanceReferences,
+                refInfoMap,
+                unreferencedAssociations,
+                unrefAssocRefInfoMap);
+        
+        boolean first = true;
+        for(ReferenceInfo refInfo: refInfos) {
+            boolean exposedEndFirst = getExposedEndFirst(refInfo);
+            startConditionalBlock(
+                first ? CondType.IF : CondType.ELSEIF,
+                QUOTE,
+                refInfo.getBaseName(),
+                QUOTE,
+                ".equals(type) && ",
+                exposedEndFirst ? "firstEnd" : "!firstEnd");
+            writeln(
+                getReferenceMutatorName(refInfo),
+                "((",
+                makeType(refInfo.getKind()),
+                ")assoc);");
+            first = false;
+        }
+        startConditionalBlock(CondType.ELSE);
+        generateThrowUnknownAssocTypeException();
+        endBlock();
+        endBlock();
+    }
+
+    private void generateGetOrCreateAssociationMethod(
+        Collection<Reference> instanceReferences,
+        Map<Reference, ReferenceInfo> refInfoMap,
+        Collection<Association> unreferencedAssociations,
+        Map<Association, ReferenceInfo> unrefAssocRefInfoMap)
+    {
+        writeln("// Implement HibernateAssociable");
+        startBlock(
+            "public ",
+            ASSOCIATION_BASE_CLASS,
+            " getOrCreateAssociation(String type, boolean firstEnd)");
+
+        List<ReferenceInfo> refInfos = 
+            gatherRefInfos(
+                instanceReferences,
+                refInfoMap,
+                unreferencedAssociations,
+                unrefAssocRefInfoMap);
+        
+        boolean first = true;
+        for(ReferenceInfo refInfo: refInfos) {
+            boolean exposedEndFirst = getExposedEndFirst(refInfo);
+            startConditionalBlock(
+                first ? CondType.IF : CondType.ELSEIF,
+                QUOTE,
+                refInfo.getBaseName(),
+                QUOTE,
+                ".equals(type) && ",
+                exposedEndFirst ? "firstEnd" : "!firstEnd");
+            startConditionalBlock(
+                CondType.IF, getReferenceAccessorName(refInfo), "() == null");
+                
+            writeln(
+                makeType(refInfo.getKind()),
+                " assoc = new ",
+                makeType(refInfo.getKind()),
+                "();");
+            writeln("assoc.setType(type);");
+            
+            // Set up the local end of the association.
+            switch(refInfo.getKind()) {
+            case ONE_TO_ONE:
+                writeln(
+                    "assoc.set",
+                    getReferenceEndName(refInfo, false),
+                    "(this);");
+                break;
+                
+            case MANY_TO_MANY:
+                writeln("assoc.setSource(this);");
+                break;
+                
+            case ONE_TO_MANY:
+                boolean hasParent = refInfo.isSingle();
+                if (!hasParent) {
+                    writeln("assoc.setParent(this);");
+                } else {
+                    writeln("assoc.getChildren().add(this);");
+                }
+                break;
+            }
+            
+            writeln(getReferenceMutatorName(refInfo), "(assoc);");
+            writeln("assoc.save();");
+            endBlock();
+            writeln("return ", getReferenceAccessorName(refInfo), "();");
+            first = false;
+        }
+        startConditionalBlock(CondType.ELSE);
+        generateThrowUnknownAssocTypeException();
+        endBlock();
+        endBlock();
+    }
+
+    private boolean getExposedEndFirst(ReferenceInfo refInfo)
+    {
+        boolean exposedEndFirst = refInfo.isExposedEndFirst();
+        // Reverse sense of exposedEndFirst to make the single end
+        // "first".
+        if (refInfo.getKind() == AssociationKindEnum.ONE_TO_MANY) {
+            if (exposedEndFirst &&
+                !refInfo.isSingle(refInfo.getExposedEndIndex()))
+            {
+                exposedEndFirst = false;
+            } else if (!exposedEndFirst &&
+                       refInfo.isSingle(refInfo.getExposedEndIndex()))
+            {
+                exposedEndFirst = true;
+            }
+        }
+        return exposedEndFirst;
+    }
+
+    private void generateThrowUnknownAssocTypeException()
+    {
+        writeln(
+            "throw new IllegalArgumentException(",
+            QUOTE, "Unknown assoc type '", QUOTE,
+            " + type + ", QUOTE, "' for 'end ", QUOTE,
+            " + (firstEnd ? 1 : 2) + ", QUOTE, "'", QUOTE, ");");
+    }
+
+    private List<ReferenceInfo> gatherRefInfos(
+        Collection<Reference> instanceReferences,
+        Map<Reference, ReferenceInfo> refInfoMap,
+        Collection<Association> unreferencedAssociations,
+        Map<Association, ReferenceInfo> unrefAssocRefInfoMap)
+    {
+        List<ReferenceInfo> refInfos = new ArrayList<ReferenceInfo>();
+        for(Reference ref: instanceReferences) {
+            ReferenceInfo refInfo = refInfoMap.get(ref);
+            refInfos.add(refInfo);
+        }
+        for(Association unrefAssociation: unreferencedAssociations) {
+            ReferenceInfo refInfo = unrefAssocRefInfoMap.get(unrefAssociation);
+            refInfos.add(refInfo);
+        }
+        return refInfos;
+    }
+
+    private void generateClassInstanceRefMethods(
+        Collection<Reference> instanceReferences,
+        Map<Reference, ReferenceInfo> refInfoMap)
         throws GenerationException
     {
-        if (isTransient(cls)) {
-            log.fine("Delegating Transient Class Proxy Implementation");
-            transientHandler.generateClassProxy(cls);
+        for(Reference ref: instanceReferences) {
+            newLine();
+
+            ReferenceInfo refInfo = refInfoMap.get(ref);
+            if (refInfo == null) {
+                throw new GenerationException(
+                    "unknown reference '" + ref.getName() + "'");
+            }
+            
+            switch(refInfo.getKind()) {
+            case ONE_TO_ONE:
+                generateClassInstanceRefOneToOneMethods(ref, refInfo);
+                break;
+            
+            case ONE_TO_MANY: 
+                generateClassInstanceRefOnetoManyMethods(ref, refInfo);
+                break;
+            
+            case MANY_TO_MANY:
+                generateClassInstanceRefManyToManyMethods(ref, refInfo);
+                break;
+                
+            default:
+                throw new GenerationException(
+                    "Unknown reference type: " + refInfo.getKind());
+            }
+
+            generateClassInstanceAssocMethods(refInfo);
+        }
+    }
+
+    private void generateClassInstanceAssocMethods(ReferenceInfo refInfo)
+    {
+        newLine();
+        writeln("// Internal use only");
+        startBlock(
+            "public ",
+            makeType(refInfo.getKind()),
+            " ",
+            getReferenceAccessorName(refInfo),
+            "()");
+        writeln("return ", refInfo.getFieldName(), ";");
+        endBlock();
+
+        newLine();
+        writeln("// Internal use only");
+        startBlock(
+            "public void ",
+            getReferenceMutatorName(refInfo),
+            "(",
+            makeType(refInfo.getKind()),
+            " newValue)");
+        writeln("this.", refInfo.getFieldName(), " = newValue;");
+        endBlock();
+    }
+
+    private void generateClassInstanceRefOneToOneMethods(
+        Reference ref,
+        ReferenceInfo refInfo)
+    {
+        startAccessorBlock(ref);
+        startConditionalBlock(
+            CondType.IF,
+            getReferenceAccessorName(refInfo), "() == null");
+        writeln("return null;");
+        endBlock();
+
+        writeln(
+            "return ", 
+            getReferenceAccessorName(refInfo),
+            "().get", getReferenceEndName(refInfo, true),
+            "(",
+            refInfo.getReferencedTypeName(),
+            ".class",
+            ");");
+        endBlock();
+        
+        if (ref.isChangeable()) {
+            newLine();
+            startMutatorBlock(ref);
+            
+            writeln("// Get the existing association object");
+            writeln(
+                ASSOCIATION_BASE_CLASS,
+                " assoc = getAssociation(",
+                QUOTE, refInfo.getBaseName(), QUOTE,
+                ", ",
+                refInfo.isExposedEndFirst(),
+                ");");
+            startConditionalBlock(
+                CondType.IF, "assoc == null && newValue != null");
+            writeln(
+                "// If none exists, get the new value's association.");
+            writeln(
+                "assoc = ((", 
+                ASSOCIABLE_INTERFACE, 
+                ")newValue).getAssociation(",
+                QUOTE, refInfo.getBaseName(), QUOTE,
+                ", ",
+                !refInfo.isExposedEndFirst(), ");");
+            endBlock();
+
+            startConditionalBlock(CondType.IF, "assoc == null");
+            startConditionalBlock(CondType.IF, "newValue == null");
+            writeln(
+                "// User is clearing a non-existent association: do nothing");
+            writeln("return;");
+            endBlock();
+            writeln(
+                "assoc = getOrCreateAssociation(",
+                QUOTE, refInfo.getBaseName(), QUOTE,
+                ", ",
+                refInfo.isExposedEndFirst(),
+                ");");
+            endBlock();
+
+            startConditionalBlock(CondType.IF, "newValue != null");
+            if (refInfo.isExposedEndFirst()) {
+                writeln(
+                    "assoc.add(this, (", 
+                    ASSOCIABLE_INTERFACE,
+                    ")newValue);");
+            } else {
+                writeln(
+                    "assoc.add((", 
+                    ASSOCIABLE_INTERFACE,
+                    ")newValue, this);");
+            }
+            startConditionalBlock(CondType.ELSE);
+            writeln("// remove any existing association");
+            writeln("assoc.removeAll(this);");
+            endBlock();
+            endBlock();                        
+        }
+    }
+
+    private void generateClassInstanceRefOnetoManyMethods(
+        Reference ref,
+        ReferenceInfo refInfo)
+    {
+        startAccessorBlock(ref);
+        boolean hasParent = ref.getMultiplicity().getUpper() == 1;
+        if (hasParent) {
+            startConditionalBlock(
+                CondType.IF, 
+                getReferenceAccessorName(refInfo), "() == null");
+            writeln("return null;");
+            endBlock();
+            writeln(
+                "return (",
+                refInfo.getEndType(refInfo.isSingle(0) ? 0 : 1),                            
+                ")", 
+                getReferenceAccessorName(refInfo), 
+                "().getParent();");
+        } else {
+            String listElemType = 
+                refInfo.getEndType(refInfo.isSingle(0) ? 1 : 0);
+            // TODO: Cache ListProxy in a field?
+            startConditionalBlock(
+                CondType.IF, 
+                getReferenceAccessorName(refInfo), "() == null");
+            writeln(
+                "return new ", 
+                LIST_PROXY_CLASS,
+                "<", listElemType, ">",
+                "(", QUOTE, refInfo.getBaseName(), QUOTE,
+                ", ", refInfo.isExposedEndFirst(),
+                ", this, ",
+                listElemType, ".class);");
+            startConditionalBlock(CondType.ELSE);
+            writeln(
+                "return new ",
+                LIST_PROXY_CLASS,
+                "<", listElemType, ">",
+                "(",
+                getReferenceAccessorName(refInfo),
+                "(), this, ",
+                refInfo.isExposedEndFirst(), ", ",
+                listElemType, ".class);");
+            endBlock();
+        }
+        endBlock();
+        
+        if (hasParent && ref.isChangeable()) {
+            newLine();
+            startMutatorBlock(ref);
+            writeln("// get existing association, if any");
+            writeln(
+                ASSOCIATION_BASE_CLASS,
+                " assoc = getAssociation(",
+                QUOTE, refInfo.getBaseName(), QUOTE,
+                ", ",
+                refInfo.isExposedEndFirst(),
+                ");");
+            startConditionalBlock(
+                CondType.IF, "assoc == null && newValue != null");
+            writeln("// None exists, get the new value's association.");
+            writeln(
+                "assoc = ((", 
+                ASSOCIABLE_INTERFACE, 
+                ")newValue).getAssociation(",
+                QUOTE, refInfo.getBaseName(), QUOTE,
+                ", ",
+                !refInfo.isExposedEndFirst(),
+                ");");
+            endBlock();
+
+            startConditionalBlock(CondType.IF, "assoc == null");
+            startConditionalBlock(CondType.IF, "newValue == null");
+            writeln(
+                "// User is clearing a non-existent association: do nothing");
+            writeln("return;");
+            endBlock();
+            writeln(
+                "assoc = getOrCreateAssociation(",
+                QUOTE, refInfo.getBaseName(), QUOTE,
+                ", ",
+                refInfo.isExposedEndFirst(),
+                ");");
+            endBlock();
+
+            startConditionalBlock(CondType.IF, "newValue != null");
+            // NOTE: we don't cast to the "_Impl" type here 
+            // because they do not inherit from each other
+            // and there may be multiple implementations of
+            // the parent interface.
+            writeln(
+                "assoc.add((",
+                ASSOCIABLE_INTERFACE,
+                ")newValue, this);");
+            startConditionalBlock(CondType.ELSE);
+            writeln("// remove any existing association");
+            writeln("assoc.removeAll(this);");
+            endBlock();
+            endBlock();                        
+        }
+    }
+
+    private void generateClassInstanceRefManyToManyMethods(
+        Reference ref,
+        ReferenceInfo refInfo)
+    {
+        startAccessorBlock(ref);
+        String listElemType = 
+            getReferenceEndType(refInfo, true);
+        // TODO: Cache ListProxy in a field?
+        startConditionalBlock(
+            CondType.IF,
+            getReferenceAccessorName(refInfo), "() == null");
+        writeln(
+            "return new ", 
+            LIST_PROXY_CLASS, "<", listElemType, ">",
+            "(", QUOTE, refInfo.getBaseName(), QUOTE,
+            ", ", refInfo.isExposedEndFirst(),
+            ", this, ",
+            listElemType, ".class);");
+        startConditionalBlock(CondType.ELSE);
+        writeln(
+            "return new ",
+            LIST_PROXY_CLASS, "<", listElemType, ">",
+            "(", 
+            getReferenceAccessorName(refInfo), "(), this, ",
+            refInfo.isExposedEndFirst(), ", ",
+            listElemType, ".class);");
+        endBlock();
+        endBlock();
+    }
+
+    private void generateClassInstanceConstructors(
+        MofClass cls,
+        Collection<Attribute> instanceAttributes,
+        ArrayList<Attribute> nonDerivedAttribs,
+        Map<Attribute, String> nonDerivedAttribNames,
+        Set<Attribute> nonDataTypeAttribs)
+    {
+        // zero argument constructor
+        startConstructorBlock(cls, null, null, IMPL_SUFFIX);
+        writeln("super();");
+        for(Attribute attrib: nonDerivedAttribs) {
+            MultiplicityType mult = attrib.getMultiplicity();
+            int upper = mult.getUpper();
+            if (upper == -1 || upper > 1) {
+                // Multiple values -- initialize collection
+                String fieldName = nonDerivedAttribNames.get(attrib);
+
+                String suffix = null;
+                if (nonDataTypeAttribs.contains(attrib)) {
+                    suffix = IMPL_SUFFIX;
+                }
+                
+                String elemTypeName = 
+                    generator.getTypeName(attrib.getType(), suffix);
+                
+                String collTypeName;
+                if (mult.isOrdered()) {
+                    collTypeName = 
+                        generator.getCollectionType(
+                            ORDERED_COLLECTION_IMPL_CLASS, elemTypeName);
+                } else {
+                    collTypeName = 
+                        generator.getCollectionType(
+                            COLLECTION_IMPL_CLASS, elemTypeName);
+                }
+                
+                writeln(
+                    "this.",
+                    fieldName,
+                    " = new ",
+                    collTypeName,
+                    "();");
+            }
+        }
+        endBlock();
+        
+        if (instanceAttributes.size() ==  0) {
             return;
         }
 
+        // constructor
+        newLine();
+        ModelElement[] params = 
+            nonDerivedAttribs.toArray(
+                new ModelElement[nonDerivedAttribs.size()]);
+        startConstructorBlock(cls, params, IMPL_SUFFIX);
+        writeln("this();");
+        for(Attribute attrib: nonDerivedAttribs) {
+            String fieldName = nonDerivedAttribNames.get(attrib);
+            String[] paramInfo = generator.getParam(attrib);
+            boolean isNonDataType = 
+                nonDataTypeAttribs.contains(attrib);
+            MultiplicityType mult = attrib.getMultiplicity();
+            int upper = mult.getUpper();
+            if (upper == -1 || upper > 1) {
+                // Copy the collection
+                if (isNonDataType) {
+                    boolean isOrdered = mult.isOrdered();
+                    String elemTypeName = 
+                        generator.getTypeName(attrib.getType(), IMPL_SUFFIX);
+                    String asClause = 
+                        isOrdered ? "asTypedList" : "asTypedCollection";
+                    writeln(
+                        "this.",
+                        fieldName,
+                        ".addAll(",
+                        GENERIC_COLLECTIONS_CLASS,
+                        ".", asClause, "(",
+                        paramInfo[1], ",",
+                        elemTypeName, ".class));");
+                } else {
+                    writeln(
+                        "this.",
+                        fieldName,
+                        ".addAll(",
+                        paramInfo[1],
+                        ");");
+                }
+            } else {
+                if (isNonDataType) {
+                    writeln(
+                        "this.",
+                        fieldName,
+                        " = (",
+                        generator.getTypeName(attrib.getType(), IMPL_SUFFIX),
+                        ")",
+                        paramInfo[1],
+                        ";");                            
+                } else {
+                    writeln(
+                        "this.",
+                        fieldName,
+                        " = ",
+                        paramInfo[1],
+                        ";");
+                }
+            }       
+        }
+        endBlock();
+    }
+
+    private void generateClassInstanceAttribMethods(
+        Collection<Attribute> instanceAttributes,
+        Map<Attribute, String> nonDerivedAttribNames,
+        Set<Attribute> entityTypeAttribs)
+    {
+        for(Attribute attrib: instanceAttributes) {
+            String fieldName = nonDerivedAttribNames.get(attrib);
+            if (fieldName == null) {
+                throw new UnsupportedOperationException(
+                    "derived attributes not supported");
+            }
+            
+            boolean isEntityType = entityTypeAttribs.contains(attrib);
+            String suffix = isEntityType ? IMPL_SUFFIX : null;
+            
+            int upper = attrib.getMultiplicity().getUpper();
+            if (upper == 1) {
+                newLine();
+                startAccessorBlock(attrib, suffix, suffix);
+                writeln("return ", fieldName, ";");
+                endBlock();
+                
+                newLine();
+                startMutatorBlock(attrib, suffix, suffix);
+                
+                // REVIEW: SWZ: 12/31/07: Some attributes are not 
+                // changeable, but Hibernate will still use this method to
+                // set the value at load time.  This method isn't in the
+                // class instance interface, but perhaps there's a way to
+                // detect user invocation and throw an exception.
+                writeln("this.", fieldName, " = newValue;");
+                endBlock();                        
+            } else if (upper != 0) {
+                newLine();
+                startAccessorBlock(attrib, suffix, suffix);
+                
+                if (attrib.isChangeable()) {
+                    writeln("return ", fieldName, ";");
+                } else {
+                    if (attrib.getMultiplicity().isOrdered()) {
+                        writeln(
+                            "return ", 
+                            JAVA_UTIL_COLLECTIONS_CLASS, 
+                            ".unmodifiableList(", 
+                            fieldName,
+                            ");");
+                    } else {
+                        writeln(
+                            "return ",
+                            JAVA_UTIL_COLLECTIONS_CLASS, 
+                            ".unmodifiableSet(",
+                            fieldName,
+                            ");");                            
+                    }
+                }
+                endBlock();
+            }
+            
+            if (!isEntityType) {
+                continue;
+            }
+            
+            // Go back and implement the interface methods in terms
+            // of the attribute's interface type (as opposed to the
+            // concrete type)
+            if (upper == 1) {
+                newLine();
+                startAccessorBlock(attrib);
+                writeln(
+                    "return ",
+                    generator.getAccessorName(attrib), 
+                    IMPL_SUFFIX,
+                    "();");
+                endBlock();
+                
+                if (attrib.isChangeable()) {
+                    newLine();
+                    startMutatorBlock(attrib);
+                    writeln(
+                        generator.getMutatorName(attrib), IMPL_SUFFIX,
+                        "((",
+                        generator.getTypeName(attrib.getType(), IMPL_SUFFIX),
+                        ")newValue);");
+                    endBlock();                        
+                }
+            } else if (upper != 0) {
+                newLine();
+                startAccessorBlock(attrib);
+                
+                String asClause = 
+                    attrib.getMultiplicity().isOrdered()
+                        ? "asTypedList"
+                        : "asTypedCollection";
+                writeln(
+                    "return ",
+                    GENERIC_COLLECTIONS_CLASS,
+                    ".", asClause, "(", 
+                    generator.getAccessorName(attrib), IMPL_SUFFIX,
+                    ", ",
+                    generator.getTypeName(attrib.getType()),
+                    ".class);");
+                endBlock();
+            }
+        }
+    }
+
+    public void generateClassProxy(MofClass cls)
+        throws GenerationException
+    {
+        if (HibernateCodeGenUtils.isTransient(cls)) {
+            if (getPassIndex() < numTransientPasses) {
+                log.fine("Delegating Transient Class Proxy Implementation");
+                transientHandler.generateClassProxy(cls);
+            }
+            return;
+        }
+
+        if (checkPassIndex(1)) {
+            return;
+        }
+        
         String interfaceName = generator.getTypeName(cls, CLASS_PROXY_SUFFIX);
         
         String typeName = interfaceName + IMPL_SUFFIX;
@@ -1359,9 +1603,15 @@ public class HibernateJavaHandler
     public void generatePackage(MofPackage pkg)
         throws GenerationException
     {
-        if (isTransient(pkg)) {
-            log.fine("Delegating Transient Package Implementation");
-            transientHandler.generatePackage(pkg);
+        if (HibernateCodeGenUtils.isTransient(pkg)) {
+            if (getPassIndex() < numTransientPasses) {
+                log.fine("Delegating Transient Package Implementation");
+                transientHandler.generatePackage(pkg);
+            }
+            return;
+        }
+
+        if (checkPassIndex(1)) {
             return;
         }
         
@@ -1585,21 +1835,14 @@ public class HibernateJavaHandler
         }
     }
     
-    static boolean isTransient(ModelElement modelElement)
+    private boolean checkPassIndex(int min) throws GenerationException
     {
-        if (modelElement instanceof MofPackage) {
-            // TODO: switch to using a tag
-            if (((MofPackage)modelElement).getName().equals("Fennel")) {
-                return true;
-            }
+        int passIndex = getPassIndex();
+        if (passIndex < min || passIndex >= numPasses) {
+            return true;
         }
         
-        Namespace container = modelElement.getContainer();
-        if (container == null) {
-            return false;
-        } else {
-            return isTransient(container);
-        }
+        return false;
     }
     
     private String getClassIdentifier(MofClass cls) throws GenerationException
@@ -1675,9 +1918,9 @@ public class HibernateJavaHandler
         }
     }
     
-    private String makeType(ReferenceInfo refInfo)
+    private String makeType(AssociationKindEnum kind)
     {
-        switch(refInfo.getKind())
+        switch(kind)
         {
         case ONE_TO_ONE:
             return ASSOCIATION_ONE_TO_ONE_IMPL_CLASS.toString();
@@ -1690,7 +1933,7 @@ public class HibernateJavaHandler
         }
         
         throw new IllegalArgumentException(
-            "Unknown AssociationKindEnum: " + refInfo.getKind());
+            "Unknown AssociationKindEnum: " + kind);
     }
     
     private String getReferenceEndName(
