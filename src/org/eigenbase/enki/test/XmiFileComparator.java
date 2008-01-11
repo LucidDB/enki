@@ -43,13 +43,33 @@ public class XmiFileComparator
     private static final SAXParserFactory saxParserFactory = 
         SAXParserFactory.newInstance();
 
+    private static boolean writeSortedElements = false;
+    
     public static void main(String[] args)
     {
-        File f1 = new File("test/results/ExportImportTest.xmi");
-        File f2 = new File("test/results/ExportImportTest2.xmi");
+        File f1;
+        File f2;
+        if (args.length >= 2) {
+            f1 = new File(args[0]);
+            f2 = new File(args[1]);
+            
+            if (args.length >= 3) {
+                setWriteSortedElements(args[2].equals("true"));
+            }
+        } else {
+            // Default are the output files of ExportImportTest
+            f1 = new File("test/results/ExportImportTest.xmi");
+            f2 = new File("test/results/ExportImportTest2.xmi");
+        }
         
         assertEqual(f1, f2);
     }
+    
+    public static void setWriteSortedElements(boolean enable)
+    {
+        writeSortedElements = enable;
+    }
+    
     public static void assertEqual(File expectedFile, File actualFile)
     {
         Element expected = load(expectedFile, new ExpectedElementFactory());
@@ -66,7 +86,13 @@ public class XmiFileComparator
             Handler handler = new Handler(elementFactory);
             parser.parse(file, handler);
             
-            return handler.getRootElement();
+            Element element = handler.getRootElement();
+            
+            if (writeSortedElements) {
+                write(element, new File(file.getPath() + ".sorted"));
+            }
+            
+            return element;
         }
         catch(Exception e) {
             ModelTestBase.fail(e);
@@ -154,8 +180,8 @@ public class XmiFileComparator
             Object expected, 
             Object actual)
     {
-        StringBuffer m = new StringBuffer(msg);
-        m
+        StringBuffer m = 
+            new StringBuffer(msg)
             .append(" (Expected Line: ")
             .append(expectedSrc.lineNumber)
             .append("; Acutal Line: ")
@@ -164,6 +190,77 @@ public class XmiFileComparator
         Assert.assertEquals(m.toString(), expected, actual);
     }
 
+    private static void write(Element element, File file) throws IOException
+    {
+        BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+        
+        write(element, writer, 0);
+    }
+    
+    private static void write(
+        Element element, BufferedWriter writer, int indent) throws IOException
+    {
+        indent(writer, indent);
+        writer.write("<");
+        writer.write(element.name);
+        if (element.xmiId != null) {
+            if (element.isReference) {
+                writer.write(" xmi.idref='");
+            } else {
+                writer.write(" xmi.id='");                
+            }
+            writer.write(element.xmiId);
+            writer.write("'");
+        }
+        
+        for(Map.Entry<String, String> entry: element.attributes.entrySet()) {
+            writer.write(" ");
+            writer.write(entry.getKey());
+            writer.write("='");
+            writer.write(entry.getValue());
+            writer.write("'");
+        }
+        
+        if (element.characters.length() == 0 && element.children.isEmpty()) {
+            // empty elem
+            writer.write(" />");
+            writer.newLine();
+            return;
+        }
+        
+        writer.write(">");
+
+        if (element.children.isEmpty()) {
+            writer.write(element.characters.toString());
+        } else {
+            writer.newLine();
+        
+            if (element.characters.length() > 0) {
+                indent(writer, indent + 1);
+                writer.write(element.characters.toString());
+                writer.newLine();
+            }
+        
+            for(Element child: element.children) {
+                write(child, writer, indent + 1);
+            }
+        
+            indent(writer, indent);
+        }
+        writer.write("</");
+        writer.write(element.name);
+        writer.write(">");
+        writer.newLine();
+    }
+
+    private static void indent(BufferedWriter writer, int indent)
+        throws IOException
+    {
+        for(int i = 0; i < indent; i++) {
+            writer.write("  ");
+        }
+    }
+    
     private abstract static class Element
     {
         private final String name;
@@ -176,6 +273,7 @@ public class XmiFileComparator
         
         private Element(String name, Attributes xmlAttributes, Locator locator)
         {
+            assert(name != null);
             this.name = name;
             this.attributes = new TreeMap<String, String>();
             
@@ -219,11 +317,18 @@ public class XmiFileComparator
         
         public void finish()
         {
-            Collections.sort(children, ElementComparator.instance);
-            
             String chars = characters.toString().trim();
             characters.setLength(0);
             characters.append(chars);
+        }
+        
+        public void sort()
+        {
+            for(Element childElement: children) {
+                childElement.sort();
+            }
+            
+            Collections.sort(children, ElementComparator.instance);
         }
         
         public void addChild(Element child)
@@ -403,6 +508,7 @@ public class XmiFileComparator
             element.finish();
             if (elementStack.empty()) {
                 root = element;
+                root.sort();
             }
         }
     }

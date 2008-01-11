@@ -27,6 +27,7 @@ import org.eigenbase.enki.mdr.*;
 import org.junit.*;
 
 import eem.sample.simple.*;
+import eem.sample.special.*;
 
 /**
  * OneToManyAssociationTest tests one-to-many associations.
@@ -448,13 +449,11 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             SimplePackage simplePkg = getSimplePackage();
             Entity10 e10 = simplePkg.getEntity10().createEntity10();
             e10RefMofId = e10.refMofId();
-            scheduleForDelete(e10);
             
             for(int i = 0; i < numEntities11; i++) {
                 Entity11 e11 = simplePkg.getEntity11().createEntity11();
 
                 e11RefMofIds.add(e11.refMofId());
-                scheduleForDelete(e11);
      
                 if (reverse) {
                     e11.setEntity10(e10);
@@ -518,13 +517,11 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             SimplePackage simplePkg = getSamplePackage().getSimple();
             Entity16 e16 = simplePkg.getEntity16().createEntity16();
             e16RefMofId = e16.refMofId();
-            scheduleForDelete(e16);
             
             for(int i = 0; i < numEntities17; i++) {
                 Entity17 e17 = simplePkg.getEntity17().createEntity17();
 
                 e17RefMofIds.add(e17.refMofId());
-                scheduleForDelete(e17);
      
                 if (reverse) {
                     e17.setEntity16(e16);
@@ -574,6 +571,68 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             if (startTxn) {
                 getRepository().endTrans();
             }
+        }
+    }
+
+    @Test
+    public void testManyToOneAssociation()
+    {
+        // Some associations have their single end as end 2 and the many
+        // end as end 1.  Basic tests of that orientation here.
+        
+        String bMofId;
+        Set<String> pnMofIds = new HashSet<String>();
+        
+        // Create
+        getRepository().beginTrans(true);
+        try {
+            AreaCode ac1 = 
+                getSpecialPackage().getAreaCode().createAreaCode("415", true);
+            
+            PhoneNumber pn1 = 
+                getSpecialPackage().getPhoneNumber().createPhoneNumber(
+                    ac1, "555-1212");
+            
+            AreaCode ac2 = 
+                getSpecialPackage().getAreaCode().createAreaCode("415", true);
+
+            PhoneNumber pn2 =
+                getSpecialPackage().getPhoneNumber().createPhoneNumber(
+                    ac2, "767-1234");
+            
+            Building b =
+                getSpecialPackage().getBuilding().createBuilding(
+                    "123 Main Street", "San Francisco", "CA", "94117");
+
+            b.getPhoneNumber().add(pn1);
+            b.getPhoneNumber().add(pn2);
+            
+            bMofId = b.refMofId();
+            pnMofIds.add(pn1.refMofId());
+            pnMofIds.add(pn2.refMofId());
+            
+        } finally {
+            getRepository().endTrans();
+        }
+        
+        // Read them back
+        getRepository().beginTrans(false);
+        try {
+            Building b = findEntity(bMofId, Building.class);
+            
+            Assert.assertEquals("123 Main Street", b.getAddress());
+            Assert.assertEquals("San Francisco", b.getCity());
+            Assert.assertEquals("CA", b.getState());
+            Assert.assertEquals("94117", b.getZipcode());
+            
+            Collection<PhoneNumber> phoneNumbers = b.getPhoneNumber();
+            Assert.assertEquals(2, phoneNumbers.size());
+            for(PhoneNumber pn: phoneNumbers) {
+                boolean contained = pnMofIds.remove(pn.refMofId());
+                Assert.assertTrue(contained);
+            }
+        } finally {
+            getRepository().endTrans();
         }
     }
 }

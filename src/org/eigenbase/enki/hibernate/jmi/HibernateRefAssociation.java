@@ -23,6 +23,7 @@ package org.eigenbase.enki.hibernate.jmi;
 
 import java.util.*;
 
+import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.*;
@@ -68,14 +69,16 @@ public abstract class HibernateRefAssociation
         Query query = getAllLinksQuery(session);
         query.setString(0, type);
         
-        ArrayList<javax.jmi.reflect.RefAssociationLink> links = 
-            new ArrayList<javax.jmi.reflect.RefAssociationLink>();
+        ArrayList<RefAssociationLink> links = 
+            new ArrayList<RefAssociationLink>();
         List<?> list = query.list();
         for(HibernateAssociation assoc: 
                 GenericCollections.asTypedList(
                     list, HibernateAssociation.class))
         {
-            for(javax.jmi.reflect.RefAssociationLink link: assoc) {
+            Iterator<RefAssociationLink> iter = assoc.linkIterator();
+            while(iter.hasNext()) {
+                RefAssociationLink link = iter.next();
                 links.add(link);
             }
         }
@@ -85,31 +88,49 @@ public abstract class HibernateRefAssociation
 
     /**
      * Obtain a query to implement {@link #refAllLinks()} where the query 
-     * parameter is the association type.
+     * parameter is the association type.  Query returns a list of
+     * {@link HibernateAssociation} objects.  
      * 
      * @param session session to create query in
      * @return Hibernate Query object as described above
      */
     protected abstract Query getAllLinksQuery(Session session);
-    
+
     public boolean refLinkExists(RefObject end1, RefObject end2)
     {
         Session session = HibernateMDRepository.getCurrentSession();
         
+        String end1TypeName = 
+            TagUtil.getSubstName((ModelElement)end1.refMetaObject());
+        String end2TypeName = 
+            TagUtil.getSubstName((ModelElement)end2.refMetaObject());
+        
         Query query = getExistsQuery(session);
         query.setString(0, type);
-        query.setString(1, end1.getClass().getName());
+        query.setString(1, end1TypeName);
         query.setLong(2, ((RefObjectBase)end1).getMofId());
-        query.setString(3, end1.getClass().getName());
+        query.setString(3, end2TypeName);
         query.setLong(4, ((RefObjectBase)end2).getMofId());
         
         return !query.list().isEmpty();
     }
 
     /**
-     * Obtain a query to implement {@link #refLinkExists(RefObject, RefObject)}
-     * where the query parameters are the association type, and the two ends
-     * of the association (as unformatted MOF ID values).
+     * Obtains a query to implement 
+     * {@link #refLinkExists(RefObject, RefObject)}.  The query parameters must
+     * be: 
+     * <ol>
+     * <li>string: the association {@link #type},<li>
+     * <li>string: first end type name (e.g., the substitute name for the first
+     *     end's <code>refMetaObject()</code>)<li>
+     * <li>long: first end's unformatted MOF ID</li>
+     * <li>string: second end type name (e.g., the substitute name for the 
+     *     second end's <code>refMetaObject()</code>)<li>
+     * <li>long: second end's unformatted MOF ID</li>
+     * </ol>
+     * The query must return 0 rows (of any type) if there are no association
+     * links matching the query parameters and 1 (or more) rows (of any type)
+     * if there is at least one association link matching the parameters.
      * 
      * @param session session to create query in
      * @return Hibernate Query object as described above
@@ -117,26 +138,45 @@ public abstract class HibernateRefAssociation
     protected abstract Query getExistsQuery(Session session);
     
     @Override
-    protected Collection<RefObject> query(
+    protected Collection<? extends RefObject> query(
         boolean isFirstEnd, RefObject queryObject)
     {
+        if (isFirstEnd) {
+            checkFirstEndType(queryObject);
+        } else {
+            checkSecondEndType(queryObject);
+        }
+        
+        
         Session session = HibernateMDRepository.getCurrentSession();
 
+        String queryObjectTypeName =
+            TagUtil.getSubstName((ModelElement)queryObject.refMetaObject());
+        
         Query query = getQueryQuery(session, isFirstEnd);
         query.setString(0, type);
-        query.setString(1, queryObject.getClass().getName());
+        query.setString(1, queryObjectTypeName);
         query.setLong(2, ((RefObjectBase)queryObject).getMofId());
+
+        List<? extends HibernateAssociation> associations =
+            GenericCollections.asTypedList(
+                query.list(), HibernateAssociation.class);
         
-        return Collections.unmodifiableCollection(
-            GenericCollections.asTypedCollection(
-                query.list(), RefObject.class));
+        return toRefObjectCollection(associations, !isFirstEnd);
     }
     
     /**
      * Obtain a query to implement {@link #refQuery(RefObject, RefObject)} and
-     * {@link #refQuery(String, RefObject)} where the query parameters are the 
-     * association type and the given end of the association (as an 
-     * unformatted MOF ID).
+     * {@link #refQuery(String, RefObject)} via 
+     * {@link #query(boolean, RefObject)}.  The query parameters must be:
+     * <ol>
+     * <li>string: the association {@link #type},<li>
+     * <li>string: end type name (e.g., the substitute name for the given
+     *     end's <code>refMetaObject()</code>)<li>
+     * <li>long: the given end's unformatted MOF ID</li>
+     * </ol> 
+     *  
+     * The query must return a list of {@link HibernateAssociation} instances.
      * 
      * @param session session to create query in
      * @return Hibernate Query object as described above
@@ -144,27 +184,33 @@ public abstract class HibernateRefAssociation
     protected abstract Query getQueryQuery(
         Session session, boolean isFirstEnd);
     
+    /**
+     * Converts the given list of {@link HibernateAssociation} instances
+     * into a collection of {@link RefObject}.
+     * 
+     * @param queryResult result of a query returned by 
+     *                    {@link #getQueryQuery(Session, boolean)}.
+     * @param returnFirstEnd if true, return the first end(s) of each 
+     *                       association object; else the second end(s)
+     * @return Collection of RefObjects
+     */
+    protected abstract Collection<? extends RefObject> toRefObjectCollection(
+        final List<? extends HibernateAssociation> queryResult, 
+        final boolean returnFirstEnd);
+    
     public boolean refAddLink(RefObject end1, RefObject end2)
     {
-        if (checkTypes(end1, end2)) {
-            RefObject temp = end1;
-            end1 = end2;
-            end2 = temp;
-        }
+        checkTypes(end1, end2);
         
         HibernateAssociable assoc1 = (HibernateAssociable)end1;
         HibernateAssociable assoc2 = (HibernateAssociable)end2;
-        
+
         return assoc1.getOrCreateAssociation(type, true).add(assoc1, assoc2);
     }
 
     public boolean refRemoveLink(RefObject end1, RefObject end2)
     {
-        if (checkTypes(end1, end2)) {
-            RefObject temp = end1;
-            end1 = end2;
-            end2 = temp;
-        }
+        checkTypes(end1, end2);
         
         HibernateAssociable assoc1 = (HibernateAssociable)end1;
         HibernateAssociable assoc2 = (HibernateAssociable)end2;
@@ -182,26 +228,75 @@ public abstract class HibernateRefAssociation
     protected abstract Class<? extends RefObject> getFirstEndType();
     protected abstract Class<? extends RefObject> getSecondEndType();
     
-    private boolean checkTypes(RefObject end1, RefObject end2)
+    private void checkTypes(RefObject end1, RefObject end2)
+    {
+        checkFirstEndType(end1);
+        checkSecondEndType(end2);
+    }
+
+    private void checkFirstEndType(RefObject end1)
     {
         Class<?> end1Type = getFirstEndType();
-        Class<?> end2Type = getSecondEndType();
-        
         if (!end1Type.isAssignableFrom(end1.getClass())) {
-            // Are the types reversed?
-            if (end1Type.isAssignableFrom(end2.getClass()) &&
-                end2Type.isAssignableFrom(end1.getClass()))
-            {
-                return true;
-            }
-            
             throw new TypeMismatchException(end1Type, this, end1);
         }
-        
+    }    
+    
+    private void checkSecondEndType(RefObject end2)
+    {
+        Class<?> end2Type = getSecondEndType();
         if (!end2Type.isAssignableFrom(end2.getClass())) {
             throw new TypeMismatchException(end2Type, this, end2);
         }
+    }
+
+    protected static class QueryResultCollection 
+        extends AbstractCollection<RefObject>
+    {
+        private final Collection<RefAssociationLink> links;
+        private final boolean returnFirstEnd;
         
-        return false;
-    }    
+        protected QueryResultCollection(
+            Collection<RefAssociationLink> links, boolean returnFirstEnd)
+        {
+            this.links = links;
+            this.returnFirstEnd = returnFirstEnd;
+        }
+        
+        @Override
+        public Iterator<RefObject> iterator()
+        {
+            return new Iterator<RefObject>()
+            {
+                private final Iterator<RefAssociationLink> linkIter =
+                    links.iterator();
+                
+                public boolean hasNext()
+                {
+                    return linkIter.hasNext();
+                }
+
+                public RefObject next()
+                {
+                    RefAssociationLink link = linkIter.next();
+                    if (returnFirstEnd) {
+                        return link.refFirstEnd();
+                    } else {
+                        return link.refSecondEnd();
+                    }
+                }
+
+                public void remove()
+                {
+                    throw new UnsupportedOperationException();
+                }
+            };
+        }
+    
+        @Override
+        public int size()
+        {
+            return links.size();
+        }
+    }
 }

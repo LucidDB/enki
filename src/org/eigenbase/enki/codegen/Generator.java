@@ -22,12 +22,9 @@
 package org.eigenbase.enki.codegen;
 
 import java.io.*;
-import java.util.*;
 
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
-
-import org.eigenbase.enki.jmi.impl.*;
 
 /**
  * Generator represents a class that generates JMI code for a UML model.
@@ -100,41 +97,6 @@ public interface Generator
      */
     public RefBaseObject getRefBaseObject();
     
-    /**
-     * Retrieves the value associated with the given tag identifier on the
-     * given model element.  If multiple values are associated with the tag,
-     * returns only one.
-     *  
-     * @param elem a model element
-     * @param tagId tag id (see, for instance, 
-     *              {@link TagIdConstants#TAGID_SUBSTITUTE_NAME})
-     * @return the value associated with the tag or null if none is found
-     */
-    public String getTagValue(ModelElement elem, String tagId);
-
-    /**
-     * Retrieves the values associated with the given tag identifier on the
-     * given model element.
-     *  
-     * @param elem a model element
-     * @param tagId tag id (see, for instance, 
-     *              {@link TagIdConstants#TAGID_SUBSTITUTE_NAME})
-     * @return a collection of Strings containing the value(s) associated with
-     *         the tag or null if none are found
-     */
-    public Collection<String> getTagValues(ModelElement elem, String tagId);
-
-    /**
-     * Retrieves the Tag associated with the given tag identifier on the
-     * given model element.
-     * 
-     * @param elem a model element
-     * @param tagId tag id (see, for instance, 
-     *              {@link TagIdConstants#TAGID_SUBSTITUTE_NAME})
-     * @return the value associated with the tag, or null if none is found
-     */
-    public Tag getTag(ModelElement elem, String tagId);
-
     /**
      * Returns a 2-element array containing the type and variable name for
      * the given {@link ModelElement}.

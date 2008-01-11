@@ -310,7 +310,7 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     
                     ModelElement pkgElem = (ModelElement)pkg.refMetaObject();
                     String pkgPrefix = 
-                        getTag(pkgElem, TagIdConstants.TAGID_PACKAGE_PREFIX);
+                        getTag(pkgElem, TagUtil.TAGID_PACKAGE_PREFIX);
                     if (pkgPrefix != null) {
                         className.append(pkgPrefix);
                     }

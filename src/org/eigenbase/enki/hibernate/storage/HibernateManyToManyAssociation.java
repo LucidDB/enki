@@ -26,6 +26,7 @@ import java.util.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.jmi.impl.*;
 
 /**
  * HibernateManyToManyAssociation extends HibernateAssociation to store
@@ -36,6 +37,7 @@ import org.eigenbase.enki.hibernate.*;
 public class HibernateManyToManyAssociation
     extends HibernateAssociation
 {
+    private boolean reversed;
     private HibernateAssociable source;
     private List<HibernateAssociable> target;
     
@@ -44,6 +46,16 @@ public class HibernateManyToManyAssociation
         this.target = new ArrayList<HibernateAssociable>();
     }
 
+    public boolean getReversed()
+    {
+        return reversed;
+    }
+    
+    public void setReversed(boolean reversed)
+    {
+        this.reversed = reversed;
+    }
+    
     public HibernateAssociable getSource()
     {
         return source;
@@ -215,18 +227,23 @@ public class HibernateManyToManyAssociation
     }
 
     @Override
-    public Iterator<RefAssociationLink> iterator()
+    public Collection<RefAssociationLink> getLinks()
     {
+        boolean reversed = getReversed();
+
         ArrayList<RefAssociationLink> links = 
             new ArrayList<RefAssociationLink>();
         HibernateAssociable source = getSource();
         for(HibernateAssociable target: getTarget()) {
-            RefAssociationLink link =
-                new org.eigenbase.enki.jmi.impl.RefAssociationLink(
-                    source, target);
+            RefAssociationLink link;
+            if (reversed) {
+                link = new RefAssociationLinkImpl(target, source);
+            } else {
+                link = new RefAssociationLinkImpl(source, target);
+            }
             links.add(link);
         }
-        return links.iterator();
+        return links;
     }
 }
 

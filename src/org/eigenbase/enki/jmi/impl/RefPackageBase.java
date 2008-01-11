@@ -183,7 +183,7 @@ public abstract class RefPackageBase
     {
         String baseName = modelElem.getName();
 
-        String substName = getTag(modelElem, TagIdConstants.TAGID_SUBSTITUTE_NAME);
+        String substName = getTag(modelElem, TagUtil.TAGID_SUBSTITUTE_NAME);
         if (substName != null) {
             baseName = substName;
         }

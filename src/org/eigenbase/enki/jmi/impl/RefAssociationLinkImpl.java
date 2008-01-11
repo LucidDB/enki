@@ -21,22 +21,47 @@
 */
 package org.eigenbase.enki.jmi.impl;
 
+import javax.jmi.reflect.*;
+
 /**
- * TagIdConstants contains {@link org.eigenbase.enki.jmi.model.Tag} identifier
- * constants.
+ * RefAssociationLinkImpl implements {@link RefAssociationLink}.
  * 
  * @author Stephan Zuercher
  */
-public class TagIdConstants
+public class RefAssociationLinkImpl implements RefAssociationLink
 {
+    private final RefObject firstEnd;
+    private final RefObject secondEnd;
+    
+    public RefAssociationLinkImpl(RefObject firstEnd, RefObject secondEnd)
+    {
+        this.firstEnd = firstEnd;
+        this.secondEnd = secondEnd;
+    }
+    
+    public RefObject refFirstEnd()
+    {
+        return firstEnd;
+    }
 
-    public static final String TAGID_IGNORE_LIFECYCLE = 
-    "javax.jmi.ignoreLifecycle";
-    public static final String TAGID_PACKAGE_PREFIX = 
-    "javax.jmi.packagePrefix";
-    public static final String TAGID_SUBSTITUTE_NAME = 
-    "javax.jmi.substituteName";
+    public RefObject refSecondEnd()
+    {
+        return secondEnd;
+    }
 
+    public boolean equals(Object other)
+    {
+        RefAssociationLinkImpl that = (RefAssociationLinkImpl)other;
+        
+        return 
+            this.refFirstEnd().equals(that.refFirstEnd()) &&
+            this.refSecondEnd().equals(that.refSecondEnd());
+    }
+    
+    public int hashCode()
+    {
+        return firstEnd.hashCode() ^ secondEnd.hashCode();
+    }
 }
 
-// End TagIdConstants.java
+// End RefAssociationLink.java

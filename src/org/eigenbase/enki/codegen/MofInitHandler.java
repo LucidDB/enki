@@ -27,7 +27,6 @@ import java.util.logging.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
-import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
 
 /**
@@ -276,7 +275,7 @@ public class MofInitHandler
         String var = makeVarName(cls);
         String func = makeVarName(cls, INIT_SUFFIX);
         String clsName = 
-            generator.getTagValue(cls, TagIdConstants.TAGID_SUBSTITUTE_NAME);
+            TagUtil.getTagValue(cls, TagUtil.TAGID_SUBSTITUTE_NAME);
         if (clsName == null) {
             clsName = cls.getName();
         }
@@ -423,10 +422,10 @@ public class MofInitHandler
 
         // Only keep unique ends, but preserve order.
         LinkedHashSet<RefObject> queryEnds = new LinkedHashSet<RefObject>();
-        for(javax.jmi.reflect.RefAssociationLink link: 
+        for(RefAssociationLink link: 
                 GenericCollections.asTypedCollection(
                     refAssociation.refAllLinks(), 
-                    javax.jmi.reflect.RefAssociationLink.class))
+                    RefAssociationLink.class))
         {
             if (queryBySecondEnd) {
                 queryEnds.add(link.refSecondEnd());

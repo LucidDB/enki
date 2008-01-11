@@ -207,6 +207,7 @@ public abstract class TransientImplementationHandler
                 Multiplicity.fromMultiplicityType(
                     assocInfo.getEnd(1).getMultiplicity());
             
+            // constructor
             startBlock(
                 "public ",
                 generator.getSimpleTypeName(assoc, computeSuffix("")),
@@ -215,10 +216,12 @@ public abstract class TransientImplementationHandler
                 "super(");
             increaseIndent();
             writeln("container,");
-            writeln(QUOTE, assocInfo.getEndName(0), QUOTE, ",");
+            writeln(QUOTE, assocInfo.getEndName(0, true), QUOTE, ",");
             writeln(MULTIPLICITY_CLASS, ".", end1Multiplicity, ",");
-            writeln(QUOTE, assocInfo.getEndName(1), QUOTE, ",");
+            writeln(QUOTE, assocInfo.getEndName(1, true), QUOTE, ",");
             writeln(MULTIPLICITY_CLASS, ".", end2Multiplicity, ");");
+            newLine();
+            generateCustomAssociationInit(assoc);
             decreaseIndent();
             endBlock();
             newLine();
@@ -281,6 +284,10 @@ public abstract class TransientImplementationHandler
         }            
     }
 
+    protected void generateCustomAssociationInit(Association assoc)
+    {
+    }
+    
     private void generateAssociationEndAccessor(
         Association assoc,
         AssociationInfo assocInfo,
@@ -318,7 +325,7 @@ public abstract class TransientImplementationHandler
             writeln("super.refQuery(");
             increaseIndent();
             writeln(
-                QUOTE, assocInfo.getEndName(fromIndex), QUOTE, ", ", 
+                QUOTE, assocInfo.getEndName(fromIndex, true), QUOTE, ", ", 
                 assocInfo.getEndName(fromIndex), ");");
             decreaseIndent();
             
@@ -788,6 +795,8 @@ public abstract class TransientImplementationHandler
                 new String[] { "container" }, 
                 computeSuffix(CLASS_PROXY_SUFFIX));
             writeln("super(container);");
+            newLine();
+            generateCustomClassProxyInit(cls);
             endBlock();
             
             if (!cls.isAbstract()) {
@@ -856,6 +865,10 @@ public abstract class TransientImplementationHandler
         finally {
             close();
         }
+    }
+    
+    protected void generateCustomClassProxyInit(MofClass cls)
+    {
     }
 
     public void generatePackage(MofPackage pkg)

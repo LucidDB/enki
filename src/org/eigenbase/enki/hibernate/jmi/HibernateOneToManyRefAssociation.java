@@ -37,35 +37,45 @@ import org.hibernate.*;
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateOneToManyRefAssociation<P extends RefObject, C extends RefObject>
+public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 extends RefObject>
     extends HibernateRefAssociation
 {
-    private final Class<P> parentClass;
-    private final Class<C> childClass;
+    private final Class<E1> end1Class;
+    private final Class<E2> end2Class;
+    private final boolean end1IsParent;
     
     protected HibernateOneToManyRefAssociation(
         RefPackage container,
         String type,
         String end1Name,
-        Class<P> end1Class,
+        Class<E1> end1Class,
+        Multiplicity end1Multiplicity,
         String end2Name,
-        Class<C> end2Class,
+        Class<E2> end2Class,
         Multiplicity end2Multiplicity)
     {
         super(
             container, 
             type,
             end1Name,
-            Multiplicity.SINGLE, 
+            end1Multiplicity, 
             end2Name,
             end2Multiplicity);
+
+        assert(
+            end1Multiplicity == Multiplicity.SINGLE ||
+            end2Multiplicity == Multiplicity.SINGLE);
+        assert(
+            end1Multiplicity != Multiplicity.SINGLE ||
+            end2Multiplicity != Multiplicity.SINGLE);
         
-        assert(end2Multiplicity != Multiplicity.SINGLE);
+        this.end1Class = end1Class;
+        this.end2Class = end2Class;
         
-        this.parentClass = end1Class;
-        this.childClass = end2Class;
+        this.end1IsParent = (end1Multiplicity == Multiplicity.SINGLE);
     }
 
+    @Override
     protected Query getAllLinksQuery(Session session)
     {
         // TODO: make named query
@@ -76,89 +86,154 @@ public abstract class HibernateOneToManyRefAssociation<P extends RefObject, C ex
         
         return query;
     }
-
-    protected boolean exists(P parent, C child)
+    
+    protected boolean exists(E1 parent, E2 child)
     {
         return refLinkExists(parent, child);
     }
 
+    @Override
     protected Query getExistsQuery(Session session)
     {
         // TODO: make named query
-        Query query = 
-            session.createQuery(
+        Query query;
+        if (end1IsParent) {
+            query = session.createQuery(
                 "from " + 
                 HibernateOneToManyAssociation.class.getName() + 
                 " where type = ? and parent = (?, ?) and (?, ?) in elements(children)");
-        
+        } else {
+            query = session.createQuery(
+                "from " + 
+                HibernateOneToManyAssociation.class.getName() + 
+                " where type = ? and (?, ?) in elements(children) and parent = (?, ?)");
+        }
         return query;
     }
 
-    protected P getParentOf(C child)
+    protected <EX extends RefObject> EX getParentOf(
+        RefObject child, Class<EX> cls)
     {
-        Collection<RefObject> c = super.query(false, child);
+        if (end1IsParent) {
+            assert(cls.equals(end1Class));
+        } else {
+            assert(cls.equals(end2Class));
+        }
+        
+        Collection<? extends RefObject> c = super.query(!end1IsParent, child);
         assert(c.size() <= 1);
         if (c.isEmpty()) {
             return null;
         } else {
-            return parentClass.cast(c.iterator().next());
+            return cls.cast(c.iterator().next());
         }
     }
 
-    protected Collection<C> getChildrenOf(P parent)
+    protected <EX extends RefObject> Collection<EX> getChildrenOf(
+        RefObject parent, Class<EX> cls)
     {
-        Collection<RefObject> c = super.query(true, parent);
+        if (end1IsParent) {
+            assert(cls.equals(end2Class)):
+                "expected '" + end2Class.getName() + 
+                "', got '" + cls.getName() + "'";
+        } else {
+            assert(cls.equals(end1Class)):
+                "expected '" + end1Class.getName() + 
+                "', got '" + cls.getName() + "'";
+        }
+
+        Collection<? extends RefObject> c = super.query(end1IsParent, parent);
         if (c instanceof List) {
             return GenericCollections.asTypedList(
-                (List<RefObject>)c, childClass);
+                (List<? extends RefObject>)c, cls);
         } else {
-            return GenericCollections.asTypedCollection(c, childClass);
+            return GenericCollections.asTypedCollection(c, cls);
         }
-}
+    }
 
-    protected Query getQueryQuery(Session session, boolean givenParentEnd)
+    @Override
+    protected Query getQueryQuery(Session session, boolean givenFirstEnd)
     {
+        boolean givenParentEnd = (givenFirstEnd == end1IsParent);
+        
         // TODO: make named queries
         Query query;
         if (givenParentEnd) {
             query = 
                 session.createQuery(
-                    "select children " +
-                    "from " + HibernateOneToOneAssociation.class.getName() +
+                    "from " + HibernateOneToManyAssociation.class.getName() +
                     " where type = ? and parent = (?, ?)");
         } else {
             query = 
                 session.createQuery(
-                    "select parent " +
-                    "from " + HibernateOneToOneAssociation.class.getName() +
+                    "from " + HibernateOneToManyAssociation.class.getName() +
                     " where type = ? and (?, ?) in elements(children)");
         }
         return query;
     }
+    
+    @Override
+    protected Collection<? extends RefObject> toRefObjectCollection(
+        List<? extends HibernateAssociation> queryResult,
+        boolean returnFirstEnd)
+    {
+        assert(queryResult.size() <= 1);
+        
+        if (queryResult.isEmpty()) {
+            return Collections.emptySet();
+        }
 
+        HibernateAssociation assoc = queryResult.get(0);
+        if (returnFirstEnd) {
+            RefAssociationLink link = assoc.linkIterator().next();
+            
+            return Collections.singleton(link.refFirstEnd());
+        }
+        
+        return new QueryResultCollection(assoc.getLinks(), returnFirstEnd);
+    }
+
+    @Override
     protected Class<? extends RefObject> getFirstEndType()
     {
-        return parentClass;
+        return end1Class;
     }
     
+    @Override
     protected Class<? extends RefObject> getSecondEndType()
     {
-        return childClass;
+        return end2Class;
     }
 
-    public boolean add(P parent, C child)
+    public boolean add(E1 end1, E2 end2)
     {
-        HibernateAssociable associableParent = (HibernateAssociable)parent;
-        HibernateAssociable associableChild = (HibernateAssociable)child;
+        HibernateAssociable associableParent;
+        HibernateAssociable associableChild;
+        
+        if (end1IsParent) {
+            associableParent = (HibernateAssociable)end1;
+            associableChild = (HibernateAssociable)end2;
+        } else {
+            associableParent = (HibernateAssociable)end2;
+            associableChild = (HibernateAssociable)end1;
+        }
         
         return associableParent.getAssociation(type, true).add(
             associableParent, associableChild);
     }
 
-    public boolean remove(P parent, C child)
+    public boolean remove(E1 end1, E2 end2)
     {
-        HibernateAssociable associableParent = (HibernateAssociable)parent;
-        HibernateAssociable associableChild = (HibernateAssociable)child;
+        HibernateAssociable associableParent;
+        HibernateAssociable associableChild;
+        
+        if (end1IsParent) {
+            associableParent = (HibernateAssociable)end1;
+            associableChild = (HibernateAssociable)end2;
+        } else {
+            associableParent = (HibernateAssociable)end2;
+            associableChild = (HibernateAssociable)end1;
+        }
         
         return associableParent.getAssociation(type, true).remove(
             associableParent, associableChild);

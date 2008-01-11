@@ -35,19 +35,19 @@ import org.hibernate.*;
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateOneToOneRefAssociation<P extends RefObject, C extends RefObject>
+public abstract class HibernateOneToOneRefAssociation<E1 extends RefObject, E2 extends RefObject>
     extends HibernateRefAssociation
 {
-    private final Class<P> parentClass;
-    private final Class<C> childClass;
+    private final Class<E1> end1Class;
+    private final Class<E2> end2Class;
     
     protected HibernateOneToOneRefAssociation(
         RefPackage container,
         String type,
         String end1Name,
-        Class<P> end1Class,
+        Class<E1> end1Class,
         String end2Name,
-        Class<C> end2Class)
+        Class<E2> end2Class)
     {
         super(
             container,
@@ -57,10 +57,11 @@ public abstract class HibernateOneToOneRefAssociation<P extends RefObject, C ext
             end2Name, 
             Multiplicity.SINGLE);
         
-        this.parentClass = end1Class;
-        this.childClass = end2Class;
+        this.end1Class = end1Class;
+        this.end2Class = end2Class;
     }
 
+    @Override
     protected Query getAllLinksQuery(Session session)
     {
         // TODO: make named query
@@ -72,11 +73,12 @@ public abstract class HibernateOneToOneRefAssociation<P extends RefObject, C ext
         return query;
     }
 
-    protected boolean exists(P parent, C child)
+    protected boolean exists(E1 parent, E2 child)
     {
         return refLinkExists(parent, child);
     }
     
+    @Override
     protected Query getExistsQuery(Session session)
     {
         // TODO: make named query
@@ -88,74 +90,93 @@ public abstract class HibernateOneToOneRefAssociation<P extends RefObject, C ext
         return query;
     }
 
-    protected P getParentOf(C child)
+    protected E1 getParentOf(E2 child)
     {
-        Collection<RefObject> c = super.query(false, child);
+        Collection<? extends RefObject> c = super.query(false, child);
         assert(c.size() <= 1);
         if (c.isEmpty()) {
             return null;
         } else {
-            return parentClass.cast(c.iterator().next());
+            return end1Class.cast(c.iterator().next());
         }
     }
 
-    protected C getChildOf(P parent)
+    protected E2 getChildOf(E1 parent)
     {
-        Collection<RefObject> c = super.query(true, parent);
+        Collection<? extends RefObject> c = super.query(true, parent);
         assert(c.size() <= 1);
         if (c.isEmpty()) {
             return null;
         } else {
-            return childClass.cast(c.iterator().next());
+            return end2Class.cast(c.iterator().next());
         }
     }
     
-    protected Query getQueryQuery(Session session, boolean givenParentEnd)
+    @Override
+    protected Query getQueryQuery(Session session, boolean givenFirstEnd)
     {
         // TODO: make named queries
         Query query;
-        if (givenParentEnd) {
+        if (givenFirstEnd) {
             query = 
                 session.createQuery(
-                    "select child " +
                     "from " + HibernateOneToOneAssociation.class.getName() +
                     " where type = ? and parent = (?, ?)");
         } else {
             query = 
                 session.createQuery(
-                    "select parent " +
                     "from " + HibernateOneToOneAssociation.class.getName() +
                     " where type = ? and child = (?, ?)");
         }
         return query;
     }
+    
+    @Override
+    protected Collection<? extends RefObject> toRefObjectCollection(
+        List<? extends HibernateAssociation> queryResult,
+        boolean returnFirstEnd)
+    {
+        assert(queryResult.size() <= 1);
+        
+        if (queryResult.isEmpty()) {
+            return Collections.emptySet();
+        }
 
+        HibernateAssociation assoc = queryResult.get(0);
+        RefAssociationLink link = assoc.linkIterator().next();
+        
+        return new QueryResultCollection(
+            Collections.singleton(link), returnFirstEnd);
+    }
+
+    @Override
     protected Class<? extends RefObject> getFirstEndType()
     {
-        return parentClass;
+        return end1Class;
     }
     
+    @Override
     protected Class<? extends RefObject> getSecondEndType()
     {
-        return childClass;
+        return end2Class;
     }
     
-    public boolean add(P parent, C child)
+    public boolean add(E1 end1, E2 end2)
     {
-        HibernateAssociable associableParent = (HibernateAssociable)parent;
-        HibernateAssociable associableChild = (HibernateAssociable)child;
+        HibernateAssociable associableEnd1 = (HibernateAssociable)end1;
+        HibernateAssociable associableEnd2 = (HibernateAssociable)end2;
         
-        return associableParent.getAssociation(type, true).add(
-            associableParent, associableChild);
+        return associableEnd1.getAssociation(type, true).add(
+            associableEnd1, associableEnd2);
     }
 
-    public boolean remove(P parent, C child)
+    public boolean remove(E1 end1, E2 end2)
     {
-        HibernateAssociable associableParent = (HibernateAssociable)parent;
-        HibernateAssociable associableChild = (HibernateAssociable)child;
+        HibernateAssociable associableEnd1 = (HibernateAssociable)end1;
+        HibernateAssociable associableEnd2 = (HibernateAssociable)end2;
         
-        return associableParent.getAssociation(type, true).remove(
-            associableParent, associableChild);
+        return associableEnd1.getAssociation(type, true).remove(
+            associableEnd1, associableEnd2);
     }
 }
 

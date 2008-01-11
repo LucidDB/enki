@@ -50,6 +50,8 @@ public class HibernateMappingHandler
     private static final String TYPEDEF_SUFFIX = "Type";
 
     private static final String ASSOC_TYPE_PROPERTY = "type";
+    private static final String ASSOC_REVERSE_POLARITY_PROPERTY = 
+        "reversed";
 
     private static final String ASSOC_ONE_TO_ONE_TABLE = "AssocOneToOne";
     private static final String ASSOC_ONE_TO_ONE_PARENT_PROPERTY = "parent";
@@ -374,6 +376,11 @@ public class HibernateMappingHandler
             "not-null", "true",
             "length", String.valueOf(parentLength));
         
+        writeEmptyElem(
+            "property",
+            "name", ASSOC_REVERSE_POLARITY_PROPERTY,
+            "not-null", "true");
+
         startElem(
             "any",
             "name", ASSOC_ONE_TO_MANY_PARENT_PROPERTY,
@@ -455,6 +462,10 @@ public class HibernateMappingHandler
             "not-null", "true",
             "length", String.valueOf(length));
 
+        writeEmptyElem(
+            "property",
+            "name", ASSOC_REVERSE_POLARITY_PROPERTY,
+            "not-null", "true");
         
         startElem(
             "any",
@@ -576,6 +587,8 @@ public class HibernateMappingHandler
         String typeName = 
             generator.getTypeName(cls, HibernateJavaHandler.IMPL_SUFFIX);
         
+        String tableName = generator.getSimpleTypeName(cls);
+        
         // Build map of Classifiers to their sub types.
         for(Classifier superType: 
                 GenericCollections.asTypedList(
@@ -599,12 +612,11 @@ public class HibernateMappingHandler
         log.fine(
             "Generating Class Instance Mapping '" + typeName + "'");
 
-        startElem("class", "name", typeName);
+        startElem(
+            "class", 
+            "name", typeName,
+            "table", hibernateQuote(tableName));
 
-        // REVIEW: SWZ: 11/9/2007: Any good way to make this some kind of 
-        // default for the generator.  Value must be the same across all 
-        // classes. Could use an XML entity.
-        
         // MOF Id
         writeIdBlock();
         newLine();

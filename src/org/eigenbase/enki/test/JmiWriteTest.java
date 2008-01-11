@@ -29,6 +29,7 @@ import javax.jmi.reflect.*;
 import org.junit.*;
 
 import eem.sample.*;
+import eem.sample.special.*;
 
 /**
  * JmiWriteTest tests methods on various JMI interfaces.  As its name implies,
@@ -38,7 +39,17 @@ import eem.sample.*;
  */
 public class JmiWriteTest extends JmiTestBase
 {
-    private List<String> carMofIds = new ArrayList<String>();
+    private static List<String> carMofIds;
+    private static String buildMofId;
+    private static String phoneNumberMofId;
+    
+    @BeforeClass
+    public static void initStaticMembers()
+    {
+        carMofIds = new ArrayList<String>();
+        buildMofId = null;
+        phoneNumberMofId = null;
+    }
     
     @Before
     public void startWriteTransaction()
@@ -52,13 +63,15 @@ public class JmiWriteTest extends JmiTestBase
         getRepository().endTrans();
     }
     
-//    @Test
+    @Ignore
+    @Test
     public void testRefPackageCreateStruct()
     {
         // TODO: refCreateStruct  (Sample model has no structs)
     }
     
-//    @Test
+    @Ignore
+    @Test
     public void testRefPackageDelete()
     {
         // TODO: refDelete (only on outermost package for Netbeans, check for that exception in Hibernate storage)
@@ -84,7 +97,8 @@ public class JmiWriteTest extends JmiTestBase
         carMofIds.add(car2.refMofId());
     }
     
-//    @Test
+    @Ignore
+    @Test
     public void testRefClassCreateStruct()
     {
         // TODO: refCreateStruct (Sample model has no structs)
@@ -149,6 +163,37 @@ public class JmiWriteTest extends JmiTestBase
         }
 
         Assert.assertEquals(carMofIds.size(), carsDeleted);
+    }
+    
+    @Test
+    public void testRefAddLink()
+    {
+        AreaCode ac = 
+            getSpecialPackage().getAreaCode().createAreaCode("415", true);
+        
+        PhoneNumber pn =
+            getSpecialPackage().getPhoneNumber().createPhoneNumber(
+                ac, "555-1212");
+        phoneNumberMofId = pn.refMofId();
+        
+        Building b = 
+            getSpecialPackage().getBuilding().createBuilding(
+                "1 Main St.", "Anytown", "XX", "10000");
+        buildMofId = b.refMofId();
+        
+        getSpecialPackage().getHasPhoneNumber().refAddLink(pn, b);
+    }
+    
+    @Test
+    public void testRefRemoveLink()
+    {
+        PhoneNumber pn = findEntity(phoneNumberMofId, PhoneNumber.class);
+        Building b = findEntity(buildMofId, Building.class);
+        
+        Assert.assertTrue(
+            getSpecialPackage().getHasPhoneNumber().refLinkExists(pn, b));
+        
+        getSpecialPackage().getHasPhoneNumber().refRemoveLink(pn, b);
     }
 }
 

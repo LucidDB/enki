@@ -53,9 +53,6 @@ public class OneToOneAssociationTest extends SampleModelTestBase
             e2RefMofId = e2.refMofId();
             
             e1.setEntity2(e2);
-            
-            scheduleForDelete(e1);
-            scheduleForDelete(e2);
         } finally {
             getRepository().endTrans();
         }
@@ -82,9 +79,6 @@ public class OneToOneAssociationTest extends SampleModelTestBase
             e2RefMofId = e2.refMofId();
             
             e2.setEntity1(e1);
-
-            scheduleForDelete(e1);
-            scheduleForDelete(e2);
         } finally {
             getRepository().endTrans();
         }
@@ -115,10 +109,6 @@ public class OneToOneAssociationTest extends SampleModelTestBase
             e2RefMofId = e2.refMofId();
             
             e1a.setEntity2(e2);
-            
-            scheduleForDelete(e1a);
-            scheduleForDelete(e1b);
-            scheduleForDelete(e2);
         } finally {
             getRepository().endTrans();
         }
@@ -184,9 +174,6 @@ public class OneToOneAssociationTest extends SampleModelTestBase
             
             e1a.setEntity2(e2);
             
-            scheduleForDelete(e1a);
-            scheduleForDelete(e1b);
-            scheduleForDelete(e2);
         } finally {
             getRepository().endTrans();
         }
@@ -245,9 +232,6 @@ public class OneToOneAssociationTest extends SampleModelTestBase
             e2RefMofId = e2.refMofId();
             
             e1.setEntity2(e2);
-            
-            scheduleForDelete(e1);
-            scheduleForDelete(e2);
         } finally {
             getRepository().endTrans();
         }

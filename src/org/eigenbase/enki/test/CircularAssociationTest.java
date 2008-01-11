@@ -58,52 +58,57 @@ public class CircularAssociationTest
         getRepository().beginTrans(true);
         
         try {
-            SampleContainerClass containerClass = 
-                getSpecialPackage().getSampleContainer();
-            SampleEntityClass entityClass =
-                getSpecialPackage().getSampleEntity();
-            
-            SampleContainer top = 
-                containerClass.createSampleContainer("top");
-            scheduleForDelete(top);
-            
-            SampleContainer container = top;
-            int d = depth;
-            do {
-                d--;
-                Entity[] entities = new Entity[width];
-            
-                int containerIndex = -1;
-                if (d > 0) {
-                    containerIndex = d % width;
-                }
-                
-                SampleContainer nextContainer = null;
-                for(int i = 0; i < width; i++) {
-                    String prefix = ENTITY_NAME_PREFIX;
-                    if (i == containerIndex) {
-                        nextContainer = containerClass.createSampleContainer();
-                        entities[i] = nextContainer;
-                        prefix = CONTAINER_NAME_PREFIX;
-                    } else {
-                        entities[i] = entityClass.createSampleEntity();
-                    }
-
-                    entities[i].setName(
-                        prefix + ": " + (depth - d) + ": " + i);
-                    
-                    container.getContainedEntity().add(entities[i]);
-                    scheduleForDelete(entities[i]);
-                }
-                
-                container = nextContainer;
-            } while(d > 0);
-            
-            return top.refMofId();
+            return createContainmentHierarchySansTxn(depth, width);
         }
         finally {
             getRepository().endTrans();
         }
+    }
+    
+    static String createContainmentHierarchySansTxn(
+        final int depth, final int width)
+    {
+        SampleContainerClass containerClass = 
+            getSpecialPackage().getSampleContainer();
+        SampleEntityClass entityClass =
+            getSpecialPackage().getSampleEntity();
+        
+        SampleContainer top = 
+            containerClass.createSampleContainer("top");
+        
+        SampleContainer container = top;
+        int d = depth;
+        do {
+            d--;
+            Entity[] entities = new Entity[width];
+        
+            int containerIndex = -1;
+            if (d > 0) {
+                containerIndex = d % width;
+            }
+            
+            SampleContainer nextContainer = null;
+            for(int i = 0; i < width; i++) {
+                String prefix = ENTITY_NAME_PREFIX;
+                if (i == containerIndex) {
+                    nextContainer = containerClass.createSampleContainer();
+                    entities[i] = nextContainer;
+                    prefix = CONTAINER_NAME_PREFIX;
+                } else {
+                    entities[i] = entityClass.createSampleEntity();
+                }
+
+                entities[i].setName(
+                    prefix + ": " + (depth - d) + ": " + i);
+                
+                container.getContainedEntity().add(entities[i]);
+            }
+            
+            container = nextContainer;
+        } while(d > 0);
+        
+        return top.refMofId();
+
     }
     
     private void validateContainmentHierarchy(

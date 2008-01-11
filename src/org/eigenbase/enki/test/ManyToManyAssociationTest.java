@@ -479,7 +479,6 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
                 Entity21 e21 = 
                     getSimplePackage().getEntity21().createEntity21();
                 String e21RefMofId = e21.refMofId();
-                scheduleForDelete(e21);
                 
                 e21RefMofIds.add(e21RefMofId);
                 
@@ -490,7 +489,6 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
                 Entity20 e20 =
                     getSimplePackage().getEntity20().createEntity20();
                 e20RefMofIds.add(e20.refMofId());
-                scheduleForDelete(e20);
              
                 if (reverse) {
                     for(Entity21 e21: entities21) {
@@ -596,7 +594,6 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
                 Entity23 e23 = 
                     getSimplePackage().getEntity23().createEntity23();
                 String e23RefMofId = e23.refMofId();
-                scheduleForDelete(e23);
                 
                 e23RefMofIds.add(e23RefMofId);
                 
@@ -607,7 +604,6 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
                 Entity22 e22 =
                     getSimplePackage().getEntity22().createEntity22();
                 e22RefMofIds.add(e22.refMofId());
-                scheduleForDelete(e22);
              
                 if (reverse) {
                     for(Entity23 e23: entities23) {

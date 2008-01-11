@@ -38,13 +38,13 @@ class AssocQueryCollection implements Collection<RefObject>
     protected final RefAssociationBase assoc;
     protected final RefObject fixedEnd;
     protected final boolean fixedIsFirstEnd;
-    private final Collection<RefAssociationLink> links;
+    private final Collection<RefAssociationLinkImpl> links;
 
     public AssocQueryCollection(
         RefAssociationBase assoc,
         RefObject fixedEnd,
         boolean fixedIsFirstEnd,
-        Collection<RefAssociationLink> links)
+        Collection<RefAssociationLinkImpl> links)
     {
         this.assoc = assoc;
         this.fixedEnd = fixedEnd;
@@ -137,11 +137,11 @@ class AssocQueryCollection implements Collection<RefObject>
         Object[] array = links.toArray();
         if (fixedIsFirstEnd) {
             for(int i = 0; i < array.length; i++) {
-                array[i] = ((RefAssociationLink)array[i]).refSecondEnd();
+                array[i] = ((RefAssociationLinkImpl)array[i]).refSecondEnd();
             }
         } else {
             for(int i = 0; i < array.length; i++) {
-                array[i] = ((RefAssociationLink)array[i]).refFirstEnd();
+                array[i] = ((RefAssociationLinkImpl)array[i]).refFirstEnd();
             }
         }
         
@@ -159,9 +159,9 @@ class AssocQueryCollection implements Collection<RefObject>
         }
 
         Object[] objArray = array;
-        Iterator<RefAssociationLink> iter = links.iterator();
+        Iterator<RefAssociationLinkImpl> iter = links.iterator();
         for(int i = 0; i < size; i++) {
-            RefAssociationLink link = iter.next();
+            RefAssociationLinkImpl link = iter.next();
             
             if (fixedIsFirstEnd) {
                 objArray[i] = link.refSecondEnd();
@@ -179,7 +179,7 @@ class AssocQueryCollection implements Collection<RefObject>
     
     private class Iter implements Iterator<RefObject>
     {
-        private final Iterator<RefAssociationLink> iter;
+        private final Iterator<RefAssociationLinkImpl> iter;
         
         Iter()
         {
@@ -193,7 +193,7 @@ class AssocQueryCollection implements Collection<RefObject>
 
         public RefObject next()
         {
-            RefAssociationLink link = iter.next();
+            RefAssociationLinkImpl link = iter.next();
             
             if (fixedIsFirstEnd) {
                 return link.refSecondEnd();

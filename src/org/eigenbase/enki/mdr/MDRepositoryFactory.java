@@ -30,6 +30,7 @@ import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.netbeans.*;
 import org.netbeans.api.mdr.*;
 import org.netbeans.mdr.*;
+import org.netbeans.mdr.handlers.*;
 import org.netbeans.mdr.persistence.btreeimpl.btreestorage.*;
 
 /**
@@ -73,6 +74,8 @@ public class MDRepositoryFactory
     private static final Logger log = 
         Logger.getLogger(MDRepositoryFactory.class.getName());
 
+    private static ClassLoaderProvider classLoaderProvider;
+    
     private MDRepositoryFactory()
     {
     }
@@ -92,9 +95,16 @@ public class MDRepositoryFactory
             return newNetbeansMDRepository(storageProps);
         }
 
+        ClassLoader classLoader;
+        if (classLoaderProvider != null) {
+            classLoader = classLoaderProvider.getClassLoader();
+        } else {
+            classLoader = Thread.currentThread().getContextClassLoader();
+        }
+        
         List<Properties> modelProperties;
         try {
-            modelProperties = loadRepositoryProperties(provider);
+            modelProperties = loadRepositoryProperties(provider, classLoader);
         } catch (IOException e) {
             throw new ProviderInstantiationException(
                 "Could not load model properties for " + provider, e);
@@ -102,7 +112,8 @@ public class MDRepositoryFactory
         
         switch(provider) {
         case ENKI_HIBERNATE:
-            return newHibernateRepository(storageProps, modelProperties);
+            return newHibernateRepository(
+                storageProps, modelProperties, classLoader);
             
         default:
             throw new UnknownProviderException(
@@ -113,6 +124,10 @@ public class MDRepositoryFactory
     private static MDRepository newNetbeansMDRepository(
         Properties storageProps)
     {
+        if (classLoaderProvider != null) {
+            BaseObjectHandler.setClassLoaderProvider(classLoaderProvider);
+        }
+        
         Properties sysProps = System.getProperties();
         
         Map<Object, Object> savedProps = new HashMap<Object, Object>();
@@ -169,19 +184,22 @@ public class MDRepositoryFactory
     }
     
     private static MDRepository newHibernateRepository(
-        Properties storageProps, List<Properties> modelProperties)
+        Properties storageProps, 
+        List<Properties> modelProperties,
+        ClassLoader classLoader)
     {
-        return new HibernateMDRepository(modelProperties, storageProps);
+        return new HibernateMDRepository(
+            modelProperties, storageProps, classLoader);
     }
 
     private static List<Properties> loadRepositoryProperties(
-        MdrProvider provider) 
+        MdrProvider provider, ClassLoader classLoader) 
     throws IOException
     {
         ArrayList<Properties> modelProps = new ArrayList<Properties>();
         
         Enumeration<URL> configUrls = 
-            Thread.currentThread().getContextClassLoader().getResources(
+            classLoader.getResources(
                 META_INF_ENKI_DIR + "/" + 
                 HibernateMDRepository.CONFIG_PROPERTIES);
         
@@ -225,6 +243,11 @@ public class MDRepositoryFactory
         }
         
         return prefix + propertyName;
+    }
+    
+    public static void setClassLoaderProvider(ClassLoaderProvider provider)
+    {
+        classLoaderProvider = provider;
     }
 }
 

@@ -26,6 +26,7 @@ import java.util.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.jmi.impl.*;
 
 /**
  * HibernateOneToOneAssociation extends HibernateAssociation and stores
@@ -185,13 +186,12 @@ public class HibernateOneToOneAssociation
     }
     
     @Override
-    public Iterator<RefAssociationLink> iterator()
+    public Collection<RefAssociationLink> getLinks()
     {
         RefAssociationLink link = 
-            new org.eigenbase.enki.jmi.impl.RefAssociationLink(
-                getParent(), getChild());
+            new RefAssociationLinkImpl(getParent(), getChild());
         
-        return Collections.singleton(link).iterator();
+        return Collections.singleton(link);
     }
 }
 

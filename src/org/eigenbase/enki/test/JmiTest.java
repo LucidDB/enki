@@ -26,11 +26,13 @@ import java.util.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.util.*;
 import org.junit.*;
 
 import eem.*;
 import eem.sample.*;
 import eem.sample.simple.*;
+import eem.sample.special.*;
 
 /**
  * JmiTest tests read-only methods on various JMI interfaces.
@@ -397,6 +399,307 @@ public class JmiTest extends JmiTestBase
         Assert.assertTrue(carInstancesCopy.isEmpty());
 
         // TODO: refGetEnum
+    }
+
+    @Test
+    public void testRefAssociationMethodsOnOneToOne()
+    {
+        HasAnEntity2 hasAnEntity2Assoc = getSimplePackage().getHasAnEntity2();
+
+        // test refAllLinks()
+        Collection<RefAssociationLink> links =
+            GenericCollections.asTypedCollection(
+                hasAnEntity2Assoc.refAllLinks(),
+                RefAssociationLink.class);
+        Assert.assertEquals(1, links.size());
+        RefAssociationLink link = links.iterator().next();
+        
+        Assert.assertTrue(link.refFirstEnd() instanceof Entity1);
+        Assert.assertTrue(link.refSecondEnd() instanceof Entity2);
+        
+        Entity1 e1 = (Entity1)link.refFirstEnd();
+        Entity2 e2 = (Entity2)link.refSecondEnd();
+        
+        Assert.assertEquals(e2, e1.getEntity2());
+        Assert.assertEquals(e1, e2.getEntity1());
+        
+        // test refLinkExists()
+        Assert.assertTrue(
+            hasAnEntity2Assoc.refLinkExists(e1, e2));
+        
+        // TODO: refLinkExists negative test
+        
+        // test refQuery
+        Association mofAssoc = (Association)hasAnEntity2Assoc.refMetaObject();
+        AssociationEnd[] ends = new AssociationEnd[2];
+        int i = 0;
+        for(Object o: mofAssoc.getContents()) {
+            if (o instanceof AssociationEnd) {
+                ends[i++] = (AssociationEnd)o;
+            }
+        }
+        
+        Collection<Entity2> entities2ByQuery =
+            GenericCollections.asTypedCollection(
+                hasAnEntity2Assoc.refQuery(ends[0], e1),
+                Entity2.class);
+        Assert.assertEquals(1, entities2ByQuery.size());
+        Entity2 e2ByQuery = entities2ByQuery.iterator().next();
+        Assert.assertEquals(e2, e2ByQuery);
+        
+        Collection<Entity1> entities1ByQuery =
+            GenericCollections.asTypedCollection(
+                hasAnEntity2Assoc.refQuery(ends[1], e2),
+                Entity1.class);
+        Assert.assertEquals(1, entities1ByQuery.size());
+        Entity1 e1ByQuery = entities1ByQuery.iterator().next();
+        Assert.assertEquals(e1, e1ByQuery); 
+    }
+
+    @Test
+    public void testRefAssociationMethodsOnOneToMany()
+    {
+        eem.sample.special.Contains containsAssoc = 
+            getSpecialPackage().getContains();
+
+        // test refAllLinks()
+        Collection<RefAssociationLink> links =
+            GenericCollections.asTypedCollection(
+                containsAssoc.refAllLinks(),
+                RefAssociationLink.class);
+        Assert.assertEquals(3, links.size());
+
+        SampleContainer aContainer = null;
+        SampleContainer anotherContainer = null;
+        Entity anEntity = null;
+        Entity anotherEntity = null;
+
+        for(RefAssociationLink link: links) {
+            SampleContainer container = (SampleContainer)link.refFirstEnd();
+            Entity entity = (Entity)link.refSecondEnd();
+            
+            if (container.getName().equals("a container")) {
+                aContainer = container;
+                if (entity instanceof SampleContainer) {
+                    Assert.assertEquals("another container", entity.getName());
+                    Assert.assertNull(anotherContainer);
+                    anotherContainer = (SampleContainer)entity;
+                } else {
+                    Assert.assertEquals("an entity", entity.getName());
+                    Assert.assertNull(anEntity);
+                    anEntity = entity;
+                }
+            } else if (container.getName().equals("another container")) {
+                Assert.assertFalse(entity instanceof Container);
+                Assert.assertEquals("another entity", entity.getName());
+                anotherContainer = container;
+                Assert.assertNull(anotherEntity);
+                anotherEntity = entity;
+            } else {
+                Assert.fail("unknown link");
+            }
+        }
+        Assert.assertNotNull(aContainer);
+        Assert.assertNotNull(anotherContainer);        
+        Assert.assertNotNull(anEntity);
+        Assert.assertNotNull(anotherEntity);
+        
+        Assert.assertEquals(aContainer, anotherContainer.getEntityContainer());
+        Assert.assertEquals(aContainer, anEntity.getEntityContainer());
+        Assert.assertEquals(
+            anotherContainer, anotherEntity.getEntityContainer());
+        
+        // test refLinkExists()
+        Assert.assertTrue(
+            containsAssoc.refLinkExists(aContainer, anotherContainer));
+        Assert.assertTrue(
+            containsAssoc.refLinkExists(aContainer, anEntity));
+        Assert.assertTrue(
+            containsAssoc.refLinkExists(anotherContainer, anotherEntity));
+        
+        Assert.assertFalse(
+            containsAssoc.refLinkExists(aContainer, anotherEntity));
+        Assert.assertFalse(
+            containsAssoc.refLinkExists(anotherContainer, anEntity));
+        
+        // test refQuery
+        Association mofAssoc = (Association)containsAssoc.refMetaObject();
+        AssociationEnd[] ends = new AssociationEnd[2];
+        int i = 0;
+        for(Object o: mofAssoc.getContents()) {
+            if (o instanceof AssociationEnd) {
+                ends[i++] = (AssociationEnd)o;
+            }
+        }
+        
+        Collection<SampleContainer> containersByQuery =
+            GenericCollections.asTypedCollection(
+                containsAssoc.refQuery(ends[1], anEntity),
+                SampleContainer.class);
+        Assert.assertEquals(1, containersByQuery.size());
+        SampleContainer aContainerByQuery = 
+            containersByQuery.iterator().next();
+        Assert.assertEquals(aContainer, aContainerByQuery);
+        
+        Collection<SampleContainer> containersByQuery2 =
+            GenericCollections.asTypedCollection(
+                containsAssoc.refQuery(ends[1], anotherEntity),
+                SampleContainer.class);
+        Assert.assertEquals(1, containersByQuery2.size());
+        SampleContainer anotherContainerByQuery = 
+            containersByQuery2.iterator().next();
+        Assert.assertEquals(anotherContainer, anotherContainerByQuery);
+
+        Collection<Entity> entitiesByQuery =
+            GenericCollections.asTypedCollection(
+                containsAssoc.refQuery(ends[0], aContainer),
+                Entity.class);
+        Assert.assertEquals(2, entitiesByQuery.size());
+        SampleContainer anotherContainerByQuery2 = null;
+        Entity anEntityByQuery = null;
+        for(Entity entity: entitiesByQuery) {
+            if (entity instanceof SampleEntity) {
+                Assert.assertNull(anEntityByQuery);
+                anEntityByQuery = entity;
+            } else {
+                Assert.assertNull(anotherContainerByQuery2);
+                anotherContainerByQuery2 = (SampleContainer)entity;
+            }
+        }
+        Assert.assertNotNull(anotherContainerByQuery2);
+        Assert.assertNotNull(anEntityByQuery);
+        Assert.assertEquals(anotherContainer, anotherContainerByQuery2);
+        Assert.assertEquals(anEntity, anEntityByQuery);
+    }
+    
+    @Test
+    public void testRefAssociationMethodsOnManyToMany()
+    {
+        Registrations registrationsAssoc =
+            getSamplePackage().getRegistrations();
+
+        // test refAllLinks()
+        Collection<RefAssociationLink> links =
+            GenericCollections.asTypedCollection(
+                registrationsAssoc.refAllLinks(),
+                RefAssociationLink.class);
+        Assert.assertEquals(4, links.size());
+
+        Car car1 = null;
+        Car car2 = null;
+        State ca = null;
+        State nv = null;
+        State or = null;
+        Set<State> car1States = new HashSet<State>();
+        Set<State> car2States = new HashSet<State>();
+        for(RefAssociationLink link: links) {
+            Car car = (Car)link.refFirstEnd();
+            State state = (State)link.refSecondEnd();
+            
+            if (state.getName().equals("CA")) {
+                if (ca != null) {
+                    Assert.assertEquals(ca, state);
+                } else {
+                    ca = state;
+                }
+            } else if (state.getName().equals("NV")) {
+                if (nv != null) {
+                    Assert.assertEquals(nv, state);
+                } else {
+                    nv = state;
+                }
+            } else if (state.getName().equals("OR")) {
+                if (or != null) {
+                    Assert.assertEquals(or, state);
+                } else {
+                    or = state;
+                }
+            } else {
+                Assert.fail("unknown state");
+            }
+
+            if (car.getMake().equals(CAR_MAKE)) {
+                if (car1 != null) {
+                    Assert.assertEquals(car1, car);
+                } else {
+                    Assert.assertEquals(CAR_MODEL, car.getModel());
+                    Assert.assertEquals(CAR_NUM_DOORS, car.getDoors());
+                    car1 = car;
+                }
+                car1States.add(state);
+            } else if (car.getMake().equals(CAR2_MAKE)) {
+                if (car2 != null) {
+                    Assert.assertEquals(car2, car);
+                } else {
+                    Assert.assertEquals(CAR2_MODEL, car.getModel());
+                    Assert.assertEquals(CAR2_NUM_DOORS, car.getDoors());
+                    car2 = car;
+                }
+                car2States.add(state);
+            } else {
+                Assert.fail("unknown car");
+            }
+        }
+        Assert.assertNotNull(car1);
+        Assert.assertNotNull(car2);
+        Assert.assertNotNull(ca);
+        Assert.assertNotNull(nv);
+        Assert.assertNotNull(or);
+        Assert.assertEquals(2, car1States.size());
+        Assert.assertTrue(car1States.contains(ca));
+        Assert.assertTrue(car1States.contains(nv));
+        Assert.assertEquals(2, car2States.size());
+        Assert.assertTrue(car2States.contains(ca));
+        Assert.assertTrue(car2States.contains(or));
+        
+        // test refLinkExists()
+        Assert.assertTrue(
+            registrationsAssoc.refLinkExists(car1, ca));
+        Assert.assertTrue(
+            registrationsAssoc.refLinkExists(car1, nv));
+        Assert.assertTrue(
+            registrationsAssoc.refLinkExists(car2, ca));
+        Assert.assertTrue(
+            registrationsAssoc.refLinkExists(car2, or));
+
+        Assert.assertFalse(
+            registrationsAssoc.refLinkExists(car1, or));
+        Assert.assertFalse(
+            registrationsAssoc.refLinkExists(car2, nv));
+        
+        // test refQuery
+        Association mofAssoc = (Association)registrationsAssoc.refMetaObject();
+        AssociationEnd[] ends = new AssociationEnd[2];
+        int i = 0;
+        for(Object o: mofAssoc.getContents()) {
+            if (o instanceof AssociationEnd) {
+                ends[i++] = (AssociationEnd)o;
+            }
+        }
+        
+        Collection<Car> carsByQuery =
+            GenericCollections.asTypedCollection(
+                registrationsAssoc.refQuery(ends[1], ca),
+                Car.class);
+        Assert.assertEquals(2, carsByQuery.size());
+        Assert.assertTrue(carsByQuery.contains(car1));
+        Assert.assertTrue(carsByQuery.contains(car2));
+
+        Collection<Car> carsByQuery2 =
+            GenericCollections.asTypedCollection(
+                registrationsAssoc.refQuery(ends[1], nv),
+                Car.class);
+        Assert.assertEquals(1, carsByQuery2.size());
+        Car car1ByQuery2 = carsByQuery2.iterator().next();
+        Assert.assertEquals(car1, car1ByQuery2);
+        
+        Collection<State> statesByQuery =
+            GenericCollections.asTypedCollection(
+                registrationsAssoc.refQuery(ends[0], car1),
+                State.class);
+        Assert.assertEquals(2, statesByQuery.size());
+        Assert.assertTrue(statesByQuery.contains(ca));
+        Assert.assertTrue(statesByQuery.contains(nv));
     }
 }
 

@@ -107,6 +107,9 @@ public class ExportImportTest extends SampleModelTestBase
                 schoolBus.getRegistrar().add(springfieldStates.get(i));
             }
 
+            // Create objects with a circular association
+            CircularAssociationTest.createContainmentHierarchySansTxn(3, 3);
+            
             rollback = false;
         } finally {
             getRepository().endTrans(rollback);

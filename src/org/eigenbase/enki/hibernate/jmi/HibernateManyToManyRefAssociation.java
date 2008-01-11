@@ -37,20 +37,20 @@ import org.hibernate.*;
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateManyToManyRefAssociation<S extends RefObject, T extends RefObject>
+public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2 extends RefObject>
     extends HibernateRefAssociation
 {
-    private final Class<S> sourceClass;
-    private final Class<T> targetClass;
+    private final Class<E1> end1Class;
+    private final Class<E2> end2Class;
     
     protected HibernateManyToManyRefAssociation(
         RefPackage container,
         String type,
         String end1Name,
-        Class<S> end1Class,
+        Class<E1> end1Class,
         Multiplicity end1Multiplicity,
         String end2Name,
-        Class<T> end2Class,
+        Class<E2> end2Class,
         Multiplicity end2Multiplicity)
     {
         super(
@@ -64,26 +64,28 @@ public abstract class HibernateManyToManyRefAssociation<S extends RefObject, T e
         assert(end1Multiplicity != Multiplicity.SINGLE);
         assert(end2Multiplicity != Multiplicity.SINGLE);
         
-        this.sourceClass = end1Class;
-        this.targetClass = end2Class;
+        this.end1Class = end1Class;
+        this.end2Class = end2Class;
     }
 
+    @Override
     protected Query getAllLinksQuery(Session session)
     {
         // TODO: make named query
         Query query = 
             session.createQuery(
                 "from " + HibernateManyToManyAssociation.class.getName() +
-                " where type = ?");
+                " where type = ? and reversed = 0");
         
         return query;
     }
 
-    protected boolean exists(S source, T target)
+    protected boolean exists(E1 source, E2 target)
     {
         return super.refLinkExists(source, target);
     }
 
+    @Override
     protected Query getExistsQuery(Session session)
     {
         // TODO: make named query
@@ -96,74 +98,93 @@ public abstract class HibernateManyToManyRefAssociation<S extends RefObject, T e
         return query;
     }
 
-    protected Collection<S> getSourceOf(T target)
+    protected Collection<E1> getSourceOf(E2 target)
     {
-        Collection<RefObject> c = super.query(false, target);
+        Collection<? extends RefObject> c = super.query(false, target);
         if (c instanceof List) {
             return GenericCollections.asTypedList(
-                (List<RefObject>)c, sourceClass);
+                (List<? extends RefObject>)c, end1Class);
         } else {
-            return GenericCollections.asTypedCollection(c, sourceClass);
+            return GenericCollections.asTypedCollection(c, end1Class);
         }
     }
 
-    protected Collection<T> getTargetOf(S source)
+    protected Collection<E2> getTargetOf(E1 source)
     {
-        Collection<RefObject> c = super.query(true, source);
+        Collection<? extends RefObject> c = super.query(true, source);
         if (c instanceof List) {
             return GenericCollections.asTypedList(
-                (List<RefObject>)c, targetClass);
+                (List<? extends RefObject>)c, end2Class);
         } else {
-            return GenericCollections.asTypedCollection(c, targetClass);
+            return GenericCollections.asTypedCollection(c, end2Class);
         }
     }
 
+    @Override
     protected Class<? extends RefObject> getFirstEndType()
     {
-        return sourceClass;
+        return end1Class;
     }
     
+    @Override
     protected Class<? extends RefObject> getSecondEndType()
     {
-        return targetClass;
+        return end2Class;
     }
     
-    protected Query getQueryQuery(Session session, boolean givenSourceEnd)
+    @Override
+    protected Query getQueryQuery(Session session, boolean givenFirstEnd)
     {
         // TODO: make named queries
         Query query;
-        if (givenSourceEnd) {
+        if (givenFirstEnd) {
             query = 
                 session.createQuery(
-                    "select target " +
-                    "from " + HibernateOneToOneAssociation.class.getName() +
-                    " where type = ? and source = (?, ?)");
+                    "from " + HibernateManyToManyAssociation.class.getName() +
+                    " where type = ? and reversed = 0 and source = (?, ?)");
         } else {
             query = 
                 session.createQuery(
-                    "from " + 
-                    HibernateOneToOneAssociation.class.getName() +
-                    " where type = ? and (?, ?) in elements(target)");
+                    "from " + HibernateManyToManyAssociation.class.getName() +
+                    " where type = ? and reversed = 1 and source = (?, ?)");
         }
         return query;
     }
 
-    public boolean add(S source, T target)
+    @Override
+    protected Collection<? extends RefObject> toRefObjectCollection(
+        List<? extends HibernateAssociation> queryResult,
+        boolean returnFirstEnd)
     {
-        HibernateAssociable associableSource = (HibernateAssociable)source;
-        HibernateAssociable associableTarget = (HibernateAssociable)target;
+        if (queryResult.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        ArrayList<RefAssociationLink> links = 
+            new ArrayList<RefAssociationLink>();
+        for(HibernateAssociation assoc: queryResult) {
+            links.addAll(assoc.getLinks());
+        }
         
-        return associableSource.getAssociation(type, true).add(
-            associableSource, associableTarget);
+        return new QueryResultCollection(links, returnFirstEnd);
     }
 
-    public boolean remove(S source, T target)
+    public boolean add(E1 end1, E2 end2)
     {
-        HibernateAssociable associableSource = (HibernateAssociable)source;
-        HibernateAssociable associableTarget = (HibernateAssociable)target;
+        HibernateAssociable associableEnd1 = (HibernateAssociable)end1;
+        HibernateAssociable associableEnd2 = (HibernateAssociable)end2;
         
-        return associableSource.getAssociation(type, true).remove(
-            associableSource, associableTarget);
+        return associableEnd1.getAssociation(type, true).add(
+            associableEnd1, associableEnd2);
+    }
+
+    public boolean remove(E1 end1, E2 end2)
+    {
+        HibernateAssociable associableEnd1 = (HibernateAssociable)end1;
+        HibernateAssociable associableEnd2 = (HibernateAssociable)end2;
+        
+        return associableEnd1.getAssociation(type, true).remove(
+            associableEnd1, associableEnd2);
     }
 
 }

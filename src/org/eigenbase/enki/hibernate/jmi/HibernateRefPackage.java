@@ -49,11 +49,15 @@ public abstract class HibernateRefPackage
     
     private void deleteObjectsRecursively()
     {
-        for(HibernateRefPackage refPackage: 
+        for(RefPackage refPackage: 
                 GenericCollections.asTypedCollection(
-                    refAllPackages(), HibernateRefPackage.class))
+                    refAllPackages(), RefPackage.class))
         {
-            refPackage.deleteObjectsRecursively();
+            if (refPackage instanceof HibernateRefPackage) {
+                ((HibernateRefPackage)refPackage).deleteObjectsRecursively();
+            }
+            
+            // TODO: transient packages deletion
         }
         
         for(RefAssociation refAssociation:

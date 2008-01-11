@@ -24,6 +24,7 @@ package org.eigenbase.enki.codegen;
 import javax.jmi.model.*;
 
 import org.eigenbase.enki.codegen.Generator.*;
+import org.eigenbase.enki.util.*;
 
 public class AssociationInfo
 {
@@ -93,6 +94,15 @@ public class AssociationInfo
     public final String getEndName(int end)
     {
         return names[end];
+    }
+    
+    public final String getEndName(int end, boolean forceInitCaps)
+    {
+        String name = getEndName(end);
+        if (forceInitCaps) {
+            name = StringUtil.toInitialUpper(name);
+        }
+        return name;
     }
     
     public final String[] getEndNames()

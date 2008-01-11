@@ -61,10 +61,10 @@ public class DependsOnBase extends RefAssociationBase
         return allLinks();
     }
     
-    private Collection<RefAssociationLink> allLinks()
+    private Collection<RefAssociationLinkImpl> allLinks()
     {
-        ArrayList<RefAssociationLink> links = 
-            new ArrayList<RefAssociationLink>();
+        ArrayList<RefAssociationLinkImpl> links = 
+            new ArrayList<RefAssociationLinkImpl>();
         
         MetamodelInitializer initalizer = getInitializer();
         
@@ -78,8 +78,8 @@ public class DependsOnBase extends RefAssociationBase
                     modelElement.findRequiredElements(
                         Collections.singleton(ModelElement.ALLDEP), false);
                 for(Object o: providers) {
-                    RefAssociationLink link = 
-                        new RefAssociationLink(refObject, (RefObject)o);
+                    RefAssociationLinkImpl link = 
+                        new RefAssociationLinkImpl(refObject, (RefObject)o);
                     
                     links.add(link);
                 }
@@ -131,7 +131,7 @@ public class DependsOnBase extends RefAssociationBase
                 Collections.singleton(ModelElement.ALLDEP), false);
         } else if (queryEndName.equals("provider")) {
             ArrayList<RefObject> result = new ArrayList<RefObject>();
-            for(RefAssociationLink link: allLinks()) {
+            for(RefAssociationLinkImpl link: allLinks()) {
                 if (link.refSecondEnd().equals(queryObject)) {
                     result.add(link.refFirstEnd());
                 }

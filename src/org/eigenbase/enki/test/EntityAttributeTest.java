@@ -59,9 +59,6 @@ public class EntityAttributeTest
             PhoneNumber phoneNumber = 
                 phoneNumberClass.createPhoneNumber(areaCode, phoneNumberStr);
             
-            scheduleForDelete(areaCode);
-            scheduleForDelete(phoneNumber);
-            
             return phoneNumber.refMofId();
         } finally {
             getRepository().endTrans();

@@ -21,14 +21,14 @@
 */
 package org.eigenbase.enki.netbeans;
 
-import java.io.*;
-
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.mdr.*;
 import org.netbeans.api.mdr.*;
 import org.netbeans.api.mdr.events.*;
 import org.netbeans.mdr.*;
+import org.netbeans.mdr.handlers.*;
+import org.netbeans.mdr.persistence.*;
 
 /**
  * NBMDRepositoryWrapper wraps the Netbeans MDR implementation of 
@@ -41,43 +41,34 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
 {
     private final NBMDRepositoryImpl impl;
     
-    private final String jdbcUrl;
-    
     public NBMDRepositoryWrapper(NBMDRepositoryImpl impl)
     {
         this.impl = impl;
-        
-        this.jdbcUrl = 
-            System.getProperty(
-                "MDRStorageProperty.org.netbeans.mdr.persistence.jdbcimpl.url");
-        
     }
 
     // implement EnkiMDRepository
     public void dropExtentStorage(String extentName)
+        throws EnkiDropFailedException
     {
-//        impl.unmountStorage(extentName);
+        RefPackage pkg = impl.getExtent(extentName);
         
-        // REVIEW: SWZ: 12/12/07: This is pretty ugly.  Perhaps better to
-        // just have the build script delete the catalog files, even if it
-        // means having two code paths (since the Hibernate impl will 
-        // implement this properly).  Could require more information to
-        // be passed in (e.g., the catalog dir and HSQLDB file prefix, or in
-        // Ant terms ${catalog.dir}/FooCatalog)
-        if (jdbcUrl != null) {
-            if (jdbcUrl.startsWith("jdbc:hsqldb:")) {
-                String dbName = jdbcUrl.substring(13).split(";")[0];
-                
-                File dbFile = new File(dbName);
-                File catalogDir = dbFile.getParentFile();
-                if (catalogDir.exists() && catalogDir.isDirectory()) {
-                    for(File file: catalogDir.listFiles()) {
-                       if (file.getName().startsWith(dbFile.getName())) {
-                           file.delete();
-                       }
-                    }
-                }
-            }
+        dropExtentStorage(pkg);
+    }
+    
+    public void dropExtentStorage(RefPackage refPackage)
+        throws EnkiDropFailedException
+    {
+        // From Farrago: grotty internals for dropping physical repos storage
+        String mofIdString = refPackage.refMofId();
+        MOFID mofId = MOFID.fromString(mofIdString);
+
+        Storage storage = impl.getMdrStorage().getStorageByMofId(mofId);
+        try {
+            storage.close();
+            storage.delete();
+        } catch(StorageException e) {
+            throw new EnkiDropFailedException(
+                "Error dropping Netbeans MDR storage", e);
         }
     }
     
@@ -154,6 +145,9 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
 
     public void shutdown()
     {
+        // Make it possible to start a new instance of NBMDRepositoryImpl
+        org.netbeans.jmiimpl.mof.model.NamespaceImpl.clearContains();
+        
         impl.shutdown();
     }
     
@@ -161,6 +155,12 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     public boolean isExtentBuiltIn(String name)
     {
         return false;
+    }
+    
+    // Implement EnkiMDRepository
+    public ClassLoader getDefaultClassLoader()
+    {
+        return BaseObjectHandler.getDefaultClassLoader();
     }
 }
 

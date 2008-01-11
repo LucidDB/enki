@@ -27,7 +27,6 @@ import java.util.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
-import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
 
 /**
@@ -198,7 +197,7 @@ public abstract class GeneratorBase implements Generator
         }
         
         String ignoreLifecycleString =
-            getTagValue(outermost, TagIdConstants.TAGID_IGNORE_LIFECYCLE);
+            TagUtil.getTagValue(outermost, TagUtil.TAGID_IGNORE_LIFECYCLE);
         boolean ignoreLifecycle = Boolean.parseBoolean(ignoreLifecycleString);
 
         if (obj instanceof Association) {
@@ -434,48 +433,6 @@ public abstract class GeneratorBase implements Generator
     }
     
     // implements Generator
-    public String getTagValue(ModelElement elem, String tagId)
-    {
-        Collection<String> values = getTagValues(elem, tagId);
-
-        if (values != null && !values.isEmpty()) {
-            return values.iterator().next();
-        }
-        
-        return null;
-    }
-
-    // implements Generator
-    @SuppressWarnings("unchecked")
-    public Collection<String> getTagValues(ModelElement elem, String tagId)
-    {
-        Tag tag = getTag(elem, tagId);
-
-        if (tag == null) {
-            return null;
-        } else {
-            return tag.getValues();
-        }
-    }
-    
-    // implements Generator
-    public Tag getTag(ModelElement elem, String tagId)
-    {
-        Collection<?> tags = 
-            ((ModelPackage)elem.refImmediatePackage()).getAttachesTo().getTag(
-                elem);
-        
-        for(Object o: tags) {
-            Tag tag = (Tag)o;
-            if (tagId.equals(tag.getTagId())) {
-                return tag;
-            }
-        }
-
-        return null;
-    }
-
-    // implements Generator
     public String[] getParam(ModelElement param)
     {
         String[] result = new String[2];
@@ -490,13 +447,15 @@ public abstract class GeneratorBase implements Generator
             assert(false);
         }
         
-        String name = getTagValue(param, TagIdConstants.TAGID_SUBSTITUTE_NAME);
+        String name = 
+            TagUtil.getTagValue(param, TagUtil.TAGID_SUBSTITUTE_NAME);
         if (name == null) {
             name = param.getName();
         }
         
         result[1] = 
-            StringUtil.mangleIdentifier(name, StringUtil.IdentifierType.CAMELCASE_INIT_LOWER);
+            StringUtil.mangleIdentifier(
+                name, StringUtil.IdentifierType.CAMELCASE_INIT_LOWER);
         
         return result;
     }
@@ -621,7 +580,7 @@ public abstract class GeneratorBase implements Generator
     // implements Generator
     public String getSimpleTypeName(ModelElement elem, String suffix)
     {
-        String name = getTagValue(elem, TagIdConstants.TAGID_SUBSTITUTE_NAME);
+        String name = TagUtil.getTagValue(elem, TagUtil.TAGID_SUBSTITUTE_NAME);
         if (name == null) {
             name = elem.getName();
         }
@@ -629,7 +588,9 @@ public abstract class GeneratorBase implements Generator
         if (elem instanceof PrimitiveType) {
             return name;
         } else if (elem instanceof Constant) {
-            name = StringUtil.mangleIdentifier(name, StringUtil.IdentifierType.ALL_CAPS);
+            name = 
+                StringUtil.mangleIdentifier(
+                    name, StringUtil.IdentifierType.ALL_CAPS);
         } else {
             boolean initCaps = 
                 elem instanceof MofClass || 
@@ -672,7 +633,7 @@ public abstract class GeneratorBase implements Generator
         Namespace container = pkg.getContainer();
         if (container == null) {
             String pkgPrefix = 
-                getTagValue(pkg, TagIdConstants.TAGID_PACKAGE_PREFIX);
+                TagUtil.getTagValue(pkg, TagUtil.TAGID_PACKAGE_PREFIX);
             if (pkgPrefix != null) {
                 // Package names are all-lowercase alphabetic.
                 // REVIEW: SWZ: 10/31/2007: Make sure pkgPrefix doesn't 
@@ -684,7 +645,7 @@ public abstract class GeneratorBase implements Generator
         }
 
         String packageName =
-            getTagValue(pkg, TagIdConstants.TAGID_SUBSTITUTE_NAME);
+            TagUtil.getTagValue(pkg, TagUtil.TAGID_SUBSTITUTE_NAME);
         if (packageName == null) {
             packageName = 
                 StringUtil.mangleIdentifier(pkg.getName(), StringUtil.IdentifierType.ALL_LOWER);

@@ -27,6 +27,7 @@ import java.util.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.mdr.*;
+import org.eigenbase.enki.util.*;
 import org.junit.*;
 import org.netbeans.api.mdr.*;
 
@@ -51,7 +52,6 @@ public abstract class ModelTestBase
     private static RefPackage pkg;
     private static String testExtentName;
     
-    private static List<String> mofIdsToDelete;
     private static Properties storageProps;
     
     @BeforeClass
@@ -62,32 +62,57 @@ public abstract class ModelTestBase
         
         getPackage();
         
-        mofIdsToDelete = new ArrayList<String>();
+        repos.beginTrans(true);
+        try {
+            delete(pkg);
+        }
+        finally {
+            repos.endTrans();
+        }
+    }
+    
+    private static void delete(RefPackage pkg)
+    {
+        for(RefAssociation assoc: 
+            GenericCollections.asTypedCollection(
+                pkg.refAllAssociations(),
+                RefAssociation.class))
+        {
+            for(RefAssociationLink link: 
+                GenericCollections.asTypedCollection(
+                    assoc.refAllLinks(),
+                    RefAssociationLink.class))
+            {
+                assoc.refRemoveLink(link.refFirstEnd(), link.refSecondEnd());
+            }
+        }
+        
+        for(RefClass cls: 
+                GenericCollections.asTypedCollection(
+                    pkg.refAllClasses(),
+                    RefClass.class))
+        {
+            for(RefObject obj:
+                    GenericCollections.asTypedCollection(
+                        cls.refAllOfClass(),
+                        RefObject.class))
+            {
+                obj.refDelete();
+            }
+        }
+        
+        for(RefPackage p: 
+                GenericCollections.asTypedCollection(
+                    pkg.refAllPackages(),
+                    RefPackage.class))
+        {
+            delete(p);
+        }
     }
     
     @AfterClass
     public static void tearDownTestClass()
     {
-        if (mofIdsToDelete != null && !mofIdsToDelete.isEmpty()) {
-            repos.beginTrans(true);
-            try {
-                for(ListIterator<String> iter = 
-                        mofIdsToDelete.listIterator(mofIdsToDelete.size());
-                    iter.hasPrevious(); )
-                {
-                    RefObject refObject = 
-                        (RefObject)repos.getByMofId(iter.previous());
-                    
-                    if (refObject != null) {
-                        refObject.refDelete();            
-                    }
-                }
-            }
-            finally {
-                repos.endTrans();
-            }
-        }
-        
         MDRepository repository = repos;
         if (repository != null) {
             pkg = null;
@@ -108,15 +133,6 @@ public abstract class ModelTestBase
                 e);
             return null; // unreachable
         }
-    }
-    
-    protected static void scheduleForDelete(RefObject refObject)
-    {
-        if (mofIdsToDelete.contains(refObject.refMofId())) {
-            return;
-        }
-        
-        mofIdsToDelete.add(refObject.refMofId());
     }
     
     protected static RefPackage getPackage()

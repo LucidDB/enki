@@ -31,9 +31,7 @@ import javax.jmi.reflect.*;
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateAssociation 
-    extends HibernateObject
-    implements Iterable<RefAssociationLink>
+public abstract class HibernateAssociation extends HibernateObject
 {
     /** Name of the association type. */
     private String type;
@@ -98,14 +96,6 @@ public abstract class HibernateAssociation
     public abstract void clear(HibernateAssociable item);
     
     /**
-     * Returns an iterator over all the {@link RefAssociationLink} objects
-     * represented by this association.
-     * 
-     * @return {@link RefAssociationLink} iterator
-     */
-    public abstract Iterator<RefAssociationLink> iterator();
-    
-    /**
      * Get a List of the remote end(s) of the association for the given item.
      * 
      * @return List of items associated with item
@@ -154,6 +144,13 @@ public abstract class HibernateAssociation
         }
         
         return a1.equals(a2);
+    }
+    
+    public abstract Collection<RefAssociationLink> getLinks();
+    
+    public Iterator<RefAssociationLink> linkIterator()
+    {
+        return getLinks().iterator();
     }
 }
 

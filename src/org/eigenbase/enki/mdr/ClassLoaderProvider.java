@@ -19,50 +19,18 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
-package org.eigenbase.enki.jmi.impl;
-
-import javax.jmi.reflect.*;
+package org.eigenbase.enki.mdr;
 
 /**
- * RefAssociationLink implements {@link javax.jmi.reflect.RefAssociationLink}.
+ * ClassLoaderProvider extends 
+ * {@link org.netbeans.mdr.handlers.ClassLoaderProvider} but provides no
+ * additional functionality.
  * 
  * @author Stephan Zuercher
  */
-public class RefAssociationLink
-    implements javax.jmi.reflect.RefAssociationLink
+public interface ClassLoaderProvider 
+    extends org.netbeans.mdr.handlers.ClassLoaderProvider
 {
-    private final RefObject firstEnd;
-    private final RefObject secondEnd;
-    
-    public RefAssociationLink(RefObject firstEnd, RefObject secondEnd)
-    {
-        this.firstEnd = firstEnd;
-        this.secondEnd = secondEnd;
-    }
-    
-    public RefObject refFirstEnd()
-    {
-        return firstEnd;
-    }
-
-    public RefObject refSecondEnd()
-    {
-        return secondEnd;
-    }
-
-    public boolean equals(Object other)
-    {
-        RefAssociationLink that = (RefAssociationLink)other;
-        
-        return 
-            this.refFirstEnd().equals(that.refFirstEnd()) &&
-            this.refSecondEnd().equals(that.refSecondEnd());
-    }
-    
-    public int hashCode()
-    {
-        return firstEnd.hashCode() ^ secondEnd.hashCode();
-    }
 }
 
-// End RefAssociationLink.java
+// End ClassLoaderProvider.java

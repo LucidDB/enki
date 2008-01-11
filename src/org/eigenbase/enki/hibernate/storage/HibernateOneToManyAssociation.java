@@ -26,6 +26,7 @@ import java.util.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.jmi.impl.*;
 
 /**
  * HibernateOneToManyAssociation extends HibernateAssociation and stores
@@ -37,12 +38,27 @@ import org.eigenbase.enki.hibernate.*;
 public class HibernateOneToManyAssociation
     extends HibernateAssociation
 {
+    /** 
+     * If true, this is a many-to-1 association.  That is, end1 is not the
+     * single end.
+     */
+    private boolean reversed;
     private HibernateAssociable parent;
     private List<HibernateAssociable> children;
     
     public HibernateOneToManyAssociation()
     {
         this.children = new ArrayList<HibernateAssociable>();
+    }
+    
+    public boolean getReversed()
+    {
+        return reversed;
+    }
+    
+    public void setReversed(boolean reversed)
+    {
+        this.reversed = reversed;
     }
     
     public HibernateAssociable getParent()
@@ -77,17 +93,32 @@ public class HibernateOneToManyAssociation
 
     @Override
     public boolean add(
-        HibernateAssociable newParent, HibernateAssociable newChild)
+        HibernateAssociable end1, HibernateAssociable end2)
     {
         final String type = getType();
 
+        HibernateAssociable newParent;
+        HibernateAssociable newChild;
+        boolean parentIsFirstEnd;
+        if (getReversed()) {
+            newParent = end2;
+            newChild = end1;
+            parentIsFirstEnd = false;
+        } else {
+            newParent = end1;
+            newChild = end2;
+            parentIsFirstEnd = true;
+
+        }
+        boolean childIsFirstEnd = !parentIsFirstEnd;
+        
         // This association must be related to one of the two objects.
         HibernateOneToManyAssociation parentAssoc = 
             (HibernateOneToManyAssociation)newParent.getAssociation(
-                type, true);
+                type, parentIsFirstEnd);
         HibernateOneToManyAssociation childAssoc = 
             (HibernateOneToManyAssociation)newChild.getAssociation(
-                type, false);
+                type, childIsFirstEnd);
 
         boolean sameParent = parentAssoc != null && parentAssoc.equals(this);
         boolean sameChild = childAssoc != null && childAssoc.equals(this);
@@ -107,7 +138,7 @@ public class HibernateOneToManyAssociation
                 childAssoc.removeAll(newChild);
             }
             
-            newChild.setAssociation(type, false, this);
+            newChild.setAssociation(type, childIsFirstEnd, this);
             getChildren().add(newChild);
             return true;
         }
@@ -118,7 +149,7 @@ public class HibernateOneToManyAssociation
             // Parent had no previous association.
             if (getParent() == null) {
                 // child association is brand new, just set the parent
-                newParent.setAssociation(type, true, this);
+                newParent.setAssociation(type, parentIsFirstEnd, this);
                 setParent(newParent);
                 return true;
             }
@@ -127,27 +158,43 @@ public class HibernateOneToManyAssociation
             // parent.
             parentAssoc = 
                 (HibernateOneToManyAssociation)
-                newParent.getOrCreateAssociation(type, true);                
+                newParent.getOrCreateAssociation(type, parentIsFirstEnd);                
         }
         
-        return parentAssoc.add(newParent, newChild);
+        // REVIEW: SWZ: 1/9/08: Could convert to an addInternal model rather
+        // than using end1/end2 here.  We currently do this so that the
+        // recursive call doesn't mistakenly re-switch the ends. 
+        return parentAssoc.add(end1, end2);
     }
 
     @Override
     public void add(
-        int index, 
-        HibernateAssociable newParent,
-        HibernateAssociable newChild)
+        int index, HibernateAssociable end1, HibernateAssociable end2)
     {
         final String type = getType();
 
+        HibernateAssociable newParent;
+        HibernateAssociable newChild;
+        boolean parentIsFirstEnd;
+        if (getReversed()) {
+            newParent = end2;
+            newChild = end1;
+            parentIsFirstEnd = false;
+        } else {
+            newParent = end1;
+            newChild = end2;
+            parentIsFirstEnd = true;
+
+        }
+        boolean childIsFirstEnd = !parentIsFirstEnd;
+        
         // This association must be related to one of the two objects.
         HibernateOneToManyAssociation parentAssoc = 
             (HibernateOneToManyAssociation)newParent.getAssociation(
-                type, true);
+                type, parentIsFirstEnd);
         HibernateOneToManyAssociation childAssoc = 
             (HibernateOneToManyAssociation)newChild.getAssociation(
-                type, false);
+                type, childIsFirstEnd);
 
         boolean sameParent = parentAssoc != null && parentAssoc.equals(this);
         boolean sameChild = childAssoc != null && childAssoc.equals(this);
@@ -167,52 +214,71 @@ public class HibernateOneToManyAssociation
                 // REVIEW: 12/19/07: Should we delete childAssoc "if (childAssoc.getChildren().isEmpty())"?
             }
             
-            newChild.setAssociation(type, false, this);
+            newChild.setAssociation(type, childIsFirstEnd, this);
             getChildren().add(index, newChild);
             return;
         }
 
         if (parentAssoc == null) {
             // Parent had no previous association.
-            newParent.setAssociation(type, true, this);
+            newParent.setAssociation(type, parentIsFirstEnd, this);
             setParent(newParent);
             return;
         }
         
         // Associating child with a new parent.  Invoke parent association's
         // add method.
-        parentAssoc.add(index, newParent, newChild);
+        parentAssoc.add(index, end1, end2);
     }
 
     @Override
     public boolean remove(
-        HibernateAssociable parent, HibernateAssociable child)
+        HibernateAssociable end1, HibernateAssociable end2)
     {
+        HibernateAssociable parent;
+        HibernateAssociable child;
+        if (getReversed()) {
+            parent = end2;
+            child = end1;
+        } else {
+            parent = end1;
+            child = end2;
+
+        }
+
+        return removeInternal(parent, child);
+    }
+    
+    private boolean removeInternal(HibernateAssociable parent, HibernateAssociable child)
+    {   
         final String type = getType();
-        
+
+        boolean childIsFirstEnd = getReversed();
+        boolean parentIsFirstEnd = !childIsFirstEnd;
+
         // This association must be related to one of the two objects.
         HibernateOneToManyAssociation parentAssoc = 
             (HibernateOneToManyAssociation)parent.getAssociation(
-                type, true);
+                type, parentIsFirstEnd);
         HibernateOneToManyAssociation childAssoc = 
             (HibernateOneToManyAssociation)child.getAssociation(
-                type, false);
+                type, childIsFirstEnd);
         
         if (!equals(parentAssoc, childAssoc)) {
             // Objects aren't association
             return false;
         }
         
-        assert(parent.getAssociation(type, true).equals(this));
-        assert(child.getAssociation(type, false).equals(this));
+        assert(parentAssoc.equals(this));
+        assert(childAssoc.equals(this));
         assert(equals(getParent(), parent));
         assert(getChildren().contains(child));
         
-        child.setAssociation(type, false, null);
+        child.setAssociation(type, childIsFirstEnd, null);
         children.remove(child);
         
         if (children.isEmpty()) {
-            parent.setAssociation(type, true, null);
+            parent.setAssociation(type, parentIsFirstEnd, null);
             
             HibernateMDRepository.getCurrentSession().delete(this);
         }
@@ -226,13 +292,18 @@ public class HibernateOneToManyAssociation
         if (!equals(item, getParent())) {
             assert(getChildren().contains(item));
             
-            remove(getParent(), item);
+            // Null parent occurs when child is first end of association and
+            // is added (via refAddLink) to a parent that already had a child.
+            // Just ignore the call and the unused association should be gc'd.
+            if (getParent() != null) {
+                removeInternal(getParent(), item);
+            }
             return;
         }
         
         while(!getChildren().isEmpty()) {
             HibernateAssociable child = getChildren().get(0);
-            remove(item, child);
+            removeInternal(item, child);
         }
     }
     
@@ -255,18 +326,22 @@ public class HibernateOneToManyAssociation
     }
 
     @Override
-    public Iterator<RefAssociationLink> iterator()
+    public Collection<RefAssociationLink> getLinks()
     {
+        boolean reversed = getReversed();
         ArrayList<RefAssociationLink> links = 
             new ArrayList<RefAssociationLink>();
         HibernateAssociable parent = getParent();
         for(HibernateAssociable child: getChildren()) {
-            RefAssociationLink link =
-                new org.eigenbase.enki.jmi.impl.RefAssociationLink(
-                    parent, child);
+            RefAssociationLink link;
+            if (reversed) {
+                link = new RefAssociationLinkImpl(child, parent);
+            } else {
+                link = new RefAssociationLinkImpl(parent, child);
+            }
             links.add(link);
         }
-        return links.iterator();
+        return links;
     }
 }
 

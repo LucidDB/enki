@@ -58,7 +58,7 @@ public class HibernateJavaHandler
      * Suffix for implementation class names and association implementation
      * methods.
      */
-    public static final String IMPL_SUFFIX = "_Impl";
+    public static final String IMPL_SUFFIX = "$Impl";
 
     /**
      * Name of the base class for classes that implement {@link RefObject}.
@@ -236,6 +236,24 @@ public class HibernateJavaHandler
                     ".getCurrentInitializer().setRefMetaObject(this, ", 
                     QUOTE, pkg.getName(), QUOTE, ");");
             }
+            
+            @Override
+            protected void generateCustomAssociationInit(Association assoc)
+            {
+                writeln(
+                    METAMODEL_INITIALIZER_CLASS,
+                    ".getCurrentInitializer().setRefMetaObject(this, ", 
+                    QUOTE, assoc.getName(), QUOTE, ");");
+            }
+
+            @Override
+            protected void generateCustomClassProxyInit(MofClass cls)
+            {
+                writeln(
+                    METAMODEL_INITIALIZER_CLASS,
+                    ".getCurrentInitializer().setRefMetaObject(this, ", 
+                    QUOTE, cls.getName(), QUOTE, ");");
+            }
         };
         
         this.classIdentifierMap = new HashMap<MofClass, String>();
@@ -332,44 +350,23 @@ public class HibernateJavaHandler
                 writeln(
                     "super(container, ", 
                     QUOTE, assocInfo.getBaseName(), QUOTE, ", ",
-                    QUOTE, assocInfo.getEndName(0), QUOTE, ", ",
+                    QUOTE, assocInfo.getEndName(0, true), QUOTE, ", ",
                     assocInfo.getEndType(0), ".class, ",
-                    QUOTE, assocInfo.getEndName(1), QUOTE, ", ",
+                    QUOTE, assocInfo.getEndName(1, true), QUOTE, ", ",
                     assocInfo.getEndType(1), ".class);");
                 break;
                 
             case ONE_TO_MANY:
-                int singleEnd, manyEnd;
-                if (assocInfo.isSingle(0)) {
-                    singleEnd = 0;
-                    manyEnd = 1;
-                } else {
-                    singleEnd = 1;
-                    manyEnd = 0;
-                }
-                writeln(
-                    "super(container, ", 
-                    QUOTE, assocInfo.getBaseName(), QUOTE, ", ",
-                    QUOTE, assocInfo.getEndName(singleEnd), QUOTE, ", ",
-                    assocInfo.getEndType(singleEnd), ".class, ",
-                    QUOTE, assocInfo.getEndName(manyEnd), QUOTE, ", ",
-                    assocInfo.getEndType(manyEnd), ".class, ",
-                    MULTIPLICITY_ENUM, ".", 
-                    Multiplicity.fromMultiplicityType(
-                        assocInfo.getEnd(manyEnd).getMultiplicity()),
-                    ");");
-                break;
-
             case MANY_TO_MANY:
                 writeln(
                     "super(container, ", 
                     QUOTE, assocInfo.getBaseName(), QUOTE, ", ",
-                    QUOTE, assocInfo.getEndName(0), QUOTE, ", ",
+                    QUOTE, assocInfo.getEndName(0, true), QUOTE, ", ",
                     assocInfo.getEndType(0), ".class, ",
                     MULTIPLICITY_ENUM, ".", 
                     Multiplicity.fromMultiplicityType(
                         assocInfo.getEnd(0).getMultiplicity()), ", ",
-                    QUOTE, assocInfo.getEndName(1), QUOTE, ", ",
+                    QUOTE, assocInfo.getEndName(1, true), QUOTE, ", ",
                     assocInfo.getEndType(1), ".class, ",
                     MULTIPLICITY_ENUM, ".", 
                     Multiplicity.fromMultiplicityType(
@@ -386,15 +383,6 @@ public class HibernateJavaHandler
             endBlock();
             newLine();
             
-            int end0 = 0;
-            int end1 = 1;
-            if (assocInfo.getKind() == AssociationKindEnum.ONE_TO_MANY) {
-                if (!assocInfo.isSingle(0)) {
-                    end0 = 1;
-                    end1 = 0;
-                }
-            }
-            
             // exists
             startGenericMethodBlock(
                 assoc,
@@ -404,43 +392,62 @@ public class HibernateJavaHandler
                 assocInfo.getEndNames());
             writeln(
                 "return super.exists(", 
-                assocInfo.getEndName(end0),
-                ", ",
-                assocInfo.getEndName(end1), ");");
+                assocInfo.getEndName(0), ", ",
+                assocInfo.getEndName(1), ");");
             endBlock();
             newLine();
             
             // get end1 from end2
-            if (assocInfo.getEnd(end0).isNavigable()) {
-                boolean ordered = assocInfo.isOrdered(end0);
+            if (assocInfo.getEnd(0).isNavigable()) {
+                boolean ordered = assocInfo.isOrdered(0);
                 String returnTypeName = 
-                    assocInfo.isSingle(end0)
-                        ? assocInfo.getEndType(end0)
+                    assocInfo.isSingle(0)
+                        ? assocInfo.getEndType(0)
                         : generator.getCollectionType(
                             ordered 
                                 ? JmiTemplateHandler.ORDERED_COLLECTION_CLASS
                                 : JmiTemplateHandler.COLLECTION_CLASS,
-                            assocInfo.getEndType(end0));
+                            assocInfo.getEndType(0));
                 startGenericMethodBlock(
                     assoc,
                     returnTypeName,
-                    generator.getAccessorName(assocInfo.getEnd(end0), null),
-                    new String[] { assocInfo.getEndType(end1) },
-                    new String[] { assocInfo.getEndName(end1) });
+                    generator.getAccessorName(assocInfo.getEnd(0), null),
+                    new String[] { assocInfo.getEndType(1) },
+                    new String[] { assocInfo.getEndName(1) });
                 switch(assocInfo.getKind()) {
                 case ONE_TO_ONE:
-                case ONE_TO_MANY:
-                    writeln("return getParentOf(", assocInfo.getEndName(end1), ");");
+                    writeln("return getParentOf(", assocInfo.getEndName(1), ");");
                     break;
-                    
-                case MANY_TO_MANY:
-                    if (assocInfo.isOrdered(end0)) {
+
+                case ONE_TO_MANY:
+                    if (assocInfo.isSingle(0)) {
+                        writeln(
+                            "return getParentOf(", 
+                            assocInfo.getEndName(1), ", ",
+                            assocInfo.getEndType(0), ".class);");
+                    } else if (assocInfo.isOrdered(0)) {
                         writeln(
                             "return (",
                             returnTypeName,
-                            ")getSourceOf(", assocInfo.getEndName(end1), ");");                        
+                            ")getChildrenOf(",
+                            assocInfo.getEndName(1), ", ",
+                            assocInfo.getEndType(0), ".class);");
                     } else {
-                        writeln("return getSourceOf(", assocInfo.getEndName(end1), ");");
+                        writeln(
+                            "return getChildrenOf(",
+                            assocInfo.getEndName(1), ", ",
+                            assocInfo.getEndType(0), ".class);");
+                    }
+                    break;
+                    
+                case MANY_TO_MANY:
+                    if (assocInfo.isOrdered(0)) {
+                        writeln(
+                            "return (",
+                            returnTypeName,
+                            ")getSourceOf(", assocInfo.getEndName(1), ");");                        
+                    } else {
+                        writeln("return getSourceOf(", assocInfo.getEndName(1), ");");
                     }
                 }
                 endBlock();
@@ -448,55 +455,64 @@ public class HibernateJavaHandler
             }
             
             // get end2 from end1
-            if (assocInfo.getEnd(end1).isNavigable()) {
-                boolean ordered = assocInfo.isOrdered(end1);
+            if (assocInfo.getEnd(1).isNavigable()) {
+                boolean ordered = assocInfo.isOrdered(1);
                 String returnTypeName = 
-                    assocInfo.isSingle(end1) 
-                        ? assocInfo.getEndType(end1)
+                    assocInfo.isSingle(1) 
+                        ? assocInfo.getEndType(1)
                         : generator.getCollectionType(
                             ordered 
                                 ? JmiTemplateHandler.ORDERED_COLLECTION_CLASS
                                 : JmiTemplateHandler.COLLECTION_CLASS,
-                            assocInfo.getEndType(end1));
+                            assocInfo.getEndType(1));
                 startGenericMethodBlock(
                     assoc,
                     returnTypeName,
-                    generator.getAccessorName(assocInfo.getEnd(end1), null),
-                    new String[] { assocInfo.getEndType(end0) },
-                    new String[] { assocInfo.getEndName(end0) });
+                    generator.getAccessorName(assocInfo.getEnd(1), null),
+                    new String[] { assocInfo.getEndType(0) },
+                    new String[] { assocInfo.getEndName(0) });
                 switch(assocInfo.getKind()) {
                 case ONE_TO_ONE:
-                    writeln("return getChildOf(", assocInfo.getEndName(end0), ");");
+                    writeln("return getChildOf(", assocInfo.getEndName(0), ");");
                     break;
 
                 case ONE_TO_MANY:
-                    if (assocInfo.isOrdered(end1)) {
+                    if (assocInfo.isSingle(1)) {
+                        writeln(
+                            "return getParentOf(", 
+                            assocInfo.getEndName(0), ", ",
+                            assocInfo.getEndType(1), ".class);");
+                    } else if (assocInfo.isOrdered(1)) {
                         writeln(
                             "return (",
                             returnTypeName,
-                            ")getChildrenOf(", assocInfo.getEndName(end0), ");");
+                            ")getChildrenOf(", 
+                            assocInfo.getEndName(0), ", ",
+                            assocInfo.getEndType(1), ".class);");
                     } else {
                         writeln(
-                            "return getChildrenOf(", assocInfo.getEndName(end0), ");");
+                            "return getChildrenOf(", 
+                            assocInfo.getEndName(0), ", ",
+                            assocInfo.getEndType(1), ".class);");
                     }
                     break;
                     
                 case MANY_TO_MANY:
-                    if (assocInfo.isOrdered(end1)) {
+                    if (assocInfo.isOrdered(1)) {
                         writeln(
                             "return (",
                             returnTypeName,
-                            ")getTargetOf(", assocInfo.getEndName(end0), ");");
+                            ")getTargetOf(", assocInfo.getEndName(0), ");");
                     } else {
                         writeln(
-                            "return getTargetOf(", assocInfo.getEndName(end0), ");");
+                            "return getTargetOf(", assocInfo.getEndName(0), ");");
                     }
                 }
                 endBlock();
                 newLine();
             }
 
-            if (assocInfo.isChangeable(end0) && assocInfo.isChangeable(end1)) {
+            if (assocInfo.isChangeable(0) && assocInfo.isChangeable(1)) {
                 // add
                 startGenericMethodBlock(
                     assoc,
@@ -506,9 +522,9 @@ public class HibernateJavaHandler
                     assocInfo.getEndNames());
                 writeln(
                     "return super.add(",
-                    assocInfo.getEndName(end0),
+                    assocInfo.getEndName(0),
                     ", ",
-                    assocInfo.getEndName(end1),
+                    assocInfo.getEndName(1),
                     ");");
                 endBlock();
 
@@ -523,9 +539,9 @@ public class HibernateJavaHandler
                     assocInfo.getEndNames());
                 writeln(
                     "return super.remove(",
-                    assocInfo.getEndName(end0),
+                    assocInfo.getEndName(0),
                     ", ",
-                    assocInfo.getEndName(end1),
+                    assocInfo.getEndName(1),
                     ");");
                 endBlock();
             }
@@ -902,10 +918,6 @@ public class HibernateJavaHandler
                     "(this);");
                 break;
                 
-            case MANY_TO_MANY:
-                writeln("assoc.setSource(this);");
-                break;
-                
             case ONE_TO_MANY:
                 boolean hasParent = refInfo.isSingle();
                 if (!hasParent) {
@@ -913,6 +925,12 @@ public class HibernateJavaHandler
                 } else {
                     writeln("assoc.getChildren().add(this);");
                 }
+                writeln("assoc.setReversed(", refInfo.isSingle(1), ");");
+                break;
+
+            case MANY_TO_MANY:
+                writeln("assoc.setSource(this);");
+                writeln("assoc.setReversed(!firstEnd);");
                 break;
             }
             
@@ -930,20 +948,21 @@ public class HibernateJavaHandler
 
     private boolean getExposedEndFirst(ReferenceInfo refInfo)
     {
+        // TOOD: verify correctnes and inline this method
         boolean exposedEndFirst = refInfo.isExposedEndFirst();
         // Reverse sense of exposedEndFirst to make the single end
         // "first".
-        if (refInfo.getKind() == AssociationKindEnum.ONE_TO_MANY) {
-            if (exposedEndFirst &&
-                !refInfo.isSingle(refInfo.getExposedEndIndex()))
-            {
-                exposedEndFirst = false;
-            } else if (!exposedEndFirst &&
-                       refInfo.isSingle(refInfo.getExposedEndIndex()))
-            {
-                exposedEndFirst = true;
-            }
-        }
+//        if (refInfo.getKind() == AssociationKindEnum.ONE_TO_MANY) {
+//            if (exposedEndFirst &&
+//                !refInfo.isSingle(refInfo.getExposedEndIndex()))
+//            {
+//                exposedEndFirst = false;
+//            } else if (!exposedEndFirst &&
+//                       refInfo.isSingle(refInfo.getExposedEndIndex()))
+//            {
+//                exposedEndFirst = true;
+//            }
+//        }
         return exposedEndFirst;
     }
 
@@ -1924,12 +1943,12 @@ public class HibernateJavaHandler
         {
         case ONE_TO_ONE:
             return ASSOCIATION_ONE_TO_ONE_IMPL_CLASS.toString();
-
-        case MANY_TO_MANY:
-            return ASSOCIATION_MANY_TO_MANY_IMPL_CLASS.toString();
             
         case ONE_TO_MANY:
             return ASSOCIATION_ONE_TO_MANY_IMPL_CLASS.toString();            
+
+        case MANY_TO_MANY:
+            return ASSOCIATION_MANY_TO_MANY_IMPL_CLASS.toString();
         }
         
         throw new IllegalArgumentException(
@@ -1950,7 +1969,11 @@ public class HibernateJavaHandler
             return index == 0 ? "Parent" : "Child";
             
         case ONE_TO_MANY:
-            return index == 0 ? "Parent" : "Children";
+            if (refInfo.isSingle(index)) {
+                return "Parent";
+            } else {
+                return "Children";
+            }
             
         case MANY_TO_MANY:
             return "Target";
@@ -1987,45 +2010,28 @@ public class HibernateJavaHandler
         StringBuffer type = new StringBuffer();
         switch(assocInfo.getKind()) {
         case ONE_TO_ONE:
-            type
-                .append(REF_ASSOCIATION_ONE_TO_ONE_IMPL_CLASS)
-                .append("<")
-                .append(assocInfo.getEndType(0))
-                .append(", ")
-                .append(assocInfo.getEndType(1))
-                .append(">");
-            break;
-            
-        case MANY_TO_MANY:
-            type
-                .append(REF_ASSOCIATION_MANY_TO_MANY_IMPL_CLASS)
-                .append("<")
-                .append(assocInfo.getEndType(0))
-                .append(", ")
-                .append(assocInfo.getEndType(1))
-                .append(">");
+            type.append(REF_ASSOCIATION_ONE_TO_ONE_IMPL_CLASS);
             break;
             
         case ONE_TO_MANY:
-            type
-                .append(REF_ASSOCIATION_ONE_TO_MANY_IMPL_CLASS)
-                .append("<")    
-                .append(
-                    assocInfo.isSingle(0) 
-                        ? assocInfo.getEndType(0) 
-                        : assocInfo.getEndType(1))
-                .append(", ")
-                .append(
-                    assocInfo.isSingle(0)
-                        ? assocInfo.getEndType(1)
-                        : assocInfo.getEndType(0))
-                .append(">");
+            type.append(REF_ASSOCIATION_ONE_TO_MANY_IMPL_CLASS);
+            break;
+            
+        case MANY_TO_MANY:
+            type.append(REF_ASSOCIATION_MANY_TO_MANY_IMPL_CLASS);
             break;
 
         default:
             throw new IllegalArgumentException(
                 "Unknown AssociationKindEnum: " + assocInfo.getKind());
         }
+
+        type
+            .append("<")
+            .append(assocInfo.getEndType(0))
+            .append(", ")
+            .append(assocInfo.getEndType(1))
+            .append(">");
 
         return type.toString();
     }

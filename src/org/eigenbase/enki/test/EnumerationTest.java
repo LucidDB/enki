@@ -84,8 +84,6 @@ public class EnumerationTest extends SampleModelTestBase
             cone.setScoops(i + 1);
             
             coneMofIds[i] = cone.refMofId();
-            
-            scheduleForDelete(cone);
         }
                 
         getRepository().endTrans();

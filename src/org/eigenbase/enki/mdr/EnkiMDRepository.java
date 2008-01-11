@@ -21,6 +21,8 @@
 */
 package org.eigenbase.enki.mdr;
 
+import javax.jmi.reflect.*;
+
 import org.netbeans.api.mdr.*;
 
 /**
@@ -31,10 +33,14 @@ import org.netbeans.api.mdr.*;
  */
 public interface EnkiMDRepository extends MDRepository
 {
+    public void dropExtentStorage(RefPackage refPackage)
+        throws EnkiDropFailedException;
     public void dropExtentStorage(String extentName) 
         throws EnkiDropFailedException;
     
     public boolean isExtentBuiltIn(String extentName);
+    
+    public ClassLoader getDefaultClassLoader();
 }
 
 // End EnkiMDRepository.java

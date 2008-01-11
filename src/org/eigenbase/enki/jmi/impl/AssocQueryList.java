@@ -37,13 +37,13 @@ public class AssocQueryList
     extends AssocQueryCollection 
     implements List<RefObject>
 {
-    private final List<RefAssociationLink> linksList;
+    private final List<RefAssociationLinkImpl> linksList;
     
     public AssocQueryList(
         RefAssociationBase assoc,
         RefObject fixedEnd,
         boolean fixedIsFirstEnd,
-        List<RefAssociationLink> links)
+        List<RefAssociationLinkImpl> links)
     {
         super(assoc, fixedEnd, fixedIsFirstEnd, links);
 
@@ -158,7 +158,7 @@ public class AssocQueryList
      */
     private class ListIter implements ListIterator<RefObject>
     {
-        private ListIterator<RefAssociationLink> iter;
+        private ListIterator<RefAssociationLinkImpl> iter;
         
         private ListIter()
         {

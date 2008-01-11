@@ -39,9 +39,9 @@ public abstract class RefAssociationBase
 {
     private final RefPackage container;
     
-    private final Set<RefAssociationLink> links;
-    private final Map<RefObject, Collection<RefAssociationLink>> firstToSecondMap;
-    private final Map<RefObject, Collection<RefAssociationLink>> secondToFirstMap;
+    private final Set<RefAssociationLinkImpl> links;
+    private final Map<RefObject, Collection<RefAssociationLinkImpl>> firstToSecondMap;
+    private final Map<RefObject, Collection<RefAssociationLinkImpl>> secondToFirstMap;
     
     protected final String end1Name;
     protected final Multiplicity end1Multiplicity;
@@ -57,11 +57,11 @@ public abstract class RefAssociationBase
     {
         this.container = container;
 
-        this.links = new HashSet<RefAssociationLink>();
+        this.links = new HashSet<RefAssociationLinkImpl>();
         this.firstToSecondMap =
-            new HashMap<RefObject, Collection<RefAssociationLink>>();
+            new HashMap<RefObject, Collection<RefAssociationLinkImpl>>();
         this.secondToFirstMap = 
-            new HashMap<RefObject, Collection<RefAssociationLink>>();
+            new HashMap<RefObject, Collection<RefAssociationLinkImpl>>();
 
         this.end1Name = end1Name;
         this.end1Multiplicity = end1Multiplicity;
@@ -77,7 +77,7 @@ public abstract class RefAssociationBase
 
     public boolean refAddLink(RefObject end1, RefObject end2)
     {
-        RefAssociationLink link = new RefAssociationLink(end1, end2);
+        RefAssociationLinkImpl link = new RefAssociationLinkImpl(end1, end2);
 
         addToMap(link, true, -1);
         addToMap(link, false, -1);
@@ -88,7 +88,7 @@ public abstract class RefAssociationBase
     void addLink(
         RefObject end1, RefObject end2, int firstEndIndex, int secondEndIndex)
     {
-        RefAssociationLink link = new RefAssociationLink(end1, end2);
+        RefAssociationLinkImpl link = new RefAssociationLinkImpl(end1, end2);
 
         addToMap(link, true, firstEndIndex);
         addToMap(link, false, secondEndIndex);
@@ -99,9 +99,9 @@ public abstract class RefAssociationBase
     @SuppressWarnings("unchecked")
     public Collection refAllLinks()
     {
-        ArrayList<RefAssociationLink> allLinks = 
-            new ArrayList<RefAssociationLink>();
-        for(Collection<RefAssociationLink> links: firstToSecondMap.values()) {
+        ArrayList<RefAssociationLinkImpl> allLinks = 
+            new ArrayList<RefAssociationLinkImpl>();
+        for(Collection<RefAssociationLinkImpl> links: firstToSecondMap.values()) {
             allLinks.addAll(links);
         }
         return Collections.unmodifiableCollection(allLinks);
@@ -109,7 +109,7 @@ public abstract class RefAssociationBase
 
     public boolean refLinkExists(RefObject end1, RefObject end2)    
     {
-        RefAssociationLink testLink = new RefAssociationLink(end1, end2);
+        RefAssociationLinkImpl testLink = new RefAssociationLinkImpl(end1, end2);
         
         return links.contains(testLink);
     }
@@ -123,7 +123,7 @@ public abstract class RefAssociationBase
             throw new InvalidCallException(this, queryEnd);
         }
         
-        Collection<RefObject> query = query(isFirst, queryObject);
+        Collection<? extends RefObject> query = query(isFirst, queryObject);
         if (query == null) {
             throw new InvalidCallException(this, queryEnd);
         }
@@ -138,7 +138,7 @@ public abstract class RefAssociationBase
             throw new InvalidNameException(queryEndName);
         }
         
-        Collection<RefObject> query = query(isFirst, queryObject);
+        Collection<? extends RefObject> query = query(isFirst, queryObject);
         if (query == null) {
             throw new InvalidNameException(queryEndName);
         }
@@ -151,12 +151,12 @@ public abstract class RefAssociationBase
     }
     
     private void addToMap(
-        RefAssociationLink link, boolean isFirstEnd, int index)
+        RefAssociationLinkImpl link, boolean isFirstEnd, int index)
     {
         RefObject end1 = link.refFirstEnd();
         RefObject end2 = link.refSecondEnd();
         
-        Map<RefObject, Collection<RefAssociationLink>> map;
+        Map<RefObject, Collection<RefAssociationLinkImpl>> map;
         RefObject key;
         Multiplicity multiplicity;
         if (isFirstEnd) {
@@ -174,12 +174,12 @@ public abstract class RefAssociationBase
             index = -1;
         }
         
-        Collection<RefAssociationLink> links = map.get(key);
+        Collection<RefAssociationLinkImpl> links = map.get(key);
         if (links == null) {
             if (multiplicity.isOrdered()) {
-                links = new ArrayList<RefAssociationLink>();
+                links = new ArrayList<RefAssociationLinkImpl>();
             } else {
-                links = new HashSet<RefAssociationLink>();
+                links = new HashSet<RefAssociationLinkImpl>();
             }
             
             map.put(key, links);
@@ -197,21 +197,21 @@ public abstract class RefAssociationBase
         if (index < 0) {
             links.add(link);
         } else {
-            ((List<RefAssociationLink>)links).add(index, link);
+            ((List<RefAssociationLinkImpl>)links).add(index, link);
         }
     }
     
-    protected Collection<RefObject> query(
+    protected Collection<? extends RefObject> query(
         boolean isFirstEnd, RefObject queryObject)
     {
-        Map<RefObject, Collection<RefAssociationLink>> map;
+        Map<RefObject, Collection<RefAssociationLinkImpl>> map;
         if (isFirstEnd) {
             map = firstToSecondMap;
         } else {
             map = secondToFirstMap;
         }
         
-        Collection<RefAssociationLink> links = map.get(queryObject); 
+        Collection<RefAssociationLinkImpl> links = map.get(queryObject); 
 
         // isFirstEnd refers to the given end, so check the multiplicity of
         // the other end to see whether the result should be ordered.
@@ -221,9 +221,9 @@ public abstract class RefAssociationBase
 
         if (links == null) {
             if (isOrdered) {
-                links = new ArrayList<RefAssociationLink>();
+                links = new ArrayList<RefAssociationLinkImpl>();
             } else {
-                links = new HashSet<RefAssociationLink>();
+                links = new HashSet<RefAssociationLinkImpl>();
             }
             map.put(queryObject, links);
         }
@@ -233,7 +233,7 @@ public abstract class RefAssociationBase
                 this, 
                 queryObject, 
                 isFirstEnd, 
-                (List<RefAssociationLink>)links);
+                (List<RefAssociationLinkImpl>)links);
         } else {
             return new AssocQueryCollection(
                 this,
