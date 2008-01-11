@@ -80,6 +80,7 @@
     value from customBuild.properties.
   -->
   <property name="enki.impl" value="${enki.impl.default}"/>
+  <property name="enki.all.impl" value="netbeans,hibernate"/>
 
   <target name="createClasspathFile">
     <delete file="${file.classpath}" quiet="true"/>
@@ -264,9 +265,30 @@
     </enki.javac>
   </target>
 
+  <target name="test-all-impls">
+    <foreach
+        list="${enki.all.impl}" 
+        target="test-single-impl"
+        param="impl.name"/>
+  </target>
+
+  <target name="test-single-impl">
+    <fail message="Invoked via test-all-impls target" unless="impl.name"/>
+
+    <exec executable="ant" failonerror="true" taskname="test-${impl.name}">
+      <arg value="${enki.forkVerbosity}"/>
+      <arg value="test"/>
+      <arg value="-Denki.impl=${impl.name}"/>
+    </exec>
+  </target>
+
   <target name="test" depends="createSampleRepository,test-only"/>
 
   <target name="test-only">
+    <echo message="**********************************************"/>
+    <echo message="Testing ${enki.impl} implementation"/>
+    <echo message="**********************************************"/>
+
     <delete>
       <fileset dir="${test.results.dir}" includes="*.txt"/>
     </delete>
