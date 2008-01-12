@@ -249,7 +249,8 @@ public class HibernateOneToManyAssociation
         return removeInternal(parent, child);
     }
     
-    private boolean removeInternal(HibernateAssociable parent, HibernateAssociable child)
+    private boolean removeInternal(
+        HibernateAssociable parent, HibernateAssociable child)
     {   
         final String type = getType();
 

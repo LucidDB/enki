@@ -117,6 +117,8 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     public boolean equals(Object other)
     {
         if (other instanceof RefBaseObjectBase) {
+            assert(this.getMofId() != 0L);
+            assert(((RefBaseObjectBase)other).getMofId() != 0L);
             return this.getMofId() == ((RefBaseObjectBase)other).getMofId();
         } else {
             return this.refMofId().equals(((RefBaseObject)other).refMofId());
@@ -233,7 +235,7 @@ public abstract class RefBaseObjectBase implements RefBaseObject
                     }
                 }
                 
-                // All param types are assignable, so this must by the
+                // All param types are assignable, so this must be the
                 // factory method we want to call.
                 return invokeMethod(
                     resultType, this, method, params.toArray());

@@ -64,6 +64,7 @@ public class EnumerationTest extends SampleModelTestBase
             
             Assert.assertEquals(flavors[i], cone.getFlavor());
             Assert.assertEquals(i + 1, cone.getScoops());
+            Assert.assertEquals((i & 1) == 1, cone.isMelting());
         }
         
         getRepository().endTrans();
@@ -82,6 +83,7 @@ public class EnumerationTest extends SampleModelTestBase
             IceCreamCone cone = iceCreamConeClass.createIceCreamCone();
             cone.setFlavor(flavors[i]);
             cone.setScoops(i + 1);
+            cone.setMelting((i & 1) == 1);
             
             coneMofIds[i] = cone.refMofId();
         }

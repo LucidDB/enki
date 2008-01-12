@@ -600,8 +600,7 @@ public abstract class GeneratorBase implements Generator
                 elem instanceof StructureType || 
                 elem instanceof EnumerationType ||
                 elem instanceof CollectionType || 
-                elem instanceof Import ||
-                elem instanceof Attribute;
+                elem instanceof Import;
             name = 
                 StringUtil.mangleIdentifier(
                     name, 

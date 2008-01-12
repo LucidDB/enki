@@ -192,24 +192,31 @@ public class XmiFileComparator
 
     private static void write(Element element, File file) throws IOException
     {
+        IdRemapper idRemapper = new IdRemapper();
+        
         BufferedWriter writer = new BufferedWriter(new FileWriter(file));
         
-        write(element, writer, 0);
+        write(element, writer, 0, idRemapper);
     }
     
     private static void write(
-        Element element, BufferedWriter writer, int indent) throws IOException
+        Element element,
+        BufferedWriter writer,
+        int indent,
+        IdRemapper idRemapper) 
+    throws IOException
     {
         indent(writer, indent);
         writer.write("<");
         writer.write(element.name);
         if (element.xmiId != null) {
+            String id = idRemapper.remap(element.xmiId);
             if (element.isReference) {
                 writer.write(" xmi.idref='");
             } else {
                 writer.write(" xmi.id='");                
             }
-            writer.write(element.xmiId);
+            writer.write(id);
             writer.write("'");
         }
         
@@ -242,7 +249,7 @@ public class XmiFileComparator
             }
         
             for(Element child: element.children) {
-                write(child, writer, indent + 1);
+                write(child, writer, indent + 1, idRemapper);
             }
         
             indent(writer, indent);
@@ -435,6 +442,11 @@ public class XmiFileComparator
                 }                
             }
             
+            c = compare(o1.children, o2.children);
+            if (c != 0) {
+                return c;
+            }
+            
             if (o1.xmiId != null && o2.xmiId != null) {
                 if (o1.isReference == o2.isReference) {
                     c = o1.xmiId.compareTo(o2.xmiId);
@@ -442,6 +454,30 @@ public class XmiFileComparator
                         return c;
                     }
                 }
+            }
+            
+            return 0;
+        }
+        
+        private int compare(List<Element> o1children, List<Element> o2children)
+        {
+            Iterator<Element> o1iter = o1children.iterator();
+            Iterator<Element> o2iter = o2children.iterator();
+            
+            while(o1iter.hasNext() && o2iter.hasNext()) {
+                Element o1child = o1iter.next();
+                Element o2child = o2iter.next();
+                
+                int c = compare(o1child, o2child);
+                if (c != 0) {
+                    return c;
+                }
+            }
+            
+            if (o1iter.hasNext()) {
+                return 1;
+            } else if (o2iter.hasNext()) {
+                return -1;
             }
             
             return 0;
@@ -539,5 +575,28 @@ public class XmiFileComparator
         }
     }
 
+    private static class IdRemapper
+    {
+        private Map<String, String> cache;
+        private int nextId;
+        
+        IdRemapper()
+        {
+            this.cache = new HashMap<String, String>();
+            this.nextId = 1;
+        }
+        
+        public String remap(String id) 
+        {
+            String remappedId = cache.get(id);
+            if (remappedId == null) {
+                remappedId = "a" + nextId++;
+                
+                cache.put(id, remappedId);
+            }
+            
+            return remappedId;
+        }
+    }
 }
 // End XmiFileComparator.java

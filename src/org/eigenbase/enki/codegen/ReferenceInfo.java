@@ -29,10 +29,17 @@ import org.eigenbase.enki.util.*;
  * ReferenceInfo contains commonly used information about {@link Reference}
  * instances and the referenced {@link Association}.
  * 
+ * Note: This class also supports situations where an Association exists 
+ * between two classes, but there is no corresponding Reference.  The name
+ * of this class is, therefore, misleading.  
+ * (See {@link #ReferenceInfo(Generator, Association, AssociationEnd)}.)
+ * 
  * @author Stephan Zuercher
  */
 public class ReferenceInfo extends AssociationInfo
 {
+    private final Reference ref;
+    
     private final AssociationEnd referencedEnd;
     
     private final Classifier referencedType;
@@ -50,23 +57,38 @@ public class ReferenceInfo extends AssociationInfo
     {
         this(
             generator,
+            ref,
             (Association)ref.getExposedEnd().getContainer(),
             ref.getReferencedEnd(),
             false);
     }
     
+    /**
+     * Constructs a Reference-less ReferenceInfo.  Useful when two classes
+     * are associated, but do not reference each other.  When this
+     * constructor is used, {@link #getReference()} returns null.
+     * 
+     * @param generator code generator instance
+     * @param assoc the association
+     * @param referencedEnd the end of the association that should be treated
+     *                      as the referenced end
+     */
     public ReferenceInfo(
         Generator generator, Association assoc, AssociationEnd referencedEnd)
     {
-        this(generator, assoc, referencedEnd, true);
+        this(generator, null, assoc, referencedEnd, true);
     }
 
     private ReferenceInfo(
-        Generator generator, Association assoc, AssociationEnd referencedEnd,
+        Generator generator,
+        Reference ref,
+        Association assoc,
+        AssociationEnd referencedEnd,
         boolean prefixWithAssocName)
     {
         super(generator, assoc);
         
+        this.ref = ref;
         this.referencedEnd = referencedEnd;
         this.referencedType = referencedEnd.getType();
         this.referencedTypeName = 
@@ -97,6 +119,11 @@ public class ReferenceInfo extends AssociationInfo
         
         this.isReferenceEndFirst = (getEnd(0) == referencedEnd);
         
+    }
+    
+    public Reference getReference()
+    {
+        return ref;
     }
     
     public AssociationEnd getReferencedEnd()
@@ -142,6 +169,12 @@ public class ReferenceInfo extends AssociationInfo
     public boolean isChangeable()
     {
         return referencedEnd.isChangeable();
+    }
+    
+    public boolean isComposite()
+    {
+        return AggregationKindEnum.COMPOSITE.equals(
+            referencedEnd.getAggregation());
     }
     
     public boolean isReferencedEndFirst()

@@ -207,6 +207,8 @@ public class HibernateJavaHandler
     
     private Map<Association, AssociationInfo> assocInfoMap;
     
+    private Map<Classifier, List<MofClassAttribPair>> componentAttribMap;
+    
     public HibernateJavaHandler()
     {
         super();
@@ -258,6 +260,8 @@ public class HibernateJavaHandler
         
         this.classIdentifierMap = new HashMap<MofClass, String>();
         this.assocInfoMap = new LinkedHashMap<Association, AssociationInfo>();
+        this.componentAttribMap = 
+            new HashMap<Classifier, List<MofClassAttribPair>>();
     }
     
     @Override
@@ -563,6 +567,37 @@ public class HibernateJavaHandler
             }
             return;
         }
+
+        // Build attribute information
+        Collection<Attribute> instanceAttributes =
+            contentsOfType(
+                cls,
+                HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
+                VisibilityKindEnum.PUBLIC_VIS,
+                ScopeKindEnum.INSTANCE_LEVEL,
+                Attribute.class);
+        ArrayList<Attribute> nonDerivedAttribs = 
+            new ArrayList<Attribute>();
+        Set<Attribute> nonDataTypeAttribs = new HashSet<Attribute>();
+        for(Attribute attrib: instanceAttributes) {
+            if (attrib.isDerived()) {
+                continue;
+            }
+            
+            nonDerivedAttribs.add(attrib);
+
+            boolean isDataType = attrib.getType() instanceof DataType;
+            
+            if (!isDataType) {
+                nonDataTypeAttribs.add(attrib);
+            }
+        }
+
+        if (getPassIndex() == 0 && !cls.isAbstract()) {
+            for(Attribute attrib: nonDataTypeAttribs) {
+                addComponentAttrib(attrib.getType(), cls, attrib);
+            }
+        }
         
         if (checkPassIndex(1)) {
             return;
@@ -626,26 +661,10 @@ public class HibernateJavaHandler
             
             // fields
             writeln("// Attribute Fields");
-            Collection<Attribute> instanceAttributes =
-                contentsOfType(
-                    cls,
-                    HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
-                    VisibilityKindEnum.PUBLIC_VIS,
-                    ScopeKindEnum.INSTANCE_LEVEL,
-                    Attribute.class);
-            ArrayList<Attribute> nonDerivedAttribs = 
-                new ArrayList<Attribute>();
             Map<Attribute, String> nonDerivedAttribNames = 
                 new HashMap<Attribute, String>();
-            Set<Attribute> nonDataTypeAttribs = new HashSet<Attribute>();
-            for(Attribute attrib: instanceAttributes) {
-                if (attrib.isDerived()) {
-                    continue;
-                }
-                
-                nonDerivedAttribs.add(attrib);
-
-                boolean isDataType = attrib.getType() instanceof DataType;
+            for(Attribute attrib: nonDerivedAttribs) {
+                boolean isDataType = !nonDataTypeAttribs.contains(attrib);
                 
                 String fieldName;
                 if (isDataType) {
@@ -653,7 +672,6 @@ public class HibernateJavaHandler
                 } else {
                     fieldName = 
                         writePrivateField(attrib, IMPL_SUFFIX, false, false);
-                    nonDataTypeAttribs.add(attrib);
                 }
                 nonDerivedAttribNames.put(attrib, fieldName);
             }
@@ -778,6 +796,9 @@ public class HibernateJavaHandler
             writeln("return true;");
             endBlock();
             
+            generateRefImmediateComposite(
+                cls, refInfoMap, unrefAssocRefInfoMap);
+            
             newLine();
             startBlock("protected String getClassIdentifier()");
             writeln("return _id;");
@@ -788,6 +809,127 @@ public class HibernateJavaHandler
         finally {
             close();
         }
+    }
+
+    private void addComponentAttrib(
+        Classifier type,
+        MofClass cls,
+        Attribute attrib)
+    {
+        List<MofClassAttribPair> componentOfList =
+            componentAttribMap.get(type);
+        
+        if (componentOfList == null) {
+            componentOfList = new ArrayList<MofClassAttribPair>();
+            componentAttribMap.put(type, componentOfList);
+        }
+        
+        componentOfList.add(new MofClassAttribPair(cls, attrib));
+    }
+
+    private void generateRefImmediateComposite(
+        MofClass cls,
+        Map<Reference, ReferenceInfo> refInfoMap,
+        Map<Association, ReferenceInfo> unrefAssocInfoMap)
+    throws GenerationException
+    {
+        newLine();
+        startBlock(
+            "public ", REF_OBJECT_CLASS, " refImmediateComposite()");
+        
+        // Find the composite associations, if any.  Note that MOF states
+        // an object is only allowed to be the component end of a single
+        // composite aggregation at a time, so we just traverse all of 
+        // the composite aggregates and assume that only one will be valid.
+        // This is not presently enforced, however.
+        for(ReferenceInfo refInfo: refInfoMap.values()) {                        
+            if (refInfo.isComposite()) {
+                startConditionalBlock(
+                    CondType.IF,
+                    getReferenceAccessorName(refInfo), "() != null");
+                write(
+                    "return ", 
+                    generator.getAccessorName(refInfo.getReference()), "()");
+                if (!refInfo.isSingle()) {
+                    if (refInfo.isOrdered()) {
+                        write(".get(0)");
+                    } else {
+                        write(".iterator().next()");
+                    }
+                }
+                writeln(";");
+                endBlock();
+            }
+        }
+        
+        for(ReferenceInfo refInfo: unrefAssocInfoMap.values()) {            
+            if (refInfo.isComposite()) {
+                startConditionalBlock(
+                    CondType.IF,
+                    getReferenceAccessorName(refInfo), "() != null");
+                write(
+                    "return ", 
+                    getReferenceAccessorName(refInfo), "()");
+                
+                switch(refInfo.getKind()) {
+                case ONE_TO_ONE:
+                    if (refInfo.isReferencedEndFirst()) {
+                        write(".getParent()");
+                    } else {
+                        write(".getChild()");
+                    }
+                    break;
+                    
+                case ONE_TO_MANY:
+                    if (refInfo.isSingle()) {
+                        write(".getParent()");
+                    } else if (refInfo.isOrdered()) {
+                        write(".getChildren().get(0)");
+                    } else {
+                        write(".getChildren().iterator.next()");
+                    }
+                    break;
+                    
+                case MANY_TO_MANY:
+                    if (refInfo.isOrdered()) {
+                        write(".getTarget().get(0)");
+                    } else {
+                        write(".getTarget().iterator().next()");
+                    }
+                    break;
+                    
+                default:
+                    throw new GenerationException("unknown assoc kind");
+                }
+                
+                writeln(";");
+                endBlock();
+            }
+        }
+
+        List<MofClassAttribPair> componentOfList = componentAttribMap.get(cls);
+        if (componentOfList != null) {
+            writeln(REF_OBJECT_CLASS, " owner;");
+            for(MofClassAttribPair clsAttribPair: componentOfList) {
+                MofClass ownerCls = clsAttribPair.cls;
+                Attribute ownerAttrib = clsAttribPair.attrib;
+                
+                writeln(
+                    "owner = findCompositeOwner(",
+                    generator.getTypeName(ownerCls, IMPL_SUFFIX), ".class, ",
+                    QUOTE, 
+                    generator.getSimpleTypeName(ownerAttrib, IMPL_SUFFIX),
+                    QUOTE, ");");
+                startConditionalBlock(CondType.IF, "owner != null");
+                writeln("return owner;");
+                endBlock();
+            }
+        }
+        
+        // no composite associations (or none in use)
+        writeln("return null;");
+        
+        endBlock();
     }
 
     private void generateGetAssociationMethod(
@@ -2034,5 +2176,31 @@ public class HibernateJavaHandler
             .append(">");
 
         return type.toString();
+    }
+    
+    private static class MofClassAttribPair
+    {
+        private final MofClass cls;
+        private final Attribute attrib;
+        
+        private MofClassAttribPair(MofClass cls, Attribute attrib)
+        {
+            this.cls = cls;
+            this.attrib = attrib;
+        }
+        
+        public boolean equals(Object o)
+        {
+            MofClassAttribPair that = (MofClassAttribPair)o;
+            
+            return 
+                this.cls.equals(that.cls) && 
+                this.attrib.equals(that.attrib);
+        }
+        
+        public int hashCode()
+        {
+            return cls.hashCode() ^ attrib.hashCode();
+        }
     }
 }

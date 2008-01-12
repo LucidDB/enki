@@ -45,7 +45,7 @@ public abstract class RefFeaturedBase
     
     public Object refGetValue(RefObject type)
     {
-        Method method = findMethod(type, null, "get", 0);
+        Method method = findMethod(type, null, true, 0);
         
         if (method != null) {
             return invokeMethod(Object.class, this, method);
@@ -56,7 +56,7 @@ public abstract class RefFeaturedBase
 
     public Object refGetValue(String typeName)
     {
-        Method method = findMethod(null, typeName, "get", 0);
+        Method method = findMethod(null, typeName, true, 0);
         
         if (method != null) {
             return invokeMethod(Object.class, this, method);
@@ -93,7 +93,7 @@ public abstract class RefFeaturedBase
 
     public void refSetValue(RefObject type, Object value)
     {
-        Method method = findMethod(type, null, "set", 1);
+        Method method = findMethod(type, null, false, 1);
         
         if (method != null&& isMutable(method, value.getClass())) {
             invokeMethod(Void.class, this, method, value);
@@ -105,7 +105,7 @@ public abstract class RefFeaturedBase
 
     public void refSetValue(String typeName, Object value)
     {
-        Method method = findMethod(null, typeName, "set", 1);
+        Method method = findMethod(null, typeName, false, 1);
         
         if (method != null&& isMutable(method, value.getClass())) {
             invokeMethod(Void.class, this, method, value);
@@ -116,7 +116,7 @@ public abstract class RefFeaturedBase
     }
 
     private Method findMethod(
-        RefObject type, String typeName, String prefix, int numParams)
+        RefObject type, String typeName, boolean isGetter, int numParams)
     {
         if ((type == null && typeName == null) ||
             (type != null && typeName != null))
@@ -129,27 +129,53 @@ public abstract class RefFeaturedBase
             ModelElement typeElement = (ModelElement)type;
             typeName = typeElement.getName();
         }
-        
-        String methodName = 
-            prefix +
-            Character.toUpperCase(typeName.charAt(0)) +
-            typeName.substring(1);
-        
+
+        boolean startsWithIs = 
+            typeName.length() > 2 && 
+            typeName.startsWith("is") && 
+            Character.isUpperCase(typeName.charAt(2));
+
+        String primaryMethodName;
+        String secondaryMethodName;
+        if (isGetter) {
+            primaryMethodName = "get" + StringUtil.toInitialUpper(typeName);
+            if (startsWithIs) {
+                secondaryMethodName = typeName;
+            } else {
+                secondaryMethodName = 
+                    "is" + StringUtil.toInitialUpper(typeName);
+            }
+        } else {
+            primaryMethodName = "set" + StringUtil.toInitialUpper(typeName);
+            if (startsWithIs) {
+                secondaryMethodName = "set" + typeName.substring(2);
+            } else {
+                secondaryMethodName = null;
+            }
+        }
+            
         Class<?> cls = getClass();
         do {
             Method[] methods = cls.getDeclaredMethods();
 
             for(Method method: methods) {
-                if (method.getName().equals(methodName) &&
-                    method.getParameterTypes().length == numParams)
-                {
+                String methodName = method.getName();
+                if (!methodName.equals(primaryMethodName)) {
+                    if (secondaryMethodName == null || 
+                        !methodName.equals(secondaryMethodName))
+                    {
+                        continue;
+                    }
+                }
+                
+                if (method.getParameterTypes().length == numParams) {
                     return method;
                 }
             }
             
             cls = cls.getSuperclass();
         } while(cls != RefFeaturedBase.class);
-
+        
         return null;
     }
 

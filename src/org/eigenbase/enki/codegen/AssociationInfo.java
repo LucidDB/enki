@@ -124,6 +124,12 @@ public class AssociationInfo
     {
         return ends[end].isChangeable();
     }
+    
+    public final boolean isComposite(int end)
+    {
+        return AggregationKindEnum.COMPOSITE.equals(
+            ends[end].getAggregation());
+    }
 }
 
 // End AssociationInfo.java

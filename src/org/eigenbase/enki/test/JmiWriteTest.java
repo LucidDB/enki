@@ -107,7 +107,6 @@ public class JmiWriteTest extends JmiTestBase
     @Test
     public void testRefFeaturedSetValue()
     {
-        // refCreateInstance
         RefClass refCarClass = getSamplePackage().getCar();
         
         Attribute make = null;
@@ -129,19 +128,138 @@ public class JmiWriteTest extends JmiTestBase
         Assert.assertNotNull(model);
         Assert.assertNotNull(doors);
 
-        List<?> noArgs = Collections.emptyList();
+        final List<?> noArgs = Collections.emptyList();
         Car car1 = (Car)refCarClass.refCreateInstance(noArgs);
         car1.refSetValue("make", "McLaren");
         car1.refSetValue("model", "F1");
         car1.refSetValue("doors", Integer.valueOf(2));
+        
+        Assert.assertEquals("McLaren", car1.getMake());
+        Assert.assertEquals("F1", car1.getModel());
+        Assert.assertEquals(2, car1.getDoors());
         
         Car car2 = (Car)refCarClass.refCreateInstance(noArgs);
         car2.refSetValue(make, "Tesla");
         car2.refSetValue(model, "Roadster");
         car2.refSetValue(doors, Integer.valueOf(2));
         
+        Assert.assertEquals("Tesla", car2.getMake());
+        Assert.assertEquals("Roadster", car2.getModel());
+        Assert.assertEquals(2, car2.getDoors());
+        
         carMofIds.add(car1.refMofId());
         carMofIds.add(car2.refMofId());
+        
+        // Repeat with troublesome values
+        PhoneNumberClass refPhoneNumberClass = 
+            getSpecialPackage().getPhoneNumber();
+        AreaCodeClass refAreaCodeClass =
+            getSpecialPackage().getAreaCode();
+        
+        Attribute number = null;
+        Attribute areaCodeAttrib = null;
+        for(Attribute attrib: 
+                getAttributes((MofClass)refPhoneNumberClass.refMetaObject()))
+        {
+            String name = attrib.getName();
+            if (name.equals("number")) {
+                number = attrib;
+            } else if (name.equals("areaCode")) {
+                areaCodeAttrib = attrib;
+            }
+        }
+        Assert.assertNotNull(number);
+        Assert.assertNotNull(areaCodeAttrib);
+
+        
+        Attribute domestic = null;
+        Attribute code = null;
+        for(Attribute attrib: 
+                getAttributes((MofClass)refAreaCodeClass.refMetaObject()))
+        {
+            String name = attrib.getName();
+            if (name.equals("code")) {
+                code = attrib;
+            } else if (name.equals("domestic")) {
+                domestic = attrib;
+            }
+        }
+        Assert.assertNotNull(code);
+        Assert.assertNotNull(domestic);
+
+        AreaCode areaCode1 =
+            (AreaCode)refAreaCodeClass.refCreateInstance(noArgs);
+        areaCode1.refSetValue("code", AREA_CODE);
+        areaCode1.refSetValue("domestic", DOMESTIC);
+        
+        Assert.assertEquals(AREA_CODE, areaCode1.getCode());
+        Assert.assertEquals(DOMESTIC, areaCode1.isDomestic());
+        
+        AreaCode areaCode2 =
+            (AreaCode)refAreaCodeClass.refCreateInstance(noArgs);
+        areaCode2.refSetValue(code, AREA_CODE + "x");
+        areaCode2.refSetValue(domestic, !DOMESTIC);
+        
+        Assert.assertEquals(AREA_CODE + "x", areaCode2.getCode());
+        Assert.assertEquals(!DOMESTIC, areaCode2.isDomestic());
+        
+        PhoneNumber phoneNumber1 = 
+            (PhoneNumber)refPhoneNumberClass.refCreateInstance(noArgs);
+        phoneNumber1.refSetValue("areaCode", areaCode1);
+        phoneNumber1.refSetValue("number", PHONE_NUMBER);
+        
+        Assert.assertEquals(areaCode1, phoneNumber1.getAreaCode());
+        Assert.assertEquals(PHONE_NUMBER, phoneNumber1.getNumber());
+        
+        PhoneNumber phoneNumber2 = 
+            (PhoneNumber)refPhoneNumberClass.refCreateInstance(noArgs);
+        phoneNumber2.refSetValue(areaCodeAttrib, areaCode2);
+        phoneNumber2.refSetValue(number, PHONE_NUMBER + "x");
+        
+        Assert.assertEquals(areaCode2, phoneNumber2.getAreaCode());
+        Assert.assertEquals(PHONE_NUMBER + "x", phoneNumber2.getNumber());
+        
+        RefClass refConeClass = getSpecialPackage().getIceCreamCone();
+
+        Attribute flavor = null;
+        Attribute scoops = null;
+        Attribute isMelting = null;
+        for(Attribute attrib: 
+                getAttributes((MofClass)refConeClass.refMetaObject()))
+        {
+            String name = attrib.getName();
+            if (name.equals("flavor")) {
+                flavor = attrib;
+            } else if (name.equals("scoops")) {
+                scoops = attrib;
+            } else if (name.equals("isMelting")) {
+                isMelting = attrib;
+            }
+        }
+        Assert.assertNotNull(flavor);
+        Assert.assertNotNull(scoops);
+        Assert.assertNotNull(isMelting);        
+
+        IceCreamCone cone1 =
+            (IceCreamCone)refConeClass.refCreateInstance(noArgs);
+        cone1.refSetValue("flavor", FLAVOR);
+        cone1.refSetValue("scoops", NUM_SCOOPS);
+        cone1.refSetValue("isMelting", IS_MELTING);
+
+        Assert.assertEquals(FLAVOR, cone1.getFlavor());
+        Assert.assertEquals(NUM_SCOOPS, cone1.getScoops());
+        Assert.assertEquals(IS_MELTING, cone1.isMelting());
+        
+        IceCreamCone cone2 =
+            (IceCreamCone)refConeClass.refCreateInstance(noArgs);
+        cone2.refSetValue(flavor, FLAVOR);
+        cone2.refSetValue(scoops, NUM_SCOOPS + 1);
+        cone2.refSetValue(isMelting, !IS_MELTING);
+
+        Assert.assertEquals(FLAVOR, cone2.getFlavor());
+        Assert.assertEquals(NUM_SCOOPS + 1, cone2.getScoops());
+        Assert.assertEquals(!IS_MELTING, cone2.isMelting());
+
     }
     
     @Test

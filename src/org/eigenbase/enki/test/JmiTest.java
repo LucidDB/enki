@@ -203,9 +203,9 @@ public class JmiTest extends JmiTestBase
         
         Assert.assertSame(getSimplePackage().getEntity2(), e2RefClass);
         
-        // TODO: Test refImmediateComposite
+        // Test refImmediateComposite: see CompositeAssociationTest
         
-        // TODO: Test refOutermoseComposite
+        // Test refOutermoseComposite: see CompositeAssociationTest
         
         // Test refIsInstanceOf
         MofClass e1MofClass =
@@ -238,7 +238,7 @@ public class JmiTest extends JmiTestBase
     public void testRefFeaturedMethods()
     {
         Car car = getCarInstance();
-        
+
         Attribute make = null;
         Attribute model = null;
         Attribute doors = null;
@@ -255,6 +255,64 @@ public class JmiTest extends JmiTestBase
         Assert.assertNotNull(make);
         Assert.assertNotNull(model);
         Assert.assertNotNull(doors);
+
+        
+        PhoneNumber phoneNumber = getPhoneNumberInstance();
+        
+        Attribute number = null;
+        Attribute areaCodeAttrib = null;
+        for(Attribute attrib: 
+                getAttributes((MofClass)phoneNumber.refMetaObject()))
+        {
+            String name = attrib.getName();
+            if (name.equals("number")) {
+                number = attrib;
+            } else if (name.equals("areaCode")) {
+                areaCodeAttrib = attrib;
+            }
+        }
+        Assert.assertNotNull(number);
+        Assert.assertNotNull(areaCodeAttrib);
+
+        
+        AreaCode areaCode = phoneNumber.getAreaCode();
+
+        Attribute domestic = null;
+        Attribute code = null;
+        for(Attribute attrib: 
+                getAttributes((MofClass)areaCode.refMetaObject()))
+        {
+            String name = attrib.getName();
+            if (name.equals("code")) {
+                code = attrib;
+            } else if (name.equals("domestic")) {
+                domestic = attrib;
+            }
+        }
+        Assert.assertNotNull(code);
+        Assert.assertNotNull(domestic);
+
+        
+        IceCreamCone cone = getIceCreamConeInstance();
+        
+        Attribute flavor = null;
+        Attribute scoops = null;
+        Attribute isMelting = null;
+        for(Attribute attrib: 
+                getAttributes((MofClass)cone.refMetaObject()))
+        {
+            String name = attrib.getName();
+            if (name.equals("flavor")) {
+                flavor = attrib;
+            } else if (name.equals("scoops")) {
+                scoops = attrib;
+            } else if (name.equals("isMelting")) {
+                isMelting = attrib;
+            }
+        }
+        Assert.assertNotNull(flavor);
+        Assert.assertNotNull(scoops);
+        Assert.assertNotNull(isMelting);        
         
         // Test refGetValue
         Assert.assertEquals(CAR_MAKE, car.getMake());
@@ -268,6 +326,15 @@ public class JmiTest extends JmiTestBase
         Assert.assertEquals(CAR_NUM_DOORS, car.getDoors());
         Assert.assertEquals(CAR_NUM_DOORS, car.refGetValue("doors"));
         Assert.assertEquals(CAR_NUM_DOORS, car.refGetValue(doors));
+
+        Assert.assertEquals(areaCode, phoneNumber.refGetValue(areaCodeAttrib));
+        Assert.assertEquals(PHONE_NUMBER, phoneNumber.refGetValue(number));
+        Assert.assertEquals(AREA_CODE, areaCode.refGetValue(code));
+        Assert.assertEquals(DOMESTIC, areaCode.refGetValue(domestic));
+        
+        Assert.assertEquals(FLAVOR, cone.refGetValue(flavor));
+        Assert.assertEquals(NUM_SCOOPS, cone.refGetValue(scoops));
+        Assert.assertEquals(IS_MELTING, cone.refGetValue(isMelting));
         
         // TODO: Test refInvokeOperation
     }

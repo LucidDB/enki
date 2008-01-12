@@ -48,10 +48,20 @@ public class JmiTestBase extends SampleModelTestBase
     protected static final String CAR2_MAKE = "Jaguar";
     protected static final String CAR2_MODEL = "XF";
     protected static final int CAR2_NUM_DOORS = 4;
+    
+    protected static final String PHONE_NUMBER = "931-0300";
+    protected static final String AREA_CODE = "650";
+    protected static final boolean DOMESTIC = true;
 
+    protected static final IceCreamFlavor FLAVOR = IceCreamFlavorEnum.VANILLA;
+    protected static final int NUM_SCOOPS = 2;
+    protected static final boolean IS_MELTING = true;
+    
     private static String e1MofId;
     private static String carMofId;
-
+    private static String phoneNumberMofId;
+    private static String coneMofId;
+    
     /**
      * Creates some basic entities for use in tests. The objects' MOF IDs are
      * recorded for later use in {@link #getCarInstance()} and 
@@ -114,8 +124,22 @@ public class JmiTestBase extends SampleModelTestBase
             container.getContainedEntity().add(anotherContainer);
             anotherContainer.getContainedEntity().add(anotherEntity);
             
+            // boolean and non-primitive attributes
+            AreaCode areaCode = 
+                getSpecialPackage().getAreaCode().createAreaCode(
+                    AREA_CODE, DOMESTIC);
+            PhoneNumber phoneNumber =
+                getSpecialPackage().getPhoneNumber().createPhoneNumber(
+                    areaCode, PHONE_NUMBER);
+            
+            IceCreamCone cone = 
+                getSpecialPackage().getIceCreamCone().createIceCreamCone(
+                    FLAVOR, NUM_SCOOPS, IS_MELTING);
+            
             e1MofId = e1.refMofId();
             carMofId = car.refMofId();
+            phoneNumberMofId = phoneNumber.refMofId();
+            coneMofId = cone.refMofId();
             
             rollback = false;
         } finally {
@@ -128,20 +152,12 @@ public class JmiTestBase extends SampleModelTestBase
      */
     protected static Entity1 getEntity1Instance()
     {
-        Collection<Entity1> all =
-            GenericCollections.asTypedCollection(
-                getSimplePackage().getEntity1().refAllOfClass(),
-                Entity1.class);
-        Assert.assertTrue(all.size() >= 1);
-        
-        for(Entity1 e1: all) {
-            if (e1.refMofId().equals(e1MofId)) {
-                return e1;
-            }
-        }
-        
-        Assert.fail("Could not find Entity1 with MOF ID = " + e1MofId);
-        return null; // unreachable
+        Entity1 e1 = (Entity1)getRepository().getByMofId(e1MofId);
+
+        Assert.assertNotNull(
+            "Could not find Entity1 with MOF ID = " + e1MofId, e1);
+
+        return e1;
     }
 
     /**
@@ -149,22 +165,45 @@ public class JmiTestBase extends SampleModelTestBase
      */
     protected static Car getCarInstance()
     {
-        Collection<Car> all =
-            GenericCollections.asTypedCollection(
-                getSamplePackage().getCar().refAllOfClass(),
-                Car.class);
-        Assert.assertTrue(all.size() >= 1);
-        
-        for(Car car: all) {
-            if (car.refMofId().equals(carMofId)) {
-                return car;
-            }
-        }
-        
-        Assert.fail("Could not find Car with MOF ID = " + carMofId);
-        return null; // unreachable
+        Car car = (Car)getRepository().getByMofId(carMofId);
+
+        Assert.assertNotNull(
+            "Could not find Car with MOF ID = " + carMofId, car);
+
+        return car;
     }
     
+    /**
+     * @return the instance of PhoneNumber created by 
+     * {@link #createEntities()}.
+     */
+    protected static PhoneNumber getPhoneNumberInstance()
+    {
+        PhoneNumber phoneNumber = 
+            (PhoneNumber)getRepository().getByMofId(phoneNumberMofId);
+
+        Assert.assertNotNull(
+            "Could not find PhoneNumber with MOF ID = " + phoneNumberMofId,
+            phoneNumber);
+
+        return phoneNumber;
+    }
+    
+    /**
+     * @return the instance of IceCreamCone created by 
+     * {@link #createEntities()}.
+     */
+    protected static IceCreamCone getIceCreamConeInstance()
+    {
+        IceCreamCone cone = 
+            (IceCreamCone)getRepository().getByMofId(coneMofId);
+
+        Assert.assertNotNull(
+            "Could not find IceCreamCone with MOF ID = " + coneMofId,
+            cone);
+
+        return cone;
+    }
     /**
      * Retrieves all {@link Attribute} instances from the contents of
      * the given {@link RefObject} and its super types.
