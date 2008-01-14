@@ -60,9 +60,11 @@ public class HibernateMDRepository
     private static final String MOF_EXTENT = "--mof--";
     
     private static final ThreadLocal<Context> tls = new ThreadLocal<Context>();
-
+    private static HibernateMDRepository repos;
+    
     private final List<Properties> modelPropertiesList;
     private final Properties storageProperties;
+    private final ClassLoader classLoader;
     private final Map<String, ModelDescriptor> modelMap;
     private final Map<String, ExtentDescriptor> extentMap;
     
@@ -74,22 +76,36 @@ public class HibernateMDRepository
 
     public HibernateMDRepository(
         List<Properties> modelProperties,
-        Properties storageProperties)
+        Properties storageProperties,
+        ClassLoader classLoader)
     {
+        if (repos != null) {
+            // TODO: better exception type
+            throw new IllegalStateException(
+                "Cannot instantiate multiple repositories");
+        }
         this.modelPropertiesList = modelProperties;
         this.storageProperties = storageProperties;
+        this.classLoader = classLoader;
         this.modelMap = new HashMap<String, ModelDescriptor>();
         this.extentMap = new HashMap<String, ExtentDescriptor>();
         
         initModelMap();
         initModelExtent(MOF_EXTENT);
+        
+        repos = this;
     }
     
     public void beginTrans(boolean write)
     {
         if (tls.get() != null) {
-            // TODO: better exception type
-            throw new IllegalStateException("Cannot nest transactions");
+            Context context = tls.get();
+            if (context.isWrite) {
+                // TODO: better exception type
+                throw new IllegalStateException("Cannot nest transactions");
+            }
+            
+            // Fall through, upgrading read to write...
         }
         
         Session session = sessionFactory.getCurrentSession();
@@ -183,14 +199,34 @@ public class HibernateMDRepository
             return;
         }
         
-        extentMap.remove(extent);
+        dropExtentStorage(extentDesc);
+    }
+
+    public void dropExtentStorage(RefPackage refPackage) 
+        throws EnkiDropFailedException
+    {
+        // TODO: locking
+        initStorage();
+        
+        for(ExtentDescriptor extentDesc: extentMap.values()) {
+            if (extentDesc.extent.equals(refPackage)) {
+                dropExtentStorage(extentDesc);
+                return;
+            }
+        }
+    }
+    
+    private void dropExtentStorage(ExtentDescriptor extentDesc)
+        throws EnkiDropFailedException
+    {
+        extentMap.remove(extentDesc.name);
         
         Session session = sessionFactory.getCurrentSession();
         Transaction trans = session.beginTransaction();
         boolean rollback = true;
         try {
             Query query = session.getNamedQuery("ExtentByName");
-            query.setString(0, extent);
+            query.setString(0, extentDesc.name);
             
             Extent dbExtent = (Extent)query.uniqueResult();
             session.delete(dbExtent);
@@ -268,6 +304,9 @@ public class HibernateMDRepository
         if (sessionFactory != null) {
             sessionFactory.close();
         }
+
+        // Clear the repository used for implicit read transactions
+        repos = null;
     }
 
     public void addListener(MDRChangeListener listener)
@@ -305,6 +344,12 @@ public class HibernateMDRepository
         return extentDesc.builtIn;        
     }
     
+    // Implement EnkiMDRepository
+    public ClassLoader getDefaultClassLoader()
+    {
+        return classLoader;
+    }
+    
     public SessionFactory getSessionFactory()
     {
         return sessionFactory;
@@ -312,28 +357,37 @@ public class HibernateMDRepository
     
     public static HibernateMDRepository getRepository()
     {
-        assert(tls.get() != null);
-        return tls.get().getRepository();
+        return repos;
     }
-    
+
     public static Session getCurrentSession()
     {
-        assert(tls.get() != null);
+        checkTransaction();
         return tls.get().session;
     }
     
     public static boolean isWriteTransaction()
     {
-        assert(tls.get() != null);
+        checkTransaction();
         return tls.get().isWrite;
     }
 
     public static MofIdGenerator getMofIdGenerator()
     {
-        assert(tls.get() != null);
+        checkTransaction();
         return tls.get().getMofIdGenerator();
     }
 
+    private static void checkTransaction()
+    {
+        if (tls.get() != null) {
+            return;
+        }
+
+        // begin an implicit read transaction for this thread
+        repos.beginTrans(false);
+    }
+    
     private void loadExistingExtents(List<Extent> extents)
     {
         for(Extent extent: extents) {
@@ -866,11 +920,6 @@ public class HibernateMDRepository
             this.session = sesson;
             this.transaction = transaction;
             this.isWrite = isWrite;
-        }
-        
-        private HibernateMDRepository getRepository()
-        {
-            return HibernateMDRepository.this;
         }
         
         private MofIdGenerator getMofIdGenerator()
