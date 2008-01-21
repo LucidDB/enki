@@ -245,6 +245,12 @@ public class HibernateManyToManyAssociation
         }
         return links;
     }
+
+    @Override
+    public Collection<? extends RefObject> query(boolean returnSecondEnd)
+    {
+        return Collections.unmodifiableCollection(getTarget());
+    }
 }
 
 // End HibernateManyToManyAssociation.java

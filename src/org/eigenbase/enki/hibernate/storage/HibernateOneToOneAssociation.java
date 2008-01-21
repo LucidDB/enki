@@ -193,6 +193,16 @@ public class HibernateOneToOneAssociation
         
         return Collections.singleton(link);
     }
+
+    @Override
+    public Collection<? extends RefObject> query(boolean returnSecondEnd)
+    {
+        if (returnSecondEnd) {
+            return Collections.singleton(getChild());
+        } else {
+            return Collections.singleton(getParent());
+        }
+    }
 }
 
 // End HibernateOneToOneAssociation.java

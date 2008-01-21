@@ -25,6 +25,7 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.codegen.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
@@ -40,6 +41,10 @@ import org.hibernate.*;
 public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2 extends RefObject>
     extends HibernateRefAssociation
 {
+    private static final String ALL_LINKS_QUERY = 
+        HibernateManyToManyAssociation.class.getName() + "." +
+        HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+
     private final Class<E1> end1Class;
     private final Class<E2> end2Class;
     
@@ -71,31 +76,13 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
     @Override
     protected Query getAllLinksQuery(Session session)
     {
-        // TODO: make named query
-        Query query = 
-            session.createQuery(
-                "from " + HibernateManyToManyAssociation.class.getName() +
-                " where type = ? and reversed = 0");
-        
+        Query query = session.getNamedQuery(ALL_LINKS_QUERY);
         return query;
     }
 
     protected boolean exists(E1 source, E2 target)
     {
         return super.refLinkExists(source, target);
-    }
-
-    @Override
-    protected Query getExistsQuery(Session session)
-    {
-        // TODO: make named query
-        Query query = 
-            session.createQuery(
-                "from " + 
-                HibernateManyToManyAssociation.class.getName() +
-                " where type = ? and source = (?, ?) and (?, ?) in elements(target)");
-        
-        return query;
     }
 
     protected Collection<E1> getSourceOf(E2 target)
@@ -132,43 +119,6 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
         return end2Class;
     }
     
-    @Override
-    protected Query getQueryQuery(Session session, boolean givenFirstEnd)
-    {
-        // TODO: make named queries
-        Query query;
-        if (givenFirstEnd) {
-            query = 
-                session.createQuery(
-                    "from " + HibernateManyToManyAssociation.class.getName() +
-                    " where type = ? and reversed = 0 and source = (?, ?)");
-        } else {
-            query = 
-                session.createQuery(
-                    "from " + HibernateManyToManyAssociation.class.getName() +
-                    " where type = ? and reversed = 1 and source = (?, ?)");
-        }
-        return query;
-    }
-
-    @Override
-    protected Collection<? extends RefObject> toRefObjectCollection(
-        List<? extends HibernateAssociation> queryResult,
-        boolean returnFirstEnd)
-    {
-        if (queryResult.isEmpty()) {
-            return Collections.emptySet();
-        }
-
-        ArrayList<RefAssociationLink> links = 
-            new ArrayList<RefAssociationLink>();
-        for(HibernateAssociation assoc: queryResult) {
-            links.addAll(assoc.getLinks());
-        }
-        
-        return new QueryResultCollection(links, returnFirstEnd);
-    }
-
     public boolean add(E1 end1, E2 end2)
     {
         HibernateAssociable associableEnd1 = (HibernateAssociable)end1;

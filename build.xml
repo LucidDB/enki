@@ -323,6 +323,10 @@
     <delete>
       <fileset dir="${classes.dir}" includes="**/*"/>
       <fileset dir="${enki.dir}" includes="mdr.bt?"/>
+      <fileset dir="${trace.dir}">
+        <include name="*.log"/>
+        <include name="*.log.*"/>
+      </fileset>
     </delete>
 
     <!-- Clean up sample -->

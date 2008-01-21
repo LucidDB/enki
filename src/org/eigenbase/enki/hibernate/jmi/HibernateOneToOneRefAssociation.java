@@ -25,6 +25,7 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.codegen.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.hibernate.*;
@@ -38,6 +39,10 @@ import org.hibernate.*;
 public abstract class HibernateOneToOneRefAssociation<E1 extends RefObject, E2 extends RefObject>
     extends HibernateRefAssociation
 {
+    private static final String ALL_LINKS_QUERY = 
+        HibernateOneToOneAssociation.class.getName() + "." +
+        HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+
     private final Class<E1> end1Class;
     private final Class<E2> end2Class;
     
@@ -64,12 +69,7 @@ public abstract class HibernateOneToOneRefAssociation<E1 extends RefObject, E2 e
     @Override
     protected Query getAllLinksQuery(Session session)
     {
-        // TODO: make named query
-        Query query = 
-            session.createQuery(
-                "from " + HibernateOneToOneAssociation.class.getName() +
-                " where type = ?");
-        
+        Query query = session.getNamedQuery(ALL_LINKS_QUERY);
         return query;
     }
 
@@ -78,18 +78,6 @@ public abstract class HibernateOneToOneRefAssociation<E1 extends RefObject, E2 e
         return refLinkExists(parent, child);
     }
     
-    @Override
-    protected Query getExistsQuery(Session session)
-    {
-        // TODO: make named query
-        Query query = 
-            session.createQuery(
-                "from " + HibernateOneToOneAssociation.class.getName() +
-                " where type = ? and parent = (?, ?) and child = (?, ?)");
-        
-        return query;
-    }
-
     protected E1 getParentOf(E2 child)
     {
         Collection<? extends RefObject> c = super.query(false, child);
@@ -112,43 +100,6 @@ public abstract class HibernateOneToOneRefAssociation<E1 extends RefObject, E2 e
         }
     }
     
-    @Override
-    protected Query getQueryQuery(Session session, boolean givenFirstEnd)
-    {
-        // TODO: make named queries
-        Query query;
-        if (givenFirstEnd) {
-            query = 
-                session.createQuery(
-                    "from " + HibernateOneToOneAssociation.class.getName() +
-                    " where type = ? and parent = (?, ?)");
-        } else {
-            query = 
-                session.createQuery(
-                    "from " + HibernateOneToOneAssociation.class.getName() +
-                    " where type = ? and child = (?, ?)");
-        }
-        return query;
-    }
-    
-    @Override
-    protected Collection<? extends RefObject> toRefObjectCollection(
-        List<? extends HibernateAssociation> queryResult,
-        boolean returnFirstEnd)
-    {
-        assert(queryResult.size() <= 1);
-        
-        if (queryResult.isEmpty()) {
-            return Collections.emptySet();
-        }
-
-        HibernateAssociation assoc = queryResult.get(0);
-        RefAssociationLink link = assoc.linkIterator().next();
-        
-        return new QueryResultCollection(
-            Collections.singleton(link), returnFirstEnd);
-    }
-
     @Override
     protected Class<? extends RefObject> getFirstEndType()
     {

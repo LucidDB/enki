@@ -25,6 +25,7 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.codegen.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
@@ -40,6 +41,10 @@ import org.hibernate.*;
 public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 extends RefObject>
     extends HibernateRefAssociation
 {
+    private static final String ALL_LINKS_QUERY = 
+        HibernateOneToManyAssociation.class.getName() + "." +
+        HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+
     private final Class<E1> end1Class;
     private final Class<E2> end2Class;
     private final boolean end1IsParent;
@@ -78,37 +83,13 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
     @Override
     protected Query getAllLinksQuery(Session session)
     {
-        // TODO: make named query
-        Query query = 
-            session.createQuery(
-                "from " + HibernateOneToManyAssociation.class.getName() +
-                " where type = ?");
-        
+        Query query = session.getNamedQuery(ALL_LINKS_QUERY);
         return query;
     }
     
     protected boolean exists(E1 parent, E2 child)
     {
         return refLinkExists(parent, child);
-    }
-
-    @Override
-    protected Query getExistsQuery(Session session)
-    {
-        // TODO: make named query
-        Query query;
-        if (end1IsParent) {
-            query = session.createQuery(
-                "from " + 
-                HibernateOneToManyAssociation.class.getName() + 
-                " where type = ? and parent = (?, ?) and (?, ?) in elements(children)");
-        } else {
-            query = session.createQuery(
-                "from " + 
-                HibernateOneToManyAssociation.class.getName() + 
-                " where type = ? and (?, ?) in elements(children) and parent = (?, ?)");
-        }
-        return query;
     }
 
     protected <EX extends RefObject> EX getParentOf(
@@ -149,48 +130,6 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
         } else {
             return GenericCollections.asTypedCollection(c, cls);
         }
-    }
-
-    @Override
-    protected Query getQueryQuery(Session session, boolean givenFirstEnd)
-    {
-        boolean givenParentEnd = (givenFirstEnd == end1IsParent);
-        
-        // TODO: make named queries
-        Query query;
-        if (givenParentEnd) {
-            query = 
-                session.createQuery(
-                    "from " + HibernateOneToManyAssociation.class.getName() +
-                    " where type = ? and parent = (?, ?)");
-        } else {
-            query = 
-                session.createQuery(
-                    "from " + HibernateOneToManyAssociation.class.getName() +
-                    " where type = ? and (?, ?) in elements(children)");
-        }
-        return query;
-    }
-    
-    @Override
-    protected Collection<? extends RefObject> toRefObjectCollection(
-        List<? extends HibernateAssociation> queryResult,
-        boolean returnFirstEnd)
-    {
-        assert(queryResult.size() <= 1);
-        
-        if (queryResult.isEmpty()) {
-            return Collections.emptySet();
-        }
-
-        HibernateAssociation assoc = queryResult.get(0);
-        if (returnFirstEnd) {
-            RefAssociationLink link = assoc.linkIterator().next();
-            
-            return Collections.singleton(link.refFirstEnd());
-        }
-        
-        return new QueryResultCollection(assoc.getLinks(), returnFirstEnd);
     }
 
     @Override

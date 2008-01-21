@@ -152,6 +152,15 @@ public abstract class HibernateAssociation extends HibernateObject
     {
         return getLinks().iterator();
     }
+    
+    /**
+     * Query this association and return the objects of the requested end.
+     * 
+     * @param returnSecondEnd if true return the end2 object(s)
+     * @return collection of objects for the requested end
+     */
+    public abstract Collection<? extends RefObject> query(
+        boolean returnSecondEnd);
 }
 
 // End HibernateAssociation.java

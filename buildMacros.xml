@@ -38,6 +38,8 @@
 
   <property name="thirdparty.dir" location="${enki.dir}/thirdparty"/>
 
+  <property name="trace.dir" location="trace"/>
+
   <property name="dist.dir" location="${enki.dir}/dist"/>
   <property name="enki.dist.jar" location="${dist.dir}/enki.jar"/>
 
@@ -54,7 +56,9 @@
   <!-- runtime assertion control -->
   <property name="assertions.jvmarg" value="-ea -esa"/>
 
-  <property name="enki.mdr.log.config" location="trace/EnkiTrace.properties"/>
+  <property
+      name="enki.mdr.log.config" 
+      location="${trace.dir}/EnkiTrace.properties"/>
 
   <condition property="notWindows">
     <not>

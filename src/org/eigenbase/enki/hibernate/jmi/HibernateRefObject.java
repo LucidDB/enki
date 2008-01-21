@@ -82,6 +82,7 @@ public abstract class HibernateRefObject
         Criteria criteria = 
             session.createCriteria(ownerClass)
             .add(Restrictions.eq(ownerPropertyName, this));
+        criteria.setCacheable(true);
         
         return (RefObject)criteria.uniqueResult();
     }

@@ -29,6 +29,7 @@ import java.util.logging.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.jmi.model.init.*;
@@ -36,6 +37,8 @@ import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 import org.hibernate.*;
 import org.hibernate.cfg.*;
+import org.hibernate.event.*;
+import org.hibernate.event.def.*;
 import org.hibernate.tool.hbm2ddl.*;
 import org.netbeans.api.mdr.*;
 import org.netbeans.api.mdr.events.*;
@@ -47,7 +50,8 @@ import org.netbeans.api.mdr.events.*;
  * @author Stephan Zuercher
  */
 public class HibernateMDRepository
-    implements MDRepository, EnkiMDRepository
+    implements MDRepository, EnkiMDRepository, FlushEventListener, 
+               AutoFlushEventListener
 {
     public static final String CONFIG_PROPERTIES = "config.properties";
     public static final String MAPPING_XML = "mapping.xml";
@@ -98,20 +102,53 @@ public class HibernateMDRepository
     
     public void beginTrans(boolean write)
     {
+        beginTrans(write, false);
+    }
+    
+    private void beginTrans(boolean write, boolean implicit)
+    {
+        Context ancestor = null;
+        Context implicitContext = null;
         if (tls.get() != null) {
             Context context = tls.get();
-            if (context.isWrite) {
-                // TODO: better exception type
-                throw new IllegalStateException("Cannot nest transactions");
-            }
-            
-            // Fall through, upgrading read to write...
-        }
-        
-        Session session = sessionFactory.getCurrentSession();
-        Transaction txn = session.beginTransaction();
 
-        Context context = new Context(session, txn, write);
+            if (context.isImplicit) {
+                if (!write) {
+                    // Nested read.  May upgrade implicit to explicit read txn.
+                    context.isImplicit = implicit;
+                    return;
+                }
+
+                // Replace implicit read with a write txn by falling through 
+                // with null ancestor.
+                implicitContext = context;
+            } else {
+                // Allow certain nested read transactions.
+                if (context.isWrite && write) {
+                    // TODO: better exception type
+                    throw new IllegalStateException(
+                        "Cannot nest write transactions");
+                }
+                
+                ancestor = context;
+            }
+        }
+
+        Session session;
+        Transaction txn;
+        if (ancestor != null) {
+            session = ancestor.session;
+            txn = ancestor.transaction;
+        } else if (implicitContext != null) {
+            // Don't open a new session/transaction.
+            session = implicitContext.session;
+            txn = implicitContext.transaction;
+        } else {
+            session = sessionFactory.getCurrentSession();
+            txn = session.beginTransaction();
+        }
+
+        Context context = new Context(session, txn, write, implicit, ancestor);
         tls.set(context);
     }
 
@@ -128,26 +165,34 @@ public class HibernateMDRepository
             throw new IllegalStateException(
                 "No current transaction on this thread");
         }
+        
+        if (context.ancestor != null) {
+            tls.set(context.ancestor);
+            return;
+        }
+        
         tls.set(null);
         
         Transaction txn = context.transaction;
 
+        // No need to close the session, the txn commit or rollback took care 
+        // of that already.
         if (rollback) {
             txn.rollback();
         } else {
             ArrayList<String> constraintErrors = new ArrayList<String>();
             boolean foundConstraintError = false;
 
-            // TODO: check for constraint violations (somehow)
+            // TODO: check for constraint violations
 
             if (foundConstraintError) {
                 txn.rollback();
                 
                 throw new HibernateConstraintViolationException(
                     constraintErrors);
+            } else {
+                txn.commit();
             }
-            
-            txn.commit();
         }
     }
 
@@ -272,6 +317,7 @@ public class HibernateMDRepository
                 session.createQuery(
                     "from " + RefBaseObject.class.getName() 
                     + " where mofId = ?");
+            query.setCacheable(true);
             query.setLong(0, mofIdLong);
             
             return (RefBaseObject)query.uniqueResult();
@@ -302,6 +348,10 @@ public class HibernateMDRepository
         // TODO: locking
         
         if (sessionFactory != null) {
+            if (sessionFactory.getStatistics().isStatisticsEnabled()) {
+                sessionFactory.getStatistics().logSummary();
+            }
+            
             sessionFactory.close();
         }
 
@@ -378,6 +428,28 @@ public class HibernateMDRepository
         return tls.get().getMofIdGenerator();
     }
 
+    public static Collection<?> lookupAllOfTypeResult(HibernateRefClass cls)
+    {
+        return tls.get().allOfTypeCache.get(cls);
+    }
+    
+    public static void storeAllOfTypeResult(
+        HibernateRefClass cls, Collection<?> allOfType)
+    {
+        tls.get().allOfTypeCache.put(cls, allOfType);
+    }
+    
+    public static Collection<?> lookupAllOfClassResult(HibernateRefClass cls)
+    {
+        return tls.get().allOfClassCache.get(cls);
+    }
+    
+    public static void storeAllOfClassResult(
+        HibernateRefClass cls, Collection<?> allOfClass)
+    {
+        tls.get().allOfClassCache.put(cls, allOfClass);
+    }
+
     private static void checkTransaction()
     {
         if (tls.get() != null) {
@@ -385,7 +457,7 @@ public class HibernateMDRepository
         }
 
         // begin an implicit read transaction for this thread
-        repos.beginTrans(false);
+        repos.beginTrans(false, true);
     }
     
     private void loadExistingExtents(List<Extent> extents)
@@ -595,6 +667,19 @@ public class HibernateMDRepository
             URL internalConfigIUrl = 
                 getClass().getResource(HIBERNATE_STORAGE_MAPPING_XML);
             config.addURL(internalConfigIUrl);
+            
+            FlushEventListener[] flushListeners = { 
+                this,
+                new DefaultFlushEventListener()
+            };
+            AutoFlushEventListener[] autoFlushListeners = { 
+                this,
+                new DefaultAutoFlushEventListener()
+            };
+            
+            config.getEventListeners().setFlushEventListeners(flushListeners);
+            config.getEventListeners().setAutoFlushEventListeners(
+                autoFlushListeners);
         }
         
         return config;
@@ -873,7 +958,32 @@ public class HibernateMDRepository
         
         extentMap.put(name, extentDesc);
     }
-    
+        
+    public void onFlush(FlushEvent flushEvent) throws HibernateException
+    {
+        Context context = tls.get();
+        if (context == null) {
+            // Not in a transaction (e.g. startup, shutdown)
+            return;
+        }
+        
+        context.allOfTypeCache.clear();
+        context.allOfClassCache.clear();
+    }
+
+    public void onAutoFlush(AutoFlushEvent autoFlushEvent) 
+        throws HibernateException
+    {
+        Context context = tls.get();
+        if (context == null) {
+            // Not in a transaction (e.g. startup, shutdown)
+            return;
+        }
+        
+        context.allOfTypeCache.clear();
+        context.allOfClassCache.clear();
+    }
+
     private static class ModelDescriptor
     {
         private final String name;
@@ -913,13 +1023,27 @@ public class HibernateMDRepository
         private Session session;
         private Transaction transaction;
         private boolean isWrite;
+        private boolean isImplicit;
+        private final Context ancestor;
+        private Map<HibernateRefClass, Collection<?>> allOfTypeCache;
+        private Map<HibernateRefClass, Collection<?>> allOfClassCache;
         
         private Context(
-            Session sesson, Transaction transaction, boolean isWrite)
+            Session sesson,
+            Transaction transaction, 
+            boolean isWrite, 
+            boolean isImplicit,
+            Context ancestor)
         {
             this.session = sesson;
             this.transaction = transaction;
             this.isWrite = isWrite;
+            this.isImplicit = isImplicit;
+            this.ancestor = ancestor;
+            this.allOfTypeCache = 
+                new HashMap<HibernateRefClass, Collection<?>>();
+            this.allOfClassCache =
+                new HashMap<HibernateRefClass, Collection<?>>();
         }
         
         private MofIdGenerator getMofIdGenerator()

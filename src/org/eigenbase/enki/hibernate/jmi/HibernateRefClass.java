@@ -22,10 +22,13 @@
 package org.eigenbase.enki.hibernate.jmi;
 
 import java.util.*;
+import java.util.logging.*;
 
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.hibernate.codegen.*;
+import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.hibernate.*;
 
@@ -39,8 +42,8 @@ public abstract class HibernateRefClass
     extends RefClassBase 
     implements RefClass
 {
-    private final String classImplementationName;
-    private final String classInterfaceName;
+    private final String allOfClassQueryName;
+    private final String allOfTypeQueryName;
     
     protected HibernateRefClass(
         RefPackage container,
@@ -50,12 +53,16 @@ public abstract class HibernateRefClass
         super(container);
         
         if (classImplementationName != null) {
-            this.classImplementationName = classImplementationName.getName();
+            this.allOfClassQueryName = 
+                classImplementationName.getName() + "." + 
+                HibernateMappingHandler.QUERY_NAME_ALLOFCLASS;
         } else {
-            this.classImplementationName = null;
+            this.allOfClassQueryName = null;
         }
         
-        this.classInterfaceName = classInterfaceName.getName();
+        this.allOfTypeQueryName = 
+            classInterfaceName.getName() + "." + 
+            HibernateMappingHandler.QUERY_NAME_ALLOFTYPE;
         
         HibernateRefClassRegistry.instance().registerRefClass(
             getClassIdentifier(),
@@ -68,14 +75,17 @@ public abstract class HibernateRefClass
     @SuppressWarnings("unchecked")
     public Collection<?> refAllOfClass()
     {
-        if (classImplementationName != null) {
+        if (allOfClassQueryName != null) {
+            Collection<?> cacheResult = 
+                HibernateMDRepository.lookupAllOfClassResult(this);
+            if (cacheResult != null) {
+                return cacheResult;
+            }
+            
             Session session = HibernateMDRepository.getCurrentSession();
             
-            // Polymorphic query against implementation type will return only
-            // instances of this exact class.
-            Query query = 
-                session.createQuery("from " + classImplementationName);
-    
+            Query query = session.getNamedQuery(allOfClassQueryName);
+
             return Collections.unmodifiableList(query.list());
         }
         
@@ -86,15 +96,20 @@ public abstract class HibernateRefClass
     @SuppressWarnings("unchecked")
     public Collection<?> refAllOfType()
     {
+        Collection<?> cacheResult = 
+            HibernateMDRepository.lookupAllOfTypeResult(this);
+        if (cacheResult != null) {
+            return cacheResult;
+        }
+        
         Session session = HibernateMDRepository.getCurrentSession();
         
-        // Polymorphic query against interface type will return instances
-        // of this class and any other implementation of the interface (e.g.,
-        // all subclasses).
-        Query query = session.createQuery("from " + classInterfaceName);
+        Query query = session.getNamedQuery(allOfTypeQueryName);
         
-        return Collections.unmodifiableList(query.list());
+        Collection<?> result = Collections.unmodifiableList(query.list());
+        
+        HibernateMDRepository.storeAllOfTypeResult(this, result);
+        
+        return result;
     }
-    
-    
 }

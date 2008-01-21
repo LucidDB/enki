@@ -23,10 +23,10 @@ package org.eigenbase.enki.hibernate.jmi;
 
 import java.util.*;
 
-import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.hibernate.codegen.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
@@ -67,7 +67,8 @@ public abstract class HibernateRefAssociation
         Session session = HibernateMDRepository.getCurrentSession();
         
         Query query = getAllLinksQuery(session);
-        query.setString(0, type);
+        query.setString(
+            HibernateMappingHandler.QUERY_PARAM_ALLLINKS_TYPE, type);
         
         ArrayList<RefAssociationLink> links = 
             new ArrayList<RefAssociationLink>();
@@ -98,45 +99,20 @@ public abstract class HibernateRefAssociation
 
     public boolean refLinkExists(RefObject end1, RefObject end2)
     {
-        Session session = HibernateMDRepository.getCurrentSession();
+        checkTypes(end1, end2);
         
-        String end1TypeName = 
-            TagUtil.getSubstName((ModelElement)end1.refMetaObject());
-        String end2TypeName = 
-            TagUtil.getSubstName((ModelElement)end2.refMetaObject());
+        HibernateAssociation assoc = 
+            ((HibernateAssociable)end1).getAssociation(type, true);
+        if (assoc == null) {
+            return false;
+        }
         
-        Query query = getExistsQuery(session);
-        query.setString(0, type);
-        query.setString(1, end1TypeName);
-        query.setLong(2, ((RefObjectBase)end1).getMofId());
-        query.setString(3, end2TypeName);
-        query.setLong(4, ((RefObjectBase)end2).getMofId());
+        Collection<? extends RefObject> queryResult = 
+            assoc.query(true);
         
-        return !query.list().isEmpty();
+        return queryResult.contains(end2);
     }
 
-    /**
-     * Obtains a query to implement 
-     * {@link #refLinkExists(RefObject, RefObject)}.  The query parameters must
-     * be: 
-     * <ol>
-     * <li>string: the association {@link #type},<li>
-     * <li>string: first end type name (e.g., the substitute name for the first
-     *     end's <code>refMetaObject()</code>)<li>
-     * <li>long: first end's unformatted MOF ID</li>
-     * <li>string: second end type name (e.g., the substitute name for the 
-     *     second end's <code>refMetaObject()</code>)<li>
-     * <li>long: second end's unformatted MOF ID</li>
-     * </ol>
-     * The query must return 0 rows (of any type) if there are no association
-     * links matching the query parameters and 1 (or more) rows (of any type)
-     * if there is at least one association link matching the parameters.
-     * 
-     * @param session session to create query in
-     * @return Hibernate Query object as described above
-     */
-    protected abstract Query getExistsQuery(Session session);
-    
     @Override
     protected Collection<? extends RefObject> query(
         boolean isFirstEnd, RefObject queryObject)
@@ -147,56 +123,15 @@ public abstract class HibernateRefAssociation
             checkSecondEndType(queryObject);
         }
         
+        HibernateAssociation assoc = 
+            ((HibernateAssociable)queryObject).getAssociation(
+                type, isFirstEnd);
+        if (assoc == null) {
+            return Collections.emptySet();
+        }
         
-        Session session = HibernateMDRepository.getCurrentSession();
-
-        String queryObjectTypeName =
-            TagUtil.getSubstName((ModelElement)queryObject.refMetaObject());
-        
-        Query query = getQueryQuery(session, isFirstEnd);
-        query.setString(0, type);
-        query.setString(1, queryObjectTypeName);
-        query.setLong(2, ((RefObjectBase)queryObject).getMofId());
-
-        List<? extends HibernateAssociation> associations =
-            GenericCollections.asTypedList(
-                query.list(), HibernateAssociation.class);
-        
-        return toRefObjectCollection(associations, !isFirstEnd);
+        return assoc.query(isFirstEnd);
     }
-    
-    /**
-     * Obtain a query to implement {@link #refQuery(RefObject, RefObject)} and
-     * {@link #refQuery(String, RefObject)} via 
-     * {@link #query(boolean, RefObject)}.  The query parameters must be:
-     * <ol>
-     * <li>string: the association {@link #type},<li>
-     * <li>string: end type name (e.g., the substitute name for the given
-     *     end's <code>refMetaObject()</code>)<li>
-     * <li>long: the given end's unformatted MOF ID</li>
-     * </ol> 
-     *  
-     * The query must return a list of {@link HibernateAssociation} instances.
-     * 
-     * @param session session to create query in
-     * @return Hibernate Query object as described above
-     */
-    protected abstract Query getQueryQuery(
-        Session session, boolean isFirstEnd);
-    
-    /**
-     * Converts the given list of {@link HibernateAssociation} instances
-     * into a collection of {@link RefObject}.
-     * 
-     * @param queryResult result of a query returned by 
-     *                    {@link #getQueryQuery(Session, boolean)}.
-     * @param returnFirstEnd if true, return the first end(s) of each 
-     *                       association object; else the second end(s)
-     * @return Collection of RefObjects
-     */
-    protected abstract Collection<? extends RefObject> toRefObjectCollection(
-        final List<? extends HibernateAssociation> queryResult, 
-        final boolean returnFirstEnd);
     
     public boolean refAddLink(RefObject end1, RefObject end2)
     {

@@ -124,6 +124,15 @@ public class HibernateMappingHandler
         new JavaClassReference(
             HibernateJavaHandler.ASSOCIATION_MANY_TO_MANY_IMPL_CLASS, false);
 
+    // Association HQL query names and named parameters.
+    public static final String QUERY_NAME_ALLLINKS = "allLinks";
+
+    public static final String QUERY_PARAM_ALLLINKS_TYPE = "type";
+
+    // Class HQL query names and named parameters
+    public static final String QUERY_NAME_ALLOFCLASS = "allOfClass";
+    public static final String QUERY_NAME_ALLOFTYPE = "allOfType";
+    
     private static final JavaClassReference BOOLEAN_PROPERTY_ACCESSOR_CLASS =
         new JavaClassReference(BooleanPropertyAccessor.class, false);
     
@@ -140,6 +149,7 @@ public class HibernateMappingHandler
     private Set<Classifier> manyToManyTargetTypeSet;
 
     private Map<Classifier, Set<Classifier>> subTypeMap;
+    private Set<Classifier> allTypes;
     
     private final Logger log = 
         Logger.getLogger(HibernateMappingHandler.class.getName());
@@ -165,8 +175,9 @@ public class HibernateMappingHandler
         this.manyToManySourceTypeSet = new LinkedHashSet<Classifier>();
         this.manyToManyTargetTypeSet = new LinkedHashSet<Classifier>();
         
-        this.subTypeMap = new HashMap<Classifier, Set<Classifier>>();
-
+        this.subTypeMap = new LinkedHashMap<Classifier, Set<Classifier>>();
+        this.allTypes = new LinkedHashSet<Classifier>();
+        
         this.assocInfoMap = new LinkedHashMap<Association, AssociationInfo>();
     }
 
@@ -236,6 +247,8 @@ public class HibernateMappingHandler
                 writeManyToManyMapping();
             }
             
+            generateAllOfTypeQueries();
+            
             endElem("hibernate-mapping");
         }
         
@@ -265,7 +278,7 @@ public class HibernateMappingHandler
             writeln(
                 HibernateMDRepository.PROPERTY_MODEL_INITIALIZER, "=", 
                 initializerName);
-            
+
             close();
         }
         
@@ -288,11 +301,15 @@ public class HibernateMappingHandler
             childLength = Math.max(childLength, key.length());
         }
 
-        // TODO: distinct tables/names for multi-extent repositories
+        // TODO: distinct tables/names for multiple extents in one schema
+        // (or else move these standard to a built-in config file and use 
+        // them across repositories)
         startElem(
             "class",
             "name", ASSOCIATION_ONE_TO_ONE_IMPL_CLASS,
             "table", ASSOC_ONE_TO_ONE_TABLE);
+        
+        writeEmptyElem("cache", "usage", "read-write");
         
         writeIdBlock();
         
@@ -343,6 +360,18 @@ public class HibernateMappingHandler
             "column",
             "name", ASSOC_ONE_TO_ONE_CHILD_ID_COLUMN);
         endElem("any");
+        
+        // Named queries
+        newLine();
+        startElem(
+            "query", 
+            "name", QUERY_NAME_ALLLINKS);
+        writeCData(
+            "from ", 
+            ASSOCIATION_ONE_TO_ONE_IMPL_CLASS.toFull(),
+            " where type = :", QUERY_PARAM_ALLLINKS_TYPE);
+        endElem("query");
+        
         endElem("class");
     }
     
@@ -362,11 +391,15 @@ public class HibernateMappingHandler
             childLength = Math.max(childLength, key.length());
         }
         
-        // TODO: distinct tables/names for multi-extent repositories
+        // TODO: distinct tables/names for multiple extents in one schema
+        // (or else move these standard to a built-in config file and use 
+        // them across repositories)
         startElem(
             "class",
             "name", ASSOCIATION_ONE_TO_MANY_IMPL_CLASS,
             "table", ASSOC_ONE_TO_MANY_TABLE);
+        
+        writeEmptyElem("cache", "usage", "read-write");
         
         writeIdBlock();
         
@@ -406,7 +439,8 @@ public class HibernateMappingHandler
             "name", ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY,
             "table", ASSOC_ONE_TO_MANY_CHILDREN_TABLE,
             "cascade", "save-update",
-            "fetch", "join");
+            "fetch", "subselect");
+        writeEmptyElem("cache", "usage", "read-write");        
         writeEmptyElem("key", "column", ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN);
         writeEmptyElem(
             "list-index", "column", ASSOC_ONE_TO_MANY_CHILD_ORDINAL_COLUMN);
@@ -428,6 +462,18 @@ public class HibernateMappingHandler
         writeEmptyElem("column", "name", ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN);
         endElem("many-to-any");
         endElem("list");
+
+        // Named queries
+        newLine();
+        startElem(
+            "query", 
+            "name", QUERY_NAME_ALLLINKS);
+        writeCData(
+            "from ", 
+            ASSOCIATION_ONE_TO_MANY_IMPL_CLASS.toFull(),
+            " where type = :", QUERY_PARAM_ALLLINKS_TYPE);
+        endElem("query");
+        
         endElem("class");
     }
     
@@ -448,11 +494,15 @@ public class HibernateMappingHandler
         }
         int length = Math.max(sourceLength, targetLength);
 
-        // TODO: distinct tables/names for multi-extent repositories
+        // TODO: distinct tables/names for multiple extents in one schema
+        // (or else move these standard to a built-in config file and use 
+        // them across repositories)
         startElem(
             "class",
             "name", ASSOCIATION_MANY_TO_MANY_IMPL_CLASS,
             "table", ASSOC_MANY_TO_MANY_TABLE);
+        
+        writeEmptyElem("cache", "usage", "read-write");
         
         writeIdBlock();
         
@@ -493,13 +543,14 @@ public class HibernateMappingHandler
             "column",
             "name", ASSOC_MANY_TO_MANY_SOURCE_ID_COLUMN);
         endElem("any");
-
+        
         startElem(
             "list",
             "name", ASSOC_MANY_TO_MANY_TARGET_PROPERTY,
             "table", ASSOC_MANY_TO_MANY_TARGET_TABLE,
             "cascade", "save-update",
             "fetch", "join");
+        writeEmptyElem("cache", "usage", "read-write");
         writeEmptyElem("key", "column", ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN);
         writeEmptyElem(
             "list-index", "column", ASSOC_MANY_TO_MANY_TARGET_ORDINAL_COLUMN);
@@ -528,7 +579,45 @@ public class HibernateMappingHandler
         writeEmptyElem("column", "name", ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN);
         endElem("many-to-any");
         endElem("list");
+        
+        // Named queries
+        newLine();
+        startElem(
+            "query", 
+            "name", QUERY_NAME_ALLLINKS);
+        writeCData(
+            "from ", 
+            ASSOCIATION_MANY_TO_MANY_IMPL_CLASS.toFull(),
+            " where type = :", QUERY_PARAM_ALLLINKS_TYPE, " and reversed = 0");
+        endElem("query");
+        
         endElem("class");
+    }
+    
+    /**
+     * Generate named queries for all classes, abstract or otherwise.  We
+     * do not generate these within each class mapping since abstract classes 
+     * don't get a mapping and it's more straightforward to access all these
+     * queries in the same way. 
+     */
+    private void generateAllOfTypeQueries() throws GenerationException
+    {
+        for(Classifier cls: allTypes) {
+            String interfaceName = generator.getTypeName(cls);
+
+            String queryName = interfaceName + "." + QUERY_NAME_ALLOFTYPE;
+            
+            newLine();
+            startElem(
+                "query", 
+                "name", queryName,
+                "cacheable", "true");
+            // Polymorphic query against interface type will return instances
+            // of this class and any other implementation of the interface 
+            // (e.g., all subclasses).
+            writeCData("from ", interfaceName);
+            endElem("query");
+        }
     }
     
     /**
@@ -589,6 +678,8 @@ public class HibernateMappingHandler
         
         String tableName = generator.getSimpleTypeName(cls);
         
+        allTypes.add(cls);
+        
         // Build map of Classifiers to their sub types.
         for(Classifier superType: 
                 GenericCollections.asTypedList(
@@ -615,8 +706,11 @@ public class HibernateMappingHandler
         startElem(
             "class", 
             "name", typeName,
-            "table", hibernateQuote(tableName));
+            "table", hibernateQuote(tableName),
+            "batch-size", "25");
 
+        writeEmptyElem("cache", "usage", "read-write");
+        
         // MOF Id
         writeIdBlock();
         newLine();
@@ -678,8 +772,10 @@ public class HibernateMappingHandler
                 // String types; use Hibernate text type to force CLOB/TEXT
                 // columns.
                 
-                // TODO: Consider using MOF tags to allow specification of
-                // max field size (Hibernate default is 255)
+                // REVIEW: SWZ: 1/15/08: Consider using MOF tags to allow 
+                // specification of max field size. For type string, the
+                // Hibernate default is varchar(255).  For text/mysql it's
+                // 65K.  For text/mysql with length > 65K, it's ~2^31.
                 writeEmptyElem(
                     "property",
                     "name", fieldName,
@@ -731,8 +827,16 @@ public class HibernateMappingHandler
             
             generateAssociationField(refInfo);
         }
-        newLine();
 
+        newLine();
+        startElem(
+            "query", 
+            "name", QUERY_NAME_ALLOFCLASS,
+            "cacheable", "true");
+        // Polymorphic query against implementation type will return only
+        // instances of this exact class.
+        writeCData("from ", typeName);
+        endElem("query");        
         
         endElem("class");
         newLine();

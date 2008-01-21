@@ -344,6 +344,18 @@ public class HibernateOneToManyAssociation
         }
         return links;
     }
+
+    @Override
+    public Collection<? extends RefObject> query(boolean returnSecondEnd)
+    {
+        boolean returnParent = (returnSecondEnd == getReversed());
+
+        if (returnParent) {
+            return Collections.singleton(getParent());
+        } else {
+            return Collections.unmodifiableCollection(getChildren());
+        }
+    }
 }
 
 // End HibernateOneToManyAssociation.java
