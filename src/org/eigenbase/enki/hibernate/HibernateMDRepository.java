@@ -50,8 +50,7 @@ import org.netbeans.api.mdr.events.*;
  * @author Stephan Zuercher
  */
 public class HibernateMDRepository
-    implements MDRepository, EnkiMDRepository, FlushEventListener, 
-               AutoFlushEventListener
+    implements MDRepository, EnkiMDRepository
 {
     public static final String CONFIG_PROPERTIES = "config.properties";
     public static final String MAPPING_XML = "mapping.xml";
@@ -419,7 +418,26 @@ public class HibernateMDRepository
     public static boolean isWriteTransaction()
     {
         checkTransaction();
-        return tls.get().isWrite;
+        
+        return isWriteTransaction(tls.get(), false);
+    }
+    
+    private static boolean isWriteTransaction(
+        Context context, boolean checkNested)
+    {
+        if (!checkNested) {
+            return context.isWrite;
+        }
+        
+        do {
+            if (context.isWrite) {
+                return true;
+            }
+            
+            context = context.ancestor;
+        } while(context != null);
+        
+        return false;
     }
 
     public static MofIdGenerator getMofIdGenerator()
@@ -430,23 +448,27 @@ public class HibernateMDRepository
 
     public static Collection<?> lookupAllOfTypeResult(HibernateRefClass cls)
     {
+        checkTransaction();
         return tls.get().allOfTypeCache.get(cls);
     }
     
     public static void storeAllOfTypeResult(
         HibernateRefClass cls, Collection<?> allOfType)
     {
+        checkTransaction();
         tls.get().allOfTypeCache.put(cls, allOfType);
     }
     
     public static Collection<?> lookupAllOfClassResult(HibernateRefClass cls)
     {
+        checkTransaction();
         return tls.get().allOfClassCache.get(cls);
     }
     
     public static void storeAllOfClassResult(
         HibernateRefClass cls, Collection<?> allOfClass)
     {
+        checkTransaction();
         tls.get().allOfClassCache.put(cls, allOfClass);
     }
 
@@ -668,12 +690,14 @@ public class HibernateMDRepository
                 getClass().getResource(HIBERNATE_STORAGE_MAPPING_XML);
             config.addURL(internalConfigIUrl);
             
+            EventListener listener = new EventListener();
+            
             FlushEventListener[] flushListeners = { 
-                this,
+                listener,
                 new DefaultFlushEventListener()
             };
             AutoFlushEventListener[] autoFlushListeners = { 
-                this,
+                listener,
                 new DefaultAutoFlushEventListener()
             };
             
@@ -979,6 +1003,11 @@ public class HibernateMDRepository
             // Not in a transaction (e.g. startup, shutdown)
             return;
         }
+
+        if (!isWriteTransaction(context, true)) {
+            // Ignore auto-flush on read-only transactions.
+            return;
+        }
         
         context.allOfTypeCache.clear();
         context.allOfClassCache.clear();
@@ -1049,6 +1078,24 @@ public class HibernateMDRepository
         private MofIdGenerator getMofIdGenerator()
         {
             return HibernateMDRepository.this.mofIdGenerator;
+        }
+    }
+    
+    private class EventListener 
+        implements FlushEventListener, AutoFlushEventListener
+    {
+        private static final long serialVersionUID = 5884573353539473470L;
+
+        public void onFlush(FlushEvent flushEvent)
+            throws HibernateException
+        {
+            HibernateMDRepository.this.onFlush(flushEvent);
+        }
+
+        public void onAutoFlush(AutoFlushEvent autoFlushEvent)
+            throws HibernateException
+        {
+            HibernateMDRepository.this.onAutoFlush(autoFlushEvent);
         }
     }
 }

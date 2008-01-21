@@ -28,7 +28,6 @@ import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.hibernate.codegen.*;
-import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.hibernate.*;
 
@@ -86,7 +85,11 @@ public abstract class HibernateRefClass
             
             Query query = session.getNamedQuery(allOfClassQueryName);
 
-            return Collections.unmodifiableList(query.list());
+            Collection<?> result = Collections.unmodifiableList(query.list());
+
+            HibernateMDRepository.storeAllOfClassResult(this, result);
+            
+            return result;
         }
         
         return Collections.emptyList();
