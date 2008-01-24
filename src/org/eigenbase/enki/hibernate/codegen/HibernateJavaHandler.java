@@ -623,6 +623,13 @@ public class HibernateJavaHandler
                 VisibilityKindEnum.PUBLIC_VIS,
                 Reference.class);
 
+        Map<Reference, ReferenceInfo> refInfoMap =
+            new HashMap<Reference, ReferenceInfo>();
+        for(Reference ref: instanceReferences) {
+            ReferenceInfo refInfo = new ReferenceInfo(generator, ref);
+            refInfoMap.put(ref, refInfo);
+        }
+        
         Map<Association, ReferenceInfo> unrefAssocRefInfoMap =
             new HashMap<Association, ReferenceInfo>();
         
@@ -633,16 +640,20 @@ public class HibernateJavaHandler
                 cls,
                 instanceReferences, 
                 unrefAssocRefInfoMap);
-
+        
+        boolean hasAssociations = 
+            !instanceReferences.isEmpty() || 
+            !unreferencedAssociations.isEmpty();
+        
         open(typeName);
         try {            
             String[] interfaces;
-            if (instanceReferences.isEmpty()) {
-                interfaces = new String[] { interfaceName };
-            } else {
+            if (hasAssociations) {
                 interfaces = new String[] { 
                     interfaceName, ASSOCIABLE_INTERFACE.toString()
                 };
+            } else {
+                interfaces = new String[] { interfaceName };
             }
             
             writeClassHeader(
@@ -677,21 +688,16 @@ public class HibernateJavaHandler
             }
             newLine();
             
-            Map<Reference, ReferenceInfo> refInfoMap =
-                new HashMap<Reference, ReferenceInfo>();
-
             if (!instanceReferences.isEmpty()) {
                 // reference fields
                 writeln("// Reference Fields");
                 for(Reference ref: instanceReferences) {
-                    ReferenceInfo refInfo = new ReferenceInfo(generator, ref);
+                    ReferenceInfo refInfo = refInfoMap.get(ref);
                     writePrivateField(
                         makeType(refInfo.getKind()),
                         refInfo.getFieldName(), 
                         false, 
                         false);
-    
-                    refInfoMap.put(ref, refInfo);
                 }
                 newLine();
             }
@@ -741,7 +747,7 @@ public class HibernateJavaHandler
             // TODO: Emit private static final fields for the assoc base names?
             
             // Implement HibernateAssociable
-            if (!instanceReferences.isEmpty()) {
+            if (hasAssociations) {
                 newLine();
                 generateGetAssociationMethod(
                     instanceReferences, refInfoMap,
@@ -937,6 +943,7 @@ public class HibernateJavaHandler
         Map<Reference, ReferenceInfo> refInfoMap,
         Collection<Association> unreferencedAssociations,
         Map<Association, ReferenceInfo> unrefAssocRefInfoMap)
+    throws GenerationException
     {
         writeln("// Implement HibernateAssociable");
         startBlock(
@@ -950,32 +957,89 @@ public class HibernateJavaHandler
                 refInfoMap,
                 unreferencedAssociations,
                 unrefAssocRefInfoMap);
+
+        generateGenericAssociationMethod(
+            refInfos,
+            new AssocMethodGenerator() {
+                public void generate(ReferenceInfo refInfo)
+                    throws GenerationException
+                {
+                    writeln(
+                        "return ", getReferenceAccessorName(refInfo), "();");
+                }
+                
+            });
         
-        boolean first = true;
-        for(ReferenceInfo refInfo: refInfos) {
-            boolean exposedEndFirst = getExposedEndFirst(refInfo);
-            startConditionalBlock(
-                first ? CondType.IF : CondType.ELSEIF,
-                QUOTE,
-                refInfo.getBaseName(),
-                QUOTE,
-                ".equals(type) && ",
-                exposedEndFirst ? "firstEnd" : "!firstEnd");
-            writeln(
-                "return ", getReferenceAccessorName(refInfo), "();");
-            first = false;
-        }
-        startConditionalBlock(CondType.ELSE);
-        generateThrowUnknownAssocTypeException();
-        endBlock();
         endBlock();
     }
 
+    private void generateGenericAssociationMethod(
+        List<ReferenceInfo> refInfos,
+        AssocMethodGenerator assocMethodGenerator) 
+    throws GenerationException
+    {
+        List<ReferenceInfo> firstEndsExposed = new ArrayList<ReferenceInfo>();
+        List<ReferenceInfo> secondEndsExposed = new ArrayList<ReferenceInfo>();
+        for(ReferenceInfo refInfo: refInfos) {
+            if (refInfo.isExposedEndFirst()) {
+                firstEndsExposed.add(refInfo);
+            } else {
+                secondEndsExposed.add(refInfo);
+            }
+        }
+        
+        boolean firstFirstEnd = true;
+        for(ReferenceInfo refInfo: firstEndsExposed) {
+            if (firstFirstEnd) {
+                startConditionalBlock(CondType.IF, "firstEnd");
+            }
+            startConditionalBlock(
+                firstFirstEnd ? CondType.IF : CondType.ELSEIF,
+                QUOTE,
+                refInfo.getBaseName(),
+                QUOTE,
+                ".equals(type)");
+            assocMethodGenerator.generate(refInfo);
+            firstFirstEnd = false;
+        }
+        if (!firstFirstEnd) {
+            endBlock();
+        }
+        
+        boolean firstSecondEnd = true;
+        for(ReferenceInfo refInfo: secondEndsExposed) {
+            if (firstSecondEnd) {
+                if (firstFirstEnd) {
+                    // No first ends
+                    startConditionalBlock(CondType.IF, "!firstEnd");
+                } else {
+                    startConditionalBlock(CondType.ELSE);
+                }
+            }
+            startConditionalBlock(
+                firstSecondEnd ? CondType.IF : CondType.ELSEIF,
+                QUOTE,
+                refInfo.getBaseName(),
+                QUOTE,
+                ".equals(type)");
+            assocMethodGenerator.generate(refInfo);
+            firstSecondEnd = false;
+        }
+        if (!firstSecondEnd) {
+            endBlock();
+        }
+        endBlock();
+        
+        newLine();
+        generateThrowUnknownAssocTypeException();    
+    }
+    
     private void generateSetAssociationMethod(
         Collection<Reference> instanceReferences,
         Map<Reference, ReferenceInfo> refInfoMap,
         Collection<Association> unreferencedAssociations,
         Map<Association, ReferenceInfo> unrefAssocRefInfoMap)
+    throws GenerationException
     {
         writeln("// Implement HibernateAssociable");
         startBlock(
@@ -989,26 +1053,21 @@ public class HibernateJavaHandler
                 unreferencedAssociations,
                 unrefAssocRefInfoMap);
         
-        boolean first = true;
-        for(ReferenceInfo refInfo: refInfos) {
-            boolean exposedEndFirst = getExposedEndFirst(refInfo);
-            startConditionalBlock(
-                first ? CondType.IF : CondType.ELSEIF,
-                QUOTE,
-                refInfo.getBaseName(),
-                QUOTE,
-                ".equals(type) && ",
-                exposedEndFirst ? "firstEnd" : "!firstEnd");
-            writeln(
-                getReferenceMutatorName(refInfo),
-                "((",
-                makeType(refInfo.getKind()),
-                ")assoc);");
-            first = false;
-        }
-        startConditionalBlock(CondType.ELSE);
-        generateThrowUnknownAssocTypeException();
-        endBlock();
+        generateGenericAssociationMethod(
+            refInfos, 
+            new AssocMethodGenerator() {
+                public void generate(ReferenceInfo refInfo)
+                    throws GenerationException
+                {
+                    writeln(
+                        getReferenceMutatorName(refInfo),
+                        "((",
+                        makeType(refInfo.getKind()),
+                        ")assoc);");
+                    writeln("return;");
+                }
+            });
+        
         endBlock();
     }
 
@@ -1017,6 +1076,7 @@ public class HibernateJavaHandler
         Map<Reference, ReferenceInfo> refInfoMap,
         Collection<Association> unreferencedAssociations,
         Map<Association, ReferenceInfo> unrefAssocRefInfoMap)
+    throws GenerationException
     {
         writeln("// Implement HibernateAssociable");
         startBlock(
@@ -1031,81 +1091,58 @@ public class HibernateJavaHandler
                 unreferencedAssociations,
                 unrefAssocRefInfoMap);
         
-        boolean first = true;
-        for(ReferenceInfo refInfo: refInfos) {
-            boolean exposedEndFirst = getExposedEndFirst(refInfo);
-            startConditionalBlock(
-                first ? CondType.IF : CondType.ELSEIF,
-                QUOTE,
-                refInfo.getBaseName(),
-                QUOTE,
-                ".equals(type) && ",
-                exposedEndFirst ? "firstEnd" : "!firstEnd");
-            startConditionalBlock(
-                CondType.IF, getReferenceAccessorName(refInfo), "() == null");
-                
-            writeln(
-                makeType(refInfo.getKind()),
-                " assoc = new ",
-                makeType(refInfo.getKind()),
-                "();");
-            writeln("assoc.setType(type);");
-            
-            // Set up the local end of the association.
-            switch(refInfo.getKind()) {
-            case ONE_TO_ONE:
-                writeln(
-                    "assoc.set",
-                    getReferenceEndName(refInfo, false),
-                    "(this);");
-                break;
-                
-            case ONE_TO_MANY:
-                boolean hasParent = refInfo.isSingle();
-                if (!hasParent) {
-                    writeln("assoc.setParent(this);");
-                } else {
-                    writeln("assoc.getChildren().add(this);");
-                }
-                writeln("assoc.setReversed(", refInfo.isSingle(1), ");");
-                break;
+        generateGenericAssociationMethod(
+            refInfos, 
+            new AssocMethodGenerator() {
+                public void generate(ReferenceInfo refInfo)
+                    throws GenerationException
+                {
+                    startConditionalBlock(
+                        CondType.IF,
+                        getReferenceAccessorName(refInfo), "() == null");
+                        
+                    writeln(
+                        makeType(refInfo.getKind()),
+                        " assoc = new ",
+                        makeType(refInfo.getKind()),
+                        "();");
+                    writeln("assoc.setType(type);");
+                    
+                    // Set up the local end of the association.
+                    switch(refInfo.getKind()) {
+                    case ONE_TO_ONE:
+                        writeln(
+                            "assoc.set",
+                            getReferenceEndName(refInfo, false),
+                            "(this);");
+                        break;
+                        
+                    case ONE_TO_MANY:
+                        boolean hasParent = refInfo.isSingle();
+                        if (!hasParent) {
+                            writeln("assoc.setParent(this);");
+                        } else {
+                            writeln("assoc.getChildren().add(this);");
+                        }
+                        writeln(
+                            "assoc.setReversed(", refInfo.isSingle(1), ");");
+                        break;
 
-            case MANY_TO_MANY:
-                writeln("assoc.setSource(this);");
-                writeln("assoc.setReversed(!firstEnd);");
-                break;
-            }
-            
-            writeln(getReferenceMutatorName(refInfo), "(assoc);");
-            writeln("assoc.save();");
-            endBlock();
-            writeln("return ", getReferenceAccessorName(refInfo), "();");
-            first = false;
-        }
-        startConditionalBlock(CondType.ELSE);
-        generateThrowUnknownAssocTypeException();
-        endBlock();
-        endBlock();
-    }
+                    case MANY_TO_MANY:
+                        writeln("assoc.setSource(this);");
+                        writeln("assoc.setReversed(!firstEnd);");
+                        break;
+                    }
+                    
+                    writeln(getReferenceMutatorName(refInfo), "(assoc);");
+                    writeln("assoc.save();");
+                    endBlock();
+                    writeln(
+                        "return ", getReferenceAccessorName(refInfo), "();");
+                } 
+            });
 
-    private boolean getExposedEndFirst(ReferenceInfo refInfo)
-    {
-        // TOOD: verify correctnes and inline this method
-        boolean exposedEndFirst = refInfo.isExposedEndFirst();
-        // Reverse sense of exposedEndFirst to make the single end
-        // "first".
-//        if (refInfo.getKind() == AssociationKindEnum.ONE_TO_MANY) {
-//            if (exposedEndFirst &&
-//                !refInfo.isSingle(refInfo.getExposedEndIndex()))
-//            {
-//                exposedEndFirst = false;
-//            } else if (!exposedEndFirst &&
-//                       refInfo.isSingle(refInfo.getExposedEndIndex()))
-//            {
-//                exposedEndFirst = true;
-//            }
-//        }
-        return exposedEndFirst;
+        endBlock();
     }
 
     private void generateThrowUnknownAssocTypeException()
@@ -2202,5 +2239,10 @@ public class HibernateJavaHandler
         {
             return cls.hashCode() ^ attrib.hashCode();
         }
+    }
+    
+    private static interface AssocMethodGenerator
+    {
+        public void generate(ReferenceInfo refInfo) throws GenerationException;
     }
 }

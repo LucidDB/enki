@@ -105,13 +105,15 @@ public class HibernateManyToManyAssociation
                 type, false);
         
         boolean result = false;
-        if (!sourceAssoc.getTarget().contains(newTarget)) {
-            sourceAssoc.getTarget().add(newTarget);
+        List<HibernateAssociable> sourceAssocTargets = sourceAssoc.getTarget();
+        if (!sourceAssocTargets.contains(newTarget)) {
+            sourceAssocTargets.add(newTarget);
             result = true;
         }
         
-        if (!targetAssoc.getTarget().contains(newSource)) {
-            targetAssoc.getTarget().add(newSource);
+        List<HibernateAssociable> targetAssocTargets = targetAssoc.getTarget();
+        if (!targetAssocTargets.contains(newSource)) {
+            targetAssocTargets.add(newSource);
             result = true;
         }
         
@@ -137,19 +139,21 @@ public class HibernateManyToManyAssociation
         boolean indexOnTargetAssoc = equals(targetAssoc, this);
         assert(indexOnSourceAssoc || indexOnTargetAssoc);
         
-        if (!sourceAssoc.getTarget().contains(newTarget)) {
+        List<HibernateAssociable> sourceAssocTargets = sourceAssoc.getTarget();
+        if (!sourceAssocTargets.contains(newTarget)) {
             if (indexOnSourceAssoc) {
-                sourceAssoc.getTarget().add(index, newTarget);
+                sourceAssocTargets.add(index, newTarget);
             } else {
-                sourceAssoc.getTarget().add(newTarget);
+                sourceAssocTargets.add(newTarget);
             }
         }
         
-        if (!targetAssoc.getTarget().contains(newSource)) {
+        List<HibernateAssociable> targetAssocTargets = targetAssoc.getTarget();
+        if (!targetAssocTargets.contains(newSource)) {
             if (indexOnTargetAssoc) {
-                targetAssoc.getTarget().add(index, newSource);
+                targetAssocTargets.add(index, newSource);
             } else {
-                targetAssoc.getTarget().add(newSource);
+                targetAssocTargets.add(newSource);
             }
         }
         
@@ -169,20 +173,22 @@ public class HibernateManyToManyAssociation
         assert(equals(sourceAssoc, this) || equals(targetAssoc, this));
         
         boolean result = false;
-        if (sourceAssoc.getTarget().remove(target)) {
+        List<HibernateAssociable> sourceAssocTargets = sourceAssoc.getTarget();
+        if (sourceAssocTargets.remove(target)) {
             result = true;
             
-            if (sourceAssoc.getTarget().isEmpty()) {
+            if (sourceAssocTargets.isEmpty()) {
                 source.setAssociation(type, true, null);
     
                 HibernateMDRepository.getCurrentSession().delete(sourceAssoc);
             }
         }
         
-        if (targetAssoc.getTarget().remove(source)) {
+        List<HibernateAssociable> targetAssocTargets = targetAssoc.getTarget();
+        if (targetAssocTargets.remove(source)) {
             result = true;
 
-            if (targetAssoc.getTarget().isEmpty()) {
+            if (targetAssocTargets.isEmpty()) {
                 target.setAssociation(type, false, null);
     
                 HibernateMDRepository.getCurrentSession().delete(targetAssoc);
@@ -195,15 +201,18 @@ public class HibernateManyToManyAssociation
     @Override
     public void removeAll(HibernateAssociable item)
     {
-        if (!equals(item, getSource())) {
-            assert(getTarget().contains(item));
+        HibernateAssociable source = getSource();
+        List<HibernateAssociable> targets = getTarget();
+
+        if (!equals(item, source)) {
+            assert(targets.contains(item));
             
-            remove(getSource(), item);
+            remove(source, item);
             return;
         }
         
-        while(!getTarget().isEmpty()) {
-            HibernateAssociable trg = getTarget().get(0);
+        while(!targets.isEmpty()) {
+            HibernateAssociable trg = targets.get(0);
             remove(item, trg);
         }
     }

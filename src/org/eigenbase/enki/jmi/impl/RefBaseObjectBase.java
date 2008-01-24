@@ -111,15 +111,23 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     public void setMofId(long refMofId)
     {
         this.mofId = refMofId;
-        this.refMofId= MofIdUtil.makeMofIdStr(refMofId);
+        this.refMofId = MofIdUtil.makeMofIdStr(refMofId);
     }
     
     public boolean equals(Object other)
     {
+        if (this == other) {
+            return true;
+        }
+        
         if (other instanceof RefBaseObjectBase) {
-            assert(this.getMofId() != 0L);
-            assert(((RefBaseObjectBase)other).getMofId() != 0L);
-            return this.getMofId() == ((RefBaseObjectBase)other).getMofId();
+            long thisMofId = this.getMofId();
+            long otherMofId = ((RefBaseObjectBase)other).getMofId();
+
+            assert(thisMofId != 0L);
+            assert(otherMofId != 0L);
+
+            return thisMofId == otherMofId;
         } else {
             return this.refMofId().equals(((RefBaseObject)other).refMofId());
         }
@@ -133,6 +141,7 @@ public abstract class RefBaseObjectBase implements RefBaseObject
      */
     public int hashCode()
     {
+        long mofId = getMofId();
         return (int)(mofId ^ (mofId >>> 32));
     }
 

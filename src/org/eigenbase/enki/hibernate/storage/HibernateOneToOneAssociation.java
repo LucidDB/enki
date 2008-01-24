@@ -111,8 +111,9 @@ public class HibernateOneToOneAssociation
         }
 
         if (parentAssoc == null) {
-            if (getParent() != null) {
-                getParent().setAssociation(type, true, null);
+            HibernateAssociable parent = getParent();
+            if (parent != null) {
+                parent.setAssociation(type, true, null);
             }
             newParent.setAssociation(type, true, this);
             setParent(newParent);
@@ -137,20 +138,24 @@ public class HibernateOneToOneAssociation
     {
         final String type = getType();
 
-        if (!equals(
-                parent.getAssociation(type, true), 
-                child.getAssociation(type, false)))
+        HibernateAssociation parentAssoc = parent.getAssociation(type, true);
+        HibernateAssociation childAssoc = child.getAssociation(type, false);
+        
+        if (!equals(parentAssoc, childAssoc))
         {
             // Objects not associated.
             return false;
         }
         
-        assert(equals(getParent(), parent) && equals(getChild(), child));
-        assert(this.equals(parent.getAssociation(type, true)));
-        assert(this.equals(child.getAssociation(type, false)));
+        HibernateAssociable thisParent = getParent();
+        HibernateAssociable thisChild = getChild();
         
-        getParent().setAssociation(type, true, null);
-        getChild().setAssociation(type, false, null);
+        assert(equals(thisParent, parent) && equals(thisChild, child));
+        assert(equals(this, parentAssoc));
+        assert(equals(this, childAssoc));
+        
+        thisParent.setAssociation(type, true, null);
+        thisChild.setAssociation(type, false, null);
         
         HibernateMDRepository.getCurrentSession().delete(this);
         
@@ -160,26 +165,35 @@ public class HibernateOneToOneAssociation
     @Override
     public void removeAll(HibernateAssociable item)
     {
-        assert(equals(getParent(), item) || equals(getChild(), item));
+        HibernateAssociable parent = getParent();
+        HibernateAssociable child = getChild();
         
-        remove(getParent(), getChild());
+        assert(equals(parent, item) || equals(child, item));
+        
+        remove(parent, child);
     }
 
     @Override
     public void clear(HibernateAssociable item)
     {
-        assert(equals(getParent(), item));
+        HibernateAssociable parent = getParent();
+        HibernateAssociable child = getChild();
         
-        remove(getParent(), getChild());
+        assert(equals(parent, item));
+        
+        remove(parent, child);
     }
     
     @Override
     public List<HibernateAssociable> get(HibernateAssociable item)
     {
-        if (equals(getParent(), item)) {
-            return Collections.singletonList(getChild());
-        } else if (equals(getChild(), item)) {
-            return Collections.singletonList(getParent());
+        HibernateAssociable parent = getParent();
+        HibernateAssociable child = getChild();
+        
+        if (equals(parent, item)) {
+            return Collections.singletonList(child);
+        } else if (equals(child, item)) {
+            return Collections.singletonList(parent);
         } else {
             return Collections.emptyList();
         }

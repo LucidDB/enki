@@ -270,10 +270,12 @@ public class HibernateOneToManyAssociation
             return false;
         }
         
+        List<HibernateAssociable> children = getChildren();
+
         assert(parentAssoc.equals(this));
         assert(childAssoc.equals(this));
         assert(equals(getParent(), parent));
-        assert(getChildren().contains(child));
+        assert(children.contains(child));
         
         child.setAssociation(type, childIsFirstEnd, null);
         children.remove(child);
@@ -290,20 +292,23 @@ public class HibernateOneToManyAssociation
     @Override
     public void removeAll(HibernateAssociable item)
     {
-        if (!equals(item, getParent())) {
-            assert(getChildren().contains(item));
+        HibernateAssociable parent = getParent();
+        List<HibernateAssociable> children = getChildren();
+        
+        if (!equals(item, parent)) {
+            assert(children.contains(item));
             
             // Null parent occurs when child is first end of association and
             // is added (via refAddLink) to a parent that already had a child.
             // Just ignore the call and the unused association should be gc'd.
-            if (getParent() != null) {
-                removeInternal(getParent(), item);
+            if (parent != null) {
+                removeInternal(parent, item);
             }
             return;
         }
         
-        while(!getChildren().isEmpty()) {
-            HibernateAssociable child = getChildren().get(0);
+        while(!children.isEmpty()) {
+            HibernateAssociable child = children.get(0);
             removeInternal(item, child);
         }
     }

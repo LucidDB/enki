@@ -66,7 +66,8 @@ public abstract class HibernateRefPackage
         {
             for(RefAssociationLink link: 
                     GenericCollections.asTypedCollection(
-                        refAssociation.refAllLinks(), RefAssociationLink.class))
+                        refAssociation.refAllLinks(), 
+                        RefAssociationLink.class))
             {
                 refAssociation.refRemoveLink(
                     link.refFirstEnd(), link.refSecondEnd());

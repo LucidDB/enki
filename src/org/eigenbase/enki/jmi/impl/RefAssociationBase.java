@@ -101,7 +101,9 @@ public abstract class RefAssociationBase
     {
         ArrayList<RefAssociationLinkImpl> allLinks = 
             new ArrayList<RefAssociationLinkImpl>();
-        for(Collection<RefAssociationLinkImpl> links: firstToSecondMap.values()) {
+        for(Collection<RefAssociationLinkImpl> links: 
+                firstToSecondMap.values())
+        {
             allLinks.addAll(links);
         }
         return Collections.unmodifiableCollection(allLinks);
@@ -109,7 +111,8 @@ public abstract class RefAssociationBase
 
     public boolean refLinkExists(RefObject end1, RefObject end2)    
     {
-        RefAssociationLinkImpl testLink = new RefAssociationLinkImpl(end1, end2);
+        RefAssociationLinkImpl testLink = 
+            new RefAssociationLinkImpl(end1, end2);
         
         return links.contains(testLink);
     }
