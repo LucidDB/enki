@@ -104,7 +104,7 @@ public class HibernateMDRepository
         beginTrans(write, false);
     }
     
-    private void beginTrans(boolean write, boolean implicit)
+    private Context beginTrans(boolean write, boolean implicit)
     {
         Context ancestor = null;
         Context implicitContext = null;
@@ -115,7 +115,7 @@ public class HibernateMDRepository
                 if (!write) {
                     // Nested read.  May upgrade implicit to explicit read txn.
                     context.isImplicit = implicit;
-                    return;
+                    return context;
                 }
 
                 // Replace implicit read with a write txn by falling through 
@@ -149,6 +149,8 @@ public class HibernateMDRepository
 
         Context context = new Context(session, txn, write, implicit, ancestor);
         tls.set(context);
+        
+        return context;
     }
 
     public void endTrans()
@@ -411,15 +413,13 @@ public class HibernateMDRepository
 
     public static Session getCurrentSession()
     {
-        checkTransaction();
-        return tls.get().session;
+        return getContext().session;
     }
+    
     
     public static boolean isWriteTransaction()
     {
-        checkTransaction();
-        
-        return isWriteTransaction(tls.get(), false);
+        return isWriteTransaction(getContext(), false);
     }
     
     private static boolean isWriteTransaction(
@@ -442,44 +442,40 @@ public class HibernateMDRepository
 
     public static MofIdGenerator getMofIdGenerator()
     {
-        checkTransaction();
-        return tls.get().getMofIdGenerator();
+        return getContext().getMofIdGenerator();
     }
 
     public static Collection<?> lookupAllOfTypeResult(HibernateRefClass cls)
     {
-        checkTransaction();
-        return tls.get().allOfTypeCache.get(cls);
+        return getContext().allOfTypeCache.get(cls);
     }
     
     public static void storeAllOfTypeResult(
         HibernateRefClass cls, Collection<?> allOfType)
     {
-        checkTransaction();
-        tls.get().allOfTypeCache.put(cls, allOfType);
+        getContext().allOfTypeCache.put(cls, allOfType);
     }
     
     public static Collection<?> lookupAllOfClassResult(HibernateRefClass cls)
     {
-        checkTransaction();
-        return tls.get().allOfClassCache.get(cls);
+        return getContext().allOfClassCache.get(cls);
     }
     
     public static void storeAllOfClassResult(
         HibernateRefClass cls, Collection<?> allOfClass)
     {
-        checkTransaction();
-        tls.get().allOfClassCache.put(cls, allOfClass);
+        getContext().allOfClassCache.put(cls, allOfClass);
     }
 
-    private static void checkTransaction()
+    private static Context getContext()
     {
-        if (tls.get() != null) {
-            return;
+        Context context = tls.get();
+        if (context != null) {
+            return context;
         }
 
         // begin an implicit read transaction for this thread
-        repos.beginTrans(false, true);
+        return repos.beginTrans(false, true);
     }
     
     private void loadExistingExtents(List<Extent> extents)

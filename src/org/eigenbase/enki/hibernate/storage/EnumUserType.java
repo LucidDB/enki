@@ -46,6 +46,8 @@ public class EnumUserType
 
     private Class<? extends RefEnum> returnedClass;
     private Method forNameMethod;
+
+    private String returnedClassName;
     
     public Object assemble(Serializable cached, Object owner)
         throws HibernateException
@@ -62,19 +64,22 @@ public class EnumUserType
 
         String literal = (String)cached;
         
-        String[] parts = literal.split("#", 2);
-        if (parts.length != 2) {
+        int pos = literal.indexOf('#');
+        if (pos < 0 || pos + 1 >= literal.length()) {
             throw new HibernateException(
                 "Cannot parse enum literal '" + literal + "'");
         }
-        if (!returnedClass.getName().equals(parts[0])) {
+
+        if (returnedClassName.length() != pos ||
+            !returnedClassName.regionMatches(0, literal, 0, pos))
+        {
             throw new HibernateException(
-                "Wrong enumeration: expected '" + returnedClass.getName() + 
-                "', got '" + parts[0] + "'");
+                "Wrong enumeration: expected '" + returnedClassName + 
+                "', got '" + literal.substring(0, pos) + "'");
         }
         
-        literal = parts[1];
-        
+        literal = literal.substring(pos + 1);
+
         try {
             return returnedClass.cast(forNameMethod.invoke(null, literal));
         } catch (Exception e) {
@@ -94,7 +99,7 @@ public class EnumUserType
         }
         
         StringBuilder b = new StringBuilder();
-        b.append(returnedClass.getName()).append('#').append(value.toString());
+        b.append(returnedClassName).append('#').append(value.toString());
         return b.toString();
     }
 
@@ -168,6 +173,7 @@ public class EnumUserType
         try {
             returnedClass = 
                 Class.forName(enumClassName).asSubclass(RefEnum.class);
+            returnedClassName = returnedClass.getName();
 
             forNameMethod = returnedClass.getMethod("forName", String.class);
         } catch (Exception e) {
@@ -176,7 +182,7 @@ public class EnumUserType
         
         if (!forNameMethod.getReturnType().isAssignableFrom(returnedClass)) {
             throw new HibernateException(
-                "Cannot assign '" + returnedClass.getName() + 
+                "Cannot assign '" + returnedClassName + 
                 "' to '" + forNameMethod.getReturnType().getName() + 
                 "' (return type of '" + forNameMethod.getDeclaringClass() + 
                 "." + forNameMethod.getName() + "')");

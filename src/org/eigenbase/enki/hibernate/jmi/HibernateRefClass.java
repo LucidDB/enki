@@ -22,7 +22,6 @@
 package org.eigenbase.enki.hibernate.jmi;
 
 import java.util.*;
-import java.util.logging.*;
 
 import javax.jmi.reflect.*;
 

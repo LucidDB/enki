@@ -23,8 +23,6 @@ package org.eigenbase.enki.codegen;
 
 import javax.jmi.model.*;
 
-import org.eigenbase.enki.util.*;
-
 /**
  * ReferenceInfo contains commonly used information about {@link Reference}
  * instances and the referenced {@link Association}.
@@ -36,166 +34,35 @@ import org.eigenbase.enki.util.*;
  * 
  * @author Stephan Zuercher
  */
-public class ReferenceInfo extends AssociationInfo
+public interface ReferenceInfo extends AssociationInfo
 {
-    private final Reference ref;
+    public Reference getReference();
     
-    private final AssociationEnd referencedEnd;
+    public Classifier getReferencedType();
     
-    private final Classifier referencedType;
+    public String getReferencedTypeName();
     
-    private final String referencedTypeName;
+    public String getFieldName();
     
-    private final String referenceEndBaseName;
-    private final String fieldName;
-    private final String accessorName;
+    public String getReferencedEndBaseName();
     
-    private final boolean isReferenceEndFirst;
+    public String getAccessorName();
     
-    public ReferenceInfo(Generator generator, Reference ref)
-            throws GenerationException
-    {
-        this(
-            generator,
-            ref,
-            (Association)ref.getExposedEnd().getContainer(),
-            ref.getReferencedEnd(),
-            false);
-    }
+    public boolean isSingle();
     
-    /**
-     * Constructs a Reference-less ReferenceInfo.  Useful when two classes
-     * are associated, but do not reference each other.  When this
-     * constructor is used, {@link #getReference()} returns null.
-     * 
-     * @param generator code generator instance
-     * @param assoc the association
-     * @param referencedEnd the end of the association that should be treated
-     *                      as the referenced end
-     */
-    public ReferenceInfo(
-        Generator generator, Association assoc, AssociationEnd referencedEnd)
-    {
-        this(generator, null, assoc, referencedEnd, true);
-    }
-
-    private ReferenceInfo(
-        Generator generator,
-        Reference ref,
-        Association assoc,
-        AssociationEnd referencedEnd,
-        boolean prefixWithAssocName)
-    {
-        super(generator, assoc);
-        
-        this.ref = ref;
-        this.referencedEnd = referencedEnd;
-        this.referencedType = referencedEnd.getType();
-        this.referencedTypeName = 
-            generator.getTypeName(referencedType);
-        
-        String baseName;
-        if (prefixWithAssocName) {
-            baseName = 
-                StringUtil.toInitialUpper(assoc.getName()) + "_" +
-                StringUtil.toInitialUpper(referencedEnd.getName());
-        } else {
-            baseName = StringUtil.toInitialUpper(referencedEnd.getName());
-        }
-        
-        String fieldName;
-        if (prefixWithAssocName) {
-            fieldName = 
-                StringUtil.toInitialLower(assoc.getName()) + "_" +
-                StringUtil.toInitialUpper(referencedEnd.getName());
-        } else {
-            fieldName = StringUtil.toInitialLower(referencedEnd.getName());
-        }
-
-        
-        this.referenceEndBaseName = baseName;
-        this.fieldName = fieldName;
-        this.accessorName = generator.getAccessorName(referencedEnd, null);
-        
-        this.isReferenceEndFirst = (getEnd(0) == referencedEnd);
-        
-    }
+    public boolean isOrdered();
     
-    public Reference getReference()
-    {
-        return ref;
-    }
+    public boolean isChangeable();
     
-    public AssociationEnd getReferencedEnd()
-    {
-        return referencedEnd;
-    }
+    public boolean isComposite();
     
-    public Classifier getReferencedType()
-    {
-        return referencedType;
-    }
+    public boolean isReferencedEndFirst();
     
-    public String getReferencedTypeName()
-    {
-        return referencedTypeName;
-    }
+    public boolean isExposedEndFirst();
     
-    public String getFieldName()
-    {
-        return fieldName;
-    }
+    public int getReferencedEndIndex();
     
-    public String getReferencedEndBaseName()
-    {
-        return referenceEndBaseName;
-    }
-    
-    public String getAccessorName()
-    {
-        return accessorName;
-    }
-    
-    public boolean isSingle()
-    {
-        return referencedEnd.getMultiplicity().getUpper() == 1;
-    }
-    
-    public boolean isOrdered()
-    {
-        return referencedEnd.getMultiplicity().isOrdered();
-    }
-    
-    public boolean isChangeable()
-    {
-        return referencedEnd.isChangeable();
-    }
-    
-    public boolean isComposite()
-    {
-        return AggregationKindEnum.COMPOSITE.equals(
-            referencedEnd.getAggregation());
-    }
-    
-    public boolean isReferencedEndFirst()
-    {
-        return isReferenceEndFirst;
-    }
-    
-    public boolean isExposedEndFirst()
-    {
-        return !isReferenceEndFirst;
-    }
-    
-    public int getReferencedEndIndex()
-    {
-        return isReferenceEndFirst ? 0 : 1;
-    }
-    
-    public int getExposedEndIndex()
-    {
-        return isReferenceEndFirst ? 1 : 0;
-    }
+    public int getExposedEndIndex();
 }
 
 // End ReferenceInfo.java

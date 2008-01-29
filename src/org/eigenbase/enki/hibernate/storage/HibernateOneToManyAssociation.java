@@ -324,11 +324,11 @@ public class HibernateOneToManyAssociation
     @Override
     protected List<HibernateAssociable> get(HibernateAssociable item)
     {
-        if (!equals(item, parent)) {
+        if (!equals(item, getParent())) {
             return Collections.emptyList();
         }
         
-        return children;
+        return getChildren();
     }
 
     @Override

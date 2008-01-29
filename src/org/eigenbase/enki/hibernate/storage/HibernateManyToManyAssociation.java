@@ -228,11 +228,11 @@ public class HibernateManyToManyAssociation
     @Override
     protected List<HibernateAssociable> get(HibernateAssociable item)
     {
-        if (!equals(item, source)) {
+        if (!equals(item, getSource())) {
             return Collections.emptyList();
         }
         
-        return target;
+        return getTarget();
     }
 
     @Override

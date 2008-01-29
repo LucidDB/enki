@@ -24,112 +24,42 @@ package org.eigenbase.enki.codegen;
 import javax.jmi.model.*;
 
 import org.eigenbase.enki.codegen.Generator.*;
-import org.eigenbase.enki.util.*;
 
-public class AssociationInfo
+/**
+ * AssociationInfo contains commonly used information about a MOF 
+ * {@link Association} and and its {@link AssociationEnd} instances.
+ * 
+ * @author Stephan Zuercher
+ */
+public interface AssociationInfo
 {
-    private final Association assoc;
-    private final String assocInterfaceName;
-    private final AssociationKindEnum kind;
-    private final AssociationEnd[] ends;
-    private final String[] types;
-    private final String[] names;
-    private final String baseName;
+    public Association getAssoc();
     
-    public AssociationInfo(Generator generator, Association assoc)
-    {
-        this.assoc = assoc;
-        this.assocInterfaceName = generator.getTypeName(assoc);
-        this.kind = generator.getAssociationKind(assoc);
-        this.ends = generator.getAssociationEnds(assoc);
-
-        this.names = new String[] {
-            generator.getSimpleTypeName(ends[0]),
-            generator.getSimpleTypeName(ends[1]),
-        };
-        
-        this.types = new String[] {
-            generator.getTypeName(ends[0].getType()),
-            generator.getTypeName(ends[1].getType()),
-        };
-        
-        this.baseName = generator.getSimpleTypeName(assoc);
-    }
+    public String getAssocInterfaceName();
     
-    public final Association getAssoc()
-    {
-        return assoc;
-    }
+    public AssociationKindEnum getKind();
     
-    public final String getAssocInterfaceName()
-    {
-        return assocInterfaceName;
-    }
+    public String getBaseName();
     
-    public final AssociationKindEnum getKind()
-    {
-        return kind;
-    }
+    public AssociationEnd getEnd(int end);
     
-    public final String getBaseName()
-    {
-        return baseName;
-    }
+    public String getEndType(int end);
     
-    public final AssociationEnd getEnd(int end)
-    {
-        return ends[end];
-    }
+    public String[] getEndTypes();
     
-    public final String getEndType(int end)
-    {
-        return types[end];
-    }
+    public String getEndName(int end);
     
-    public final String[] getEndTypes()
-    {
-        return types;
-    }
+    public String getEndName(int end, boolean forceInitCaps);
     
-    public final String getEndName(int end)
-    {
-        return names[end];
-    }
+    public String[] getEndNames();
     
-    public final String getEndName(int end, boolean forceInitCaps)
-    {
-        String name = getEndName(end);
-        if (forceInitCaps) {
-            name = StringUtil.toInitialUpper(name);
-        }
-        return name;
-    }
+    public boolean isSingle(int end);
     
-    public final String[] getEndNames()
-    {
-        return names;
-    }
+    public boolean isOrdered(int end);
     
-    public final boolean isSingle(int end)
-    {
-        return ends[end].getMultiplicity().getUpper() == 1;
-    }
+    public boolean isChangeable(int end);
     
-    public final boolean isOrdered(int end)
-    {
-        return ends[end].getMultiplicity().isOrdered();
-    }
-    
-    public final boolean isChangeable(int end)
-    {
-        return ends[end].isChangeable();
-    }
-    
-    public final boolean isComposite(int end)
-    {
-        return AggregationKindEnum.COMPOSITE.equals(
-            ends[end].getAggregation());
-    }
+    public boolean isComposite(int end);
 }
 
 // End AssociationInfo.java

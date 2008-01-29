@@ -132,8 +132,8 @@ public class HibernateCodeGenUtils
                         throw new IllegalStateException("circular");
                     }
                     
-                    ReferenceInfo refInfo = 
-                        new ReferenceInfo(generator, assoc, refEnd);
+                    ReferenceInfoImpl refInfo = 
+                        new ReferenceInfoImpl(generator, assoc, refEnd);
                     unrefAssocRefInfoMap.put(assoc, refInfo);
                     
                     continue ASSOC_LOOP;

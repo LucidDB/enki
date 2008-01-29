@@ -142,7 +142,7 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     public int hashCode()
     {
         long mofId = getMofId();
-        return (int)(mofId ^ (mofId >>> 32));
+        return ((int)mofId) ^ ((int)(mofId >>> 32));
     }
 
     /**

@@ -207,7 +207,8 @@ public class HibernateJavaHandler
     
     private Map<Association, AssociationInfo> assocInfoMap;
     
-    private Map<Classifier, List<MofClassAttribPair>> componentAttribMap;
+    /** Maps a component type to a list of references to it. */
+    private Map<Classifier, List<ComponentInfo>> componentAttribMap;
     
     public HibernateJavaHandler()
     {
@@ -261,7 +262,7 @@ public class HibernateJavaHandler
         this.classIdentifierMap = new HashMap<MofClass, String>();
         this.assocInfoMap = new LinkedHashMap<Association, AssociationInfo>();
         this.componentAttribMap = 
-            new HashMap<Classifier, List<MofClassAttribPair>>();
+            new HashMap<Classifier, List<ComponentInfo>>();
     }
     
     @Override
@@ -327,7 +328,7 @@ public class HibernateJavaHandler
 
         log.fine("Generating Association Implementation '" + typeName + "'");
 
-        AssociationInfo assocInfo = new AssociationInfo(generator, assoc);
+        AssociationInfo assocInfo = new AssociationInfoImpl(generator, assoc);
         assocInfoMap.put(assoc, assocInfo);
         
         open(typeName);
@@ -568,11 +569,16 @@ public class HibernateJavaHandler
             return;
         }
 
-        // Build attribute information
+        // Build attribute information, ignoring super type attributes for
+        // the first pass.
+        HierachySearchKindEnum includeSupertypes = 
+            getPassIndex() == 0
+            ? HierachySearchKindEnum.ENTITY_ONLY
+            : HierachySearchKindEnum.INCLUDE_SUPERTYPES;
         Collection<Attribute> instanceAttributes =
             contentsOfType(
                 cls,
-                HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
+                includeSupertypes, 
                 VisibilityKindEnum.PUBLIC_VIS,
                 ScopeKindEnum.INSTANCE_LEVEL,
                 Attribute.class);
@@ -595,7 +601,9 @@ public class HibernateJavaHandler
 
         if (getPassIndex() == 0 && !cls.isAbstract()) {
             for(Attribute attrib: nonDataTypeAttribs) {
-                addComponentAttrib(attrib.getType(), cls, attrib);
+                addComponentAttrib(
+                    attrib.getType(), 
+                    new ComponentInfo(generator, cls, attrib, false));
             }
         }
         
@@ -619,14 +627,14 @@ public class HibernateJavaHandler
         Collection<Reference> instanceReferences =
             contentsOfType(
                 cls,
-                HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
+                includeSupertypes, 
                 VisibilityKindEnum.PUBLIC_VIS,
                 Reference.class);
 
         Map<Reference, ReferenceInfo> refInfoMap =
             new HashMap<Reference, ReferenceInfo>();
         for(Reference ref: instanceReferences) {
-            ReferenceInfo refInfo = new ReferenceInfo(generator, ref);
+            ReferenceInfo refInfo = new ReferenceInfoImpl(generator, ref);
             refInfoMap.put(ref, refInfo);
         }
         
@@ -641,9 +649,24 @@ public class HibernateJavaHandler
                 instanceReferences, 
                 unrefAssocRefInfoMap);
         
+        Map<Attribute, ComponentInfo> componentInfoMap =
+            new LinkedHashMap<Attribute, ComponentInfo>();
+        if (componentAttribMap.containsKey(cls)) {
+            for(ComponentInfo componentInfo: componentAttribMap.get(cls)) {
+                componentInfoMap.put(
+                    componentInfo.getOwnerAttribute(), componentInfo);
+            }
+        }
+        for(Attribute attrib: nonDataTypeAttribs) {
+            componentInfoMap.put(
+                attrib,
+                new ComponentInfo(generator, cls, attrib, true));
+        }
+
         boolean hasAssociations = 
             !instanceReferences.isEmpty() || 
-            !unreferencedAssociations.isEmpty();
+            !unreferencedAssociations.isEmpty() ||
+            !componentInfoMap.isEmpty();
         
         open(typeName);
         try {            
@@ -675,16 +698,10 @@ public class HibernateJavaHandler
             Map<Attribute, String> nonDerivedAttribNames = 
                 new HashMap<Attribute, String>();
             for(Attribute attrib: nonDerivedAttribs) {
-                boolean isDataType = !nonDataTypeAttribs.contains(attrib);
-                
-                String fieldName;
-                if (isDataType) {
-                    fieldName = writePrivateField(attrib, false, false);
-                } else {
-                    fieldName = 
-                        writePrivateField(attrib, IMPL_SUFFIX, false, false);
+                if (!nonDataTypeAttribs.contains(attrib)) {
+                    String fieldName = writePrivateField(attrib, false, false);
+                    nonDerivedAttribNames.put(attrib, fieldName);
                 }
-                nonDerivedAttribNames.put(attrib, fieldName);
             }
             newLine();
             
@@ -720,13 +737,28 @@ public class HibernateJavaHandler
                 newLine();
             }
             
+            if (!componentInfoMap.isEmpty()) {
+                // Component attributes are treated as if they are
+                // associations.
+                writeln("// Component Attributes Fields");
+                for(ComponentInfo comonentInfo: componentInfoMap.values()) {
+                    writePrivateField(
+                        makeType(comonentInfo.getKind()),
+                        comonentInfo.getFieldName(),
+                        false,
+                        false);
+                }
+                newLine();
+            }
+            
             // Constructors
             generateClassInstanceConstructors(
                 cls,
                 instanceAttributes,
                 nonDerivedAttribs,
                 nonDerivedAttribNames,
-                nonDataTypeAttribs);
+                nonDataTypeAttribs,
+                componentInfoMap);
             
             // attribute methods
             generateClassInstanceAttribMethods(
@@ -743,34 +775,32 @@ public class HibernateJavaHandler
                 
                 generateClassInstanceAssocMethods(refInfo);
             }
+
+            generateClassInstanceComponentMethods(componentInfoMap, cls);
             
             // TODO: Emit private static final fields for the assoc base names?
             
             // Implement HibernateAssociable
             if (hasAssociations) {
-                newLine();
-                generateGetAssociationMethod(
-                    instanceReferences, refInfoMap,
-                    unreferencedAssociations, unrefAssocRefInfoMap);
+                List<ReferenceInfo> refInfos = 
+                    gatherRefInfos(
+                        instanceReferences, refInfoMap, 
+                        unreferencedAssociations, unrefAssocRefInfoMap,
+                        componentInfoMap);
 
                 newLine();
-                generateSetAssociationMethod(
-                    instanceReferences, refInfoMap,
-                    unreferencedAssociations, unrefAssocRefInfoMap);
+                generateGetAssociationMethod(refInfos);
 
                 newLine();
-                generateGetOrCreateAssociationMethod(
-                    instanceReferences, refInfoMap,
-                    unreferencedAssociations, unrefAssocRefInfoMap);
+                generateSetAssociationMethod(refInfos);
+
+                newLine();
+                generateGetOrCreateAssociationMethod(refInfos);
 
                 newLine();
                 writeln("// Implement HibernateRefObject");
                 startBlock("protected void removeAssociations()");
                 
-                List<ReferenceInfo> refInfos = 
-                    gatherRefInfos(
-                        instanceReferences, refInfoMap, 
-                        unreferencedAssociations, unrefAssocRefInfoMap);
                 for(ReferenceInfo refInfo: refInfos) {
                     startConditionalBlock(
                         CondType.IF, 
@@ -803,7 +833,7 @@ public class HibernateJavaHandler
             endBlock();
             
             generateRefImmediateComposite(
-                cls, refInfoMap, unrefAssocRefInfoMap);
+                cls, refInfoMap, unrefAssocRefInfoMap, componentInfoMap);
             
             newLine();
             startBlock("protected String getClassIdentifier()");
@@ -818,25 +848,23 @@ public class HibernateJavaHandler
     }
 
     private void addComponentAttrib(
-        Classifier type,
-        MofClass cls,
-        Attribute attrib)
+        Classifier type, ComponentInfo compInfo)
     {
-        List<MofClassAttribPair> componentOfList =
-            componentAttribMap.get(type);
+        List<ComponentInfo> componentOfList = componentAttribMap.get(type);
         
         if (componentOfList == null) {
-            componentOfList = new ArrayList<MofClassAttribPair>();
+            componentOfList = new ArrayList<ComponentInfo>();
             componentAttribMap.put(type, componentOfList);
         }
         
-        componentOfList.add(new MofClassAttribPair(cls, attrib));
+        componentOfList.add(compInfo);
     }
 
     private void generateRefImmediateComposite(
         MofClass cls,
         Map<Reference, ReferenceInfo> refInfoMap,
-        Map<Association, ReferenceInfo> unrefAssocInfoMap)
+        Map<Association, ReferenceInfo> unrefAssocInfoMap,
+        Map<Attribute, ComponentInfo> componentInfoMap)
     throws GenerationException
     {
         newLine();
@@ -913,21 +941,34 @@ public class HibernateJavaHandler
             }
         }
 
-        List<MofClassAttribPair> componentOfList = componentAttribMap.get(cls);
-        if (componentOfList != null) {
-            writeln(REF_OBJECT_CLASS, " owner;");
-            for(MofClassAttribPair clsAttribPair: componentOfList) {
-                MofClass ownerCls = clsAttribPair.cls;
-                Attribute ownerAttrib = clsAttribPair.attrib;
+        for(Map.Entry<Attribute, ComponentInfo> entry: 
+                componentInfoMap.entrySet()) 
+        {
+            ComponentInfo componentInfo = entry.getValue();
+            
+            if (!componentInfo.getOwnerType().equals(cls)) {
+                startConditionalBlock(
+                    CondType.IF,
+                    getReferenceAccessorName(componentInfo), "() != null");
+
+                write(
+                    "return ", getReferenceAccessorName(componentInfo), "()");
                 
-                writeln(
-                    "owner = findCompositeOwner(",
-                    generator.getTypeName(ownerCls, IMPL_SUFFIX), ".class, ",
-                    QUOTE, 
-                    generator.getSimpleTypeName(ownerAttrib, IMPL_SUFFIX),
-                    QUOTE, ");");
-                startConditionalBlock(CondType.IF, "owner != null");
-                writeln("return owner;");
+                switch(componentInfo.getKind()) {
+                case ONE_TO_ONE:
+                case ONE_TO_MANY:
+                    write(".getParent()");
+                    break;
+                    
+                case MANY_TO_MANY:
+                    write(".getSource()");
+                    break;
+                    
+                default:
+                    throw new GenerationException("unknown assoc kind");
+                }
+                
+                writeln(";");
                 endBlock();
             }
         }
@@ -938,25 +979,14 @@ public class HibernateJavaHandler
         endBlock();
     }
 
-    private void generateGetAssociationMethod(
-        Collection<Reference> instanceReferences,
-        Map<Reference, ReferenceInfo> refInfoMap,
-        Collection<Association> unreferencedAssociations,
-        Map<Association, ReferenceInfo> unrefAssocRefInfoMap)
-    throws GenerationException
+    private void generateGetAssociationMethod(List<ReferenceInfo> refInfos)
+        throws GenerationException
     {
         writeln("// Implement HibernateAssociable");
         startBlock(
             "public ",
             ASSOCIATION_BASE_CLASS,
             " getAssociation(String type, boolean firstEnd)");
-
-        List<ReferenceInfo> refInfos = 
-            gatherRefInfos(
-                instanceReferences,
-                refInfoMap,
-                unreferencedAssociations,
-                unrefAssocRefInfoMap);
 
         generateGenericAssociationMethod(
             refInfos,
@@ -1034,25 +1064,14 @@ public class HibernateJavaHandler
         generateThrowUnknownAssocTypeException();    
     }
     
-    private void generateSetAssociationMethod(
-        Collection<Reference> instanceReferences,
-        Map<Reference, ReferenceInfo> refInfoMap,
-        Collection<Association> unreferencedAssociations,
-        Map<Association, ReferenceInfo> unrefAssocRefInfoMap)
-    throws GenerationException
+    private void generateSetAssociationMethod(List<ReferenceInfo> refInfos)
+        throws GenerationException
     {
         writeln("// Implement HibernateAssociable");
         startBlock(
             "public void setAssociation(String type, boolean firstEnd, ",
             ASSOCIATION_BASE_CLASS, " assoc)");
 
-        List<ReferenceInfo> refInfos = 
-            gatherRefInfos(
-                instanceReferences,
-                refInfoMap,
-                unreferencedAssociations,
-                unrefAssocRefInfoMap);
-        
         generateGenericAssociationMethod(
             refInfos, 
             new AssocMethodGenerator() {
@@ -1072,10 +1091,7 @@ public class HibernateJavaHandler
     }
 
     private void generateGetOrCreateAssociationMethod(
-        Collection<Reference> instanceReferences,
-        Map<Reference, ReferenceInfo> refInfoMap,
-        Collection<Association> unreferencedAssociations,
-        Map<Association, ReferenceInfo> unrefAssocRefInfoMap)
+        List<ReferenceInfo> refInfos)
     throws GenerationException
     {
         writeln("// Implement HibernateAssociable");
@@ -1084,13 +1100,6 @@ public class HibernateJavaHandler
             ASSOCIATION_BASE_CLASS,
             " getOrCreateAssociation(String type, boolean firstEnd)");
 
-        List<ReferenceInfo> refInfos = 
-            gatherRefInfos(
-                instanceReferences,
-                refInfoMap,
-                unreferencedAssociations,
-                unrefAssocRefInfoMap);
-        
         generateGenericAssociationMethod(
             refInfos, 
             new AssocMethodGenerator() {
@@ -1158,7 +1167,8 @@ public class HibernateJavaHandler
         Collection<Reference> instanceReferences,
         Map<Reference, ReferenceInfo> refInfoMap,
         Collection<Association> unreferencedAssociations,
-        Map<Association, ReferenceInfo> unrefAssocRefInfoMap)
+        Map<Association, ReferenceInfo> unrefAssocRefInfoMap,
+        Map<Attribute, ComponentInfo> componentInfoMap)
     {
         List<ReferenceInfo> refInfos = new ArrayList<ReferenceInfo>();
         for(Reference ref: instanceReferences) {
@@ -1169,6 +1179,7 @@ public class HibernateJavaHandler
             ReferenceInfo refInfo = unrefAssocRefInfoMap.get(unrefAssociation);
             refInfos.add(refInfo);
         }
+        refInfos.addAll(componentInfoMap.values());
         return refInfos;
     }
 
@@ -1208,6 +1219,46 @@ public class HibernateJavaHandler
         }
     }
 
+    private void generateClassInstanceComponentMethods(
+        Map<Attribute, ComponentInfo> componentInfoMap,
+        MofClass cls)
+    throws GenerationException
+    {
+        for(Map.Entry<Attribute, ComponentInfo> entry:
+                componentInfoMap.entrySet()) 
+        {
+            Attribute attrib = entry.getKey();
+            ComponentInfo componentInfo = entry.getValue();
+
+            if (componentInfo.getOwnerType().equals(cls)) {
+                newLine();
+    
+                switch(componentInfo.getKind()) {
+                case ONE_TO_ONE:
+                    generateClassInstanceComponentRefOneToOneMethods(
+                        attrib, componentInfo);
+                    break;
+                
+                case ONE_TO_MANY: 
+                    generateClassInstanceComponentRefOnetoManyMethods(
+                        attrib, componentInfo);
+                    break;
+                
+                case MANY_TO_MANY:
+                    generateClassInstanceComponentRefManyToManyMethods(
+                        attrib, componentInfo);
+                    break;
+                    
+                default:
+                    throw new GenerationException(
+                        "Unknown reference type: " + componentInfo.getKind());
+                }
+            }
+            
+            generateClassInstanceAssocMethods(componentInfo);
+        }
+    }
+    
     private void generateClassInstanceAssocMethods(ReferenceInfo refInfo)
     {
         newLine();
@@ -1445,30 +1496,239 @@ public class HibernateJavaHandler
         endBlock();
     }
 
+    private void generateClassInstanceComponentRefOneToOneMethods(
+        Attribute attrib, ReferenceInfo refInfo)
+    {
+        startAccessorBlock(attrib);
+        startConditionalBlock(
+            CondType.IF,
+            getReferenceAccessorName(refInfo), "() == null");
+        writeln("return null;");
+        endBlock();
+
+        writeln(
+            "return ", 
+            getReferenceAccessorName(refInfo),
+            "().get", getReferenceEndName(refInfo, true),
+            "(",
+            refInfo.getReferencedTypeName(),
+            ".class",
+            ");");
+        endBlock();
+        
+        newLine();
+        startMutatorBlock(attrib);
+            
+        writeln("// Get the existing association object");
+        writeln(
+            ASSOCIATION_BASE_CLASS,
+            " assoc = getAssociation(",
+            QUOTE, refInfo.getBaseName(), QUOTE,
+            ", ",
+            refInfo.isExposedEndFirst(),
+            ");");
+        startConditionalBlock(
+            CondType.IF, "assoc == null && newValue != null");
+        writeln(
+            "// If none exists, get the new value's association.");
+        writeln(
+            "assoc = ((", 
+            ASSOCIABLE_INTERFACE, 
+            ")newValue).getAssociation(",
+            QUOTE, refInfo.getBaseName(), QUOTE,
+            ", ",
+            !refInfo.isExposedEndFirst(), ");");
+        endBlock();
+
+        startConditionalBlock(CondType.IF, "assoc == null");
+        startConditionalBlock(CondType.IF, "newValue == null");
+        writeln(
+            "// User is clearing a non-existent association: do nothing");
+        writeln("return;");
+        endBlock();
+        writeln(
+            "assoc = getOrCreateAssociation(",
+            QUOTE, refInfo.getBaseName(), QUOTE,
+            ", ",
+            refInfo.isExposedEndFirst(),
+            ");");
+        endBlock();
+
+        startConditionalBlock(CondType.IF, "newValue != null");
+        if (refInfo.isExposedEndFirst()) {
+            writeln(
+                "assoc.add(this, (", 
+                ASSOCIABLE_INTERFACE,
+                ")newValue);");
+        } else {
+            writeln(
+                "assoc.add((", 
+                ASSOCIABLE_INTERFACE,
+                ")newValue, this);");
+        }
+        startConditionalBlock(CondType.ELSE);
+        writeln("// remove any existing association");
+        writeln("assoc.removeAll(this);");
+        endBlock();
+        endBlock();                        
+    }
+
+    private void generateClassInstanceComponentRefOnetoManyMethods(
+        Attribute attrib, ReferenceInfo refInfo)
+    {
+        startAccessorBlock(attrib);
+
+        boolean hasParent = refInfo.isSingle(refInfo.getReferencedEndIndex());
+        if (hasParent) {
+            startConditionalBlock(
+                CondType.IF, 
+                getReferenceAccessorName(refInfo), "() == null");
+            writeln("return null;");
+            endBlock();
+            writeln(
+                "return (",
+                refInfo.getEndType(refInfo.isSingle(0) ? 0 : 1),                            
+                ")", 
+                getReferenceAccessorName(refInfo), 
+                "().getParent();");
+        } else {
+            String listElemType = 
+                refInfo.getEndType(refInfo.isSingle(0) ? 1 : 0);
+            // TODO: Cache ListProxy in a field?
+            startConditionalBlock(
+                CondType.IF, 
+                getReferenceAccessorName(refInfo), "() == null");
+            writeln(
+                "return new ", 
+                LIST_PROXY_CLASS,
+                "<", listElemType, ">",
+                "(", QUOTE, refInfo.getBaseName(), QUOTE,
+                ", ", refInfo.isExposedEndFirst(),
+                ", this, ",
+                listElemType, ".class);");
+            startConditionalBlock(CondType.ELSE);
+            writeln(
+                "return new ",
+                LIST_PROXY_CLASS,
+                "<", listElemType, ">",
+                "(",
+                getReferenceAccessorName(refInfo),
+                "(), this, ",
+                refInfo.isExposedEndFirst(), ", ",
+                listElemType, ".class);");
+            endBlock();
+        }
+        endBlock();
+        
+        if (hasParent) {
+            newLine();
+            startMutatorBlock(attrib);
+            writeln("// get existing association, if any");
+            writeln(
+                ASSOCIATION_BASE_CLASS,
+                " assoc = getAssociation(",
+                QUOTE, refInfo.getBaseName(), QUOTE,
+                ", ",
+                refInfo.isExposedEndFirst(),
+                ");");
+            startConditionalBlock(
+                CondType.IF, "assoc == null && newValue != null");
+            writeln("// None exists, get the new value's association.");
+            writeln(
+                "assoc = ((", 
+                ASSOCIABLE_INTERFACE, 
+                ")newValue).getAssociation(",
+                QUOTE, refInfo.getBaseName(), QUOTE,
+                ", ",
+                !refInfo.isExposedEndFirst(),
+                ");");
+            endBlock();
+
+            startConditionalBlock(CondType.IF, "assoc == null");
+            startConditionalBlock(CondType.IF, "newValue == null");
+            writeln(
+                "// User is clearing a non-existent association: do nothing");
+            writeln("return;");
+            endBlock();
+            writeln(
+                "assoc = getOrCreateAssociation(",
+                QUOTE, refInfo.getBaseName(), QUOTE,
+                ", ",
+                refInfo.isExposedEndFirst(),
+                ");");
+            endBlock();
+
+            startConditionalBlock(CondType.IF, "newValue != null");
+            // NOTE: we don't cast to the "_Impl" type here 
+            // because they do not inherit from each other
+            // and there may be multiple implementations of
+            // the parent interface.
+            writeln(
+                "assoc.add((",
+                ASSOCIABLE_INTERFACE,
+                ")newValue, this);");
+            startConditionalBlock(CondType.ELSE);
+            writeln("// remove any existing association");
+            writeln("assoc.removeAll(this);");
+            endBlock();
+            endBlock();                        
+        }
+    }
+
+    private void generateClassInstanceComponentRefManyToManyMethods(
+        Attribute attrib, ReferenceInfo refInfo)
+    {
+        startAccessorBlock(attrib);
+        String listElemType = 
+            getReferenceEndType(refInfo, true);
+        // TODO: Cache ListProxy in a field?
+        startConditionalBlock(
+            CondType.IF,
+            getReferenceAccessorName(refInfo), "() == null");
+        writeln(
+            "return new ", 
+            LIST_PROXY_CLASS, "<", listElemType, ">",
+            "(", QUOTE, refInfo.getBaseName(), QUOTE,
+            ", ", refInfo.isExposedEndFirst(),
+            ", this, ",
+            listElemType, ".class);");
+        startConditionalBlock(CondType.ELSE);
+        writeln(
+            "return new ",
+            LIST_PROXY_CLASS, "<", listElemType, ">",
+            "(", 
+            getReferenceAccessorName(refInfo), "(), this, ",
+            refInfo.isExposedEndFirst(), ", ",
+            listElemType, ".class);");
+        endBlock();
+        endBlock();
+    }
+
     private void generateClassInstanceConstructors(
         MofClass cls,
         Collection<Attribute> instanceAttributes,
         ArrayList<Attribute> nonDerivedAttribs,
         Map<Attribute, String> nonDerivedAttribNames,
-        Set<Attribute> nonDataTypeAttribs)
+        Set<Attribute> nonDataTypeAttribs,
+        Map<Attribute, ComponentInfo> componentInfoMap)
     {
         // zero argument constructor
         startConstructorBlock(cls, null, null, IMPL_SUFFIX);
         writeln("super();");
+        
         for(Attribute attrib: nonDerivedAttribs) {
             MultiplicityType mult = attrib.getMultiplicity();
             int upper = mult.getUpper();
             if (upper == -1 || upper > 1) {
-                // Multiple values -- initialize collection
+                // Multiple values -- initialize collection.
                 String fieldName = nonDerivedAttribNames.get(attrib);
 
-                String suffix = null;
                 if (nonDataTypeAttribs.contains(attrib)) {
-                    suffix = IMPL_SUFFIX;
+                    // don't initialize, these are modeled as associations
+                    continue;
                 }
                 
-                String elemTypeName = 
-                    generator.getTypeName(attrib.getType(), suffix);
+                String elemTypeName = generator.getTypeName(attrib.getType());
                 
                 String collTypeName;
                 if (mult.isOrdered()) {
@@ -1502,47 +1762,57 @@ public class HibernateJavaHandler
                 new ModelElement[nonDerivedAttribs.size()]);
         startConstructorBlock(cls, params, IMPL_SUFFIX);
         writeln("this();");
+        newLine();
+        writeln("// Make sure MOFID is assigned before any associations are");
+        writeln("// initialized. (Hibernate does not call this constructor.)");
+        writeln("save();");
+        
+        if (!nonDerivedAttribs.isEmpty()) {
+            newLine();
+        }
         for(Attribute attrib: nonDerivedAttribs) {
             String fieldName = nonDerivedAttribNames.get(attrib);
             String[] paramInfo = generator.getParam(attrib);
-            boolean isNonDataType = 
-                nonDataTypeAttribs.contains(attrib);
-            MultiplicityType mult = attrib.getMultiplicity();
-            int upper = mult.getUpper();
-            if (upper == -1 || upper > 1) {
-                // Copy the collection
-                if (isNonDataType) {
-                    boolean isOrdered = mult.isOrdered();
-                    String elemTypeName = 
-                        generator.getTypeName(attrib.getType(), IMPL_SUFFIX);
-                    String asClause = 
-                        isOrdered ? "asTypedList" : "asTypedCollection";
-                    writeln(
-                        "this.",
-                        fieldName,
-                        ".addAll(",
-                        GENERIC_COLLECTIONS_CLASS,
-                        ".", asClause, "(",
-                        paramInfo[1], ",",
-                        elemTypeName, ".class));");
+            if (nonDataTypeAttribs.contains(attrib)) {
+                ComponentInfo componentInfo = componentInfoMap.get(attrib);
+                    
+                boolean isCollection = !componentInfo.isSingle();
+                
+                if (isCollection) {
+                    startConditionalBlock(
+                        CondType.IF, 
+                        paramInfo[1], " != null && !", 
+                        paramInfo[1], ".isEmpty()");
                 } else {
+                    startConditionalBlock(
+                        CondType.IF, paramInfo[1], " != null");
+                }
+                writeln(
+                    ASSOCIATION_BASE_CLASS,
+                    " assoc = getOrCreateAssociation(", 
+                    QUOTE, componentInfo.getBaseName(), QUOTE, ", ", 
+                    componentInfo.isExposedEndFirst(), ");");
+                if (isCollection) {
+                    startBlock("for(Object o: ", paramInfo[1], ")");
+                    writeln("assoc.add(this, (", ASSOCIABLE_INTERFACE, ")o);");
+                    endBlock();
+                } else {
+                    writeln(
+                        "assoc.add(this, (",
+                        ASSOCIABLE_INTERFACE, ")", paramInfo[1], ");");
+                }
+                endBlock();
+            } else {
+                MultiplicityType mult = attrib.getMultiplicity();
+                int upper = mult.getUpper();
+                if (upper == -1 || upper > 1) {
+                    // Copy the collection
                     writeln(
                         "this.",
                         fieldName,
                         ".addAll(",
                         paramInfo[1],
                         ");");
-                }
-            } else {
-                if (isNonDataType) {
-                    writeln(
-                        "this.",
-                        fieldName,
-                        " = (",
-                        generator.getTypeName(attrib.getType(), IMPL_SUFFIX),
-                        ")",
-                        paramInfo[1],
-                        ";");                            
                 } else {
                     writeln(
                         "this.",
@@ -1562,24 +1832,26 @@ public class HibernateJavaHandler
         Set<Attribute> entityTypeAttribs)
     {
         for(Attribute attrib: instanceAttributes) {
+            if (entityTypeAttribs.contains(attrib)) {
+                // Modeled as an association
+                continue;
+            }
+            
             String fieldName = nonDerivedAttribNames.get(attrib);
             if (fieldName == null) {
                 throw new UnsupportedOperationException(
                     "derived attributes not supported");
             }
             
-            boolean isEntityType = entityTypeAttribs.contains(attrib);
-            String suffix = isEntityType ? IMPL_SUFFIX : null;
-            
             int upper = attrib.getMultiplicity().getUpper();
             if (upper == 1) {
                 newLine();
-                startAccessorBlock(attrib, suffix, suffix);
+                startAccessorBlock(attrib);
                 writeln("return ", fieldName, ";");
                 endBlock();
                 
                 newLine();
-                startMutatorBlock(attrib, suffix, suffix);
+                startMutatorBlock(attrib);
                 
                 // REVIEW: SWZ: 12/31/07: Some attributes are not 
                 // changeable, but Hibernate will still use this method to
@@ -1590,7 +1862,7 @@ public class HibernateJavaHandler
                 endBlock();                        
             } else if (upper != 0) {
                 newLine();
-                startAccessorBlock(attrib, suffix, suffix);
+                startAccessorBlock(attrib);
                 
                 if (attrib.isChangeable()) {
                     writeln("return ", fieldName, ";");
@@ -1611,52 +1883,6 @@ public class HibernateJavaHandler
                             ");");                            
                     }
                 }
-                endBlock();
-            }
-            
-            if (!isEntityType) {
-                continue;
-            }
-            
-            // Go back and implement the interface methods in terms
-            // of the attribute's interface type (as opposed to the
-            // concrete type)
-            if (upper == 1) {
-                newLine();
-                startAccessorBlock(attrib);
-                writeln(
-                    "return ",
-                    generator.getAccessorName(attrib), 
-                    IMPL_SUFFIX,
-                    "();");
-                endBlock();
-                
-                if (attrib.isChangeable()) {
-                    newLine();
-                    startMutatorBlock(attrib);
-                    writeln(
-                        generator.getMutatorName(attrib), IMPL_SUFFIX,
-                        "((",
-                        generator.getTypeName(attrib.getType(), IMPL_SUFFIX),
-                        ")newValue);");
-                    endBlock();                        
-                }
-            } else if (upper != 0) {
-                newLine();
-                startAccessorBlock(attrib);
-                
-                String asClause = 
-                    attrib.getMultiplicity().isOrdered()
-                        ? "asTypedList"
-                        : "asTypedCollection";
-                writeln(
-                    "return ",
-                    GENERIC_COLLECTIONS_CLASS,
-                    ".", asClause, "(", 
-                    generator.getAccessorName(attrib), IMPL_SUFFIX,
-                    ", ",
-                    generator.getTypeName(attrib.getType()),
-                    ".class);");
                 endBlock();
             }
         }
@@ -1780,7 +2006,9 @@ public class HibernateJavaHandler
                         writeln(paramInfo[1], i.hasNext() ? "," : ");");
                     }
                     decreaseIndent();
-                    writeln("obj.save();");
+
+                    // NOTE: save is called in the constructor
+
                     writeln("return obj;");
                     endBlock();
                 }
@@ -2213,32 +2441,6 @@ public class HibernateJavaHandler
             .append(">");
 
         return type.toString();
-    }
-    
-    private static class MofClassAttribPair
-    {
-        private final MofClass cls;
-        private final Attribute attrib;
-        
-        private MofClassAttribPair(MofClass cls, Attribute attrib)
-        {
-            this.cls = cls;
-            this.attrib = attrib;
-        }
-        
-        public boolean equals(Object o)
-        {
-            MofClassAttribPair that = (MofClassAttribPair)o;
-            
-            return 
-                this.cls.equals(that.cls) && 
-                this.attrib.equals(that.attrib);
-        }
-        
-        public int hashCode()
-        {
-            return cls.hashCode() ^ attrib.hashCode();
-        }
     }
     
     private static interface AssocMethodGenerator

@@ -174,7 +174,7 @@ public abstract class TransientImplementationHandler
 
         log.fine("Generating Association Implementation '" + typeName + "'");
 
-        AssociationInfo assocInfo = new AssociationInfo(generator, assoc);
+        AssociationInfo assocInfo = new AssociationInfoImpl(generator, assoc);
         
         String baseClass = REF_ASSOC_IMPL_CLASS.toString();
         if (!assocInfo.isChangeable(0) && !assocInfo.isChangeable(1)) {
@@ -420,7 +420,7 @@ public abstract class TransientImplementationHandler
                 new HashMap<Reference, ReferenceInfo>();
             
             for(Reference ref: instanceReferences) {
-                ReferenceInfo refInfo = new ReferenceInfo(generator, ref);
+                ReferenceInfo refInfo = new ReferenceInfoImpl(generator, ref);
 
                 writePrivateField(
                     refInfo.getAssocInterfaceName(),

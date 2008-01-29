@@ -151,6 +151,9 @@ public class HibernateMappingHandler
     private Map<Classifier, Set<Classifier>> subTypeMap;
     private Set<Classifier> allTypes;
     
+    /** Maps a component type to a list of references to it. */
+    private Map<Classifier, List<ComponentInfo>> componentAttribMap;
+
     private final Logger log = 
         Logger.getLogger(HibernateMappingHandler.class.getName());
 
@@ -179,6 +182,9 @@ public class HibernateMappingHandler
         this.allTypes = new LinkedHashSet<Classifier>();
         
         this.assocInfoMap = new LinkedHashMap<Association, AssociationInfo>();
+
+        this.componentAttribMap = 
+            new HashMap<Classifier, List<ComponentInfo>>();
     }
 
     public void setExtentName(String extentName)
@@ -233,6 +239,31 @@ public class HibernateMappingHandler
     public void endGeneration(boolean throwing) throws GenerationException
     {
         if (!throwing) {
+            for(Map.Entry<Classifier, List<ComponentInfo>> entry:
+                    componentAttribMap.entrySet())
+            {
+                Classifier referencedType = entry.getKey();
+                for(ComponentInfo componentInfo: entry.getValue()) {
+                    MofClass ownerType = componentInfo.getOwnerType();
+                    switch(componentInfo.getKind()) {
+                    case ONE_TO_ONE:
+                        oneToOneParentTypeSet.add(ownerType);
+                        oneToOneChildTypeSet.add(referencedType);
+                        break;
+                    
+                    case ONE_TO_MANY:
+                        oneToManyParentTypeSet.add(ownerType);
+                        oneToManyChildTypeSet.add(referencedType);
+                        break;
+                        
+                    case MANY_TO_MANY:
+                        manyToManySourceTypeSet.add(ownerType);
+                        manyToManyTargetTypeSet.add(referencedType);
+                        break;
+                    }
+                }
+            }
+            
             if (!oneToOneParentTypeSet.isEmpty()) {
                 writeOneToOneMapping();
                 newLine();
@@ -662,14 +693,37 @@ public class HibernateMappingHandler
     public void generateClassInstance(MofClass cls)
         throws GenerationException
     {
-        if (getPassIndex() == 0) {
-            return;
-        }
-        
         if (HibernateCodeGenUtils.isTransient(cls)) {
             log.fine(
                 "Skipping Transient Class Instance Mapping for '" 
                 + cls.getName() + "'");
+            return;
+        }
+        
+        if (getPassIndex() == 0) {
+            if (!cls.isAbstract()) {
+                Collection<Attribute> instanceAttributes =
+                    contentsOfType(
+                        cls,
+                        HierachySearchKindEnum.ENTITY_ONLY, 
+                        VisibilityKindEnum.PUBLIC_VIS,
+                        ScopeKindEnum.INSTANCE_LEVEL,
+                        Attribute.class);
+
+                for(Attribute attrib: instanceAttributes) {
+                    if (attrib.isDerived()) {
+                        continue;
+                    }
+                    if (attrib.getType() instanceof DataType) {
+                        continue;
+                    }
+                    
+                    addComponentAttrib(
+                        attrib.getType(), 
+                        new ComponentInfo(
+                            generator, cls, attrib, false));
+                }
+            }
             return;
         }
         
@@ -715,6 +769,12 @@ public class HibernateMappingHandler
         writeIdBlock();
         newLine();
         
+        List<ComponentInfo> componentInfos = 
+            new ArrayList<ComponentInfo>();
+        if (componentAttribMap.containsKey(cls)) {
+            componentInfos.addAll(componentAttribMap.get(cls));
+        }
+        
         // Attributes
         Collection<Attribute> instanceAttributes =
             contentsOfType(
@@ -723,6 +783,7 @@ public class HibernateMappingHandler
                 VisibilityKindEnum.PUBLIC_VIS,
                 ScopeKindEnum.INSTANCE_LEVEL,
                 Attribute.class);
+
         for(Attribute attrib: instanceAttributes) {
             if (attrib.isDerived()) {
                 continue;
@@ -757,15 +818,10 @@ public class HibernateMappingHandler
                     "type", typedefName);
                 break;
             }
-
+            
             case CLASS:
-                // MofClass as an attribute; use a Hibernate association
-                writeEmptyElem(
-                    "many-to-one",
-                    "name", fieldName + HibernateJavaHandler.IMPL_SUFFIX,
-                    "column", hibernateQuote(fieldName),
-                    "unique", "true",
-                    "cascade", "save-update");
+                componentInfos.add(
+                    new ComponentInfo(generator, cls, attrib, true));
                 break;
 
             case STRING:
@@ -805,7 +861,7 @@ public class HibernateMappingHandler
                 VisibilityKindEnum.PUBLIC_VIS,
                 Reference.class);
         for(Reference ref: instanceReferences) {
-            ReferenceInfo refInfo = new ReferenceInfo(generator, ref);
+            ReferenceInfo refInfo = new ReferenceInfoImpl(generator, ref);
 
             generateAssociationField(refInfo);
         }
@@ -828,6 +884,10 @@ public class HibernateMappingHandler
             generateAssociationField(refInfo);
         }
 
+        for(ComponentInfo componentInfo: componentInfos) {
+            generateAssociationField(componentInfo);
+        }
+        
         newLine();
         startElem(
             "query", 
@@ -908,11 +968,26 @@ public class HibernateMappingHandler
         endElem("id");
     }
     
+    private void addComponentAttrib(
+        Classifier type, ComponentInfo componentInfo)
+    {
+        List<ComponentInfo> componentOfList =
+            componentAttribMap.get(type);
+        
+        if (componentOfList == null) {
+            componentOfList = new ArrayList<ComponentInfo>();
+            componentAttribMap.put(type, componentOfList);
+        }
+        
+        componentOfList.add(componentInfo);
+    }
+
     public void generateAssociation(Association assoc) 
         throws GenerationException
     {
         if (getPassIndex() == 0) {
-            AssociationInfo assocInfo = new AssociationInfo(generator, assoc);
+            AssociationInfo assocInfo = 
+                new AssociationInfoImpl(generator, assoc);
             assocInfoMap.put(assoc, assocInfo);
 
             return;
@@ -997,7 +1072,7 @@ public class HibernateMappingHandler
         STRING,           // Primitive string
         ENUMERATION,      // any EnumerationType
         OTHER_DATA_TYPE,  // any other DataType
-        CLASS;            // MofClass from the model
+        CLASS;            // MofClass for the model
     }
 }
 

@@ -120,11 +120,13 @@ public abstract class HibernateAssociation extends HibernateObject
     protected static boolean equals(
         HibernateAssociable a1, HibernateAssociable a2)
     {
-        if (a1 == null || a2 == null) {
-            return a1 == a2;
+        if (a1 == null) {
+            return a2 == null;
+        } else if (a2 == null) {
+            return false;
+        } else {
+            return a1.equals(a2);
         }
-        
-        return a1.equals(a2);
     }
 
     /**
@@ -139,11 +141,13 @@ public abstract class HibernateAssociation extends HibernateObject
     protected static boolean equals(
         HibernateAssociation a1, HibernateAssociation a2)
     {
-        if (a1 == null || a2 == null) {
-            return a1 == a2;
+        if (a1 == null) {
+            return a2 == null;
+        } else if (a2 == null) {
+            return false;
+        } else {
+            return a1.equals(a2);
         }
-        
-        return a1.equals(a2);
     }
     
     public abstract Collection<RefAssociationLink> getLinks();
