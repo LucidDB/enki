@@ -106,6 +106,8 @@ public class HibernateMDRepository
     
     private Context beginTrans(boolean write, boolean implicit)
     {
+        assert(!write || !implicit): "Cannot support implicit write txn";
+        
         Context ancestor = null;
         Context implicitContext = null;
         if (tls.get() != null) {
@@ -133,20 +135,44 @@ public class HibernateMDRepository
             }
         }
 
+        boolean explicitlyEnableFlush = false;
+        boolean explicitlyDisableFlush = false;
+        
         Session session;
         Transaction txn;
         if (ancestor != null) {
             session = ancestor.session;
             txn = ancestor.transaction;
+            
+            if (write && !isWriteTransaction(ancestor, true)) {
+                explicitlyEnableFlush = true;
+            }
         } else if (implicitContext != null) {
             // Don't open a new session/transaction.
             session = implicitContext.session;
             txn = implicitContext.transaction;
+            
+            // N.B.: We know this is a write txn because of the logic that
+            // set implicitContext.
+            explicitlyEnableFlush = true;
         } else {
             session = sessionFactory.getCurrentSession();
             txn = session.beginTransaction();
+            
+            explicitlyEnableFlush = write;
+            explicitlyDisableFlush = !write;
         }
 
+        if (explicitlyDisableFlush) {
+            assert(!explicitlyEnableFlush);
+            
+            // Disable auto-flush to improve performance.  No need to flush 
+            // since this MDR transaction is read-only.
+            session.setFlushMode(FlushMode.COMMIT);
+        } else if (explicitlyEnableFlush) {
+            session.setFlushMode(FlushMode.AUTO);
+        }
+        
         Context context = new Context(session, txn, write, implicit, ancestor);
         tls.set(context);
         

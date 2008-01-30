@@ -423,8 +423,9 @@ public class ListProxy<E> implements List<E>
     
         public boolean hasNext()
         {
-            if (length >= 0) {
-                return index < length;
+            int len = length;
+            if (len >= 0) {
+                return index < len;
             } else {
                 return index < ListProxy.this.size();
             }

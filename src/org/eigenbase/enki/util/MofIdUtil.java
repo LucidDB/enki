@@ -28,6 +28,11 @@ package org.eigenbase.enki.util;
  */
 public class MofIdUtil
 {
+    private static final char[] HEX_DIGITS = { 
+        '0', '1', '2', '3', '4', '5', '6', '7',
+        '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
+    };
+    
     private MofIdUtil()
     {
     }
@@ -47,15 +52,21 @@ public class MofIdUtil
      */
     public static String makeMofIdStr(long mofId)
     {
-        StringBuilder b = new StringBuilder(MOFID_PREFIX);
+        char[] buf = new char[16];
+        int pos = 15;
+        do {
+            buf[pos--] = HEX_DIGITS[(int)(mofId & 0xF)];
+            mofId >>>= 4;
+        } while(mofId != 0);
         
-        String hexMofId = Long.toHexString(mofId);
-        
-        int padding = MOFID_WIDTH - MOFID_PREFIX.length() - hexMofId.length();
-        while(padding-- > 0) {
-            b.append('0');
+        while(pos >= 0) {
+            buf[pos--] = HEX_DIGITS[0];
         }
-        b.append(hexMofId);
+                
+        StringBuilder b = 
+            new StringBuilder(MOFID_WIDTH)
+            .append(MOFID_PREFIX)
+            .append(buf);
         
         return b.toString();
     }
