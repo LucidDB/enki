@@ -46,7 +46,12 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     
     protected RefBaseObjectBase()
     {
-        initializer = MetamodelInitializer.getCurrentInitializer();
+        this(MetamodelInitializer.getCurrentInitializer());
+    }
+    
+    protected RefBaseObjectBase(MetamodelInitializer initializer)
+    {
+        this.initializer = initializer;
         
         if (initializer != null) {
             setMofId(initializer.nextMofId());
@@ -209,10 +214,10 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         
         METHOD_SEARCH:
         for(Method method: methods) {
-            Class<?>[] paramTypes = method.getParameterTypes();
             if (resultType.isAssignableFrom(method.getReturnType()) &&
                 method.getName().startsWith("create")) {
     
+                Class<?>[] paramTypes = method.getParameterTypes();
                 if (paramTypes.length != params.size()) {
                     if (wse == null) {
                         wse = new WrongSizeException(type, typeName);
@@ -389,13 +394,13 @@ public abstract class RefBaseObjectBase implements RefBaseObject
      * returned.  Invocation exceptions are wrapped in {@link InternalJmiError}.
      * 
      * @param <E> return type
-     * @param cls return type class
+     * @param returnType return type class
      * @param method method to invoke
      * @return the result of the method invocation (see above)
      */
-    protected <E> E invokeMethod(Class<E> cls, Method method)
+    protected <E> E invokeMethod(Class<E> returnType, Method method)
     {
-        return invokeMethod(cls, this, method);
+        return invokeMethod(returnType, this, method);
     }
     
     /**
@@ -405,23 +410,23 @@ public abstract class RefBaseObjectBase implements RefBaseObject
      * wrapped in {@link InternalJmiError}.
      * 
      * @param <E> return type
-     * @param cls return type class
+     * @param returnType return type class
      * @param instance instance on which to invoke the method
      * @param method method to invoke
      * @param params method parameters
      * @return the result of the method invocation (see above)
      */
     protected <E> E invokeMethod(
-        Class<E> cls, Object instance, Method method, Object... params)
+        Class<E> returnType, Object instance, Method method, Object... params)
     {
         try {
             Object result = method.invoke(instance, params);
-            if (cls == Void.class) {
+            if (returnType == Void.class) {
                 assert(result == null);
                 return null;
             }
             
-            return cls.cast(result);
+            return returnType.cast(result);
         }
         catch(Exception e) {
             throw new InternalJmiError(e);

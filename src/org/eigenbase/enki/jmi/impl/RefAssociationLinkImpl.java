@@ -54,8 +54,8 @@ public class RefAssociationLinkImpl implements RefAssociationLink
         RefAssociationLinkImpl that = (RefAssociationLinkImpl)other;
         
         return 
-            this.refFirstEnd().equals(that.refFirstEnd()) &&
-            this.refSecondEnd().equals(that.refSecondEnd());
+            this.firstEnd.equals(that.firstEnd) &&
+            this.secondEnd.equals(that.secondEnd);
     }
     
     public int hashCode()

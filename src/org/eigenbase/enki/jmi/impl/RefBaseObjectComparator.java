@@ -23,22 +23,33 @@ package org.eigenbase.enki.jmi.impl;
 
 import java.util.*;
 
-import javax.jmi.reflect.*;
-
 /**
- * RefBaseObjectComparator compares {@link RefBaseObject} instances by
- * MOF ID.
+ * RefBaseObjectComparator compares {@link RefBaseObjectBase} instances by
+ * MOF ID.  
  * 
  * @author Stephan Zuercher
  */
-class RefBaseObjectComparator implements Comparator<RefBaseObject>
+class RefBaseObjectComparator implements Comparator<RefBaseObjectBase>
 {
     public static final RefBaseObjectComparator instance = 
         new RefBaseObjectComparator();
     
-    public int compare(RefBaseObject o1, RefBaseObject o2)
+    public int compare(RefBaseObjectBase o1, RefBaseObjectBase o2)
     {
-        return o1.refMofId().compareTo(o2.refMofId());
+        if (o1 == o2) {
+            return 0;
+        }
+        
+        long mofId1 = o1.getMofId();
+        long mofId2 = o2.getMofId();
+
+        if (mofId1 < mofId2) {
+            return -1;
+        } else if (mofId1 > mofId2) {
+            return 1;
+        }
+
+        return 0;
     }
 }
 

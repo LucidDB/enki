@@ -46,7 +46,7 @@ public abstract class MetamodelInitializer
     
     private final String metaModelExtent;
     
-    private final Map<RefClass, Collection<RefObject>> objectMap;
+    private final Map<RefClassBase, Collection<RefObjectBase>> objectMap;
     private final Map<String, Object> propertyMap;
     
     private ModelPackage modelPackage;
@@ -59,7 +59,7 @@ public abstract class MetamodelInitializer
     {
         this.metaModelExtent = metaModelExtent;
         this.objectMap = 
-            new TreeMap<RefClass, Collection<RefObject>>(
+            new TreeMap<RefClassBase, Collection<RefObjectBase>>(
                 RefBaseObjectComparator.instance);
         this.propertyMap = new HashMap<String, Object>();
     }
@@ -128,14 +128,14 @@ public abstract class MetamodelInitializer
         }
     }
     
-    Collection<RefObject> getAllInstancesOf(
-        RefClass refClass, boolean includeSubtypes)
+    Collection<? extends RefObject> getAllInstancesOf(
+        RefClassBase refClass, boolean includeSubtypes)
     {
         log.finest(
             "Looking up all instances of " + 
             refClass.getClass() + "/" + refClass.refMofId());
         
-        Collection<RefObject> instances = objectMap.get(refClass);
+        Collection<RefObjectBase> instances = objectMap.get(refClass);
         
         if (!includeSubtypes) {
             if (instances != null) {
@@ -157,8 +157,9 @@ public abstract class MetamodelInitializer
             GenericCollections.asTypedCollection(
                 generalizesAssoc.getSubtype(mofCls), MofClass.class);
         for(MofClass subClass: subClasses) {
-            RefClass refSubClass = 
-                refClass.refImmediatePackage().refClass(subClass.getName());
+            RefClassBase refSubClass = 
+                (RefClassBase)refClass.refImmediatePackage().refClass(
+                    subClass.getName());
             
             allInstances.addAll(getAllInstancesOf(refSubClass, true));
         }
@@ -166,7 +167,7 @@ public abstract class MetamodelInitializer
         return Collections.unmodifiableCollection(allInstances);
     }
     
-    Collection<RefClass> getAllRefClasses()
+    Collection<RefClassBase> getAllRefClasses()
     {
         return Collections.unmodifiableCollection(objectMap.keySet());
     }
@@ -224,18 +225,18 @@ public abstract class MetamodelInitializer
         return null;
     }
     
-    void register(RefObject refObject)
+    void register(RefObjectBase refObject)
     {
-        RefClass refClass = refObject.refClass();
+        RefClassBase refClass = (RefClassBase)refObject.refClass();
         
         log.finer(
-            "Registering " + refClass.getClass() + "/" + refClass.refMofId() + 
+            "Registering " + refClass.getClass() + "/" + refObject.refMofId() + 
             " with " + getClass());
         
-        Collection<RefObject> instances = objectMap.get(refClass);
+        Collection<RefObjectBase> instances = objectMap.get(refClass);
         if (instances == null) {
-            instances = new TreeSet<RefObject>(
-                RefBaseObjectComparator.instance);
+            instances = 
+                new TreeSet<RefObjectBase>(RefBaseObjectComparator.instance);
             objectMap.put(refClass, instances);
         }
         

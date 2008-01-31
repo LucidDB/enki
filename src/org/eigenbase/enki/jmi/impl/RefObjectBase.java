@@ -67,6 +67,11 @@ public abstract class RefObjectBase
         super();
     }
     
+    protected RefObjectBase(MetamodelInitializer initializer)
+    {
+        super(initializer);
+    }
+    
     // Implement RefObjectBaseObject/RefObjectBase
     public RefPackage refImmediatePackage()
     {

@@ -37,7 +37,7 @@ public class ListProxy<E> implements List<E>
     private final Class<E> cls;
     private HibernateAssociation assoc;
     private final HibernateAssociable source;
-    
+    private List<HibernateAssociable> proxiedList;
     private int size;
     
     public ListProxy(
@@ -51,7 +51,7 @@ public class ListProxy<E> implements List<E>
         this.cls = cls;
         this.assoc = assoc;
         this.source = source;
-        
+        this.proxiedList = assoc.get(source);
         this.size = -1;
     }
     
@@ -66,7 +66,7 @@ public class ListProxy<E> implements List<E>
         this.cls = cls;
         this.assoc = null;
         this.source = source;
-        
+        this.proxiedList = null;
         this.size = -1;
     }
     
@@ -74,12 +74,14 @@ public class ListProxy<E> implements List<E>
     {
         if (assoc == null) {
             assoc = source.getOrCreateAssociation(type, firstEnd);
+            
+            proxiedList = assoc.get(source);
         }
     }
 
-    private E getInternal(int index)
+    E getInternal(int index)
     {
-        return cls.cast(assoc.get(source).get(index));
+        return cls.cast(proxiedList.get(index));
     }
 
     public boolean add(E e)
@@ -90,6 +92,7 @@ public class ListProxy<E> implements List<E>
         } else {
             assoc.add((HibernateAssociable)e, source);
         }
+
         size = -1;
         return true;
     }
@@ -105,6 +108,7 @@ public class ListProxy<E> implements List<E>
         } else {
             assoc.add(index, (HibernateAssociable)element, source);
         }
+        
         size = -1;
     }
 
@@ -136,26 +140,27 @@ public class ListProxy<E> implements List<E>
         if (assoc != null) {
             assoc.clear(source);
             assoc = null;
+            proxiedList = null;
+            size = -1;
         }
-        size = -1;
     }
     
     public boolean contains(Object o)
     {
-        if (assoc != null) {
+        if (assoc == null) {
             return false;
         }
 
-        return assoc.get(source).contains(o);
+        return proxiedList.contains(o);
     }
 
     public boolean containsAll(Collection<?> c)
     {
-        if (assoc != null) {
+        if (assoc == null) {
             return false;
         }
 
-        return assoc.get(source).containsAll(c);
+        return proxiedList.containsAll(c);
     }
 
     public E get(int index)
@@ -173,7 +178,7 @@ public class ListProxy<E> implements List<E>
             return -1;
         }
 
-        return assoc.get(source).indexOf(o);
+        return proxiedList.indexOf(o);
     }
 
     public int lastIndexOf(Object o)
@@ -182,7 +187,7 @@ public class ListProxy<E> implements List<E>
             return -1;
         }
         
-        return assoc.get(source).lastIndexOf(o);
+        return proxiedList.lastIndexOf(o);
     }
 
     public boolean isEmpty()
@@ -191,17 +196,17 @@ public class ListProxy<E> implements List<E>
             return true;
         }
         
-        return assoc.get(source).isEmpty();
+        return proxiedList.isEmpty();
     }
 
     public Iterator<E> iterator()
     {
-        return listIterator(0);
+        return new IteratorProxy(0);
     }
 
     public ListIterator<E> listIterator()
     {
-        return listIterator(0);
+        return new IteratorProxy(0);
     }
 
     public ListIterator<E> listIterator(int index)
@@ -229,7 +234,9 @@ public class ListProxy<E> implements List<E>
             if (source.getAssociation(type, firstEnd) == null) {
                 // Deleted last child.
                 assoc = null;
+                proxiedList = null;
             }
+
             size = -1;
             return result;
         }
@@ -256,12 +263,12 @@ public class ListProxy<E> implements List<E>
         
         boolean result = false;
         for(Object o: c) {
-            if (assoc.get(source).contains(o)) {
-                assoc.get(source).remove(o);
+            if (proxiedList.contains(o)) {
+                proxiedList.remove(o);
                 result = true;
             }
         }
-        
+
         size = -1;
         return result;
     }
@@ -273,10 +280,10 @@ public class ListProxy<E> implements List<E>
         }
         
         boolean result = false;
-        List<HibernateAssociable> children = assoc.get(source);
+
         int i = 0;
-        while(i < children.size()) {
-            HibernateAssociable child = children.get(i);
+        while(i < proxiedList.size()) {
+            HibernateAssociable child = proxiedList.get(i);
             if (!c.contains(child)) {
                 remove(i);
                 result = true;
@@ -285,7 +292,6 @@ public class ListProxy<E> implements List<E>
             }
         }
 
-        size = -1;
         return result;
     }
 
@@ -309,7 +315,7 @@ public class ListProxy<E> implements List<E>
     {
         if (size == -1) {
             if (assoc != null) {
-                size = assoc.get(source).size();
+                size = proxiedList.size();
             } else {
                 size = 0;
             }
@@ -329,7 +335,7 @@ public class ListProxy<E> implements List<E>
             return new Object[0];
         }
         
-        return assoc.get(source).toArray();
+        return proxiedList.toArray();
     }
 
     public <T> T[] toArray(T[] a)
@@ -341,7 +347,7 @@ public class ListProxy<E> implements List<E>
             return a;
         }
         
-        return assoc.get(source).toArray(a);
+        return proxiedList.toArray(a);
     }
     
     private final class SublistProxy
@@ -363,7 +369,7 @@ public class ListProxy<E> implements List<E>
                 throw new IndexOutOfBoundsException();
             }
             
-            return ListProxy.this.get(index + offset);
+            return ListProxy.this.getInternal(index + offset);
         }
 
         @Override

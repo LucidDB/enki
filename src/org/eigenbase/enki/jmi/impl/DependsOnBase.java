@@ -68,7 +68,7 @@ public class DependsOnBase extends RefAssociationBase
         
         MetamodelInitializer initalizer = getInitializer();
         
-        for(RefClass refClass: initalizer.getAllRefClasses()) {
+        for(RefClassBase refClass: initalizer.getAllRefClasses()) {
             for(RefObject refObject: 
                     initalizer.getAllInstancesOf(refClass, false))
             {

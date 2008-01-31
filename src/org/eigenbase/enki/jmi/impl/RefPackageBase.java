@@ -40,9 +40,29 @@ public abstract class RefPackageBase
 {
     private final RefPackage container;
     
+    private final Map<String, Method> accessorMap;
+    
     protected RefPackageBase(RefPackage container)
     {
         this.container = container;
+        this.accessorMap = new HashMap<String, Method>();
+        
+        Method[] methods = getClass().getDeclaredMethods();
+        for(Method method: methods) {
+            String name = method.getName();
+            int modifiers = method.getModifiers();
+            if (name.startsWith("get") && 
+                method.getParameterTypes().length == 0 &&
+                RefBaseObject.class.isAssignableFrom(method.getReturnType()) &&
+                Modifier.isPublic(modifiers) &&
+                !Modifier.isStatic(modifiers) &&
+                !Modifier.isAbstract(modifiers))
+            {
+                name = name.substring(3);
+                
+                accessorMap.put(name, method);
+            }
+        }
     }
 
     // Implement RefBaseObject
@@ -154,10 +174,8 @@ public abstract class RefPackageBase
     
     private <E> E invokeAccessor(Class<E> cls, String typeName)
     {
-        Method method;
-        try {
-            method = getClass().getMethod("get" + typeName, (Class[])null);
-        } catch (NoSuchMethodException e) {
+        Method method = accessorMap.get(typeName);
+        if (method == null) {
             throw new InvalidNameException(typeName);
         }
         
@@ -169,10 +187,8 @@ public abstract class RefPackageBase
         ModelElement modelElem = (ModelElement)refObj;
         String typeName = getTypeName(modelElem);
         
-        Method method;
-        try {
-            method = getClass().getMethod("get" + typeName, (Class[])null);
-        } catch (NoSuchMethodException e) {
+        Method method = accessorMap.get(typeName);
+        if (method == null) {
             throw new InvalidCallException(this, refObj);
         }
         

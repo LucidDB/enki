@@ -175,6 +175,10 @@ public class HibernateMDRepository
         
         Context context = new Context(session, txn, write, implicit, ancestor);
         tls.set(context);
+
+        if (write) {
+            context.getEldestAncestor().mayContainWrites = true;
+        }
         
         return context;
     }
@@ -203,23 +207,25 @@ public class HibernateMDRepository
         Transaction txn = context.transaction;
 
         // No need to close the session, the txn commit or rollback took care 
-        // of that already.
-        if (rollback) {
+        // of that already.  Note that even if "commit" is requested, we'll
+        // rollback if no writing was possible.
+        if (rollback || !context.mayContainWrites) {
             txn.rollback();
         } else {
-            ArrayList<String> constraintErrors = new ArrayList<String>();
-            boolean foundConstraintError = false;
-
             // TODO: check for constraint violations
-
-            if (foundConstraintError) {
-                txn.rollback();
-                
-                throw new HibernateConstraintViolationException(
-                    constraintErrors);
-            } else {
-                txn.commit();
+            if (false) {
+                ArrayList<String> constraintErrors = new ArrayList<String>();
+                boolean foundConstraintError = false;
+    
+                if (foundConstraintError) {
+                    txn.rollback();
+                    
+                    throw new HibernateConstraintViolationException(
+                        constraintErrors);
+                }
             }
+            
+            txn.commit();
         }
     }
 
@@ -1078,6 +1084,7 @@ public class HibernateMDRepository
         private final Context ancestor;
         private Map<HibernateRefClass, Collection<?>> allOfTypeCache;
         private Map<HibernateRefClass, Collection<?>> allOfClassCache;
+        private boolean mayContainWrites;
         
         private Context(
             Session sesson,
@@ -1095,11 +1102,22 @@ public class HibernateMDRepository
                 new HashMap<HibernateRefClass, Collection<?>>();
             this.allOfClassCache =
                 new HashMap<HibernateRefClass, Collection<?>>();
+            this.mayContainWrites = false;
         }
         
         private MofIdGenerator getMofIdGenerator()
         {
             return HibernateMDRepository.this.mofIdGenerator;
+        }
+        
+        private Context getEldestAncestor()
+        {
+            Context context = this;
+            while(context.ancestor != null) {
+                context = context.ancestor;
+            }
+            
+            return context;
         }
     }
     

@@ -43,6 +43,11 @@ public abstract class RefFeaturedBase
         super();
     }
     
+    protected RefFeaturedBase(MetamodelInitializer initializer)
+    {
+        super(initializer);
+    }
+    
     public Object refGetValue(RefObject type)
     {
         Method method = findMethod(type, null, true, 0);

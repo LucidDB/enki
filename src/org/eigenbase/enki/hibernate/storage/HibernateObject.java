@@ -42,7 +42,7 @@ public abstract class HibernateObject extends RefObjectBase
     
     protected HibernateObject()
     {
-        super();
+        super((MetamodelInitializer)null);
     }
     
     /**
