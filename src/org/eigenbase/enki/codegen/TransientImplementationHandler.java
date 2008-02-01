@@ -971,13 +971,20 @@ public abstract class TransientImplementationHandler
                     pkgIter = packages.iterator();
                 nameIter.hasNext() && pkgIter.hasNext(); )
             {
+                String fieldName = nameIter.next();
+                MofPackage nestedPkg = pkgIter.next();
+                
                 writeln(
                     "this.",
-                    nameIter.next(),
+                    fieldName,
                     " = new ",
                     generator.getSimpleTypeName(
-                        pkgIter.next(), computeSuffix(PACKAGE_SUFFIX)),
+                        nestedPkg, computeSuffix(PACKAGE_SUFFIX)),
                     "(this);");
+                writeln(
+                    "super.addPackage(", 
+                    QUOTE, nestedPkg.getName(), QUOTE, 
+                    ", this.", fieldName, ");");
             }
             
             // initialize class proxy fields 
@@ -991,19 +998,23 @@ public abstract class TransientImplementationHandler
                     clsIter = classes.iterator();
                 nameIter.hasNext() && clsIter.hasNext(); )
             {
+                String fieldName = nameIter.next();
+                MofClass nestedCls = clsIter.next();
                 writeln(
                     "this.",
-                    nameIter.next(),
+                    fieldName,
                     " = new ",
                     generator.getSimpleTypeName(
-                        clsIter.next(), computeSuffix(CLASS_PROXY_SUFFIX)),
+                        nestedCls, computeSuffix(CLASS_PROXY_SUFFIX)),
                     "(this);");
+                writeln(
+                    "super.addClass(", 
+                    QUOTE, nestedCls.getName(), QUOTE, 
+                    ", this.", fieldName, ");");
             }
 
             // initialize association fields
-            if (hasAssocs && 
-                (hasPackages || hasClasses))
-            {
+            if (hasAssocs && (hasPackages || hasClasses)) {
                 newLine();
             }
             
@@ -1013,13 +1024,18 @@ public abstract class TransientImplementationHandler
                     assocIter = assocs.iterator();
                 nameIter.hasNext() && assocIter.hasNext(); )
             {
+                String fieldName = nameIter.next();
                 Association assoc = assocIter.next();
                 writeln(
                     "this.",
-                    nameIter.next(),
+                    fieldName,
                     " = new ",
                     generator.getSimpleTypeName(assoc, computeSuffix("")),
                     "(this);");
+                writeln(
+                    "super.addAssociation(", 
+                    QUOTE, assoc.getName(), QUOTE, 
+                    ", this.", fieldName, ");");
             }
             
             endBlock();

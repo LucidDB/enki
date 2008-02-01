@@ -21,6 +21,9 @@
 */
 package org.eigenbase.enki.codegen;
 
+import java.text.*;
+import java.util.*;
+
 /**
  * MofImplementationGenerator outputs a basic implementation of the MOF M3
  * model.  This generator was useful for creating the 
@@ -34,9 +37,9 @@ public class MofImplementationGenerator
     private static final String COMMON_HEADER = 
         "$Id$\n" +
         "Enki generates and implements the JMI and MDR APIs for MOF metamodels.\n" +
-        "Copyright (C) 2007-2007 The Eigenbase Project\n" +
-        "Copyright (C) 2007-2007 Disruptive Tech\n" +
-        "Copyright (C) 2007-2007 LucidEra, Inc.\n" +
+        "Copyright (C) 2007-@YEAR@ The Eigenbase Project\n" +
+        "Copyright (C) 2007-@YEAR@ Disruptive Tech\n" +
+        "Copyright (C) 2007-@YEAR@ LucidEra, Inc.\n" +
         "\n" +
         "This library is free software; you can redistribute it and/or modify it\n" +
         "under the terms of the GNU Lesser General Public License as published by\n" +
@@ -50,7 +53,8 @@ public class MofImplementationGenerator
         "\n" +
         "You should have received a copy of the GNU Lesser General Public\n" +
         "License along with this library; if not, write to the Free Software\n" +
-        "Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA";    
+        "Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA";
+    
     public MofImplementationGenerator()
     {
         super();
@@ -59,12 +63,16 @@ public class MofImplementationGenerator
     @Override
     protected void configureHandlers()
     {
+        Date now = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy");
+        String header = COMMON_HEADER.replaceAll("@YEAR@", sdf.format(now));
+        
         MofImplementationHandler mofHandler = new MofImplementationHandler();
-        mofHandler.setCommonHeader(COMMON_HEADER);   
+        mofHandler.setCommonHeader(header);   
         addHandler(mofHandler);
         
         MofInitHandler initHandler = new MofInitHandler();
-        mofHandler.setCommonHeader(COMMON_HEADER);
+        mofHandler.setCommonHeader(header);
         addHandler(initHandler);
     }
 

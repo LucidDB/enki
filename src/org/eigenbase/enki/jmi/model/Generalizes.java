@@ -1,11 +1,9 @@
 /*
-//  $Id:
-//  //open/enki/src/org/eigenbase/enki/codegen/MofImplementationGenerator.java#1
-//  $
+//  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2007 The Eigenbase Project
-//  Copyright (C) 2007-2007 Disruptive Tech
-//  Copyright (C) 2007-2007 LucidEra, Inc.
+//  Copyright (C) 2007-2008 The Eigenbase Project
+//  Copyright (C) 2007-2008 Disruptive Tech
+//  Copyright (C) 2007-2008 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -41,10 +39,11 @@ public class Generalizes
     {
         super(
             container,
-            "supertype",
+            "Supertype",
             Multiplicity.UNIQUE_ORDERED_COLLECTION,
-            "subtype",
+            "Subtype",
             Multiplicity.UNIQUE_COLLECTION);
+
     }
 
     public boolean exists(
@@ -59,7 +58,7 @@ public class Generalizes
         javax.jmi.model.GeneralizableElement subtype)
     {
         return (List)super.refQuery(
-            "subtype", subtype);
+            "Subtype", subtype);
     }
 
     @SuppressWarnings("unchecked")
@@ -67,7 +66,7 @@ public class Generalizes
         javax.jmi.model.GeneralizableElement supertype)
     {
         return super.refQuery(
-            "supertype", supertype);
+            "Supertype", supertype);
     }
 
     public boolean add(

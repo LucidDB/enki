@@ -1,9 +1,9 @@
 /*
 //  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2007 The Eigenbase Project
-//  Copyright (C) 2007-2007 Disruptive Tech
-//  Copyright (C) 2007-2007 LucidEra, Inc.
+//  Copyright (C) 2007-2008 The Eigenbase Project
+//  Copyright (C) 2007-2008 Disruptive Tech
+//  Copyright (C) 2007-2008 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -81,44 +81,82 @@ public class ModelPackage
         super(null);
 
         this.modelElementClass = new ModelElementClass(this);
+        super.addClass("ModelElement", this.modelElementClass);
         this.namespaceClass = new NamespaceClass(this);
+        super.addClass("Namespace", this.namespaceClass);
         this.generalizableElementClass = new GeneralizableElementClass(this);
+        super.addClass("GeneralizableElement", this.generalizableElementClass);
         this.typedElementClass = new TypedElementClass(this);
+        super.addClass("TypedElement", this.typedElementClass);
         this.classifierClass = new ClassifierClass(this);
+        super.addClass("Classifier", this.classifierClass);
         this.mofClassClass = new MofClassClass(this);
+        super.addClass("Class", this.mofClassClass);
         this.dataTypeClass = new DataTypeClass(this);
+        super.addClass("DataType", this.dataTypeClass);
         this.primitiveTypeClass = new PrimitiveTypeClass(this);
+        super.addClass("PrimitiveType", this.primitiveTypeClass);
         this.enumerationTypeClass = new EnumerationTypeClass(this);
+        super.addClass("EnumerationType", this.enumerationTypeClass);
         this.collectionTypeClass = new CollectionTypeClass(this);
+        super.addClass("CollectionType", this.collectionTypeClass);
         this.structureTypeClass = new StructureTypeClass(this);
+        super.addClass("StructureType", this.structureTypeClass);
         this.structureFieldClass = new StructureFieldClass(this);
+        super.addClass("StructureField", this.structureFieldClass);
         this.aliasTypeClass = new AliasTypeClass(this);
+        super.addClass("AliasType", this.aliasTypeClass);
         this.featureClass = new FeatureClass(this);
+        super.addClass("Feature", this.featureClass);
         this.structuralFeatureClass = new StructuralFeatureClass(this);
+        super.addClass("StructuralFeature", this.structuralFeatureClass);
         this.attributeClass = new AttributeClass(this);
+        super.addClass("Attribute", this.attributeClass);
         this.referenceClass = new ReferenceClass(this);
+        super.addClass("Reference", this.referenceClass);
         this.behavioralFeatureClass = new BehavioralFeatureClass(this);
+        super.addClass("BehavioralFeature", this.behavioralFeatureClass);
         this.operationClass = new OperationClass(this);
+        super.addClass("Operation", this.operationClass);
         this.mofExceptionClass = new MofExceptionClass(this);
+        super.addClass("Exception", this.mofExceptionClass);
         this.associationClass = new AssociationClass(this);
+        super.addClass("Association", this.associationClass);
         this.associationEndClass = new AssociationEndClass(this);
+        super.addClass("AssociationEnd", this.associationEndClass);
         this.mofPackageClass = new MofPackageClass(this);
+        super.addClass("Package", this.mofPackageClass);
         this.importClass = new ImportClass(this);
+        super.addClass("Import", this.importClass);
         this.parameterClass = new ParameterClass(this);
+        super.addClass("Parameter", this.parameterClass);
         this.constraintClass = new ConstraintClass(this);
+        super.addClass("Constraint", this.constraintClass);
         this.constantClass = new ConstantClass(this);
+        super.addClass("Constant", this.constantClass);
         this.tagClass = new TagClass(this);
+        super.addClass("Tag", this.tagClass);
 
         this.attachesTo = new AttachesTo(this);
+        super.addAssociation("AttachesTo", this.attachesTo);
         this.dependsOn = new DependsOn(this);
+        super.addAssociation("DependsOn", this.dependsOn);
         this.contains = new Contains(this);
+        super.addAssociation("Contains", this.contains);
         this.generalizes = new Generalizes(this);
+        super.addAssociation("Generalizes", this.generalizes);
         this.aliases = new Aliases(this);
+        super.addAssociation("Aliases", this.aliases);
         this.constrains = new Constrains(this);
+        super.addAssociation("Constrains", this.constrains);
         this.canRaise = new CanRaise(this);
+        super.addAssociation("CanRaise", this.canRaise);
         this.exposes = new Exposes(this);
+        super.addAssociation("Exposes", this.exposes);
         this.refersTo = new RefersTo(this);
+        super.addAssociation("RefersTo", this.refersTo);
         this.isOfType = new IsOfType(this);
+        super.addAssociation("IsOfType", this.isOfType);
     }
 
     // Class Proxy Accessors

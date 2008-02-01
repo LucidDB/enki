@@ -1,11 +1,9 @@
 /*
-//  $Id:
-//  //open/enki/src/org/eigenbase/enki/codegen/MofImplementationGenerator.java#1
-//  $
+//  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2007 The Eigenbase Project
-//  Copyright (C) 2007-2007 Disruptive Tech
-//  Copyright (C) 2007-2007 LucidEra, Inc.
+//  Copyright (C) 2007-2008 The Eigenbase Project
+//  Copyright (C) 2007-2008 Disruptive Tech
+//  Copyright (C) 2007-2008 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -41,10 +39,11 @@ public class Aliases
     {
         super(
             container,
-            "importer",
+            "Importer",
             Multiplicity.UNIQUE_COLLECTION,
-            "imported",
+            "Imported",
             Multiplicity.SINGLE);
+
     }
 
     public boolean exists(
@@ -59,14 +58,14 @@ public class Aliases
         javax.jmi.model.Namespace imported)
     {
         return super.refQuery(
-            "imported", imported);
+            "Imported", imported);
     }
 
     public javax.jmi.model.Namespace getImported(
         javax.jmi.model.Import importer)
     {
         Collection<?> result = super.refQuery(
-            "importer", importer);
+            "Importer", importer);
         Iterator<?> iter = result.iterator();
         if (iter.hasNext()) {
             return (javax.jmi.model.Namespace)iter.next();

@@ -1,11 +1,9 @@
 /*
-//  $Id:
-//  //open/enki/src/org/eigenbase/enki/codegen/MofImplementationGenerator.java#1
-//  $
+//  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2007 The Eigenbase Project
-//  Copyright (C) 2007-2007 Disruptive Tech
-//  Copyright (C) 2007-2007 LucidEra, Inc.
+//  Copyright (C) 2007-2008 The Eigenbase Project
+//  Copyright (C) 2007-2008 Disruptive Tech
+//  Copyright (C) 2007-2008 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -41,10 +39,11 @@ public class Exposes
     {
         super(
             container,
-            "referrer",
+            "Referrer",
             Multiplicity.UNIQUE_COLLECTION,
-            "exposedEnd",
+            "ExposedEnd",
             Multiplicity.SINGLE);
+
     }
 
     public boolean exists(
@@ -59,14 +58,14 @@ public class Exposes
         javax.jmi.model.AssociationEnd exposedEnd)
     {
         return super.refQuery(
-            "exposedEnd", exposedEnd);
+            "ExposedEnd", exposedEnd);
     }
 
     public javax.jmi.model.AssociationEnd getExposedEnd(
         javax.jmi.model.Reference referrer)
     {
         Collection<?> result = super.refQuery(
-            "referrer", referrer);
+            "Referrer", referrer);
         Iterator<?> iter = result.iterator();
         if (iter.hasNext()) {
             return (javax.jmi.model.AssociationEnd)iter.next();

@@ -2122,10 +2122,8 @@ public class HibernateJavaHandler
                 METAMODEL_INITIALIZER_CLASS,
                 ".getCurrentInitializer().setRefMetaObject(this, ", 
                 QUOTE, pkg.getName(), QUOTE, ");");
-            
-            if (hasPackages) {
-                newLine();
-            }
+            newLine();
+
             // initialize nested package fields
             Iterator<String> nameIter;
             Iterator<MofPackage> pkgIter;
@@ -2134,54 +2132,69 @@ public class HibernateJavaHandler
                     pkgIter = packages.iterator();
                 nameIter.hasNext() && pkgIter.hasNext(); )
             {
+                String fieldName = nameIter.next();
+                MofPackage nestedPkg = pkgIter.next();
                 writeln(
                     "this.",
-                    nameIter.next(),
+                    fieldName,
                     " = new ",
                     generator.getTypeName(
-                        pkgIter.next(), PACKAGE_SUFFIX + IMPL_SUFFIX),
+                        nestedPkg, PACKAGE_SUFFIX + IMPL_SUFFIX),
                     "(this);");
+                writeln(
+                    "super.addPackage(", 
+                    QUOTE, nestedPkg.getName(), QUOTE, 
+                    ", this.", fieldName, ");");
             }
-            
-            // initialize class proxy fields 
-            if (hasClasses && hasPackages) {
+            if (hasPackages) {
                 newLine();
             }
             
+            // initialize class proxy fields 
             Iterator<MofClass> clsIter;
             for(
                 nameIter = classFieldNames.iterator(),
                     clsIter = classes.iterator();
                 nameIter.hasNext() && clsIter.hasNext(); )
             {
+                String fieldName = nameIter.next();
+                MofClass nestedCls = clsIter.next();
                 writeln(
                     "this.",
-                    nameIter.next(),
+                    fieldName,
                     " = new ",
                     generator.getTypeName(
-                        clsIter.next(), CLASS_PROXY_SUFFIX + IMPL_SUFFIX),
+                        nestedCls, CLASS_PROXY_SUFFIX + IMPL_SUFFIX),
                     "(this);");
+                writeln(
+                    "super.addClass(", 
+                    QUOTE, nestedCls.getName(), QUOTE, 
+                    ", this.", fieldName, ");");
             }
 
-            // initialize association fields
-            if (hasAssocs && 
-                (hasPackages || hasClasses))
-            {
+            if (hasClasses) {
                 newLine();
             }
             
+            // initialize association fields
             Iterator<Association> assocIter;
             for(
                 nameIter = assocFieldNames.iterator(),
                     assocIter = assocs.iterator();
                 nameIter.hasNext() && assocIter.hasNext(); )
             {
+                String fieldName = nameIter.next();
+                Association assoc = assocIter.next();
                 writeln(
                     "this.",
-                    nameIter.next(),
+                    fieldName,
                     " = new ",
-                    generator.getTypeName(assocIter.next(), IMPL_SUFFIX),
+                    generator.getTypeName(assoc, IMPL_SUFFIX),
                     "(this);");
+                writeln(
+                    "super.addAssociation(", 
+                    QUOTE, assoc.getName(), QUOTE, 
+                    ", this.", fieldName, ");");
             }
             
             endBlock();

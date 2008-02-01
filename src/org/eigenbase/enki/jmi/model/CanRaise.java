@@ -1,11 +1,9 @@
 /*
-//  $Id:
-//  //open/enki/src/org/eigenbase/enki/codegen/MofImplementationGenerator.java#1
-//  $
+//  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2007 The Eigenbase Project
-//  Copyright (C) 2007-2007 Disruptive Tech
-//  Copyright (C) 2007-2007 LucidEra, Inc.
+//  Copyright (C) 2007-2008 The Eigenbase Project
+//  Copyright (C) 2007-2008 Disruptive Tech
+//  Copyright (C) 2007-2008 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -41,10 +39,11 @@ public class CanRaise
     {
         super(
             container,
-            "operation",
+            "Operation",
             Multiplicity.UNIQUE_COLLECTION,
-            "except",
+            "Except",
             Multiplicity.UNIQUE_ORDERED_COLLECTION);
+
     }
 
     public boolean exists(
@@ -59,7 +58,7 @@ public class CanRaise
         javax.jmi.model.MofException except)
     {
         return super.refQuery(
-            "except", except);
+            "Except", except);
     }
 
     @SuppressWarnings("unchecked")
@@ -67,7 +66,7 @@ public class CanRaise
         javax.jmi.model.Operation operation)
     {
         return (List)super.refQuery(
-            "operation", operation);
+            "Operation", operation);
     }
 
     public boolean add(

@@ -27,8 +27,6 @@ import java.util.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
-import org.eigenbase.enki.util.*;
-
 /**
  * RefPackageBase is a base class for {@link RefPackage} implementations.
  * 
@@ -40,29 +38,31 @@ public abstract class RefPackageBase
 {
     private final RefPackage container;
     
-    private final Map<String, Method> accessorMap;
+    private final Map<String, RefClass> classMap;
+    private final Map<String, RefAssociation> associationMap;
+    private final Map<String, RefPackage> packageMap;
     
     protected RefPackageBase(RefPackage container)
     {
         this.container = container;
-        this.accessorMap = new HashMap<String, Method>();
-        
-        Method[] methods = getClass().getDeclaredMethods();
-        for(Method method: methods) {
-            String name = method.getName();
-            int modifiers = method.getModifiers();
-            if (name.startsWith("get") && 
-                method.getParameterTypes().length == 0 &&
-                RefBaseObject.class.isAssignableFrom(method.getReturnType()) &&
-                Modifier.isPublic(modifiers) &&
-                !Modifier.isStatic(modifiers) &&
-                !Modifier.isAbstract(modifiers))
-            {
-                name = name.substring(3);
-                
-                accessorMap.put(name, method);
-            }
-        }
+        this.classMap = new HashMap<String, RefClass>();
+        this.associationMap = new HashMap<String, RefAssociation>();
+        this.packageMap = new HashMap<String, RefPackage>();
+    }
+    
+    protected void addClass(String name, RefClass refClass)
+    {
+        classMap.put(name, refClass);
+    }
+
+    protected void addAssociation(String name, RefAssociation refAssoc)
+    {
+        associationMap.put(name, refAssoc);
+    }
+
+    protected void addPackage(String name, RefPackage refPackage)
+    {
+        packageMap.put(name, refPackage);
     }
 
     // Implement RefBaseObject
@@ -91,22 +91,22 @@ public abstract class RefPackageBase
 
     public RefAssociation refAssociation(RefObject association)
     {
-        return invokeAccessorByType(RefAssociation.class, association);
+        return getByType(RefAssociation.class, association, associationMap);
     }
 
     public RefAssociation refAssociation(String associationName)
     {
-        return invokeAccessor(RefAssociation.class, associationName);
+        return get(RefAssociation.class, associationName, associationMap);
     }
 
     public RefClass refClass(RefObject type)
     {
-        return invokeAccessorByType(RefClass.class, type);
+        return getByType(RefClass.class, type, classMap);
     }
 
     public RefClass refClass(String typeName)
     {
-        return invokeAccessor(RefClass.class, typeName);
+        return get(RefClass.class, typeName, classMap);
     }
 
     @SuppressWarnings("unchecked")
@@ -137,19 +137,14 @@ public abstract class RefPackageBase
     }
     
 
-    public RefPackage refPackage(RefObject nestedPackage)
+    public RefPackage refPackage(RefObject pkg)
     {
-        return invokeAccessorByType(RefPackage.class, nestedPackage);
+        return getByType(RefPackage.class, pkg, packageMap);
     }
 
-    public RefPackage refPackage(String nestedPackageName)
+    public RefPackage refPackage(String pkgName)
     {
-        String mangledName = 
-            StringUtil.mangleIdentifier(
-                nestedPackageName, StringUtil.IdentifierType.ALL_LOWER);
-        return invokeAccessor(
-            RefPackage.class, 
-            StringUtil.toInitialUpper(mangledName));
+        return get(RefPackage.class, pkgName, packageMap);
     }
 
     private <E> Collection<E> getAllOfTypeByReflection(Class<E> cls)
@@ -172,40 +167,28 @@ public abstract class RefPackageBase
         return Collections.unmodifiableCollection(types);
     }
     
-    private <E> E invokeAccessor(Class<E> cls, String typeName)
+    private <E> E get(
+        Class<E> cls, String typeName, Map<String, E> accessorMap)
     {
-        Method method = accessorMap.get(typeName);
-        if (method == null) {
+        E entity = accessorMap.get(typeName);
+        if (entity == null) {
             throw new InvalidNameException(typeName);
         }
         
-        return invokeMethod(cls, method);
+        return entity;
     }
 
-    private <E> E invokeAccessorByType(Class<E> cls, RefObject refObj)
+    private <E> E getByType(
+        Class<E> cls, RefObject refObj, Map<String, E> accessorMap)
     {
         ModelElement modelElem = (ModelElement)refObj;
-        String typeName = getTypeName(modelElem);
         
-        Method method = accessorMap.get(typeName);
-        if (method == null) {
+        E entity = accessorMap.get(modelElem.getName());
+        if (entity == null) {
             throw new InvalidCallException(this, refObj);
         }
-        
-        return invokeMethod(cls, method);
-    }
-    
-    private String getTypeName(ModelElement modelElem)
-    {
-        String baseName = modelElem.getName();
 
-        String substName = getTag(modelElem, TagUtil.TAGID_SUBSTITUTE_NAME);
-        if (substName != null) {
-            baseName = substName;
-        }
-
-        return StringUtil.mangleIdentifier(
-            baseName, StringUtil.IdentifierType.CAMELCASE_INIT_UPPER);
+        return entity;
     }
 }
 
