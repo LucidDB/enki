@@ -303,6 +303,7 @@
         <path refid="enki.run.classpath"/>
         <pathelement path="${sample.jar}"/>
       </classpath>
+      <jvmarg line="${assertions.jvmarg}"/>
       <sysproperty key="enki.home" value="${enki.dir}"/>
       <sysproperty key="enki.test.extent" value="SampleRepository"/>
       <formatter type="plain"/>
