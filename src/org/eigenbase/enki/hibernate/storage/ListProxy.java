@@ -23,6 +23,10 @@ package org.eigenbase.enki.hibernate.storage;
 
 import java.util.*;
 
+import javax.jmi.reflect.*;
+
+import org.eigenbase.enki.hibernate.jmi.*;
+
 /**
  * ListProxy implements {@link List} to assist subclasses of 
  * {@link HibernateAssociation} in the management of associations with
@@ -30,7 +34,7 @@ import java.util.*;
  * 
  * @author Stephan Zuercher
  */
-public class ListProxy<E> implements List<E>
+public class ListProxy<E extends RefObject> implements List<E>
 {
     private final String type;
     private final boolean firstEnd;
@@ -39,33 +43,54 @@ public class ListProxy<E> implements List<E>
     private final HibernateAssociable source;
     private List<HibernateAssociable> proxiedList;
     private int size;
+    private HibernateRefAssociation refAssoc;
     
     public ListProxy(
         HibernateAssociation assoc, 
         HibernateAssociable source,
         boolean firstEnd,
+        String refAssocId,
         Class<E> cls)
     {
+        this.assoc = assoc;
         this.type = assoc.getType();
+        this.source = source;
         this.firstEnd = firstEnd;
         this.cls = cls;
-        this.assoc = assoc;
-        this.source = source;
+
+        if (refAssocId != null) {
+            this.refAssoc = 
+                HibernateRefAssociationRegistry.instance().findRefAssociation(
+                    refAssocId);
+        } else {
+            this.refAssoc = null;
+        }
+
         this.proxiedList = assoc.get(source);
         this.size = -1;
     }
     
     public ListProxy(
         String type,
-        boolean firstEnd, 
         HibernateAssociable source,
+        boolean firstEnd, 
+        String refAssocId,
         Class<E> cls)
     {
+        this.assoc = null;
         this.type = type;
+        this.source = source;
         this.firstEnd = firstEnd;
         this.cls = cls;
-        this.assoc = null;
-        this.source = source;
+
+        if (refAssocId != null) {
+            this.refAssoc = 
+                HibernateRefAssociationRegistry.instance().findRefAssociation(
+                    refAssocId);
+        } else {
+            this.refAssoc = null;
+        }
+
         this.proxiedList = null;
         this.size = -1;
     }
@@ -84,9 +109,33 @@ public class ListProxy<E> implements List<E>
         return cls.cast(proxiedList.get(index));
     }
 
+    private void fireAddEvent(E e, int position)
+    {
+        if (refAssoc != null) {
+            refAssoc.fireAddEvent(firstEnd, source, e, position);
+        }
+    }
+    
+    private void fireRemoveEvent(E e, int position)
+    {
+        if (refAssoc != null) {
+            refAssoc.fireRemoveEvent(firstEnd, source, e, position);
+        }
+    }
+    
+    private void fireSetEvent(E oldE, E newE, int position)
+    {
+        if (refAssoc != null) {
+            refAssoc.fireSetEvent(firstEnd, source, oldE, newE, position);
+        }
+    }
+    
     public boolean add(E e)
     {
         checkAssoc();
+
+        fireAddEvent(e, size);
+        
         if (firstEnd) {
             assoc.add(source, (HibernateAssociable)e);
         } else {
@@ -103,6 +152,10 @@ public class ListProxy<E> implements List<E>
         if (index < 0 || index > size()) {
             throw new IndexOutOfBoundsException();
         }
+
+        // TODO: EVENT: set events for re-indexed values?
+        fireAddEvent(element, index);
+        
         if (firstEnd) {
             assoc.add(index, source, (HibernateAssociable)element);
         } else {
@@ -138,6 +191,10 @@ public class ListProxy<E> implements List<E>
     public void clear()
     {
         if (assoc != null) {
+            for(int i = 0; i < size; i++) {
+                fireRemoveEvent(getInternal(i), i);
+            }
+
             assoc.clear(source);
             assoc = null;
             proxiedList = null;
@@ -224,6 +281,9 @@ public class ListProxy<E> implements List<E>
     public boolean remove(Object o)
     {
         if (o instanceof HibernateAssociable && assoc != null) {
+            int index = proxiedList.indexOf(o);
+            fireRemoveEvent(cls.cast(o), index);            
+            
             boolean result;
             if (firstEnd) {
                 result = assoc.remove(source, (HibernateAssociable)o);
@@ -251,6 +311,9 @@ public class ListProxy<E> implements List<E>
         }
         
         E element = getInternal(index);
+        
+        fireRemoveEvent(element, index);
+        
         remove(element);
         return element;
     }
@@ -263,8 +326,10 @@ public class ListProxy<E> implements List<E>
         
         boolean result = false;
         for(Object o: c) {
-            if (proxiedList.contains(o)) {
-                proxiedList.remove(o);
+            int index = proxiedList.indexOf(o);
+            if (index >= 0) {
+                fireRemoveEvent(cls.cast(o), index);
+                proxiedList.remove(index);
                 result = true;
             }
         }
@@ -302,6 +367,9 @@ public class ListProxy<E> implements List<E>
         }
         
         E item = getInternal(index);
+        
+        fireSetEvent(item, element, index);
+        
         if (firstEnd) {
             assoc.remove(source, (HibernateAssociable)item);
         } else {

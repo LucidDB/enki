@@ -119,22 +119,14 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
         return end2Class;
     }
     
-    public boolean add(E1 end1, E2 end2)
+    protected boolean add(E1 end1, E2 end2)
     {
-        HibernateAssociable associableEnd1 = (HibernateAssociable)end1;
-        HibernateAssociable associableEnd2 = (HibernateAssociable)end2;
-        
-        return associableEnd1.getAssociation(type, true).add(
-            associableEnd1, associableEnd2);
+        return refAddLink(end1, end2);
     }
 
-    public boolean remove(E1 end1, E2 end2)
+    protected boolean remove(E1 end1, E2 end2)
     {
-        HibernateAssociable associableEnd1 = (HibernateAssociable)end1;
-        HibernateAssociable associableEnd2 = (HibernateAssociable)end2;
-        
-        return associableEnd1.getAssociation(type, true).remove(
-            associableEnd1, associableEnd2);
+        return refRemoveLink(end1, end2);
     }
 
 }

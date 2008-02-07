@@ -161,14 +161,35 @@ public class HibernateManyToManyAssociation
 
     @Override
     public boolean remove(
-        HibernateAssociable source, HibernateAssociable target)
+        HibernateAssociable end1, HibernateAssociable end2)
     {
+        HibernateAssociable source;
+        HibernateAssociable target;
+        if (getReversed()) {
+            source = end2;
+            target = end1;
+        } else {
+            source = end1;
+            target = end2;
+        }
+
+        return removeInternal(source, target);
+    }
+    
+    private boolean removeInternal(
+        HibernateAssociable source, HibernateAssociable target) 
+    {        
         final String type = getType();
 
+        boolean targetIsFirstEnd = getReversed();
+        boolean sourceIsFirstEnd = !targetIsFirstEnd;
+        
         HibernateManyToManyAssociation sourceAssoc =
-            (HibernateManyToManyAssociation)source.getAssociation(type, true);
+            (HibernateManyToManyAssociation)source.getAssociation(
+                type, sourceIsFirstEnd);
         HibernateManyToManyAssociation targetAssoc =
-            (HibernateManyToManyAssociation)target.getAssociation(type, false);
+            (HibernateManyToManyAssociation)target.getAssociation(
+                type, targetIsFirstEnd);
 
         assert(equals(sourceAssoc, this) || equals(targetAssoc, this));
         
@@ -178,7 +199,7 @@ public class HibernateManyToManyAssociation
             result = true;
             
             if (sourceAssocTargets.isEmpty()) {
-                source.setAssociation(type, true, null);
+                source.setAssociation(type, sourceIsFirstEnd, null);
     
                 HibernateMDRepository.getCurrentSession().delete(sourceAssoc);
             }
@@ -189,7 +210,7 @@ public class HibernateManyToManyAssociation
             result = true;
 
             if (targetAssocTargets.isEmpty()) {
-                target.setAssociation(type, false, null);
+                target.setAssociation(type, targetIsFirstEnd, null);
     
                 HibernateMDRepository.getCurrentSession().delete(targetAssoc);
             }
@@ -199,7 +220,7 @@ public class HibernateManyToManyAssociation
     }
     
     @Override
-    public void removeAll(HibernateAssociable item)
+    public void removeAll(HibernateAssociable item, boolean cascadeDelete)
     {
         HibernateAssociable source = getSource();
         List<HibernateAssociable> targets = getTarget();
@@ -207,13 +228,21 @@ public class HibernateManyToManyAssociation
         if (!equals(item, source)) {
             assert(targets.contains(item));
             
-            remove(source, item);
+            removeInternal(source, item);
+            
+            if (cascadeDelete) {
+                source.refDelete();
+            }
             return;
         }
         
         while(!targets.isEmpty()) {
             HibernateAssociable trg = targets.get(0);
-            remove(item, trg);
+            removeInternal(item, trg);
+            
+            if (cascadeDelete) {
+                trg.refDelete();
+            }
         }
     }
     
@@ -222,7 +251,7 @@ public class HibernateManyToManyAssociation
     {
         assert(equals(getSource(), item));
         
-        removeAll(item);
+        removeAll(item, false);
     }
 
     @Override
@@ -256,9 +285,9 @@ public class HibernateManyToManyAssociation
     }
 
     @Override
-    public Collection<? extends RefObject> query(boolean returnSecondEnd)
+    public List<? extends RefObject> query(boolean returnSecondEnd)
     {
-        return Collections.unmodifiableCollection(getTarget());
+        return Collections.unmodifiableList(getTarget());
     }
 }
 

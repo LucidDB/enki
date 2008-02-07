@@ -21,12 +21,13 @@
 */
 package org.eigenbase.enki.hibernate.jmi;
 
+import java.util.*;
+
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.hibernate.storage.*;
-import org.hibernate.*;
-import org.hibernate.criterion.*;
+import org.netbeans.api.mdr.events.*;
 
 /**
  * HibernateRefObject provides a Hibernate-based implementation of 
@@ -48,43 +49,16 @@ public abstract class HibernateRefObject
     @Override
     public void refDelete()
     {
+        HibernateMDRepository.enqueueEvent(
+            new InstanceEvent(
+                this,
+                InstanceEvent.EVENT_INSTANCE_DELETE,
+                null,
+                this));
+        
         removeAssociations();
         
         super.delete();
-    }
-    
-    /**
-     * Looks up the entity with the given type whose given property matches
-     * this instance's MOF ID.
-     * 
-     * @param ownerClass composite owner class (e.g., a class whose instances
-     *                   may contain this instance as an attribute value)
-     * @param ownerPropertyName property in the owner class that may refer to
-     *                          this instance
-     * @return the unique instance of the owner class that refers to this 
-     *         instance as a component via the given property, or null if no
-     *         such instance exists
-     */
-    protected final RefObject findCompositeOwner(
-        Class<?> ownerClass, String ownerPropertyName)
-    {
-        // REVIEW: SWZ: 1/11/08: Consider a way of representing attributes
-        // with MofClass types that would remove the need for this query.
-        // For instance, an attribute with MofClass type could be modeled
-        // as a 1-to-1 association, which would give the component instance
-        // a back-link back to the owner.  The down-side is an additional
-        // row to represent the association and still more complex code
-        // generation.
-        assert(RefObject.class.isAssignableFrom(ownerClass));
-        
-        Session session = HibernateMDRepository.getCurrentSession();
-
-        Criteria criteria = 
-            session.createCriteria(ownerClass)
-            .add(Restrictions.eq(ownerPropertyName, this));
-        criteria.setCacheable(true);
-        
-        return (RefObject)criteria.uniqueResult();
     }
     
     @Override
@@ -101,7 +75,158 @@ public abstract class HibernateRefObject
         return immediateComposite;
     }
     
+    protected void associationSetSingle(
+        String type, 
+        String refAssocId, 
+        boolean isExposedEndFirst,
+        HibernateAssociable newValue)
+    {
+        HibernateRefAssociation refAssoc = null;
+        if (refAssocId != null) {
+            refAssoc = 
+                HibernateRefAssociationRegistry.instance().findRefAssociation(
+                    refAssocId);
+        }
+
+        HibernateAssociable me = (HibernateAssociable)this;
+        
+        // Get the existing association object
+        HibernateAssociation assoc = 
+            me.getAssociation(type, isExposedEndFirst);
+        if (assoc == null && newValue != null) {
+            // If none exists, get the new value's association.
+            assoc = newValue.getAssociation(type, !isExposedEndFirst);
+        }
+        
+        if (assoc == null) {
+            if (newValue == null) {
+                // User is clearing a non-existent association: do nothing
+                return;
+            }
+
+            assoc = me.getOrCreateAssociation(type, isExposedEndFirst);
+        }
+        
+        if (newValue != null) {
+            HibernateAssociable end1, end2;
+            if (isExposedEndFirst) {
+                end1 = me;
+                end2 = newValue;
+            } else {
+                end1 = newValue;
+                end2 = me;
+            }
+
+            if (refAssoc != null) {
+                refAssoc.fireAddEvent(true, end1, end2, 0);
+            }
+            assoc.add(end1, end2);                
+        } else {
+            // remove any existing association
+            if (refAssoc != null) {
+                int index = 0;
+                // This is not very intuitive, but it is how Netbeans behaves.
+                for(RefObject end: assoc.query(isExposedEndFirst)) {
+                    if (isExposedEndFirst) {
+                        refAssoc.fireRemoveEvent(true, me, end, index++);
+                    } else {
+                        refAssoc.fireRemoveEvent(true, end, me, index++);
+                    }
+                } 
+            }
+            
+            assoc.removeAll(me, false);
+        }
+    }
+    
+    protected void attributeSetSingle(
+        String type, 
+        String attribName, 
+        boolean isExposedEndFirst,
+        HibernateAssociable newValue)
+    {
+        HibernateAssociable me = (HibernateAssociable)this;
+        
+        boolean assocIsNew = false;
+        
+        // Get the existing association object
+        HibernateAssociation assoc = 
+            me.getAssociation(type, isExposedEndFirst);
+        if (assoc == null && newValue != null) {
+            // If none exists, get the new value's association.
+            assoc = newValue.getAssociation(type, !isExposedEndFirst);
+            assocIsNew = true;
+        }
+        
+        if (assoc == null) {
+            if (newValue == null) {
+                // User is clearing a non-existent association: do nothing
+                return;
+            }
+            
+            assoc = me.getOrCreateAssociation(type, isExposedEndFirst);
+            assocIsNew = true;
+        }
+
+        if (newValue != null) {
+            RefObject oldValue = null;
+            if (!assocIsNew) {
+                Collection<? extends RefObject> otherEnd = 
+                    assoc.query(isExposedEndFirst);
+                oldValue = 
+                    otherEnd.isEmpty() ? null : otherEnd.iterator().next();
+            }
+            
+            fireAttributeSetEvent(attribName, oldValue, newValue);
+            
+            if (isExposedEndFirst) {
+                assoc.add(me, newValue);
+            } else {
+                assoc.add(newValue, me);
+            }
+        } else {
+            for(RefObject end: assoc.query(isExposedEndFirst)) {
+                fireAttributeSetEvent(attribName, end, null);
+            }
+            
+            // REVIEW: SWZ: 2008-02-07: Does setting a component attribute 
+            // to null (e.g., phoneNumber.setAreaCode(null) cause the AreaCode 
+            // to be deleted?  Here we assume no.
+            assoc.removeAll(me, false);
+        }
+    }
+    
     protected abstract void removeAssociations();
     
     protected abstract String getClassIdentifier();
+    
+    protected void fireAttributeSetEvent(
+        String attribName, Object oldValue, Object newValue)
+    {
+        HibernateMDRepository.enqueueEvent(
+            new AttributeEvent(
+                this,
+                AttributeEvent.EVENT_ATTRIBUTE_SET,
+                attribName,
+                oldValue,
+                newValue,
+                AttributeEvent.POSITION_NONE));
+    }
+    
+    protected void fireAssociationRemoveAllEvents(
+        String refAssocId,
+        boolean isExposedEndFirst,
+        HibernateAssociation assoc)
+    {
+        HibernateRefAssociation refAssoc = 
+            HibernateRefAssociationRegistry.instance().findRefAssociation(
+                refAssocId);
+        
+        List<? extends RefObject> otherEnds =
+            assoc.query(isExposedEndFirst);
+        for(int i = 0; i < otherEnds.size(); i++) {
+            refAssoc.fireRemoveEvent(
+                isExposedEndFirst, this, otherEnds.get(i), i);
+        }
+    }
 }

@@ -31,6 +31,7 @@ import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
 import org.hibernate.*;
+import org.netbeans.api.mdr.events.*;
 
 /**
  * HibernateRefAssociation provides a Hibernate-based implementation of 
@@ -60,8 +61,14 @@ public abstract class HibernateRefAssociation
             end2Multiplicity);
         
         this.type = type;
+
+        HibernateRefAssociationRegistry.instance().registerRefAssociation(
+            getAssociationIdentifier(),
+            this);
     }
 
+    protected abstract String getAssociationIdentifier();
+    
     public Collection<?> refAllLinks()
     {
         Session session = HibernateMDRepository.getCurrentSession();
@@ -136,6 +143,8 @@ public abstract class HibernateRefAssociation
     public boolean refAddLink(RefObject end1, RefObject end2)
     {
         checkTypes(end1, end2);
+
+        fireAddEvent(end1, end2);
         
         HibernateAssociable assoc1 = (HibernateAssociable)end1;
         HibernateAssociable assoc2 = (HibernateAssociable)end2;
@@ -146,18 +155,25 @@ public abstract class HibernateRefAssociation
     public boolean refRemoveLink(RefObject end1, RefObject end2)
     {
         checkTypes(end1, end2);
+
+        fireRemoveEvent(end1, end2);
         
-        HibernateAssociable assoc1 = (HibernateAssociable)end1;
-        HibernateAssociable assoc2 = (HibernateAssociable)end2;
+        HibernateAssociable associable1 = (HibernateAssociable)end1;
+        HibernateAssociable associable2 = (HibernateAssociable)end2;
         
-        if (assoc1.getAssociation(type, true) == null ||
-            assoc2.getAssociation(type, false) == null) 
+        HibernateAssociation association1 = 
+            associable1.getAssociation(type, true);
+        HibernateAssociation association2 = 
+            associable2.getAssociation(type, false);
+        if (association1 == null || 
+            association2 == null || 
+            !association1.equals(association2))
         {
             // These are not associated
             return false;
         }
         
-        return assoc1.getAssociation(type, true).remove(assoc1, assoc2);
+        return association1.remove(associable1, associable2);
     }
 
     protected abstract Class<? extends RefObject> getFirstEndType();
@@ -183,5 +199,131 @@ public abstract class HibernateRefAssociation
         if (!end2Type.isAssignableFrom(end2.getClass())) {
             throw new TypeMismatchException(end2Type, this, end2);
         }
+    }
+    
+    protected void fireAddEvent(RefObject end1, RefObject end2)
+    {
+        int index = AssociationEvent.POSITION_NONE;
+        if (end2Multiplicity.isOrdered()) {
+            index = query(true, end1).size();
+        }
+        
+        generateAddEvent(end1, end1Name, end2, index);
+    }
+
+    public void fireAddEvent(
+        boolean fixedIsFirstEnd, 
+        RefObject fixedEnd, 
+        RefObject end, 
+        int index)
+    {
+        String fixedEndName;
+        Multiplicity mult;
+        if (fixedIsFirstEnd) {
+            mult = end2Multiplicity;
+            fixedEndName = end1Name;
+        } else {
+            mult = end1Multiplicity;
+            fixedEndName = end2Name;
+        }
+        
+        if (!mult.isOrdered()) {
+            index = AssociationEvent.POSITION_NONE;
+        }
+        
+        generateAddEvent(fixedEnd, fixedEndName, end, index);
+    }
+    
+    private void generateAddEvent(
+        RefObject fixedEnd, String fixedEndName, RefObject end, int index)
+    {
+        HibernateMDRepository.enqueueEvent(
+            new AssociationEvent(
+                this,
+                AssociationEvent.EVENT_ASSOCIATION_ADD,
+                fixedEnd, 
+                fixedEndName, 
+                null,
+                end,
+                index));
+    }
+    
+    protected void fireRemoveEvent(RefObject end1, RefObject end2)
+    {
+        int index = AssociationEvent.POSITION_NONE;
+        if (end2Multiplicity.isOrdered()) {
+            int pos = ((List<?>)query(true, end1)).indexOf(end2);
+            if (pos >= 0) {
+                index = pos;
+            }
+        }
+
+        generateRemoveEvent(end1, end1Name, end2, index);
+    }
+
+    public void fireRemoveEvent(
+        boolean fixedIsFirstEnd, RefObject fixedEnd, RefObject end, int index)
+    {
+        String fixedEndName;
+        Multiplicity mult;
+        if (fixedIsFirstEnd) {
+            mult = end2Multiplicity;
+            fixedEndName = end1Name;
+        } else {
+            mult = end1Multiplicity;
+            fixedEndName = end2Name;
+        }
+
+        if (!mult.isOrdered()) {
+            index = AssociationEvent.POSITION_NONE;
+        }
+        
+        generateRemoveEvent(fixedEnd, fixedEndName, end, index);
+    }
+    
+    private void generateRemoveEvent(
+        RefObject fixedEnd, String fixedEndName, RefObject end, int index)
+    {
+        HibernateMDRepository.enqueueEvent(
+            new AssociationEvent(
+                this,
+                AssociationEvent.EVENT_ASSOCIATION_REMOVE,
+                fixedEnd, 
+                fixedEndName, 
+                end,
+                null,
+                index >= 0 ? index : AssociationEvent.POSITION_NONE));
+    }
+    
+    public void fireSetEvent(
+        boolean fixedIsFirstEnd,
+        RefObject fixedEnd, 
+        RefObject oldEnd, 
+        RefObject newEnd,
+        int index)
+    {
+        String fixedEndName;
+        Multiplicity mult;
+        if (fixedIsFirstEnd) {
+            mult = end2Multiplicity;
+            fixedEndName = end1Name;
+        } else {
+            mult = end1Multiplicity;
+            fixedEndName = end2Name;
+        }
+
+        if (!mult.isOrdered()) {
+            index = AssociationEvent.POSITION_NONE;
+        }
+        
+        HibernateMDRepository.enqueueEvent(
+            new AssociationEvent(
+                this,
+                AssociationEvent.EVENT_ASSOCIATION_SET,
+                fixedEnd,
+                fixedEndName,
+                oldEnd,
+                newEnd,
+                index));
     }
 }

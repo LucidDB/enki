@@ -22,8 +22,8 @@
 package org.eigenbase.enki.hibernate.jmi;
 
 import javax.jmi.reflect.*;
-import javax.jmi.reflect.RefAssociationLink;
 
+import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
 
@@ -44,6 +44,10 @@ public abstract class HibernateRefPackage
     
     public void refDelete()
     {
+        if (refImmediatePackage() == null) {
+            HibernateMDRepository.enqueueExtentDeleteEvent(this);
+        }
+        
         deleteObjectsRecursively();
     }
     

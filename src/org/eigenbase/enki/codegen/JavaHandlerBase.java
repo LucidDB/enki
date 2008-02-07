@@ -1197,22 +1197,22 @@ public abstract class JavaHandlerBase
      * generated from type's name.
      * 
      * @param feature field type
+     * @param fieldNameSuffix suffix for the field name
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
-     * @param typeSuffix suffix for the type (and therefore field) name
      * 
      * @return the field's name
      */
     protected String writePrivateField(
         StructuralFeature feature, 
-        String typeSuffix,
+        String fieldNameSuffix,
         boolean isFinal, 
         boolean isStatic)
     {
         String fieldName = feature.getName();
         fieldName = generator.getClassFieldName(fieldName);
-        if (typeSuffix != null) {
-            fieldName += typeSuffix;
+        if (fieldNameSuffix != null) {
+            fieldName += fieldNameSuffix;
         }
         
         writePrivateField(
@@ -1220,7 +1220,7 @@ public abstract class JavaHandlerBase
             fieldName, 
             isFinal,
             isStatic,
-            typeSuffix);
+            null);
         
         return fieldName;
     }

@@ -135,7 +135,7 @@ public class HibernateOneToManyAssociation
 
             if (childAssoc != null) {
                 // Child associated with another parent.
-                childAssoc.removeAll(newChild);
+                childAssoc.removeAll(newChild, false);
             }
             
             newChild.setAssociation(type, childIsFirstEnd, this);
@@ -232,8 +232,7 @@ public class HibernateOneToManyAssociation
     }
 
     @Override
-    public boolean remove(
-        HibernateAssociable end1, HibernateAssociable end2)
+    public boolean remove(HibernateAssociable end1, HibernateAssociable end2)
     {
         HibernateAssociable parent;
         HibernateAssociable child;
@@ -243,7 +242,6 @@ public class HibernateOneToManyAssociation
         } else {
             parent = end1;
             child = end2;
-
         }
 
         return removeInternal(parent, child);
@@ -290,7 +288,7 @@ public class HibernateOneToManyAssociation
     }
     
     @Override
-    public void removeAll(HibernateAssociable item)
+    public void removeAll(HibernateAssociable item, boolean cascadeDelete)
     {
         HibernateAssociable parent = getParent();
         List<HibernateAssociable> children = getChildren();
@@ -303,6 +301,10 @@ public class HibernateOneToManyAssociation
             // Just ignore the call and the unused association should be gc'd.
             if (parent != null) {
                 removeInternal(parent, item);
+                
+                if (cascadeDelete) {
+                    parent.refDelete();
+                }
             }
             return;
         }
@@ -310,6 +312,10 @@ public class HibernateOneToManyAssociation
         while(!children.isEmpty()) {
             HibernateAssociable child = children.get(0);
             removeInternal(item, child);
+            
+            if (cascadeDelete) {
+                child.refDelete();
+            }
         }
     }
     
@@ -318,7 +324,7 @@ public class HibernateOneToManyAssociation
     {
         assert(equals(getParent(), item));
         
-        removeAll(item);
+        removeAll(item, false);
     }
     
     @Override
@@ -351,14 +357,14 @@ public class HibernateOneToManyAssociation
     }
 
     @Override
-    public Collection<? extends RefObject> query(boolean returnSecondEnd)
+    public List<? extends RefObject> query(boolean returnSecondEnd)
     {
         boolean returnParent = (returnSecondEnd == getReversed());
 
         if (returnParent) {
-            return Collections.singleton(getParent());
+            return Collections.singletonList(getParent());
         } else {
-            return Collections.unmodifiableCollection(getChildren());
+            return Collections.unmodifiableList(getChildren());
         }
     }
 }

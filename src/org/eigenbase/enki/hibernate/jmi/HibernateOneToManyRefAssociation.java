@@ -143,39 +143,15 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
     {
         return end2Class;
     }
-
-    public boolean add(E1 end1, E2 end2)
+    
+    protected boolean add(E1 end1, E2 end2)
     {
-        HibernateAssociable associableParent;
-        HibernateAssociable associableChild;
-        
-        if (end1IsParent) {
-            associableParent = (HibernateAssociable)end1;
-            associableChild = (HibernateAssociable)end2;
-        } else {
-            associableParent = (HibernateAssociable)end2;
-            associableChild = (HibernateAssociable)end1;
-        }
-        
-        return associableParent.getAssociation(type, true).add(
-            associableParent, associableChild);
+        return refAddLink(end1, end2);
     }
 
-    public boolean remove(E1 end1, E2 end2)
+    protected boolean remove(E1 end1, E2 end2)
     {
-        HibernateAssociable associableParent;
-        HibernateAssociable associableChild;
-        
-        if (end1IsParent) {
-            associableParent = (HibernateAssociable)end1;
-            associableChild = (HibernateAssociable)end2;
-        } else {
-            associableParent = (HibernateAssociable)end2;
-            associableChild = (HibernateAssociable)end1;
-        }
-        
-        return associableParent.getAssociation(type, true).remove(
-            associableParent, associableChild);
+        return refRemoveLink(end1, end2);
     }
 }
 

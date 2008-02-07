@@ -83,11 +83,16 @@ public abstract class HibernateAssociation extends HibernateObject
     
     /**
      * Generically removes all associations of this type for the given 
-     * association end.  The item may be at either end of the association. 
+     * association end.  The item may be at either end of the association.
+     * The cascade delete option is useful when this association represents
+     * a component attribute.
      * 
      * @param item an association end
+     * @param cascadeDelete if true, call {@link RefObject#refDelete()} on 
+     *                      each removed item
      */
-    public abstract void removeAll(HibernateAssociable item);
+    public abstract void removeAll(
+        HibernateAssociable item, boolean cascadeDelete);
     
     /**
      * Generically remove all associations related to the given item, which
@@ -163,7 +168,7 @@ public abstract class HibernateAssociation extends HibernateObject
      * @param returnSecondEnd if true return the end2 object(s)
      * @return collection of objects for the requested end
      */
-    public abstract Collection<? extends RefObject> query(
+    public abstract List<? extends RefObject> query(
         boolean returnSecondEnd);
 }
 

@@ -1,0 +1,955 @@
+/*
+// $Id$
+// Enki generates and implements the JMI and MDR APIs for MOF metamodels.
+// Copyright (C) 2008-2008 The Eigenbase Project
+// Copyright (C) 2008-2008 Disruptive Tech
+// Copyright (C) 2008-2008 LucidEra, Inc.
+//
+// This library is free software; you can redistribute it and/or modify it
+// under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2.1 of the License, or (at
+// your option) any later version.
+// 
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+// 
+// You should have received a copy of the GNU Lesser General Public
+// License along with this library; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+*/
+package org.eigenbase.enki.test;
+
+import java.util.*;
+
+import javax.jmi.reflect.*;
+
+import org.eigenbase.enki.test.events.*;
+import org.junit.*;
+import org.netbeans.api.mdr.events.*;
+
+import eem.sample.*;
+import eem.sample.special.*;
+
+/**
+ * Tests the MDR Events API.
+ * 
+ * See {@link org.netbeans.api.mdr.events}.
+ * 
+ * @author Stephan Zuercher
+ */
+public class MdrEventsApiTest extends SampleModelTestBase
+{
+    private static final boolean PRINT_EVENTS = true;
+
+    private static final long EVENT_TIMEOUT = 10000L;
+    
+    private EventValidatingChangeListener listener;
+    
+    @BeforeClass
+    public static void createTestObjects()
+    {
+        getRepository().beginTrans(true);
+        try {
+            Car mustang =
+                getSamplePackage().getCar().createCar("Ford", "Mustang", 2);
+            
+            Driver bullitt =
+                getSamplePackage().getDriver().createDriver(
+                    "Bullitt", "ABC555");
+            
+            mustang.setDriver(bullitt);
+        }
+        finally {
+            getRepository().endTrans();
+        }
+    }
+
+    private void configureListener(int mask, EventValidator eventValidator)
+    {
+        if (listener != null) {
+            destroyListener();
+        }
+        
+        listener = 
+            new EventValidatingChangeListener(eventValidator, PRINT_EVENTS);
+        
+        getRepository().addListener(listener, mask);
+    }
+
+    private void logTest()
+    {
+        if (PRINT_EVENTS) {
+            StackTraceElement[] stackTrace = 
+                Thread.currentThread().getStackTrace();
+            
+            System.out.println(stackTrace[3].getMethodName());
+        }
+    }
+
+    @After
+    public void destroyListener()
+    {
+        if (listener == null) {
+            return;
+        }
+        
+        getRepository().removeListener(listener);
+        listener = null;
+    }
+    
+    @Test
+    public void testTransactionRollbackEvents()
+    {
+        logTest();
+        testTransactionEvents(true);
+    }
+    
+    @Test
+    public void testTransactionCommitEvents()
+    {
+        logTest();
+        testTransactionEvents(false);
+    }
+    
+    private void testTransactionEvents(boolean rollback)
+    {
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+        
+        configureListener(
+            TransactionEvent.EVENTMASK_TRANSACTION | 
+                InstanceEvent.EVENTMASK_INSTANCE,
+            new DelegatingEventValidator(
+                new TransactionEventValidator(EventType.PLANNED, true),
+                new CreateInstanceEventValidator(
+                    EventType.PLANNED,
+                    getSamplePackage().getPerson(),
+                    Person.class,
+                    Arrays.asList((Object)"John Doe")),
+                new TransactionEventValidator(EventType.PLANNED, false),
+                new DuplicateEventValidator(postTxnEventType, 0),
+                new DuplicateEventValidator(postTxnEventType, 1),
+                new DuplicateEventValidator(postTxnEventType, 2)));
+        
+        getRepository().beginTrans(true);
+        try {
+            getSamplePackage().getPerson().createPerson("John Doe");
+        } finally {
+            getRepository().endTrans(rollback);
+        }
+
+        waitAndCheckErrors();
+    }
+
+    private void waitAndCheckErrors()
+    {
+        int numEventsExpected = listener.getNumEventsExpected();
+        
+        boolean timedOut = 
+            listener.waitForSomeEvents(numEventsExpected, EVENT_TIMEOUT);
+        
+        listener.rethrow();
+        
+        Assert.assertFalse(
+            "timed out before " + numEventsExpected + " events", 
+            timedOut);
+    }
+
+    @Test
+    public void testCreateInstanceEventsWithRollback()
+    {
+        logTest();
+        testCreateInstanceEvents(true, CreateMethod.CLASS_PROXY);
+    }
+    
+    @Test
+    public void testRefCreateInstanceEventsWithRollback()
+    {
+        logTest();
+        testCreateInstanceEvents(true, CreateMethod.REFLECTIVE_API);
+    }
+    
+    @Test
+    public void testCreateInstanceEventsWithCommit()
+    {
+        logTest();
+        testCreateInstanceEvents(false, CreateMethod.CLASS_PROXY);
+    }
+
+    @Test
+    public void testRefCreateInstanceEventsWithCommit()
+    {
+        logTest();
+        testCreateInstanceEvents(false, CreateMethod.CLASS_PROXY);
+    }
+
+    private void testCreateInstanceEvents(
+        boolean rollback, CreateMethod method)
+    {
+        final List<Object> carArgs1 = 
+            Arrays.asList(new Object[] { "Ford", "Mustang", new Integer(2) });
+        final List<Object> carArgs2 = 
+            Arrays.asList(new Object[] { "Dodge", "Charger", new Integer(2) });
+        final List<Object> carArgs3 = null;
+        
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+        
+        configureListener(
+            InstanceEvent.EVENTMASK_INSTANCE,
+            new DelegatingEventValidator(
+                new CreateInstanceEventValidator(
+                    EventType.PLANNED, 
+                    getSamplePackage().getCar(), 
+                    Car.class, 
+                    carArgs1),
+                new CreateInstanceEventValidator(
+                    EventType.PLANNED, 
+                    getSamplePackage().getCar(), 
+                    Car.class, 
+                    carArgs2),
+                new CreateInstanceEventValidator(
+                    EventType.PLANNED, 
+                    getSamplePackage().getCar(), 
+                    Car.class, 
+                    carArgs3),
+                new DuplicateEventValidator(postTxnEventType, 0),
+                new DuplicateEventValidator(postTxnEventType, 1),
+                new DuplicateEventValidator(postTxnEventType, 2)));
+        
+        getRepository().beginTrans(true);
+        try {
+            switch(method) {
+            case CLASS_PROXY: 
+                getSamplePackage().getCar().createCar("Ford", "Mustang", 2);
+                getSamplePackage().getCar().createCar("Dodge", "Charger", 2);
+                Car c = getSamplePackage().getCar().createCar();
+                c.setMake("Chevrolet");
+                c.setModel("Camaro");
+                c.setDoors(2);
+                break;
+                
+            case REFLECTIVE_API:
+                RefClass carClass = getSamplePackage().getCar();
+                
+                carClass.refCreateInstance(carArgs1);
+                carClass.refCreateInstance(carArgs2);
+                RefObject o = carClass.refCreateInstance(carArgs3);
+                o.refSetValue("make", "Chevrolet");
+                o.refSetValue("model", "Camaro");
+                o.refSetValue("doors", 2);
+                break;
+                
+            default:
+                Assert.fail("Unknown CreateMethod: " + method);
+            }
+        } finally {
+            getRepository().endTrans(rollback);
+        }
+        
+        waitAndCheckErrors();
+    }
+    
+    @Test
+    public void testDeleteInstanceEventsWithRollback()
+    {
+        logTest();
+        testDeleteInstanceEvents(true);
+    }
+    
+    @Test
+    public void testDeleteInstanceEventsWithCommit()
+    {
+        logTest();
+        testDeleteInstanceEvents(false);
+    }
+    
+    private void testDeleteInstanceEvents(
+        boolean rollback)
+    {
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+
+        // Swallow events silently.  Want a listener so that we can wait
+        // for all the events generated to be delivered.  Otherwise, the
+        // new association remove event listener below may receive some
+        // stale CHANGED events from the object creation step.
+        configureListener(
+            InstanceEvent.EVENT_INSTANCE_CREATE,
+            new LenientEventValidator(2));
+
+        String refDeleteMofId;
+        getRepository().beginTrans(true);
+        try {
+            IceCreamCone cone = 
+                getSpecialPackage().getIceCreamCone().createIceCreamCone(
+                    IceCreamFlavorEnum.VANILLA, 2, true);
+            refDeleteMofId = cone.refMofId();
+        }
+        finally {
+            getRepository().endTrans(false);
+        }
+
+        waitAndCheckErrors();
+        destroyListener();
+        
+        configureListener(
+            InstanceEvent.EVENTMASK_INSTANCE, 
+            new DelegatingEventValidator(
+                new DeleteInstanceEventValidator(
+                    EventType.PLANNED, refDeleteMofId),
+                new DuplicateEventValidator(postTxnEventType, 0)
+            ));
+        
+        getRepository().beginTrans(true);
+        try {
+            IceCreamCone cone = 
+                (IceCreamCone)getRepository().getByMofId(refDeleteMofId);
+            
+            cone.refDelete();
+        } finally {
+            getRepository().endTrans(rollback);
+        }
+        
+        waitAndCheckErrors();
+    }
+    
+    @Test
+    public void testDeleteInstanceEventCascadeWithRollback()
+    {
+        logTest();
+        testDeleteInstanceEventCascade(true);
+    }
+    
+    @Test
+    public void testDeleteInstanceEventCascadeWithCommit()
+    {
+        logTest();
+        testDeleteInstanceEventCascade(false);
+    }
+    
+    private void testDeleteInstanceEventCascade(
+        boolean rollback)
+    {
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+
+        // Swallow events silently.  Want a listener so that we can wait
+        // for all the events generated to be delivered.  Otherwise, the
+        // new association remove event listener below may receive some
+        // stale CHANGED events from the object creation step.
+        configureListener(
+            InstanceEvent.EVENT_INSTANCE_CREATE,
+            new LenientEventValidator(8));
+
+        String[] refDeleteMofIds = { null, null, null };
+        getRepository().beginTrans(true);
+        try {
+            Bus bus = getSamplePackage().getBus().createBus(
+                "GMC", "Yellow School Bus", 2);
+            
+            Driver driver = 
+                getSamplePackage().getDriver().createDriver(
+                    "Otto Mann", "--suspended--");
+            
+            bus.setDriver(driver);
+            refDeleteMofIds[0] = bus.refMofId();
+            
+            AreaCode areaCode = 
+                getSpecialPackage().getAreaCode().createAreaCode("415", true);
+            PhoneNumber phoneNumber =
+                getSpecialPackage().getPhoneNumber().createPhoneNumber(
+                    areaCode, "555-1234");
+            refDeleteMofIds[1] = phoneNumber.refMofId();
+            refDeleteMofIds[2] = areaCode.refMofId();
+        }
+        finally {
+            getRepository().endTrans(false);
+        }
+
+        waitAndCheckErrors();
+        destroyListener();
+        
+        configureListener(
+            InstanceEvent.EVENTMASK_INSTANCE | 
+                AssociationEvent.EVENTMASK_ASSOCIATION, 
+            new DelegatingEventValidator(
+                new DeleteInstanceEventValidator(
+                    EventType.PLANNED, refDeleteMofIds[0]),
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Driven",
+                    Bus.class, "make", "GMC",
+                    Driver.class, "name", "Otto Mann"),
+                new DeleteInstanceEventValidator(
+                    EventType.PLANNED, refDeleteMofIds[1]),
+                new DeleteInstanceEventValidator(
+                    EventType.PLANNED, refDeleteMofIds[2]),                    
+                new DuplicateEventValidator(postTxnEventType, 0),
+                new AssociationRemoveEventValidator(
+                    postTxnEventType, "Driven",
+                    Bus.class, null, null, // will be an invalid object
+                    Driver.class, "name", "Otto Mann"),
+                new DuplicateEventValidator(postTxnEventType, 2),
+                new DuplicateEventValidator(postTxnEventType, 3)
+            ));
+        
+        getRepository().beginTrans(true);
+        try {
+            Bus bus = (Bus)getRepository().getByMofId(refDeleteMofIds[0]);
+            PhoneNumber phoneNumber = 
+                (PhoneNumber)getRepository().getByMofId(refDeleteMofIds[1]);
+
+            // Delete bus, cascades to "remove" AssociationEvent 
+            bus.refDelete();
+            
+            // Delete phoneNumber, cascades to delete areaCode
+            phoneNumber.refDelete();
+            
+        } finally {
+            getRepository().endTrans(rollback);
+        }
+        
+        waitAndCheckErrors();
+    }
+    
+    @Test
+    public void testAssociationAddEventsWithRollback()
+    {
+        logTest();
+        testAssociationAddEvents(true, AssocMethod.REFERENCE);
+    }
+    
+    @Test
+    public void testAssociationProxyAddEventsWithRollback()
+    {
+        logTest();
+        testAssociationAddEvents(true, AssocMethod.ASSOCIATION_PROXY);
+    }
+    
+    @Test
+    public void testAssociationRefAddEventsWithRollback()
+    {
+        logTest();
+        testAssociationAddEvents(true, AssocMethod.REFLECTIVE_API);
+    }
+    
+    @Test
+    public void testAssociationAddEventsWithCommit()
+    {
+        logTest();
+        testAssociationAddEvents(false, AssocMethod.REFERENCE);
+    }
+    
+    @Test
+    public void testAssociationProxyAddEventsWithCommit()
+    {
+        logTest();
+        testAssociationAddEvents(false, AssocMethod.ASSOCIATION_PROXY);
+    }
+    
+    @Test
+    public void testAssociationRefAddEventsWithCommit()
+    {
+        logTest();
+        testAssociationAddEvents(false, AssocMethod.REFLECTIVE_API);
+    }
+    
+    private void testAssociationAddEvents(boolean rollback, AssocMethod method)
+    {
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+
+        configureListener(
+            MDRChangeEvent.EVENTMASK_ON_ASSOCIATION,
+            new DelegatingEventValidator(
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Driven",
+                    Car.class, "model", "Mustang",
+                    Driver.class, "name", "Bullitt"),
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Ridden",
+                    Bus.class, "model", "E4500",
+                    Passenger.class, "name", "John Madden"),
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Ridden",
+                    Bus.class, "model", "E4500",
+                    Passenger.class, "name", "Turducken"),
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Registered",
+                    Bus.class, "model", "E4500",
+                    State.class, "name", "CA"),
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Registered",
+                    Bus.class, "model", "E4500",
+                    State.class, "name", "NV"),
+                method == AssocMethod.REFERENCE
+                    ? new AssociationAddEventValidator(
+                        EventType.PLANNED, "Registrar",
+                        State.class, "name", "CA",
+                        Bus.class, "model", "C2045")
+                    : new AssociationAddEventValidator(
+                        EventType.PLANNED, "Registered",
+                        Bus.class, "model", "C2045",
+                        State.class, "name", "CA"),
+                method == AssocMethod.REFERENCE
+                    ? new AssociationAddEventValidator(
+                        EventType.PLANNED, "Registrar",
+                        State.class, "name", "OR",
+                        Bus.class, "model", "C2045")
+                    : new AssociationAddEventValidator(
+                        EventType.PLANNED, "Registered",
+                        Bus.class, "model", "C2045",
+                        State.class, "name", "OR"),
+                new DuplicateEventValidator(postTxnEventType, 0),
+                new DuplicateEventValidator(postTxnEventType, 1),
+                new DuplicateEventValidator(postTxnEventType, 2),
+                new DuplicateEventValidator(postTxnEventType, 3),
+                new DuplicateEventValidator(postTxnEventType, 4),
+                new DuplicateEventValidator(postTxnEventType, 5),
+                new DuplicateEventValidator(postTxnEventType, 6)
+            ));
+
+        createAssociationObjects(rollback, method);
+
+        waitAndCheckErrors();
+    }
+    
+    @Test
+    public void testAssociationRemoveEventsWithRollback()
+    {
+        logTest();
+        testAssociationRemoveEvents(true, AssocMethod.REFERENCE);
+    }
+    
+    @Test
+    public void testAssociationProxyRemoveEventsWithRollback()
+    {
+        logTest();
+        testAssociationRemoveEvents(true, AssocMethod.ASSOCIATION_PROXY);
+    }
+    
+    @Test
+    public void testAssociationRefRemoveEventsWithRollback()
+    {
+        logTest();
+        testAssociationRemoveEvents(true, AssocMethod.REFLECTIVE_API);
+    }
+    
+    @Test
+    public void testAssociationRemoveEventsWithCommit()
+    {
+        logTest();
+        testAssociationRemoveEvents(false, AssocMethod.REFERENCE);
+    }
+    
+    @Test
+    public void testAssociationProxyRemoveEventsWithCommit()
+    {
+        logTest();
+        testAssociationRemoveEvents(false, AssocMethod.ASSOCIATION_PROXY);
+    }
+    
+    @Test
+    public void testAssociationRefRemoveEventsWithCommit()
+    {
+        logTest();
+        testAssociationRemoveEvents(false, AssocMethod.REFLECTIVE_API);
+    }
+    
+    private void testAssociationRemoveEvents(
+        boolean rollback, AssocMethod method)
+    {
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+
+        // Swallow events silently.  Want a listener so that we can wait
+        // for all the events generated to be delivered.  Otherwise, the
+        // new association remove event listener below may receive some
+        // stale CHANGED events from the object creation step.
+        configureListener(
+            AssociationEvent.EVENTMASK_ASSOCIATION,
+            new LenientEventValidator(14));
+        
+        String[] mofIds = 
+            createAssociationObjects(false, AssocMethod.REFERENCE);
+
+        waitAndCheckErrors();
+        destroyListener();
+        
+        configureListener(
+            MDRChangeEvent.EVENTMASK_ON_ASSOCIATION, 
+            new DelegatingEventValidator(
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Driven",
+                    Car.class, "model", "Mustang",
+                    Driver.class, "name", "Bullitt"),
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Ridden",
+                    Bus.class, "model", "E4500",
+                    Passenger.class, "name", "Turducken"),
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Registered",
+                    Bus.class, "model", "E4500",
+                    State.class, "name", "NV"),
+                method == AssocMethod.REFERENCE
+                    ? new AssociationRemoveEventValidator(
+                        EventType.PLANNED, "Registrar",
+                        State.class, "name", "CA",
+                        Bus.class, "model", "C2045")
+                    : new AssociationRemoveEventValidator(
+                        EventType.PLANNED, "Registered",
+                        Bus.class, "model", "C2045",
+                        State.class, "name", "CA"),
+                new DuplicateEventValidator(postTxnEventType, 0),
+                new DuplicateEventValidator(postTxnEventType, 1),
+                new DuplicateEventValidator(postTxnEventType, 2),
+                new DuplicateEventValidator(postTxnEventType, 3)));
+        
+        int i = 0;
+        getRepository().beginTrans(true);
+        try {
+            // 1-to-1
+            Car mustang = (Car)getRepository().getByMofId(mofIds[i++]);
+            
+            Driver bullitt = (Driver)getRepository().getByMofId(mofIds[i++]);
+
+            switch(method) {
+            case REFERENCE:
+                bullitt.setDriven(null);
+                break;
+                
+            case ASSOCIATION_PROXY: 
+                getSamplePackage().getDrives().remove(mustang, bullitt);
+                break;
+
+            case REFLECTIVE_API: 
+                getSamplePackage().getDrives().refRemoveLink(mustang, bullitt);
+                break;
+                
+            default:
+                Assert.fail("unknown AssocMethod: " + method);
+            }
+            
+            // 1-to-many
+            Bus bus = (Bus)getRepository().getByMofId(mofIds[i++]);
+
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Passenger);
+            Passenger turducken = (Passenger)getRepository().getByMofId(mofIds[i++]);
+
+            switch(method) {
+            case REFERENCE:
+                bus.getRider().remove(turducken);
+                break;
+                
+            case ASSOCIATION_PROXY:
+                getSamplePackage().getRides().remove(bus, turducken);
+                break;
+                
+            case REFLECTIVE_API:
+                getSamplePackage().getRides().refRemoveLink(bus, turducken);
+                break;
+            }
+            
+            // many-to-many
+            Bus greyhound = (Bus)getRepository().getByMofId(mofIds[i++]);
+
+            State ca = (State)getRepository().getByMofId(mofIds[i++]);
+            State nv = (State)getRepository().getByMofId(mofIds[i++]);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof State);
+
+            switch(method) {
+            case REFERENCE:
+                bus.getRegistrar().remove(nv);
+                ca.getRegistered().remove(greyhound);
+                break;
+                
+            case ASSOCIATION_PROXY:
+                getSamplePackage().getRegistrations().remove(bus, nv);
+                getSamplePackage().getRegistrations().remove(greyhound, ca);
+                break;
+                
+            case REFLECTIVE_API:
+                getSamplePackage().getRegistrations().refRemoveLink(bus, nv);
+                getSamplePackage().getRegistrations().refRemoveLink(
+                    greyhound, ca);
+                break;
+            }
+        } finally {
+            getRepository().endTrans(rollback);
+        }
+        
+        waitAndCheckErrors();
+    }
+    
+    private String[] createAssociationObjects(
+        boolean rollback, AssocMethod assocMethod)
+    {
+        String[] mofIds = new String[9];
+        
+        int i = 0;
+        
+        getRepository().beginTrans(true);
+        try {
+            // 1-to-1
+            Car mustang = 
+                getSamplePackage().getCar().createCar("Ford", "Mustang", 2);
+            mofIds[i++] = mustang.refMofId();
+            
+            Driver bullitt =
+                getSamplePackage().getDriver().createDriver(
+                    "Bullitt", "ABC999");
+            mofIds[i++] = bullitt.refMofId();
+     
+            switch(assocMethod) {
+            case REFERENCE:
+                bullitt.setDriven(mustang);
+                break;
+                
+            case ASSOCIATION_PROXY:
+                getSamplePackage().getDrives().add(mustang, bullitt);
+                break;
+                
+            case REFLECTIVE_API:
+                getSamplePackage().getDrives().refAddLink(mustang, bullitt);
+                break;
+                
+            default:
+                Assert.fail("unknown AssocMethod: " + assocMethod);
+            }
+            
+            // 1-to-many
+            Bus bus =
+                getSamplePackage().getBus().createBus("MCI", "E4500", 3);
+            mofIds[i++] = bus.refMofId();
+            
+            Passenger madden =
+                getSamplePackage().getPassenger().createPassenger(
+                    "John Madden");
+            mofIds[i++] = madden.refMofId();
+            
+            Passenger turducken =
+                getSamplePackage().getPassenger().createPassenger("Turducken");
+            mofIds[i++] = turducken.refMofId();
+            
+            switch(assocMethod) {
+            case REFERENCE:
+                bus.getRider().add(madden);
+                turducken.setRidden(bus);
+                break;
+                
+            case ASSOCIATION_PROXY:
+                getSamplePackage().getRides().add(bus, madden);
+                getSamplePackage().getRides().add(bus, turducken);
+                break;
+                
+            case REFLECTIVE_API:
+                getSamplePackage().getRides().refAddLink(bus, madden);
+                getSamplePackage().getRides().refAddLink(bus, turducken);
+                break;
+            }
+            // many-to-many
+            Bus greyhound = 
+                getSamplePackage().getBus().createBus("VanHool", "C2045", 3);
+            mofIds[i++] = greyhound.refMofId();
+
+            State ca = getSamplePackage().getState().createState("CA");
+            State nv = getSamplePackage().getState().createState("NV");
+            State or = getSamplePackage().getState().createState("OR");
+            mofIds[i++] = ca.refMofId();
+            mofIds[i++] = nv.refMofId();
+            mofIds[i++] = or.refMofId();
+
+            Registrations regAssoc = getSamplePackage().getRegistrations();
+            switch(assocMethod) {
+            case REFERENCE:
+                bus.getRegistrar().add(ca);
+                bus.getRegistrar().add(nv);
+
+                ca.getRegistered().add(greyhound);
+                or.getRegistered().add(greyhound);
+                break;
+                
+            case ASSOCIATION_PROXY:
+                regAssoc.add(bus, ca);
+                regAssoc.add(bus, nv);
+
+                regAssoc.add(greyhound, ca);
+                regAssoc.add(greyhound, or);
+                break;
+                
+            case REFLECTIVE_API:
+                regAssoc.refAddLink(bus, ca);
+                regAssoc.refAddLink(bus, nv);
+
+                regAssoc.refAddLink(greyhound, ca);
+                regAssoc.refAddLink(greyhound, or);
+                break;
+            }
+
+            return mofIds;
+        } finally {
+            getRepository().endTrans(rollback);
+        }
+    }
+    
+    @Test
+    public void testAttributeSetEventsWithRollback()
+    {
+        logTest();
+        testAttributeSetEvents(true, AttributeMethod.METHOD);
+    }
+    
+    @Test
+    public void testAttributeRefSetEventsWithRollback()
+    {
+        logTest();
+        testAttributeSetEvents(true, AttributeMethod.REFLECTIVE_API);
+    }
+    
+    @Test
+    public void testAttributeSetEventsWithCommit()
+    {
+        logTest();
+        testAttributeSetEvents(false, AttributeMethod.METHOD);
+    }
+    
+    @Test
+    public void testAttributeRefSetEventsWithCommit()
+    {
+        logTest();
+        testAttributeSetEvents(false, AttributeMethod.REFLECTIVE_API);
+    }
+    
+    private void testAttributeSetEvents(
+        boolean rollback, AttributeMethod method)
+    {
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+
+        configureListener(
+            AttributeEvent.EVENTMASK_ATTRIBUTE | 
+                InstanceEvent.EVENTMASK_INSTANCE,
+            new DelegatingEventValidator(
+                new CreateInstanceEventValidator(
+                    EventType.PLANNED,
+                    getSamplePackage().getCar(),
+                    Car.class,
+                    null),
+                new AttributeSetEventValidator(
+                    EventType.PLANNED, "make", null, "Chevrolet", false),
+                new AttributeSetEventValidator(
+                    EventType.PLANNED, "model", null, "Camaro", false),
+                new AttributeSetEventValidator(
+                    EventType.PLANNED, "doors", 0, 2, false),
+                    
+                new CreateInstanceEventValidator(
+                    EventType.PLANNED,
+                    getSpecialPackage().getAreaCode(),
+                    AreaCode.class,
+                    null),
+                new AttributeSetEventValidator(
+                    EventType.PLANNED, "code", null, "650", false),
+                new AttributeSetEventValidator(
+                    EventType.PLANNED, "domestic", false, true, false),
+                    
+                new CreateInstanceEventValidator(
+                    EventType.PLANNED,
+                    getSpecialPackage().getPhoneNumber(),
+                    PhoneNumber.class,
+                    null),
+                new AttributeSetEventValidator(
+                    EventType.PLANNED, "areaCode", null, 4, true),
+                new AttributeSetEventValidator(
+                    EventType.PLANNED, "number", null, "555-1212", false),
+                    
+                new DuplicateEventValidator(postTxnEventType, 0),
+                new DuplicateEventValidator(postTxnEventType, 1),
+                new DuplicateEventValidator(postTxnEventType, 2),
+                new DuplicateEventValidator(postTxnEventType, 3),
+                new DuplicateEventValidator(postTxnEventType, 4),
+                new DuplicateEventValidator(postTxnEventType, 5),
+                new DuplicateEventValidator(postTxnEventType, 6),
+                new DuplicateEventValidator(postTxnEventType, 7),
+                new DuplicateEventValidator(postTxnEventType, 8),
+                new DuplicateEventValidator(postTxnEventType, 9)
+            ));
+        getRepository().beginTrans(true);
+
+        try {
+            switch(method) {
+            case METHOD: 
+                {
+                    Car c = getSamplePackage().getCar().createCar();
+                    c.setMake("Chevrolet");
+                    c.setModel("Camaro");
+                    c.setDoors(2);
+                    
+                    AreaCode ac = 
+                        getSpecialPackage().getAreaCode().createAreaCode();
+                    ac.setCode("650");
+                    ac.setDomestic(true);
+                    
+                    PhoneNumber pn =
+                        getSpecialPackage().getPhoneNumber().createPhoneNumber();
+                    pn.setAreaCode(ac);
+                    pn.setNumber("555-1212");
+                }
+                break;
+                
+            case REFLECTIVE_API:
+                {
+                    RefClass carClass = getSamplePackage().getCar();                
+                    RefObject c = carClass.refCreateInstance(null);
+                    c.refSetValue("make", "Chevrolet");
+                    c.refSetValue("model", "Camaro");
+                    c.refSetValue("doors", 2);
+                    
+                    RefClass areaCodeClass = getSpecialPackage().getAreaCode();
+                    RefObject ac = areaCodeClass.refCreateInstance(null);
+                    ac.refSetValue("code", "650");
+                    ac.refSetValue("domestic", true);
+                    
+                    RefClass phoneNumberClass = 
+                        getSpecialPackage().getPhoneNumber();
+                    RefObject pn = phoneNumberClass.refCreateInstance(null);
+                    pn.refSetValue("areaCode", ac);
+                    pn.refSetValue("number", "555-1212");
+                }                
+                break;
+                
+            default:
+                Assert.fail("Unknown AttributeMethod: " + method);
+            }
+        } finally {
+            getRepository().endTrans(rollback);
+        }
+        
+        waitAndCheckErrors();
+    }
+    
+    private enum CreateMethod
+    {
+        CLASS_PROXY,
+        REFLECTIVE_API;
+    }
+
+    private enum AssocMethod
+    {
+        REFERENCE,
+        ASSOCIATION_PROXY,
+        REFLECTIVE_API;
+    }
+
+    private enum AttributeMethod
+    {
+        METHOD,
+        REFLECTIVE_API;
+    }
+
+}
+
+// End MdrEventsApiTest.java

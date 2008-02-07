@@ -31,9 +31,11 @@ import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.codegen.*;
 import org.eigenbase.enki.codegen.Generator.*;
+import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
+import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 
 /**
@@ -172,6 +174,9 @@ public class HibernateJavaHandler
     private static final JavaClassReference JAVA_UTIL_COLLECTIONS_CLASS =
         new JavaClassReference(Collections.class, true);
     
+    private static final JavaClassReference JAVA_UTIL_ARRAYS_CLASS =
+        new JavaClassReference(Arrays.class, true);
+    
     private static final JavaClassReference GENERIC_COLLECTIONS_CLASS =
         new JavaClassReference(GenericCollections.class, true);
     
@@ -180,6 +185,12 @@ public class HibernateJavaHandler
     
     private static final JavaClassReference METAMODEL_INITIALIZER_CLASS =
         new JavaClassReference(MetamodelInitializer.class, true);
+    
+    private static final JavaClassReference HIBERNATE_MDREPOSITORY_CLASS =
+        new JavaClassReference(HibernateMDRepository.class, true);
+    
+    private static final JavaClassReference INSTANCE_EVENT_CLASS =
+        new JavaClassReference(CreateInstanceEvent.class, true);
     
     private static final JavaClassReference[] CLASS_INSTANCE_REFS = {
         OBJECT_IMPL_CLASS,
@@ -204,6 +215,7 @@ public class HibernateJavaHandler
     private final TransientImplementationHandler transientHandler;
     
     private Map<MofClass, String> classIdentifierMap;
+    private Map<Association, String> assocIdentifierMap;
     
     private Map<Association, AssociationInfo> assocInfoMap;
     
@@ -260,6 +272,8 @@ public class HibernateJavaHandler
         };
         
         this.classIdentifierMap = new HashMap<MofClass, String>();
+        this.assocIdentifierMap = new HashMap<Association, String>();
+        
         this.assocInfoMap = new LinkedHashMap<Association, AssociationInfo>();
         this.componentAttribMap = 
             new HashMap<Classifier, List<ComponentInfo>>();
@@ -344,6 +358,11 @@ public class HibernateJavaHandler
                 false,
                 ASSOC_IMPL_COMMENT);
         
+            String assocIdentifier = getAssociationIdentifier(assoc);
+            writeConstant(
+                "String", "_id", "\"" + assocIdentifier + "\"", true);
+            newLine();
+            
             startConstructorBlock(
                 assoc, 
                 new String[] { REF_PACKAGE_CLASS.toString() }, 
@@ -551,6 +570,11 @@ public class HibernateJavaHandler
                 endBlock();
             }
             
+            newLine();
+            startBlock("protected String getAssociationIdentifier()");
+            writeln("return _id;");
+            endBlock();
+
             writeEntityFooter();
         }
         finally {
@@ -699,7 +723,8 @@ public class HibernateJavaHandler
                 new HashMap<Attribute, String>();
             for(Attribute attrib: nonDerivedAttribs) {
                 if (!nonDataTypeAttribs.contains(attrib)) {
-                    String fieldName = writePrivateField(attrib, false, false);
+                    String fieldName = 
+                        writePrivateField(attrib, IMPL_SUFFIX, false, false);
                     nonDerivedAttribNames.put(attrib, fieldName);
                 }
             }
@@ -805,9 +830,20 @@ public class HibernateJavaHandler
                     startConditionalBlock(
                         CondType.IF, 
                         getReferenceAccessorName(refInfo), "() != null");
+                    boolean isComponent = refInfo instanceof ComponentInfo;
+                    if (!isComponent) {
+                        writeln(
+                            "super.fireAssociationRemoveAllEvents(",
+                            QUOTE, getAssociationIdentifier(refInfo.getAssoc()), QUOTE, ", ",
+                            refInfo.isExposedEndFirst(), ", ",
+                            getReferenceAccessorName(refInfo), "());");
+                    }
+                    
+                    boolean cascadeRefDelete = 
+                        isComponent && refInfo.isExposedEndFirst();
                     writeln(
                         getReferenceAccessorName(refInfo), 
-                        "().removeAll(this);");
+                        "().removeAll(this, ", cascadeRefDelete, ");");
                     endBlock();
                 }
                 endBlock();
@@ -1240,7 +1276,7 @@ public class HibernateJavaHandler
                     break;
                 
                 case ONE_TO_MANY: 
-                    generateClassInstanceComponentRefOnetoManyMethods(
+                    generateClassInstanceComponentRefOneToManyMethods(
                         attrib, componentInfo);
                     break;
                 
@@ -1287,6 +1323,7 @@ public class HibernateJavaHandler
     private void generateClassInstanceRefOneToOneMethods(
         Reference ref,
         ReferenceInfo refInfo)
+    throws GenerationException
     {
         startAccessorBlock(ref);
         startConditionalBlock(
@@ -1309,64 +1346,20 @@ public class HibernateJavaHandler
             newLine();
             startMutatorBlock(ref);
             
-            writeln("// Get the existing association object");
             writeln(
-                ASSOCIATION_BASE_CLASS,
-                " assoc = getAssociation(",
-                QUOTE, refInfo.getBaseName(), QUOTE,
-                ", ",
-                refInfo.isExposedEndFirst(),
-                ");");
-            startConditionalBlock(
-                CondType.IF, "assoc == null && newValue != null");
-            writeln(
-                "// If none exists, get the new value's association.");
-            writeln(
-                "assoc = ((", 
-                ASSOCIABLE_INTERFACE, 
-                ")newValue).getAssociation(",
-                QUOTE, refInfo.getBaseName(), QUOTE,
-                ", ",
-                !refInfo.isExposedEndFirst(), ");");
+                "super.associationSetSingle(", 
+                QUOTE, refInfo.getBaseName(), QUOTE, ", ", 
+                QUOTE, getAssociationIdentifier(refInfo.getAssoc()), QUOTE, 
+                ", ", refInfo.isExposedEndFirst(), ", (",
+                ASSOCIABLE_INTERFACE, ")newValue);");
             endBlock();
-
-            startConditionalBlock(CondType.IF, "assoc == null");
-            startConditionalBlock(CondType.IF, "newValue == null");
-            writeln(
-                "// User is clearing a non-existent association: do nothing");
-            writeln("return;");
-            endBlock();
-            writeln(
-                "assoc = getOrCreateAssociation(",
-                QUOTE, refInfo.getBaseName(), QUOTE,
-                ", ",
-                refInfo.isExposedEndFirst(),
-                ");");
-            endBlock();
-
-            startConditionalBlock(CondType.IF, "newValue != null");
-            if (refInfo.isExposedEndFirst()) {
-                writeln(
-                    "assoc.add(this, (", 
-                    ASSOCIABLE_INTERFACE,
-                    ")newValue);");
-            } else {
-                writeln(
-                    "assoc.add((", 
-                    ASSOCIABLE_INTERFACE,
-                    ")newValue, this);");
-            }
-            startConditionalBlock(CondType.ELSE);
-            writeln("// remove any existing association");
-            writeln("assoc.removeAll(this);");
-            endBlock();
-            endBlock();                        
         }
     }
 
     private void generateClassInstanceRefOnetoManyMethods(
         Reference ref,
         ReferenceInfo refInfo)
+    throws GenerationException
     {
         startAccessorBlock(ref);
         boolean hasParent = ref.getMultiplicity().getUpper() == 1;
@@ -1394,8 +1387,9 @@ public class HibernateJavaHandler
                 LIST_PROXY_CLASS,
                 "<", listElemType, ">",
                 "(", QUOTE, refInfo.getBaseName(), QUOTE,
-                ", ", refInfo.isExposedEndFirst(),
                 ", this, ",
+                refInfo.isExposedEndFirst(), ", ",
+                QUOTE, getAssociationIdentifier(refInfo.getAssoc()), QUOTE, ", ",
                 listElemType, ".class);");
             startConditionalBlock(CondType.ELSE);
             writeln(
@@ -1406,6 +1400,7 @@ public class HibernateJavaHandler
                 getReferenceAccessorName(refInfo),
                 "(), this, ",
                 refInfo.isExposedEndFirst(), ", ",
+                QUOTE, getAssociationIdentifier(refInfo.getAssoc()), QUOTE, ", ",
                 listElemType, ".class);");
             endBlock();
         }
@@ -1414,61 +1409,21 @@ public class HibernateJavaHandler
         if (hasParent && ref.isChangeable()) {
             newLine();
             startMutatorBlock(ref);
-            writeln("// get existing association, if any");
+            
             writeln(
-                ASSOCIATION_BASE_CLASS,
-                " assoc = getAssociation(",
-                QUOTE, refInfo.getBaseName(), QUOTE,
-                ", ",
-                refInfo.isExposedEndFirst(),
-                ");");
-            startConditionalBlock(
-                CondType.IF, "assoc == null && newValue != null");
-            writeln("// None exists, get the new value's association.");
-            writeln(
-                "assoc = ((", 
-                ASSOCIABLE_INTERFACE, 
-                ")newValue).getAssociation(",
-                QUOTE, refInfo.getBaseName(), QUOTE,
-                ", ",
-                !refInfo.isExposedEndFirst(),
-                ");");
+                "super.associationSetSingle(", 
+                QUOTE, refInfo.getBaseName(), QUOTE, ", ", 
+                QUOTE, getAssociationIdentifier(refInfo.getAssoc()), QUOTE, 
+                ", ", refInfo.isExposedEndFirst(), ", (",
+                ASSOCIABLE_INTERFACE, ")newValue);");
             endBlock();
-
-            startConditionalBlock(CondType.IF, "assoc == null");
-            startConditionalBlock(CondType.IF, "newValue == null");
-            writeln(
-                "// User is clearing a non-existent association: do nothing");
-            writeln("return;");
-            endBlock();
-            writeln(
-                "assoc = getOrCreateAssociation(",
-                QUOTE, refInfo.getBaseName(), QUOTE,
-                ", ",
-                refInfo.isExposedEndFirst(),
-                ");");
-            endBlock();
-
-            startConditionalBlock(CondType.IF, "newValue != null");
-            // NOTE: we don't cast to the "_Impl" type here 
-            // because they do not inherit from each other
-            // and there may be multiple implementations of
-            // the parent interface.
-            writeln(
-                "assoc.add((",
-                ASSOCIABLE_INTERFACE,
-                ")newValue, this);");
-            startConditionalBlock(CondType.ELSE);
-            writeln("// remove any existing association");
-            writeln("assoc.removeAll(this);");
-            endBlock();
-            endBlock();                        
         }
     }
 
     private void generateClassInstanceRefManyToManyMethods(
         Reference ref,
         ReferenceInfo refInfo)
+    throws GenerationException
     {
         startAccessorBlock(ref);
         String listElemType = 
@@ -1481,8 +1436,9 @@ public class HibernateJavaHandler
             "return new ", 
             LIST_PROXY_CLASS, "<", listElemType, ">",
             "(", QUOTE, refInfo.getBaseName(), QUOTE,
-            ", ", refInfo.isExposedEndFirst(),
             ", this, ",
+            refInfo.isExposedEndFirst(), ", ", 
+            QUOTE, getAssociationIdentifier(refInfo.getAssoc()), QUOTE, ", ",
             listElemType, ".class);");
         startConditionalBlock(CondType.ELSE);
         writeln(
@@ -1491,6 +1447,7 @@ public class HibernateJavaHandler
             "(", 
             getReferenceAccessorName(refInfo), "(), this, ",
             refInfo.isExposedEndFirst(), ", ",
+            QUOTE, getAssociationIdentifier(refInfo.getAssoc()), QUOTE, ", ",
             listElemType, ".class);");
         endBlock();
         endBlock();
@@ -1519,63 +1476,21 @@ public class HibernateJavaHandler
         newLine();
         startMutatorBlock(attrib);
             
-        writeln("// Get the existing association object");
         writeln(
-            ASSOCIATION_BASE_CLASS,
-            " assoc = getAssociation(",
-            QUOTE, refInfo.getBaseName(), QUOTE,
-            ", ",
-            refInfo.isExposedEndFirst(),
-            ");");
-        startConditionalBlock(
-            CondType.IF, "assoc == null && newValue != null");
-        writeln(
-            "// If none exists, get the new value's association.");
-        writeln(
-            "assoc = ((", 
-            ASSOCIABLE_INTERFACE, 
-            ")newValue).getAssociation(",
-            QUOTE, refInfo.getBaseName(), QUOTE,
-            ", ",
-            !refInfo.isExposedEndFirst(), ");");
-        endBlock();
-
-        startConditionalBlock(CondType.IF, "assoc == null");
-        startConditionalBlock(CondType.IF, "newValue == null");
-        writeln(
-            "// User is clearing a non-existent association: do nothing");
-        writeln("return;");
-        endBlock();
-        writeln(
-            "assoc = getOrCreateAssociation(",
-            QUOTE, refInfo.getBaseName(), QUOTE,
-            ", ",
-            refInfo.isExposedEndFirst(),
-            ");");
-        endBlock();
-
-        startConditionalBlock(CondType.IF, "newValue != null");
-        if (refInfo.isExposedEndFirst()) {
-            writeln(
-                "assoc.add(this, (", 
-                ASSOCIABLE_INTERFACE,
-                ")newValue);");
-        } else {
-            writeln(
-                "assoc.add((", 
-                ASSOCIABLE_INTERFACE,
-                ")newValue, this);");
-        }
-        startConditionalBlock(CondType.ELSE);
-        writeln("// remove any existing association");
-        writeln("assoc.removeAll(this);");
-        endBlock();
+            "super.attributeSetSingle(", 
+            QUOTE, refInfo.getBaseName(), QUOTE, ", ", 
+            QUOTE, attrib.getName(), QUOTE, 
+            ", ", refInfo.isExposedEndFirst(), ", (",
+            ASSOCIABLE_INTERFACE, ")newValue);");
+        
         endBlock();                        
     }
 
-    private void generateClassInstanceComponentRefOnetoManyMethods(
+    private void generateClassInstanceComponentRefOneToManyMethods(
         Attribute attrib, ReferenceInfo refInfo)
+    throws GenerationException
     {
+        // TODO: EVENT: Configure ListProxy to send Attribute events
         startAccessorBlock(attrib);
 
         boolean hasParent = refInfo.isSingle(refInfo.getReferencedEndIndex());
@@ -1603,8 +1518,8 @@ public class HibernateJavaHandler
                 LIST_PROXY_CLASS,
                 "<", listElemType, ">",
                 "(", QUOTE, refInfo.getBaseName(), QUOTE,
-                ", ", refInfo.isExposedEndFirst(),
-                ", this, ",
+                ", this, ", refInfo.isExposedEndFirst(),
+                ", null, ",
                 listElemType, ".class);");
             startConditionalBlock(CondType.ELSE);
             writeln(
@@ -1614,7 +1529,7 @@ public class HibernateJavaHandler
                 "(",
                 getReferenceAccessorName(refInfo),
                 "(), this, ",
-                refInfo.isExposedEndFirst(), ", ",
+                refInfo.isExposedEndFirst(), ", null, ",
                 listElemType, ".class);");
             endBlock();
         }
@@ -1623,61 +1538,24 @@ public class HibernateJavaHandler
         if (hasParent) {
             newLine();
             startMutatorBlock(attrib);
-            writeln("// get existing association, if any");
-            writeln(
-                ASSOCIATION_BASE_CLASS,
-                " assoc = getAssociation(",
-                QUOTE, refInfo.getBaseName(), QUOTE,
-                ", ",
-                refInfo.isExposedEndFirst(),
-                ");");
-            startConditionalBlock(
-                CondType.IF, "assoc == null && newValue != null");
-            writeln("// None exists, get the new value's association.");
-            writeln(
-                "assoc = ((", 
-                ASSOCIABLE_INTERFACE, 
-                ")newValue).getAssociation(",
-                QUOTE, refInfo.getBaseName(), QUOTE,
-                ", ",
-                !refInfo.isExposedEndFirst(),
-                ");");
-            endBlock();
 
-            startConditionalBlock(CondType.IF, "assoc == null");
-            startConditionalBlock(CondType.IF, "newValue == null");
             writeln(
-                "// User is clearing a non-existent association: do nothing");
-            writeln("return;");
-            endBlock();
-            writeln(
-                "assoc = getOrCreateAssociation(",
-                QUOTE, refInfo.getBaseName(), QUOTE,
-                ", ",
-                refInfo.isExposedEndFirst(),
-                ");");
-            endBlock();
+                "super.attributeSetSingle(", 
+                QUOTE, refInfo.getBaseName(), QUOTE, ", ", 
+                QUOTE, attrib.getName(), QUOTE, 
+                ", ", refInfo.isExposedEndFirst(), ", (",
+                ASSOCIABLE_INTERFACE, ")newValue);");
 
-            startConditionalBlock(CondType.IF, "newValue != null");
-            // NOTE: we don't cast to the "_Impl" type here 
-            // because they do not inherit from each other
-            // and there may be multiple implementations of
-            // the parent interface.
-            writeln(
-                "assoc.add((",
-                ASSOCIABLE_INTERFACE,
-                ")newValue, this);");
-            startConditionalBlock(CondType.ELSE);
-            writeln("// remove any existing association");
-            writeln("assoc.removeAll(this);");
-            endBlock();
             endBlock();                        
         }
     }
 
     private void generateClassInstanceComponentRefManyToManyMethods(
         Attribute attrib, ReferenceInfo refInfo)
+    throws GenerationException
     {
+        // TODO: EVENT: Configure ListProxy to send Attribute events
+
         startAccessorBlock(attrib);
         String listElemType = 
             getReferenceEndType(refInfo, true);
@@ -1689,8 +1567,9 @@ public class HibernateJavaHandler
             "return new ", 
             LIST_PROXY_CLASS, "<", listElemType, ">",
             "(", QUOTE, refInfo.getBaseName(), QUOTE,
-            ", ", refInfo.isExposedEndFirst(),
             ", this, ",
+            refInfo.isExposedEndFirst(),
+            ", null, ",
             listElemType, ".class);");
         startConditionalBlock(CondType.ELSE);
         writeln(
@@ -1698,7 +1577,7 @@ public class HibernateJavaHandler
             LIST_PROXY_CLASS, "<", listElemType, ">",
             "(", 
             getReferenceAccessorName(refInfo), "(), this, ",
-            refInfo.isExposedEndFirst(), ", ",
+            refInfo.isExposedEndFirst(), ", null, ",
             listElemType, ".class);");
         endBlock();
         endBlock();
@@ -1843,24 +1722,57 @@ public class HibernateJavaHandler
                     "derived attributes not supported");
             }
             
+            // REVIEW: SWZ: 2008-02-06: Since we have two pairs of methods
+            // (one for Hibernate and one for the API), we should:
+            // 1) Make the Hibernate method for boolean types be 
+            //    "getIsFoo$Impl()" instead of "isFoo$Impl()"
+            // 2) Ditch BooleanPropertyAccessor
+            
             int upper = attrib.getMultiplicity().getUpper();
             if (upper == 1) {
+                // Hibernate accessor
                 newLine();
-                startAccessorBlock(attrib);
+                startAccessorBlock(attrib, IMPL_SUFFIX);
                 writeln("return ", fieldName, ";");
                 endBlock();
                 
+                // Public API accessor
                 newLine();
-                startMutatorBlock(attrib);
+                startAccessorBlock(attrib);
+                writeln(
+                    "return ", 
+                    generator.getAccessorName(attrib), IMPL_SUFFIX, "();");
+                endBlock();
                 
-                // REVIEW: SWZ: 12/31/07: Some attributes are not 
-                // changeable, but Hibernate will still use this method to
+                // Hibernate mutator. Some attributes are not 
+                // changeable, but Hibernate will use this method to
                 // set the value at load time.  This method isn't in the
-                // class instance interface, but perhaps there's a way to
-                // detect user invocation and throw an exception.
+                // class instance interface.
+                newLine();
+                startMutatorBlock(attrib, IMPL_SUFFIX);
                 writeln("this.", fieldName, " = newValue;");
-                endBlock();                        
+                endBlock();
+                
+                // Public API mutator (if any).
+                if (attrib.isChangeable()) {
+                    newLine();
+                    startMutatorBlock(attrib);
+                    writeln(
+                        "super.fireAttributeSetEvent(",
+                        QUOTE, attrib.getName(), QUOTE, ", ",
+                        generator.getAccessorName(attrib), 
+                        IMPL_SUFFIX, "(), newValue);");
+                    writeln(
+                        generator.getMutatorName(attrib), 
+                        IMPL_SUFFIX,
+                        "(newValue);");
+                    endBlock();
+                }
             } else if (upper != 0) {
+                // REVIEW: SWZ: 2008-02-06: Need to rework this in the event
+                // we have multi-valued simple attributes.  (e.g., distinguish
+                // between Hibernate setting properties at load time vs. user
+                // modification.
                 newLine();
                 startAccessorBlock(attrib);
                 
@@ -1919,7 +1831,12 @@ public class HibernateJavaHandler
                 typeName, 
                 REF_CLASS_IMPL_CLASS.toString(),
                 new String[] { interfaceName }, 
-                JavaClassReference.computeImports(METAMODEL_INITIALIZER_CLASS),
+                JavaClassReference.computeImports(
+                    METAMODEL_INITIALIZER_CLASS,
+                    HIBERNATE_MDREPOSITORY_CLASS,
+                    JAVA_UTIL_COLLECTIONS_CLASS,
+                    JAVA_UTIL_ARRAYS_CLASS,
+                    INSTANCE_EVENT_CLASS),
                 false,
                 CLASS_PROXY_IMPL_COMMENT);
             
@@ -1957,12 +1874,18 @@ public class HibernateJavaHandler
                 // No-arg factory method
                 newLine();
                 startCreatorBlock(cls, null, "");
+
+                generateInstanceEventCall(null);
+                
                 String entityImplName = 
                     generator.getSimpleTypeName(cls, IMPL_SUFFIX);
                 writeln(
                     entityImplName,
                     " obj = new ", instanceImplTypeName, "();");
                 writeln("obj.save();");
+                
+                generateUpdateInstanceEventCall("obj");
+                
                 writeln("return obj;");
                 endBlock();
                 
@@ -1990,25 +1913,32 @@ public class HibernateJavaHandler
                         allAttributes.toArray(
                             new ModelElement[allAttributes.size()]);
                     startCreatorBlock(cls, params, "");  
+
+                    ArrayList<String> paramNames = new ArrayList<String>();
+                    for(Attribute attrib: allAttributes) {
+                        String[] paramInfo = generator.getParam(attrib);
+                        paramNames.add(paramInfo[1]);
+                    }
+
+                    generateInstanceEventCall(paramNames);
+
                     writeln(
                         entityImplName,
                         " obj = new ",
                         instanceImplTypeName,
                         "(");
                     increaseIndent();
-                    for(Iterator<Attribute> i = allAttributes.iterator(); 
-                        i.hasNext(); ) 
-                    {
-                        Attribute attrib = i.next();
-                        
-                        String[] paramInfo = generator.getParam(attrib);
 
-                        writeln(paramInfo[1], i.hasNext() ? "," : ");");
+                    for(Iterator<String> i = paramNames.iterator(); 
+                        i.hasNext(); )
+                    {    
+                        writeln(i.next(), i.hasNext() ? "," : ");");
                     }
                     decreaseIndent();
 
+                    generateUpdateInstanceEventCall("obj");
+                    
                     // NOTE: save is called in the constructor
-
                     writeln("return obj;");
                     endBlock();
                 }
@@ -2024,6 +1954,38 @@ public class HibernateJavaHandler
         finally {
             close();
         }
+    }
+    
+    private void generateInstanceEventCall(List<String> paramNames)
+    {
+        writeln(
+            INSTANCE_EVENT_CLASS, " event = new ", INSTANCE_EVENT_CLASS, "(");
+        increaseIndent();
+        writeln("this,");
+        if (paramNames == null || paramNames.isEmpty()) {
+            writeln("null);");
+        } else {
+            writeln(JAVA_UTIL_COLLECTIONS_CLASS, ".unmodifiableList(");
+            increaseIndent();
+            writeln(JAVA_UTIL_ARRAYS_CLASS, ".asList(new Object[] {");
+            increaseIndent();
+            Iterator<String> paramIter = paramNames.iterator();
+            while(paramIter.hasNext()) {
+                String paramName = paramIter.next();
+                
+                writeln(paramName, paramIter.hasNext() ? "," : " })));");
+            }
+            decreaseIndent();
+            decreaseIndent();
+        }
+        decreaseIndent();
+
+        writeln(HIBERNATE_MDREPOSITORY_CLASS, ".enqueueEvent(event);");
+    }
+    
+    private void generateUpdateInstanceEventCall(String instanceName)
+    {
+        writeln("event.setInstance(", instanceName, ");");
     }
     
     public void generatePackage(MofPackage pkg)
@@ -2337,19 +2299,7 @@ public class HibernateJavaHandler
                 }
             }
             
-            byte[] digest = sha1md.digest();
-            
-            StringBuffer digestStrBuf = new StringBuffer();
-            for(int i = 0; i < digest.length; i++) {
-                String digestByteStr = 
-                    Integer.toHexString((int)digest[i] & 0xFF);
-                if (digestByteStr.length() < 2) {
-                    digestStrBuf.append('0');
-                }
-                digestStrBuf.append(digestByteStr);
-            }
-            
-            String digestStr = digestStrBuf.toString();
+            String digestStr = computeDigestString(sha1md);
             classIdentifierMap.put(cls, digestStr);
             return digestStr;
         } catch (NoSuchAlgorithmException e) {
@@ -2357,6 +2307,76 @@ public class HibernateJavaHandler
         }
     }
     
+    private String getAssociationIdentifier(Association assoc)
+        throws GenerationException
+    {
+        if (assocIdentifierMap.containsKey(assoc)) {
+            return assocIdentifierMap.get(assoc);
+        }
+
+        try {
+            MessageDigest sha1md = MessageDigest.getInstance("SHA-1");
+            
+            List<?> qualifiedName = assoc.getQualifiedName();
+            for(Object o: qualifiedName) {
+                sha1md.update(o.toString().getBytes());
+                sha1md.update((byte)'_');
+            }
+
+            for(Object o: assoc.getContents()) {
+                if (o instanceof AssociationEnd) {
+                    AssociationEnd end = (AssociationEnd)o;
+                    
+                    sha1md.update(end.getName().getBytes());
+                    
+                    for(Object o2: end.getType().getQualifiedName()) {
+                        sha1md.update(o2.toString().getBytes());
+                        sha1md.update((byte)'_');
+                    }
+                    
+                    MultiplicityType mult = end.getMultiplicity();
+                    sha1md.update((byte)(mult.isOrdered() ? 1 : 0));
+                    sha1md.update((byte)(mult.isUnique() ? 1 : 0));
+                    int lower = mult.getLower();
+                    sha1md.update((byte)(lower >>> 24));
+                    sha1md.update((byte)(lower >>> 16));
+                    sha1md.update((byte)(lower >>> 8));
+                    sha1md.update((byte)lower);
+                    int upper = mult.getUpper();
+                    sha1md.update((byte)(upper >>> 24));
+                    sha1md.update((byte)(upper >>> 16));
+                    sha1md.update((byte)(upper >>> 8));
+                    sha1md.update((byte)upper);
+                }
+            }
+            
+            String digestStr = computeDigestString(sha1md);
+            
+            assocIdentifierMap.put(assoc, digestStr);
+            return digestStr;
+        } catch (NoSuchAlgorithmException e) {
+            throw new GenerationException(e);
+        }
+    }
+
+    private String computeDigestString(MessageDigest md)
+    {
+        byte[] digest = md.digest();
+        
+        StringBuffer digestStrBuf = new StringBuffer();
+        for(int i = 0; i < digest.length; i++) {
+            String digestByteStr = 
+                Integer.toHexString((int)digest[i] & 0xFF);
+            if (digestByteStr.length() < 2) {
+                digestStrBuf.append('0');
+            }
+            digestStrBuf.append(digestByteStr);
+        }
+        
+        String digestStr = digestStrBuf.toString();
+        return digestStr;
+    }
+
     private String makeType(AssociationKindEnum kind)
     {
         switch(kind)

@@ -792,6 +792,8 @@ public class HibernateMappingHandler
             String fieldName = attrib.getName();
             fieldName = generator.getClassFieldName(fieldName);
             
+            String propertyName = fieldName + HibernateJavaHandler.IMPL_SUFFIX;
+            
             final Classifier attribType = attrib.getType();
             MappingType mappingType = getMappingType(attribType);
             switch (mappingType) {
@@ -800,7 +802,7 @@ public class HibernateMappingHandler
                 // used by JMI don't match Hibernate's default accessor
                 writeEmptyElem(
                     "property",
-                    "name", fieldName,
+                    "name", propertyName,
                     "column", hibernateQuote(fieldName),
                     "access", BOOLEAN_PROPERTY_ACCESSOR_CLASS);
                 break;
@@ -813,7 +815,7 @@ public class HibernateMappingHandler
 
                 writeEmptyElem(
                     "property",
-                    "name", fieldName,
+                    "name", propertyName,
                     "column", hibernateQuote(fieldName),
                     "type", typedefName);
                 break;
@@ -834,7 +836,7 @@ public class HibernateMappingHandler
                 // 65K.  For text/mysql with length > 65K, it's ~2^31.
                 writeEmptyElem(
                     "property",
-                    "name", fieldName,
+                    "name", propertyName,
                     "column", hibernateQuote(fieldName),
                     "type", "text");
                 break;
@@ -843,7 +845,7 @@ public class HibernateMappingHandler
                 // Generic type
                 writeEmptyElem(
                     "property",
-                    "name", fieldName,
+                    "name", propertyName,
                     "column", hibernateQuote(fieldName));
                 break;
 

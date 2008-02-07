@@ -163,14 +163,26 @@ public class HibernateOneToOneAssociation
     }
     
     @Override
-    public void removeAll(HibernateAssociable item)
+    public void removeAll(HibernateAssociable item, boolean cascadeDelete)
     {
         HibernateAssociable parent = getParent();
         HibernateAssociable child = getChild();
         
-        assert(equals(parent, item) || equals(child, item));
+        HibernateAssociable otherEnd;
+        if (equals(parent, item)) {
+            otherEnd = child;
+        } else if (equals(child, item)) {
+            otherEnd = parent;
+        } else {
+            assert(false) : "item not in association";
+            otherEnd = null;
+        }
         
         remove(parent, child);
+        
+        if (cascadeDelete) {
+            otherEnd.refDelete();
+        }
     }
 
     @Override
@@ -209,12 +221,12 @@ public class HibernateOneToOneAssociation
     }
 
     @Override
-    public Collection<? extends RefObject> query(boolean returnSecondEnd)
+    public List<? extends RefObject> query(boolean returnSecondEnd)
     {
         if (returnSecondEnd) {
-            return Collections.singleton(getChild());
+            return Collections.singletonList(getChild());
         } else {
-            return Collections.singleton(getParent());
+            return Collections.singletonList(getParent());
         }
     }
 }

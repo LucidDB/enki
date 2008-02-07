@@ -50,7 +50,8 @@ import org.netbeans.api.mdr.events.*;
  * @author Stephan Zuercher
  */
 public class HibernateMDRepository
-    implements MDRepository, EnkiMDRepository
+    implements MDRepository, EnkiMDRepository, 
+               EnkiChangeEventThread.ListenerSource
 {
     public static final String CONFIG_PROPERTIES = "config.properties";
     public static final String MAPPING_XML = "mapping.xml";
@@ -74,6 +75,9 @@ public class HibernateMDRepository
     private SessionFactory sessionFactory;
     private MofIdGenerator mofIdGenerator;
     
+    private EnkiChangeEventThread thread;
+    private Map<MDRChangeListener, EnkiMaskedMDRChangeListener> listeners;
+    
     private final Logger log = 
         Logger.getLogger(HibernateMDRepository.class.getName());
 
@@ -92,10 +96,21 @@ public class HibernateMDRepository
         this.classLoader = classLoader;
         this.modelMap = new HashMap<String, ModelDescriptor>();
         this.extentMap = new HashMap<String, ExtentDescriptor>();
+        this.thread = null;
+        this.listeners = 
+            new IdentityHashMap<MDRChangeListener, EnkiMaskedMDRChangeListener>();
         
         initModelMap();
         initModelExtent(MOF_EXTENT);
         
+        // REVIEW: SWZ: 2008-02-01: Strictly speaking, multiple instance of
+        // this class should be acceptable (may even be required).  However,
+        // we need a way to find the repository instance for implicit read
+        // transactions.  Hibernate instantiates objects as necessary, so
+        // it's hard to know when/where it'll happen.  Could burn the repos 
+        // instance into the RefPackage/RefClass/etc instances at init time 
+        // and then set it on the objects loaded by them (have to check every 
+        // object every time, which is ugly).
         repos = this;
     }
     
@@ -180,6 +195,10 @@ public class HibernateMDRepository
             context.getEldestAncestor().mayContainWrites = true;
         }
         
+        if (write) {
+            enqueueBeginTransEvent(context);
+        }
+        
         return context;
     }
 
@@ -206,11 +225,17 @@ public class HibernateMDRepository
         
         Transaction txn = context.transaction;
 
+        if (context.isWrite) {
+            enqueueEndTransEvent(context);
+        }
+        
         // No need to close the session, the txn commit or rollback took care 
         // of that already.  Note that even if "commit" is requested, we'll
         // rollback if no writing was possible.
-        if (rollback || !context.mayContainWrites) {
+        if (rollback) {
             txn.rollback();
+            
+            fireCanceledChanges(context);
         } else {
             // TODO: check for constraint violations
             if (false) {
@@ -225,8 +250,21 @@ public class HibernateMDRepository
                 }
             }
             
-            txn.commit();
+            try {
+                if (!context.mayContainWrites) {
+                    txn.rollback();
+                } else {
+                    txn.commit();
+                }
+                
+                fireChanges(context);
+            } catch(HibernateException e) {
+                fireCanceledChanges(context);
+                throw e;
+            }
         }
+        
+        
     }
 
     public RefPackage createExtent(String name)
@@ -254,6 +292,16 @@ public class HibernateMDRepository
             throw new EnkiCreationFailedException(
                 "Extent '" + name + "' already exists");
         }
+        
+        enqueueEvent(
+            getContext(), 
+            new ExtentEvent(
+                this, 
+                ExtentEvent.EVENT_EXTENT_CREATE, 
+                name, 
+                metaPackage,
+                Collections.unmodifiableCollection(extentMap.keySet()), 
+                true));
         
         try {
             extentDesc = 
@@ -297,6 +345,15 @@ public class HibernateMDRepository
     private void dropExtentStorage(ExtentDescriptor extentDesc)
         throws EnkiDropFailedException
     {
+        enqueueEvent(
+            getContext(),
+            new ExtentEvent(
+                this,
+                ExtentEvent.EVENT_EXTENT_DELETE,
+                extentDesc.name,
+                null,
+                Collections.unmodifiableCollection(extentMap.keySet())));
+        
         extentMap.remove(extentDesc.name);
         
         Session session = sessionFactory.getCurrentSession();
@@ -381,6 +438,16 @@ public class HibernateMDRepository
         // TODO: locking
         
         if (sessionFactory != null) {
+            try {
+                thread.shutdown();
+            }
+            catch(InterruptedException e) {
+                log.log(
+                    Level.SEVERE, 
+                    "EnkiChangeEventThread interrupted on shutdown",
+                    e);
+            }
+            
             if (sessionFactory.getStatistics().isStatisticsEnabled()) {
                 sessionFactory.getStatistics().logSummary();
             }
@@ -399,17 +466,50 @@ public class HibernateMDRepository
 
     public void addListener(MDRChangeListener listener, int mask)
     {
-        // TODO: implement MDRChangeSource
+        synchronized(listeners) {
+            EnkiMaskedMDRChangeListener maskedListener = 
+                listeners.get(listener);
+            if (maskedListener != null) {
+                maskedListener.add(mask);
+                return;
+            }
+            
+            maskedListener = new EnkiMaskedMDRChangeListener(listener, mask);
+            listeners.put(listener, maskedListener);
+        }
     }
 
     public void removeListener(MDRChangeListener listener)
     {
-        removeListener(listener, MDRChangeEvent.EVENTMASK_ALL);
+        synchronized(listeners) {
+            listeners.remove(listener);
+        }
     }
 
     public void removeListener(MDRChangeListener listener, int mask)
     {
-        // TODO: implement MDRChangeSource
+        synchronized(listeners) {
+            EnkiMaskedMDRChangeListener maskedListener = 
+                listeners.get(listener);
+            if (maskedListener != null) {
+                boolean removedAll = maskedListener.remove(mask);
+                
+                if (removedAll) {
+                    listeners.remove(listener);
+                }
+            }
+        }
+    }
+    
+    // Implement EnkiChangeEventThread.ListenerSource
+    public void getListeners(
+        Collection<EnkiMaskedMDRChangeListener> listenersCopy)
+    {
+        listenersCopy.clear();
+        
+        synchronized(listeners) {
+            listenersCopy.addAll(listeners.values());
+        }
     }
     
     // Implement EnkiMDRepository
@@ -499,6 +599,82 @@ public class HibernateMDRepository
         getContext().allOfClassCache.put(cls, allOfClass);
     }
 
+    public static void enqueueEvent(MDRChangeEvent event)
+    {
+        Context context = getContext();
+        if (!isWriteTransaction(context, true)) {
+            throw new IllegalStateException("Not in write transaction");
+        }
+
+        while(!context.isWrite) {
+            context = context.ancestor;
+        }
+        
+        repos.enqueueEvent(context, event);
+    }
+    
+    /**
+     * Helper method for generating the extent deletion even from a RefPackage.
+     * 
+     * @param pkg top-level RefPackage of the extent being deleted
+     */
+    public static void enqueueExtentDeleteEvent(RefPackage pkg)
+    {
+        Map<String, ExtentDescriptor> extentMap = repos.extentMap;
+        String extentName = null;
+        for(Map.Entry<String, ExtentDescriptor> entry: extentMap.entrySet()) {
+            if (entry.getValue().extent.equals(pkg)) {
+                extentName = entry.getKey();
+                break;
+            }
+        }
+        
+        if (extentName == null) {
+            throw new InternalMdrError(
+                "Extent delete event only valid on top-level package");
+        }
+        
+        enqueueEvent(
+            new ExtentEvent(
+                pkg,
+                ExtentEvent.EVENT_EXTENT_DELETE,
+                extentName,
+                pkg.refMetaObject(),
+                Collections.unmodifiableCollection(extentMap.keySet())));
+    }
+
+    private void enqueueEvent(Context context, MDRChangeEvent event)
+    {
+        // Cache event in Context (we'll need to fire it upon commit even if
+        // there are no listeners now.)
+        context.queuedEvents.add(event);
+        
+        // Fire as planned change immediately (and from this thread).
+        synchronized(listeners) {
+            for(EnkiMaskedMDRChangeListener listener: listeners.values()) {
+                // Note: EnkiMaskedMDRChangeListener automatically squelches
+                // RuntimeExceptions as required by the API.
+                listener.plannedChange(event);
+            }
+        }
+    }
+
+    private void enqueueBeginTransEvent(Context context)
+    {
+        enqueueEvent(
+            context, 
+            new TransactionEvent(
+                this, TransactionEvent.EVENT_TRANSACTION_START));
+    }
+
+    private void enqueueEndTransEvent(Context context)
+    {
+        enqueueEvent(
+            context, 
+            new TransactionEvent(
+                this, TransactionEvent.EVENT_TRANSACTION_END));
+    }
+
     private static Context getContext()
     {
         Context context = tls.get();
@@ -508,6 +684,28 @@ public class HibernateMDRepository
 
         // begin an implicit read transaction for this thread
         return repos.beginTrans(false, true);
+    }
+    
+    private void fireCanceledChanges(Context context)
+    {
+        synchronized(listeners) {
+            for(MDRChangeEvent event: context.queuedEvents) {
+                for(EnkiMaskedMDRChangeListener listener: listeners.values()) {
+                    listener.changeCancelled(event);
+                }
+            }
+            context.queuedEvents.clear();
+        }
+    }
+    
+    private void fireChanges(Context context)
+    {
+        synchronized(listeners) {
+            for(MDRChangeEvent event: context.queuedEvents) {
+                thread.enqueueEvent(event);
+            }
+            context.queuedEvents.clear();
+        }
     }
     
     private void loadExistingExtents(List<Extent> extents)
@@ -681,6 +879,9 @@ public class HibernateMDRepository
             }
             
             loadExistingExtents(extents);
+            
+            thread = new EnkiChangeEventThread(this);
+            thread.start();
         }
     }
 
@@ -1085,6 +1286,7 @@ public class HibernateMDRepository
         private Map<HibernateRefClass, Collection<?>> allOfTypeCache;
         private Map<HibernateRefClass, Collection<?>> allOfClassCache;
         private boolean mayContainWrites;
+        private List<MDRChangeEvent> queuedEvents;
         
         private Context(
             Session sesson,
@@ -1103,6 +1305,7 @@ public class HibernateMDRepository
             this.allOfClassCache =
                 new HashMap<HibernateRefClass, Collection<?>>();
             this.mayContainWrites = false;
+            this.queuedEvents = new LinkedList<MDRChangeEvent>();
         }
         
         private MofIdGenerator getMofIdGenerator()
