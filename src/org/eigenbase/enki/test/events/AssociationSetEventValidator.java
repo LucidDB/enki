@@ -94,7 +94,7 @@ public class AssociationSetEventValidator extends AssociationEventValidator
     public void validateEvent(AssociationEvent event, int seq)
     {
         Assert.assertTrue(
-            event.isOfType(AssociationEvent.EVENT_ASSOCIATION_ADD));
+            event.isOfType(AssociationEvent.EVENT_ASSOCIATION_SET));
         
         checkEndNameAndPosition(event);
         

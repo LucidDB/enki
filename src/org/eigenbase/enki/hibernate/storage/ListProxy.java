@@ -167,9 +167,13 @@ public class ListProxy<E extends RefObject> implements List<E>
             throw new IndexOutOfBoundsException();
         }
 
-        // TODO: EVENT: set events for re-indexed values?
         fireAddEvent(element, index);
-        
+
+        addInternal(index, element);
+    }
+
+    private void addInternal(int index, E element)
+    {
         if (firstEnd) {
             assoc.add(index, source, (HibernateAssociable)element);
         } else {
@@ -401,7 +405,7 @@ public class ListProxy<E extends RefObject> implements List<E>
         } else {
             assoc.remove((HibernateAssociable)item, source);
         }
-        add(index, element);
+        addInternal(index, element);
         return item;
     }
 

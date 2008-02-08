@@ -25,6 +25,7 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.test.events.*;
 import org.junit.*;
 import org.netbeans.api.mdr.events.*;
@@ -899,7 +900,6 @@ public class MdrEventsApiTest extends SampleModelTestBase
         waitAndCheckErrors();
     }
 
-    @Ignore // DISABLED: Netbeans MDR throws ClassCastException on List.set
     @Test
     public void testOrderedAssociationSetEventsWithRollback()
     {
@@ -907,7 +907,6 @@ public class MdrEventsApiTest extends SampleModelTestBase
         testOrderedAssociationSetEvents(true);
     }
 
-    @Ignore // DISABLED: Netbeans MDR throws ClassCastException on List.set
     @Test
     public void testOrderedAssociationSetEventsWithCommit()
     {
@@ -917,6 +916,15 @@ public class MdrEventsApiTest extends SampleModelTestBase
 
     private void testOrderedAssociationSetEvents(boolean rollback)
     {
+        // Netbeans + MDRJDBC causes a ClassCastException on calls to
+        // set(int, Object) on List instances returned by association
+        // accessors.  So, skip the test.
+        if (getMdrProvider() == MdrProvider.NETBEANS_MDR) {
+            System.out.println(
+                "Skipping testOrderedAssociationSetEvents for Netbeans");
+            return;
+        }
+        
         final EventType postTxnEventType = 
             rollback ? EventType.CANCELED : EventType.CHANGED;
 
@@ -941,7 +949,7 @@ public class MdrEventsApiTest extends SampleModelTestBase
                     EventType.PLANNED, "Entity22",
                     Entity22.class, null, null,
                     Entity23.class, null, null,
-                    Entity23.class, null, null, 3),
+                    Entity23.class, null, null, 2),
 
                 new DuplicateEventValidator(postTxnEventType, 0),
                 new DuplicateEventValidator(postTxnEventType, 1)
