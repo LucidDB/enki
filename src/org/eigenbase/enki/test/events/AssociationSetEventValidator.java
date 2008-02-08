@@ -61,13 +61,42 @@ public class AssociationSetEventValidator extends AssociationEventValidator
             expectedOldAttribValue);
     }
 
+    public AssociationSetEventValidator(
+        EventType expectedEventType,
+        String expectedEndName,
+        Class<? extends RefObject> expectedFixedType,
+        String fixedTypeAttrib,
+        String expectedFixedAttribValue,
+        Class<? extends RefObject> expectedNewType,
+        String newTypeAttrib,
+        String expectedNewAttribValue,
+        Class<? extends RefObject> expectedOldType,
+        String oldTypeAttrib,
+        String expectedOldAttribValue,
+        int expectedPosition)
+    {
+        super(
+            expectedEventType,
+            expectedEndName,
+            expectedFixedType,
+            fixedTypeAttrib,
+            expectedFixedAttribValue,
+            expectedNewType,
+            newTypeAttrib,
+            expectedNewAttribValue,
+            expectedOldType,
+            oldTypeAttrib,
+            expectedOldAttribValue,
+            expectedPosition);
+    }
+
     @Override
     public void validateEvent(AssociationEvent event, int seq)
     {
         Assert.assertTrue(
             event.isOfType(AssociationEvent.EVENT_ASSOCIATION_ADD));
         
-        checkEndName(event);
+        checkEndNameAndPosition(event);
         
         check(
             event.getFixedElement(), 
@@ -100,7 +129,8 @@ public class AssociationSetEventValidator extends AssociationEventValidator
             expectedNewAttribValue,
             expectedOldType,
             oldTypeAttrib,
-            expectedOldAttribValue);
+            expectedOldAttribValue,
+            expectedPosition);
     }
 }
 

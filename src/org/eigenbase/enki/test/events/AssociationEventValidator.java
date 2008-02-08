@@ -64,6 +64,9 @@ abstract class AssociationEventValidator extends EventValidator
     /** Expected old end type (may be null). */
     protected final String expectedOldAttribValue;
     
+    /** Expected position value. */
+    protected final int expectedPosition;
+    
     protected AssociationEventValidator(
         EventType expectedEventType,
         String expectedEndName,
@@ -76,6 +79,35 @@ abstract class AssociationEventValidator extends EventValidator
         Class<? extends RefObject> expectedOldType,
         String oldTypeAttrib,
         String expectedOldAttribValue)
+    {
+        this(
+            expectedEventType,
+            expectedEndName,
+            expectedFixedType,
+            fixedTypeAttrib,
+            expectedFixedAttribValue,
+            expectedNewType,
+            newTypeAttrib,
+            expectedNewAttribValue,
+            expectedOldType,
+            oldTypeAttrib,
+            expectedOldAttribValue,
+            AssociationEvent.POSITION_NONE);
+    }
+    
+    protected AssociationEventValidator(
+        EventType expectedEventType,
+        String expectedEndName,
+        Class<? extends RefObject> expectedFixedType,
+        String fixedTypeAttrib,
+        String expectedFixedAttribValue,
+        Class<? extends RefObject> expectedNewType,
+        String newTypeAttrib,
+        String expectedNewAttribValue,
+        Class<? extends RefObject> expectedOldType,
+        String oldTypeAttrib,
+        String expectedOldAttribValue,
+        int expectedPosition)
     {
         super(expectedEventType);
         
@@ -91,16 +123,20 @@ abstract class AssociationEventValidator extends EventValidator
         this.expectedOldType = expectedOldType;
         this.oldTypeAttrib = oldTypeAttrib;
         this.expectedOldAttribValue = expectedOldAttribValue;
+        
+        this.expectedPosition = expectedPosition;
     }
 
     /**
-     * Helper method to check the end name.
+     * Helper method to check the end name and position.
      *
      * @param event event to check
      */
-    protected void checkEndName(AssociationEvent event)
+    protected void checkEndNameAndPosition(AssociationEvent event)
     {
         Assert.assertEquals(toString(), expectedEndName, event.getEndName());
+        
+        Assert.assertEquals(toString(), expectedPosition, event.getPosition());
     }
     
     /**

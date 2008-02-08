@@ -34,41 +34,90 @@ import org.netbeans.api.mdr.events.*;
 public class AttributeSetEventValidator extends EventValidator
 {
     private final String attributeName;
-    private final Object oldValue;
+
+    private final boolean valuesAreSimpleObjects;
     private final Object newValue;
-    private final boolean valuesAreSeqNumbers; 
+    private final Object oldValue;
+
+    private final String valueAttributeName;
+    private final Class<? extends RefObject> expectedNewType;
+    private final Class<? extends RefObject> expectedOldType;
+    
     private final int position;
     
     public AttributeSetEventValidator(
         EventType expectedEventType,
         String attributeName,
-        Object oldValue,
         Object newValue,
-        boolean valuesAreSeqNumbers)
+        Object oldValue)
     {
         this(
             expectedEventType,
-            attributeName, 
-            oldValue,
+            attributeName,
             newValue, 
-            valuesAreSeqNumbers,
+            oldValue, 
             AttributeEvent.POSITION_NONE);
     }
     
     public AttributeSetEventValidator(
         EventType expectedEventType,
         String attributeName,
-        Object oldValue,
         Object newValue,
-        boolean valuesAreSeqNumbers,
+        Object oldValue,
         int position)
     {
         super(expectedEventType);
 
         this.attributeName = attributeName;
-        this.oldValue = oldValue;
+        this.valuesAreSimpleObjects = true;
         this.newValue = newValue;
-        this.valuesAreSeqNumbers = valuesAreSeqNumbers;
+        this.oldValue = oldValue;
+        this.position = position;
+
+        this.valueAttributeName = null;
+        this.expectedNewType = null;
+        this.expectedOldType = null;
+    }
+    
+    public AttributeSetEventValidator(
+        EventType expectedEventType,
+        String attributeName,
+        String valueAttributeName,
+        Class<? extends RefObject> expectedNewType,
+        Object expectedNewAttribValue,
+        Class<? extends RefObject> expectedOldType,
+        Object expectedOldAttribValue)
+    {
+        this(
+            expectedEventType, 
+            attributeName,
+            valueAttributeName,
+            expectedNewType,
+            expectedNewAttribValue,
+            expectedOldType,
+            expectedOldAttribValue,
+            AttributeEvent.POSITION_NONE);
+    }
+
+    public AttributeSetEventValidator(
+        EventType expectedEventType,
+        String attributeName,
+        String valueAttributeName,
+        Class<? extends RefObject> expectedNewType,
+        Object expectedNewAttribValue,
+        Class<? extends RefObject> expectedOldType,
+        Object expectedOldAttribValue,
+        int position)
+    {
+        super(expectedEventType);
+        
+        this.attributeName = attributeName;
+        this.valuesAreSimpleObjects = false;
+        this.valueAttributeName = valueAttributeName;
+        this.expectedNewType = expectedNewType;
+        this.newValue = expectedNewAttribValue;
+        this.expectedOldType = expectedOldType;
+        this.oldValue = expectedOldAttribValue;
         this.position = position;
     }
 
@@ -77,42 +126,42 @@ public class AttributeSetEventValidator extends EventValidator
     {
         Assert.assertEquals(attributeName, event.getAttributeName());
         
-        Object oldElem = event.getOldElement();
         Object newElem = event.getNewElement();
-        if (valuesAreSeqNumbers) {
-            Assert.assertTrue(
-                toString(), oldValue == null || oldValue instanceof Integer);
-            Assert.assertTrue(
-                toString(), newValue == null || newValue instanceof Integer);
-            
-            int oldSeq = oldValue != null ? ((Integer)oldValue).intValue() : -1;
-            int newSeq = newValue != null ? ((Integer)newValue).intValue() : -1;
-            
-            CreateInstanceEventValidator oldEvent = 
-                oldValue != null 
-                    ? (CreateInstanceEventValidator)parent.getValidator(oldSeq) : null;
-            CreateInstanceEventValidator newEvent =
-                newValue != null
-                    ? (CreateInstanceEventValidator)parent.getValidator(newSeq) : null;
-            
-            RefObject oldRefValue = 
-                oldValue != null ? oldEvent.getInstance() : null;
-            RefObject newRefValue = 
-                newValue != null ? newEvent.getInstance() : null;
-            
-            Assert.assertEquals(toString(), oldRefValue, oldElem);
-            Assert.assertEquals(toString(), newRefValue, newElem);
-        } else {
-            Assert.assertFalse(oldElem instanceof RefObject);
+        Object oldElem = event.getOldElement();
+        
+        if (valuesAreSimpleObjects) {
             Assert.assertFalse(newElem instanceof RefObject);
+            Assert.assertFalse(oldElem instanceof RefObject);
 
-            Assert.assertEquals(toString(), oldValue, oldElem);
             Assert.assertEquals(toString(), newValue, newElem);
+            Assert.assertEquals(toString(), oldValue, oldElem);
+        } else {
+            check(expectedNewType, newValue, newElem);
+            check(expectedOldType, oldValue, oldElem);
         }
         
         Assert.assertEquals(toString(), position, event.getPosition());
     }
 
+    private void check(
+        Class<? extends RefObject> expectedType,
+        Object expectedAttribValue,
+        Object givenValue)
+    {
+        if (expectedType == null) {
+            Assert.assertNull(toString(), givenValue);
+            return;
+        }
+        
+        Assert.assertTrue(toString(), expectedType.isInstance(givenValue));
+        
+        RefObject refGivenValue = expectedType.cast(givenValue);
+        
+        Object givenAttribValue = 
+            refGivenValue.refGetValue(valueAttributeName);
+        
+        Assert.assertEquals(toString(), expectedAttribValue, givenAttribValue);
+    }
     
     @Override
     public String toString()
@@ -120,19 +169,35 @@ public class AttributeSetEventValidator extends EventValidator
         StringBuilder b = new StringBuilder();
         b.append(super.toString());
         b.append("(attribName=").append(attributeName);
-        if (valuesAreSeqNumbers) {
-            if (newValue != null) {
-                b.append(", new=seq#").append(newValue);
-            }
-            if (oldValue != null) {
-                b.append(", old=seq#").append(oldValue);
-            }
+        if (valuesAreSimpleObjects) {
+          b
+              .append(", new=")
+              .append(newValue)
+              .append(", old=")
+              .append(oldValue);
         } else {
-            if (newValue != null) {
-                b.append(", new=").append(newValue);
+            b.append(", new=");
+            if (expectedNewType != null) {
+                b
+                    .append(expectedNewType.getSimpleName())
+                    .append('/')
+                    .append(valueAttributeName)
+                    .append('/')
+                    .append(newValue);
+            } else {
+                b.append("null");
             }
-            if (oldValue != null) {
-                b.append(", old=").append(oldValue);
+            
+            b.append(", old=");
+            if (expectedOldType != null) {
+                b
+                    .append(expectedOldType.getSimpleName())
+                    .append('/')
+                    .append(valueAttributeName)
+                    .append('/')
+                    .append(oldValue);                
+            } else {
+                b.append("null");
             }
         }
         b.append(')');
@@ -143,13 +208,25 @@ public class AttributeSetEventValidator extends EventValidator
     @Override
     EventValidator cloneWithNewExpectedEventType(EventType expectedEventType)
     {
-        return new AttributeSetEventValidator(
-            expectedEventType,
-            attributeName,
-            oldValue,
-            newValue,
-            valuesAreSeqNumbers,
-            position);
+        if (valuesAreSimpleObjects) {
+            return new AttributeSetEventValidator(
+                expectedEventType,
+                attributeName,
+                newValue,
+                oldValue,
+                position);
+        } else {
+            return new AttributeSetEventValidator(
+                expectedEventType,
+                attributeName,
+                valueAttributeName,
+                expectedNewType,
+                newValue,
+                expectedOldType,
+                oldValue,
+                position);
+                
+        }
     }
 }
 

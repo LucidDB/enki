@@ -203,14 +203,18 @@ public abstract class HibernateRefAssociation
     
     protected void fireAddEvent(RefObject end1, RefObject end2)
     {
-        int index = AssociationEvent.POSITION_NONE;
-        if (end2Multiplicity.isOrdered()) {
-            index = query(true, end1).size();
-        }
-        
-        generateAddEvent(end1, end1Name, end2, index);
+        generateAddEvent(end1, end1Name, end2, AssociationEvent.POSITION_NONE);
     }
 
+    public void fireAddEvent(
+        boolean fixedIsFirstEnd, 
+        RefObject fixedEnd, 
+        RefObject end)
+    {
+        fireAddEvent(
+            fixedIsFirstEnd, fixedEnd, end, AssociationEvent.POSITION_NONE);
+    }
+    
     public void fireAddEvent(
         boolean fixedIsFirstEnd, 
         RefObject fixedEnd, 
@@ -261,6 +265,13 @@ public abstract class HibernateRefAssociation
         generateRemoveEvent(end1, end1Name, end2, index);
     }
 
+    public void fireRemoveEvent(
+        boolean fixedIsFirstEnd, RefObject fixedEnd, RefObject end)
+    {
+        fireRemoveEvent(
+            fixedIsFirstEnd, fixedEnd, end, AssociationEvent.POSITION_NONE);
+    }
+    
     public void fireRemoveEvent(
         boolean fixedIsFirstEnd, RefObject fixedEnd, RefObject end, int index)
     {

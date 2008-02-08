@@ -118,7 +118,7 @@ public abstract class HibernateRefObject
             }
 
             if (refAssoc != null) {
-                refAssoc.fireAddEvent(true, end1, end2, 0);
+                refAssoc.fireAddEvent(true, end1, end2);
             }
             assoc.add(end1, end2);                
         } else {

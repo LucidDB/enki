@@ -109,10 +109,24 @@ public class ListProxy<E extends RefObject> implements List<E>
         return cls.cast(proxiedList.get(index));
     }
 
+    private void fireAddEvent(E e)
+    {
+        if (refAssoc != null) {
+            refAssoc.fireAddEvent(firstEnd, source, e);
+        }
+    }
+    
     private void fireAddEvent(E e, int position)
     {
         if (refAssoc != null) {
             refAssoc.fireAddEvent(firstEnd, source, e, position);
+        }
+    }
+    
+    private void fireRemoveEvent(E e)
+    {
+        if (refAssoc != null) {
+            refAssoc.fireRemoveEvent(firstEnd, source, e);
         }
     }
     
@@ -134,7 +148,7 @@ public class ListProxy<E extends RefObject> implements List<E>
     {
         checkAssoc();
 
-        fireAddEvent(e, size);
+        fireAddEvent(e);
         
         if (firstEnd) {
             assoc.add(source, (HibernateAssociable)e);
@@ -280,30 +294,20 @@ public class ListProxy<E extends RefObject> implements List<E>
 
     public boolean remove(Object o)
     {
-        if (o instanceof HibernateAssociable && assoc != null) {
-            int index = proxiedList.indexOf(o);
-            fireRemoveEvent(cls.cast(o), index);            
+        if (o instanceof HibernateAssociable && 
+            assoc != null &&
+            proxiedList.contains(o))
+        {
+            E e = cls.cast(o);
             
-            boolean result;
-            if (firstEnd) {
-                result = assoc.remove(source, (HibernateAssociable)o);
-            } else {
-                result = assoc.remove((HibernateAssociable)o, source);
-            }
-
-            if (source.getAssociation(type, firstEnd) == null) {
-                // Deleted last child.
-                assoc = null;
-                proxiedList = null;
-            }
-
-            size = -1;
-            return result;
+            fireRemoveEvent(e);
+        
+            return removeInternal(e);
         }
         
         return false;
     }
-
+    
     public E remove(int index)
     {
         if (assoc == null || index < 0 || index > size()) {
@@ -314,8 +318,28 @@ public class ListProxy<E extends RefObject> implements List<E>
         
         fireRemoveEvent(element, index);
         
-        remove(element);
+        removeInternal(element);
+        
         return element;
+    }
+
+    private boolean removeInternal(E e)
+    {
+        boolean result;
+        if (firstEnd) {
+            result = assoc.remove(source, (HibernateAssociable)e);
+        } else {
+            result = assoc.remove((HibernateAssociable)e, source);
+        }
+
+        if (source.getAssociation(type, firstEnd) == null) {
+            // Deleted last child.
+            assoc = null;
+            proxiedList = null;
+        }
+
+        size = -1;
+        return result;
     }
 
     public boolean removeAll(Collection<?> c)
@@ -326,10 +350,10 @@ public class ListProxy<E extends RefObject> implements List<E>
         
         boolean result = false;
         for(Object o: c) {
-            int index = proxiedList.indexOf(o);
-            if (index >= 0) {
-                fireRemoveEvent(cls.cast(o), index);
-                proxiedList.remove(index);
+            if (proxiedList.contains(o)) {
+                E e = cls.cast(o);
+                fireRemoveEvent(e);
+                removeInternal(e);
                 result = true;
             }
         }
@@ -350,7 +374,9 @@ public class ListProxy<E extends RefObject> implements List<E>
         while(i < proxiedList.size()) {
             HibernateAssociable child = proxiedList.get(i);
             if (!c.contains(child)) {
-                remove(i);
+                E e = cls.cast(child);
+                fireRemoveEvent(e);
+                removeInternal(e);
                 result = true;
             } else {
                 i++;

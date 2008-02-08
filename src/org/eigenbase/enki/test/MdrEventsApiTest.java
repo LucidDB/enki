@@ -30,6 +30,7 @@ import org.junit.*;
 import org.netbeans.api.mdr.events.*;
 
 import eem.sample.*;
+import eem.sample.simple.*;
 import eem.sample.special.*;
 
 /**
@@ -78,7 +79,7 @@ public class MdrEventsApiTest extends SampleModelTestBase
         getRepository().addListener(listener, mask);
     }
 
-    private void logTest()
+    private void printTestName()
     {
         if (PRINT_EVENTS) {
             StackTraceElement[] stackTrace = 
@@ -102,14 +103,14 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testTransactionRollbackEvents()
     {
-        logTest();
+        printTestName();
         testTransactionEvents(true);
     }
     
     @Test
     public void testTransactionCommitEvents()
     {
-        logTest();
+        printTestName();
         testTransactionEvents(false);
     }
     
@@ -160,28 +161,28 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testCreateInstanceEventsWithRollback()
     {
-        logTest();
+        printTestName();
         testCreateInstanceEvents(true, CreateMethod.CLASS_PROXY);
     }
     
     @Test
     public void testRefCreateInstanceEventsWithRollback()
     {
-        logTest();
+        printTestName();
         testCreateInstanceEvents(true, CreateMethod.REFLECTIVE_API);
     }
     
     @Test
     public void testCreateInstanceEventsWithCommit()
     {
-        logTest();
+        printTestName();
         testCreateInstanceEvents(false, CreateMethod.CLASS_PROXY);
     }
 
     @Test
     public void testRefCreateInstanceEventsWithCommit()
     {
-        logTest();
+        printTestName();
         testCreateInstanceEvents(false, CreateMethod.CLASS_PROXY);
     }
 
@@ -255,14 +256,14 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testDeleteInstanceEventsWithRollback()
     {
-        logTest();
+        printTestName();
         testDeleteInstanceEvents(true);
     }
     
     @Test
     public void testDeleteInstanceEventsWithCommit()
     {
-        logTest();
+        printTestName();
         testDeleteInstanceEvents(false);
     }
     
@@ -319,14 +320,14 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testDeleteInstanceEventCascadeWithRollback()
     {
-        logTest();
+        printTestName();
         testDeleteInstanceEventCascade(true);
     }
     
     @Test
     public void testDeleteInstanceEventCascadeWithCommit()
     {
-        logTest();
+        printTestName();
         testDeleteInstanceEventCascade(false);
     }
     
@@ -417,42 +418,42 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testAssociationAddEventsWithRollback()
     {
-        logTest();
+        printTestName();
         testAssociationAddEvents(true, AssocMethod.REFERENCE);
     }
     
     @Test
     public void testAssociationProxyAddEventsWithRollback()
     {
-        logTest();
+        printTestName();
         testAssociationAddEvents(true, AssocMethod.ASSOCIATION_PROXY);
     }
     
     @Test
     public void testAssociationRefAddEventsWithRollback()
     {
-        logTest();
+        printTestName();
         testAssociationAddEvents(true, AssocMethod.REFLECTIVE_API);
     }
     
     @Test
     public void testAssociationAddEventsWithCommit()
     {
-        logTest();
+        printTestName();
         testAssociationAddEvents(false, AssocMethod.REFERENCE);
     }
     
     @Test
     public void testAssociationProxyAddEventsWithCommit()
     {
-        logTest();
+        printTestName();
         testAssociationAddEvents(false, AssocMethod.ASSOCIATION_PROXY);
     }
     
     @Test
     public void testAssociationRefAddEventsWithCommit()
     {
-        logTest();
+        printTestName();
         testAssociationAddEvents(false, AssocMethod.REFLECTIVE_API);
     }
     
@@ -517,44 +518,125 @@ public class MdrEventsApiTest extends SampleModelTestBase
     }
     
     @Test
+    public void testOrderedAssociationAddEventsWithRollback()
+    {
+        printTestName();
+        testOrderedAssociationAddEvents(true);
+    }
+    
+    @Test
+    public void testOrderedAssociationAddEventsWithCommit()
+    {
+        printTestName();
+        testOrderedAssociationAddEvents(false);
+    }
+    
+    private void testOrderedAssociationAddEvents(boolean rollback)
+    {
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+
+        configureListener(
+            MDRChangeEvent.EVENTMASK_ON_ASSOCIATION,
+            new DelegatingEventValidator(
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Entity16",
+                    Entity16.class, null, null,
+                    Entity17.class, null, null), // pos = end (0)
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Entity16",
+                    Entity16.class, null, null,
+                    Entity17.class, null, null), // pos = end (1)
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Entity16",
+                    Entity16.class, null, null,
+                    Entity17.class, null, null, 1),
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Entity16",
+                    Entity16.class, null, null,
+                    Entity17.class, null, null, 0),
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Entity16",
+                    Entity16.class, null, null,
+                    Entity17.class, null, null), // pos = end (4)
+                    
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Entity22",
+                    Entity22.class, null, null,
+                    Entity23.class, null, null), // pos = end (0)
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Entity22",
+                    Entity22.class, null, null,
+                    Entity23.class, null, null, 0),
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Entity22",
+                    Entity22.class, null, null,
+                    Entity23.class, null, null), // pos = end (2)
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Entity22",
+                    Entity22.class, null, null,
+                    Entity23.class, null, null, 2),
+                new AssociationAddEventValidator(
+                    EventType.PLANNED, "Entity22",
+                    Entity22.class, null, null,
+                    Entity23.class, null, null), // pos = end (4)
+
+                new DuplicateEventValidator(postTxnEventType, 0),
+                new DuplicateEventValidator(postTxnEventType, 1),
+                new DuplicateEventValidator(postTxnEventType, 2),
+                new DuplicateEventValidator(postTxnEventType, 3),
+                new DuplicateEventValidator(postTxnEventType, 4),
+                new DuplicateEventValidator(postTxnEventType, 5),
+                new DuplicateEventValidator(postTxnEventType, 6),
+                new DuplicateEventValidator(postTxnEventType, 7),
+                new DuplicateEventValidator(postTxnEventType, 8),
+                new DuplicateEventValidator(postTxnEventType, 9)
+            ));
+        
+        createOrderedAssociationObjects(rollback, false);
+
+        waitAndCheckErrors();
+    }
+
+    @Test
     public void testAssociationRemoveEventsWithRollback()
     {
-        logTest();
+        printTestName();
         testAssociationRemoveEvents(true, AssocMethod.REFERENCE);
     }
     
     @Test
     public void testAssociationProxyRemoveEventsWithRollback()
     {
-        logTest();
+        printTestName();
         testAssociationRemoveEvents(true, AssocMethod.ASSOCIATION_PROXY);
     }
     
     @Test
     public void testAssociationRefRemoveEventsWithRollback()
     {
-        logTest();
+        printTestName();
         testAssociationRemoveEvents(true, AssocMethod.REFLECTIVE_API);
     }
     
     @Test
     public void testAssociationRemoveEventsWithCommit()
     {
-        logTest();
+        printTestName();
         testAssociationRemoveEvents(false, AssocMethod.REFERENCE);
     }
     
     @Test
     public void testAssociationProxyRemoveEventsWithCommit()
     {
-        logTest();
+        printTestName();
         testAssociationRemoveEvents(false, AssocMethod.ASSOCIATION_PROXY);
     }
     
     @Test
     public void testAssociationRefRemoveEventsWithCommit()
     {
-        logTest();
+        printTestName();
         testAssociationRemoveEvents(false, AssocMethod.REFLECTIVE_API);
     }
     
@@ -685,6 +767,233 @@ public class MdrEventsApiTest extends SampleModelTestBase
         waitAndCheckErrors();
     }
     
+    @Test
+    public void testOrderedAssociationRemoveEventsWithRollback()
+    {
+        printTestName();
+        testOrderedAssociationRemoveEvents(true);
+    }
+    
+    @Test
+    public void testOrderedAssociationRemoveEventsWithCommit()
+    {
+        printTestName();
+        testOrderedAssociationRemoveEvents(false);
+    }
+    
+    private void testOrderedAssociationRemoveEvents(boolean rollback)
+    {
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+
+        configureListener(
+            AssociationEvent.EVENTMASK_ASSOCIATION,
+            new LenientEventValidator(20));
+        
+        String[] mofIds = createOrderedAssociationObjects(false, false);
+
+        waitAndCheckErrors();
+        destroyListener();
+        
+        configureListener(
+            MDRChangeEvent.EVENTMASK_ON_ASSOCIATION, 
+            new DelegatingEventValidator(
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Entity16",
+                    Entity16.class, null, null,
+                    Entity17.class, null, null, 2),
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Entity16",
+                    Entity16.class, null, null,
+                    Entity17.class, null, null, 1),
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Entity16",
+                    Entity16.class, null, null,
+                    Entity17.class, null, null, 0),
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Entity16",
+                    Entity16.class, null, null,
+                    Entity17.class, null, null, 1),
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Entity16",
+                    Entity16.class, null, null,
+                    Entity17.class, null, null, 0),
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Entity22",
+                    Entity22.class, null, null,
+                    Entity23.class, null, null, 3),
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Entity22",
+                    Entity22.class, null, null,
+                    Entity23.class, null, null, 2),
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Entity22",
+                    Entity22.class, null, null,
+                    Entity23.class, null, null, 1),
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Entity22",
+                    Entity22.class, null, null,
+                    Entity23.class, null, null, 0),
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "Entity22",
+                    Entity22.class, null, null,
+                    Entity23.class, null, null, 0),
+                new DuplicateEventValidator(postTxnEventType, 0),
+                new DuplicateEventValidator(postTxnEventType, 1),
+                new DuplicateEventValidator(postTxnEventType, 2),
+                new DuplicateEventValidator(postTxnEventType, 3),
+                new DuplicateEventValidator(postTxnEventType, 4),
+                new DuplicateEventValidator(postTxnEventType, 5),
+                new DuplicateEventValidator(postTxnEventType, 6),
+                new DuplicateEventValidator(postTxnEventType, 7),
+                new DuplicateEventValidator(postTxnEventType, 8),
+                new DuplicateEventValidator(postTxnEventType, 9)
+            ));
+        
+        int i = 0;
+        getRepository().beginTrans(true);
+        try {
+            // 1-to-many
+            Entity16 e16 = (Entity16)getRepository().getByMofId(mofIds[i++]);
+
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity17);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity17);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity17);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity17);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity17);
+            
+            e16.getEntity17().remove(2);
+            e16.getEntity17().remove(1);
+            e16.getEntity17().remove(0);
+            e16.getEntity17().remove(1);
+            e16.getEntity17().remove(0);
+            
+            // many-to-many
+            Entity22 e22 = (Entity22)getRepository().getByMofId(mofIds[i++]);
+
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity23);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity23);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity23);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity23);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity23);
+
+            e22.getEntity23().remove(3);
+            e22.getEntity23().remove(2);
+            e22.getEntity23().remove(1);
+            e22.getEntity23().remove(0);
+            e22.getEntity23().remove(0);
+        } finally {
+            getRepository().endTrans(rollback);
+        }
+        
+        waitAndCheckErrors();
+    }
+
+    @Ignore // DISABLED: Netbeans MDR throws ClassCastException on List.set
+    @Test
+    public void testOrderedAssociationSetEventsWithRollback()
+    {
+        printTestName();
+        testOrderedAssociationSetEvents(true);
+    }
+
+    @Ignore // DISABLED: Netbeans MDR throws ClassCastException on List.set
+    @Test
+    public void testOrderedAssociationSetEventsWithCommit()
+    {
+        printTestName();
+        testOrderedAssociationSetEvents(false);
+    }
+
+    private void testOrderedAssociationSetEvents(boolean rollback)
+    {
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+
+        configureListener(
+            AssociationEvent.EVENTMASK_ASSOCIATION,
+            new LenientEventValidator(20));
+        
+        String[] mofIds = createOrderedAssociationObjects(false, true);
+
+        waitAndCheckErrors();
+        destroyListener();
+        
+        configureListener(
+            MDRChangeEvent.EVENTMASK_ON_ASSOCIATION, 
+            new DelegatingEventValidator(
+                new AssociationSetEventValidator(
+                    EventType.PLANNED, "Entity16",
+                    Entity16.class, null, null,
+                    Entity17.class, null, null,
+                    Entity17.class, null, null, 2),
+                new AssociationSetEventValidator(
+                    EventType.PLANNED, "Entity22",
+                    Entity22.class, null, null,
+                    Entity23.class, null, null,
+                    Entity23.class, null, null, 3),
+
+                new DuplicateEventValidator(postTxnEventType, 0),
+                new DuplicateEventValidator(postTxnEventType, 1)
+            ));
+        
+        int i = 0;
+        getRepository().beginTrans(true);
+        try {
+            // 1-to-many
+            Entity16 e16 = (Entity16)getRepository().getByMofId(mofIds[i++]);
+
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity17);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity17);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity17);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity17);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity17);
+            
+            Entity17 extraE17 = 
+                (Entity17)getRepository().getByMofId(mofIds[i++]);
+            
+            e16.getEntity17().set(2, extraE17);
+            
+            // many-to-many
+            Entity22 e22 = (Entity22)getRepository().getByMofId(mofIds[i++]);
+
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity23);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity23);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity23);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity23);
+            Assert.assertTrue(
+                getRepository().getByMofId(mofIds[i++]) instanceof Entity23);
+
+            Entity23 extraE23 = 
+                (Entity23)getRepository().getByMofId(mofIds[i++]);
+            
+            e22.getEntity23().set(2, extraE23);
+        } finally {
+            getRepository().endTrans(rollback);
+        }
+        
+        waitAndCheckErrors();        
+    }
+    
     private String[] createAssociationObjects(
         boolean rollback, AssocMethod assocMethod)
     {
@@ -796,31 +1105,105 @@ public class MdrEventsApiTest extends SampleModelTestBase
         }
     }
     
+    private String[] createOrderedAssociationObjects(
+        boolean rollback, boolean createAdditional)
+    {
+        String[] mofIds = new String[createAdditional ? 14 : 12];
+        
+        int i = 0;
+        
+        getRepository().beginTrans(true);
+        try {
+            // 1-to-many
+            Entity16 e16 =
+                getSimplePackage().getEntity16().createEntity16();
+            mofIds[i++] = e16.refMofId();
+            
+            Entity17[] e17s = {
+                getSimplePackage().getEntity17().createEntity17(),
+                getSimplePackage().getEntity17().createEntity17(),
+                getSimplePackage().getEntity17().createEntity17(),
+                getSimplePackage().getEntity17().createEntity17(),
+                getSimplePackage().getEntity17().createEntity17(),
+            };
+            
+            for(Entity17 e17: e17s) {
+                mofIds[i++] = e17.refMofId();
+            }            
+            
+            if (createAdditional) {
+                Entity17 extraE17 = 
+                    getSimplePackage().getEntity17().createEntity17();
+                mofIds[i++] = extraE17.refMofId();
+            }
+            
+            // final order by index into e17s: 3, 0, 2, 1, 4
+            e16.getEntity17().add(e17s[0]);
+            e16.getEntity17().add(e17s[1]);
+            e16.getEntity17().add(1, e17s[2]);
+            e16.getEntity17().add(0, e17s[3]);
+            e16.getEntity17().add(e17s[4]);
+
+            // many-to-many
+            Entity22 e22 = getSimplePackage().getEntity22().createEntity22();
+            mofIds[i++] = e22.refMofId();
+            
+            Entity23[] e23s = {
+                getSimplePackage().getEntity23().createEntity23(),
+                getSimplePackage().getEntity23().createEntity23(),
+                getSimplePackage().getEntity23().createEntity23(),
+                getSimplePackage().getEntity23().createEntity23(),
+                getSimplePackage().getEntity23().createEntity23(),
+            };
+            
+            for(Entity23 e23: e23s) {
+                mofIds[i++] = e23.refMofId();
+            }
+            
+            if (createAdditional) {
+                Entity23 extraE23 = 
+                    getSimplePackage().getEntity23().createEntity23();
+                mofIds[i++] = extraE23.refMofId();
+            }
+            
+            // final order by index into e23s: 1, 0, 3, 2, 4
+            e22.getEntity23().add(e23s[0]);
+            e22.getEntity23().add(0, e23s[1]);
+            e22.getEntity23().add(e23s[2]);
+            e22.getEntity23().add(2, e23s[3]);
+            e22.getEntity23().add(e23s[4]);
+            
+            return mofIds;
+        } finally {
+            getRepository().endTrans(rollback);
+        }
+    }
+
     @Test
     public void testAttributeSetEventsWithRollback()
     {
-        logTest();
+        printTestName();
         testAttributeSetEvents(true, AttributeMethod.METHOD);
     }
     
     @Test
     public void testAttributeRefSetEventsWithRollback()
     {
-        logTest();
+        printTestName();
         testAttributeSetEvents(true, AttributeMethod.REFLECTIVE_API);
     }
     
     @Test
     public void testAttributeSetEventsWithCommit()
     {
-        logTest();
+        printTestName();
         testAttributeSetEvents(false, AttributeMethod.METHOD);
     }
     
     @Test
     public void testAttributeRefSetEventsWithCommit()
     {
-        logTest();
+        printTestName();
         testAttributeSetEvents(false, AttributeMethod.REFLECTIVE_API);
     }
     
@@ -840,11 +1223,11 @@ public class MdrEventsApiTest extends SampleModelTestBase
                     Car.class,
                     null),
                 new AttributeSetEventValidator(
-                    EventType.PLANNED, "make", null, "Chevrolet", false),
+                    EventType.PLANNED, "make", "Chevrolet", null),
                 new AttributeSetEventValidator(
-                    EventType.PLANNED, "model", null, "Camaro", false),
+                    EventType.PLANNED, "model", "Camaro", null),
                 new AttributeSetEventValidator(
-                    EventType.PLANNED, "doors", 0, 2, false),
+                    EventType.PLANNED, "doors", 2, 0),
                     
                 new CreateInstanceEventValidator(
                     EventType.PLANNED,
@@ -852,9 +1235,9 @@ public class MdrEventsApiTest extends SampleModelTestBase
                     AreaCode.class,
                     null),
                 new AttributeSetEventValidator(
-                    EventType.PLANNED, "code", null, "650", false),
+                    EventType.PLANNED, "code", "650", null),
                 new AttributeSetEventValidator(
-                    EventType.PLANNED, "domestic", false, true, false),
+                    EventType.PLANNED, "domestic", true, false),
                     
                 new CreateInstanceEventValidator(
                     EventType.PLANNED,
@@ -862,9 +1245,11 @@ public class MdrEventsApiTest extends SampleModelTestBase
                     PhoneNumber.class,
                     null),
                 new AttributeSetEventValidator(
-                    EventType.PLANNED, "areaCode", null, 4, true),
+                    EventType.PLANNED, "areaCode", "code", 
+                    AreaCode.class, "650",
+                    null, null),
                 new AttributeSetEventValidator(
-                    EventType.PLANNED, "number", null, "555-1212", false),
+                    EventType.PLANNED, "number", "555-1212", null),
                     
                 new DuplicateEventValidator(postTxnEventType, 0),
                 new DuplicateEventValidator(postTxnEventType, 1),
@@ -877,8 +1262,8 @@ public class MdrEventsApiTest extends SampleModelTestBase
                 new DuplicateEventValidator(postTxnEventType, 8),
                 new DuplicateEventValidator(postTxnEventType, 9)
             ));
+        
         getRepository().beginTrans(true);
-
         try {
             switch(method) {
             case METHOD: 
@@ -931,6 +1316,69 @@ public class MdrEventsApiTest extends SampleModelTestBase
         waitAndCheckErrors();
     }
     
+    @Test
+    public void testAttributeResetEventsWithRollback()
+    {
+        printTestName();
+        testAttributeResetEvents(true);
+    }
+    
+    @Test
+    public void testAttributeResetEventsWithCommit()
+    {
+        printTestName();
+        testAttributeResetEvents(false);
+    }
+
+    private void testAttributeResetEvents(boolean rollback)
+    {
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+
+        configureListener(
+            InstanceEvent.EVENTMASK_INSTANCE,
+            new LenientEventValidator(4));
+        
+        String phoneNumberMofId;
+        getRepository().beginTrans(true);
+        try {
+            AreaCode ac = 
+                getSpecialPackage().getAreaCode().createAreaCode("408", true);
+            
+            PhoneNumber pn =
+                getSpecialPackage().getPhoneNumber().createPhoneNumber(
+                    ac, "555-5555");
+            phoneNumberMofId = pn.refMofId();
+        } finally {
+            getRepository().endTrans(false);
+        }
+
+        waitAndCheckErrors();
+        
+        configureListener(
+            AttributeEvent.EVENTMASK_ATTRIBUTE | 
+                InstanceEvent.EVENTMASK_INSTANCE,
+            new DelegatingEventValidator(
+                new AttributeSetEventValidator(
+                    EventType.PLANNED, "areaCode", "code",
+                    null, null,
+                    AreaCode.class, "408"),
+            new DuplicateEventValidator(postTxnEventType, 0)));
+        
+        getRepository().beginTrans(true);
+        try {
+            PhoneNumber pn = 
+                (PhoneNumber)getRepository().getByMofId(phoneNumberMofId);
+            
+            pn.setAreaCode(null);
+        }
+        finally {
+            getRepository().endTrans(rollback);
+        }
+        
+        waitAndCheckErrors();
+    }
+
     private enum CreateMethod
     {
         CLASS_PROXY,

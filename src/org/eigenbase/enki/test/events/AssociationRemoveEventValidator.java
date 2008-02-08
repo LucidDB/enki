@@ -59,13 +59,39 @@ public class AssociationRemoveEventValidator
             expectedOldAttribValue);
     }
 
+    public AssociationRemoveEventValidator(
+        EventType expectedEventType,
+        String expectedEndName,
+        Class<? extends RefObject> expectedFixedType,
+        String fixedTypeAttrib,
+        String expectedFixedAttribValue,
+        Class<? extends RefObject> expectedOldType,
+        String oldTypeAttrib,
+        String expectedOldAttribValue,
+        int expectedPosition)
+    {
+        super(
+            expectedEventType,
+            expectedEndName,
+            expectedFixedType,
+            fixedTypeAttrib,
+            expectedFixedAttribValue,
+            null,
+            null,
+            null,
+            expectedOldType,
+            oldTypeAttrib,
+            expectedOldAttribValue,
+            expectedPosition);
+    }
+
     @Override
     public void validateEvent(AssociationEvent event, int seq)
     {
         Assert.assertTrue(
             event.isOfType(AssociationEvent.EVENT_ASSOCIATION_REMOVE));
         
-        checkEndName(event);
+        checkEndNameAndPosition(event);
         
         check(
             event.getFixedElement(), 
@@ -91,7 +117,8 @@ public class AssociationRemoveEventValidator
             expectedFixedAttribValue,
             expectedOldType,
             oldTypeAttrib,
-            expectedOldAttribValue);
+            expectedOldAttribValue,
+            expectedPosition);
     }
 }
 
