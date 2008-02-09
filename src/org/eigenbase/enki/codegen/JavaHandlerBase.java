@@ -992,10 +992,6 @@ public abstract class JavaHandlerBase
         }
         
         String methodName = generator.getMutatorName(feature);
-        if (methodName == null) {
-            // will happen if the upper multiplicity bound is not 1
-            return;
-        }
         
         if (methodSuffix != null) {
             methodName += methodSuffix;

@@ -40,7 +40,7 @@ public class ListProxy<E extends RefObject> implements List<E>
     private final boolean firstEnd;
     private final Class<E> cls;
     private HibernateAssociation assoc;
-    private final HibernateAssociable source;
+    protected final HibernateAssociable source;
     private List<HibernateAssociable> proxiedList;
     private int size;
     private HibernateRefAssociation refAssoc;
@@ -109,39 +109,29 @@ public class ListProxy<E extends RefObject> implements List<E>
         return cls.cast(proxiedList.get(index));
     }
 
-    private void fireAddEvent(E e)
+    protected void fireAddEvent(E e)
     {
-        if (refAssoc != null) {
-            refAssoc.fireAddEvent(firstEnd, source, e);
-        }
+        refAssoc.fireAddEvent(firstEnd, source, e);
     }
     
-    private void fireAddEvent(E e, int position)
+    protected void fireAddEvent(E e, int position)
     {
-        if (refAssoc != null) {
-            refAssoc.fireAddEvent(firstEnd, source, e, position);
-        }
+        refAssoc.fireAddEvent(firstEnd, source, e, position);
     }
     
-    private void fireRemoveEvent(E e)
+    protected void fireRemoveEvent(E e)
     {
-        if (refAssoc != null) {
-            refAssoc.fireRemoveEvent(firstEnd, source, e);
-        }
+        refAssoc.fireRemoveEvent(firstEnd, source, e);
     }
     
-    private void fireRemoveEvent(E e, int position)
+    protected void fireRemoveEvent(E e, int position)
     {
-        if (refAssoc != null) {
-            refAssoc.fireRemoveEvent(firstEnd, source, e, position);
-        }
+        refAssoc.fireRemoveEvent(firstEnd, source, e, position);
     }
     
-    private void fireSetEvent(E oldE, E newE, int position)
+    protected void fireSetEvent(E oldE, E newE, int position)
     {
-        if (refAssoc != null) {
-            refAssoc.fireSetEvent(firstEnd, source, oldE, newE, position);
-        }
+        refAssoc.fireSetEvent(firstEnd, source, oldE, newE, position);
     }
     
     public boolean add(E e)

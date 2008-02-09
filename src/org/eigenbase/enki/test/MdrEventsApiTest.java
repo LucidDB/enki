@@ -1387,6 +1387,196 @@ public class MdrEventsApiTest extends SampleModelTestBase
         waitAndCheckErrors();
     }
 
+    @Test
+    public void testAttributeAddEventsWithRollback()
+    {
+        printTestName();
+        testAttributeAddEvents(true);
+    }
+    
+    @Test
+    public void testAttributeAddEventsWithCommit()
+    {
+        printTestName();
+        testAttributeAddEvents(false);
+    }
+    
+    private void testAttributeAddEvents(boolean rollback)
+    {
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+
+        configureListener(
+            AttributeEvent.EVENTMASK_ATTRIBUTE | 
+                InstanceEvent.EVENTMASK_INSTANCE,
+            new DelegatingEventValidator(
+                new CreateInstanceEventValidator(
+                    EventType.PLANNED,
+                    getSpecialPackage().getRow(),
+                    Row.class,
+                    null),
+                new AttributeSetEventValidator(
+                    EventType.PLANNED, "rowNumber", 1, 0),
+                new AttributeAddEventValidator(
+                    EventType.PLANNED, "columns", "A"),
+                new AttributeAddEventValidator(
+                    EventType.PLANNED, "columns", "B"),
+                    
+                new CreateInstanceEventValidator(
+                    EventType.PLANNED,
+                    getSpecialPackage().getRow(),
+                    Row.class,
+                    null),
+                new AttributeSetEventValidator(
+                    EventType.PLANNED, "rowNumber", 2, 0),
+                new AttributeAddEventValidator(
+                    EventType.PLANNED, "columns", "C"),
+                new AttributeAddEventValidator(
+                    EventType.PLANNED, "columns", "D"),
+
+                new CreateInstanceEventValidator(
+                    EventType.PLANNED,
+                    getSpecialPackage().getTable(),
+                    Table.class,
+                    null),
+                new AttributeAddEventValidator(
+                    EventType.PLANNED, "rows", "rowNumber",
+                    Row.class, 1),
+                new AttributeAddEventValidator(
+                    EventType.PLANNED, "rows", "rowNumber",
+                    Row.class, 2),
+                    
+                new DuplicateEventValidator(postTxnEventType, 0),
+                new DuplicateEventValidator(postTxnEventType, 1),
+                new DuplicateEventValidator(postTxnEventType, 2),
+                new DuplicateEventValidator(postTxnEventType, 3),
+                new DuplicateEventValidator(postTxnEventType, 4),
+                new DuplicateEventValidator(postTxnEventType, 5),
+                new DuplicateEventValidator(postTxnEventType, 6),
+                new DuplicateEventValidator(postTxnEventType, 7),
+                new DuplicateEventValidator(postTxnEventType, 8),
+                new DuplicateEventValidator(postTxnEventType, 9),
+                new DuplicateEventValidator(postTxnEventType, 10)
+            ));
+        
+        createAttributeObjects(rollback);
+        
+        waitAndCheckErrors();
+    }
+
+    @Test
+    public void testAttributeRemoveEventsWithRollback()
+    {
+        printTestName();
+        testAttributeRemoveEvents(true);
+    }
+    
+    @Test
+    public void testAttributeRemoveEventsWithCommit()
+    {
+        printTestName();
+        testAttributeRemoveEvents(false);
+    }
+    
+    private void testAttributeRemoveEvents(boolean rollback)
+    {
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+
+        configureListener(
+            TransactionEvent.EVENTMASK_TRANSACTION,
+            new LenientEventValidator(4));
+        
+        String tableMofId = createAttributeObjects(false);
+        
+        waitAndCheckErrors();
+        destroyListener();
+        
+        configureListener(
+            AttributeEvent.EVENTMASK_ATTRIBUTE | 
+                InstanceEvent.EVENTMASK_INSTANCE,
+            new DelegatingEventValidator(
+                new AttributeRemoveEventValidator(
+                    EventType.PLANNED, "columns", "A"),
+                new AttributeRemoveEventValidator(
+                    EventType.PLANNED, "columns", "B"),
+                new AttributeRemoveEventValidator(
+                    EventType.PLANNED, "rows", "rowNumber",
+                    Row.class, 1),
+                new AttributeRemoveEventValidator(
+                    EventType.PLANNED, "columns", "D"),
+                new AttributeRemoveEventValidator(
+                    EventType.PLANNED, "columns", "C"),
+                new AttributeRemoveEventValidator(
+                    EventType.PLANNED, "rows", "rowNumber",
+                    Row.class, 2),
+                                        
+                new DuplicateEventValidator(postTxnEventType, 0),
+                new DuplicateEventValidator(postTxnEventType, 1),
+                new DuplicateEventValidator(postTxnEventType, 2),
+                new DuplicateEventValidator(postTxnEventType, 3),
+                new DuplicateEventValidator(postTxnEventType, 4),
+                new DuplicateEventValidator(postTxnEventType, 5)
+            ));
+        
+        getRepository().beginTrans(true);
+        try {
+            Table table = (Table)getRepository().getByMofId(tableMofId);
+            
+            Collection<Row> rows = table.getRows();
+            
+            Iterator<Row> iter = rows.iterator();
+            
+            Row row1 = iter.next();
+            Row row2;
+            if (row1.getRowNumber() == 2) {
+                row2 = row1;
+                row1 = iter.next();
+            } else {
+                row2 = iter.next();
+            }
+            
+            row1.getColumns().remove("A");
+            row1.getColumns().remove("B");
+            table.getRows().remove(row1);
+            row2.getColumns().remove("D");
+            row2.getColumns().remove("C");
+            table.getRows().remove(row2);
+        }
+        finally {
+            getRepository().endTrans(rollback);
+        }
+        
+        waitAndCheckErrors();
+    }
+
+    private String createAttributeObjects(boolean rollback)
+    {
+        getRepository().beginTrans(true);
+        try {
+            Row r1 = 
+                getSpecialPackage().getRow().createRow();
+            r1.setRowNumber(1);
+            r1.getColumns().addAll(
+                Arrays.asList(new String[] { "A", "B" } ));                    
+            
+            Row r2 = 
+                getSpecialPackage().getRow().createRow();
+            r2.setRowNumber(2);
+            r2.getColumns().addAll(
+                Arrays.asList(new String[] { "C", "D" } ));                    
+            
+            Table t =
+                getSpecialPackage().getTable().createTable();
+            t.getRows().add(r1);
+            t.getRows().add(r2);
+            
+            return t.refMofId();
+        } finally {
+            getRepository().endTrans(rollback);
+        }
+    }
+
     private enum CreateMethod
     {
         CLASS_PROXY,

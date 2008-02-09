@@ -47,6 +47,9 @@ public class HibernateMappingHandler
     implements ClassInstanceHandler, AssociationHandler, PackageHandler, 
                EnumerationClassHandler, MofInitHandler.SubordinateHandler
 {
+    private static final String MOF_ID_COLUMN_NAME = "mofId";
+    private static final String MOF_ID_PROPERTY_NAME = "mofId";
+
     private static final String TYPEDEF_SUFFIX = "Type";
 
     private static final String ASSOC_TYPE_PROPERTY = "type";
@@ -795,7 +798,8 @@ public class HibernateMappingHandler
             String propertyName = fieldName + HibernateJavaHandler.IMPL_SUFFIX;
             
             final Classifier attribType = attrib.getType();
-            MappingType mappingType = getMappingType(attribType);
+            MappingType mappingType = 
+                getMappingType(attribType, attrib.getMultiplicity());
             switch (mappingType) {
             case BOOLEAN:
                 // Boolean type; use a custom accessor since the method names
@@ -840,6 +844,49 @@ public class HibernateMappingHandler
                     "column", hibernateQuote(fieldName),
                     "type", "text");
                 break;
+                
+            case LIST:
+            case COLLECTION:
+                MappingType baseMappingType = 
+                    getMappingType(attribType, new FakeMultiplicityType());
+                String type;
+                if (baseMappingType == MappingType.STRING) {
+                    // REVIEW: SWZ: 2/8/08: See STRING case above.
+                    // This case is split out from the method below because
+                    // we'll need to lookup the max string size.
+                    type = "text"; 
+                } else {
+                    type = 
+                        convertPrimitiveTypeToHibernateTypeName(
+                            (PrimitiveType)attribType);
+                }
+                
+                String collTableName =
+                    tableName + "$" + StringUtil.toInitialUpper(fieldName);
+                
+                startElem(
+                    mappingType == MappingType.LIST ? "list" : "set",
+                    "name", propertyName,
+                    "table", hibernateQuote(collTableName),
+                    "cascade", "all",
+                    "fetch", "join");
+                writeEmptyElem("cache", "usage", "read-write");
+                writeEmptyElem(
+                    "key",
+                    "column", hibernateQuote(MOF_ID_COLUMN_NAME));
+                if (mappingType == MappingType.LIST) {
+                    writeEmptyElem(
+                        "list-index", 
+                        "column", hibernateQuote("order"));
+                }
+                writeEmptyElem(
+                    "element",
+                    "column", hibernateQuote(fieldName),
+                    "type", type);
+                
+                endElem("set");
+                break;
+                    
 
             case OTHER_DATA_TYPE:
                 // Generic type
@@ -937,9 +984,17 @@ public class HibernateMappingHandler
         return "`" + fieldName + "`";
     }
 
-    private MappingType getMappingType(Classifier type)
+    private MappingType getMappingType(
+        Classifier type, MultiplicityType multiplicity)
     {
         if (type instanceof PrimitiveType) {
+            if (multiplicity.getUpper() != 1) {
+                if (multiplicity.isOrdered()) {
+                    return MappingType.LIST;
+                } else {
+                    return MappingType.COLLECTION;
+                }
+            }
             if (type.getName().equalsIgnoreCase("boolean")) {
                 return MappingType.BOOLEAN;
             } else if (type.getName().equalsIgnoreCase("string")) {
@@ -952,7 +1007,7 @@ public class HibernateMappingHandler
         } else if (!(type instanceof DataType)) {
             return MappingType.CLASS;
         } else if (type instanceof AliasType) {
-            return getMappingType(((AliasType)type).getType());
+            return getMappingType(((AliasType)type).getType(), multiplicity);
         } else {
             return MappingType.OTHER_DATA_TYPE;
         }
@@ -963,8 +1018,8 @@ public class HibernateMappingHandler
     {
         startElem(
             "id",
-            "name", "mofId",
-            "column", "mofId");
+            "name", MOF_ID_PROPERTY_NAME,
+            "column", hibernateQuote(MOF_ID_COLUMN_NAME));
         startElem("generator", "class", "assigned");
         endElem("generator");
         endElem("id");
@@ -982,6 +1037,25 @@ public class HibernateMappingHandler
         }
         
         componentOfList.add(componentInfo);
+    }
+    
+    private String convertPrimitiveTypeToHibernateTypeName(PrimitiveType type)
+    {
+        String typeName = type.getName();
+        final String javaTypeName = 
+            Primitives.convertTypeNameToPrimitive("java.lang." + typeName);
+        
+        String hibernateTypeName;
+        if (javaTypeName.equals("int")) {
+            hibernateTypeName = "integer";
+        } else if (javaTypeName.equals("char")) {
+            hibernateTypeName = "character";
+        } else {
+            // All others match java primitives
+            hibernateTypeName = javaTypeName;
+        }
+        
+        return hibernateTypeName; 
     }
 
     public void generateAssociation(Association assoc) 
@@ -1068,13 +1142,56 @@ public class HibernateMappingHandler
         }
     }
     
+    private final class FakeMultiplicityType
+        implements MultiplicityType
+    {
+        private static final long serialVersionUID = -6511104088995504510L;
+
+        public int getLower()
+        {
+            return 0;
+        }
+
+        public int getUpper()
+        {
+            return 1;
+        }
+
+        public boolean isOrdered()
+        {
+            return false;
+        }
+
+        public boolean isUnique()
+        {
+            return false;
+        }
+
+        public List<?> refFieldNames()
+        {
+            return null;
+        }
+
+        public Object refGetValue(String arg0)
+        {
+            return null;
+        }
+
+        public List<?> refTypeName()
+        {
+            return null;
+        }
+    }
+
     private enum MappingType
     {
         BOOLEAN,          // Primitive boolean
         STRING,           // Primitive string
         ENUMERATION,      // any EnumerationType
         OTHER_DATA_TYPE,  // any other DataType
-        CLASS;            // MofClass for the model
+        CLASS,            // MofClass for the model
+        LIST,             // List of primitives
+        COLLECTION;       // Collection of primitives
     }
 }
 

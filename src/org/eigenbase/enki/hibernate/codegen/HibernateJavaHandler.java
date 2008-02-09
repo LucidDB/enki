@@ -144,6 +144,15 @@ public class HibernateJavaHandler
     private static final JavaClassReference LIST_PROXY_CLASS = 
         new JavaClassReference(ListProxy.class, true);
     
+    private static final JavaClassReference ATTRIB_LIST_PROXY_CLASS = 
+        new JavaClassReference(AttributeListProxy.class, true);
+    
+    private static final JavaClassReference ATTRIB_COLLECTION_WRAPPER_CLASS = 
+        new JavaClassReference(AttributeCollectionWrapper.class, true);
+    
+    private static final JavaClassReference ATTRIB_LIST_WRAPPER_CLASS = 
+        new JavaClassReference(AttributeListWrapper.class, true);
+    
     /** Class comment for {@link RefPackage} implementations. */
     private static final String PACKAGE_IMPL_COMMENT = 
         "{0} package implementation.";
@@ -200,6 +209,9 @@ public class HibernateJavaHandler
         ASSOCIATION_ONE_TO_MANY_IMPL_CLASS,
         ASSOCIATION_MANY_TO_MANY_IMPL_CLASS,
         LIST_PROXY_CLASS,
+        ATTRIB_LIST_PROXY_CLASS,
+        ATTRIB_LIST_WRAPPER_CLASS,
+        ATTRIB_COLLECTION_WRAPPER_CLASS,
         JAVA_UTIL_LIST_CLASS,
         JAVA_UTIL_COLLECTIONS_CLASS,
         GENERIC_COLLECTIONS_CLASS,
@@ -745,7 +757,7 @@ public class HibernateJavaHandler
             }
             
             if (!unreferencedAssociations.isEmpty()) {
-                // TODO: doesn't handle self-referential un-referenced 
+                // REVIEW: SWZ: doesn't handle self-referential un-referenced 
                 // associations (assuming such a thing is even valid)
                 
                 // unreferenced association fields
@@ -803,7 +815,8 @@ public class HibernateJavaHandler
 
             generateClassInstanceComponentMethods(componentInfoMap, cls);
             
-            // TODO: Emit private static final fields for the assoc base names?
+            // REVIEW: SWZ: Emit private static final fields for the 
+            // association base names (and multi-valued attribute names)?
             
             // Implement HibernateAssociable
             if (hasAssociations) {
@@ -1281,13 +1294,12 @@ public class HibernateJavaHandler
                     break;
                 
                 case MANY_TO_MANY:
-                    generateClassInstanceComponentRefManyToManyMethods(
-                        attrib, componentInfo);
-                    break;
+                    throw new GenerationException(
+                        "Unsupported: many-to-many component attributes");
                     
                 default:
                     throw new GenerationException(
-                        "Unknown reference type: " + componentInfo.getKind());
+                        "Unknown component type: " + componentInfo.getKind());
                 }
             }
             
@@ -1378,7 +1390,7 @@ public class HibernateJavaHandler
         } else {
             String listElemType = 
                 refInfo.getEndType(refInfo.isSingle(0) ? 1 : 0);
-            // TODO: Cache ListProxy in a field?
+            // REVIEW: SWZ: Consider caching ListProxy in a field
             startConditionalBlock(
                 CondType.IF, 
                 getReferenceAccessorName(refInfo), "() == null");
@@ -1428,7 +1440,7 @@ public class HibernateJavaHandler
         startAccessorBlock(ref);
         String listElemType = 
             getReferenceEndType(refInfo, true);
-        // TODO: Cache ListProxy in a field?
+        // REVIEW: SWZ: Consider caching ListProxy in a field
         startConditionalBlock(
             CondType.IF,
             getReferenceAccessorName(refInfo), "() == null");
@@ -1490,7 +1502,6 @@ public class HibernateJavaHandler
         Attribute attrib, ReferenceInfo refInfo)
     throws GenerationException
     {
-        // TODO: EVENT: Configure ListProxy to send Attribute events
         startAccessorBlock(attrib);
 
         boolean hasParent = refInfo.isSingle(refInfo.getReferencedEndIndex());
@@ -1509,27 +1520,28 @@ public class HibernateJavaHandler
         } else {
             String listElemType = 
                 refInfo.getEndType(refInfo.isSingle(0) ? 1 : 0);
-            // TODO: Cache ListProxy in a field?
+            // REVIEW: SWZ: Consider caching AttributeListProxy in a field
             startConditionalBlock(
                 CondType.IF, 
                 getReferenceAccessorName(refInfo), "() == null");
             writeln(
                 "return new ", 
-                LIST_PROXY_CLASS,
+                ATTRIB_LIST_PROXY_CLASS,
                 "<", listElemType, ">",
                 "(", QUOTE, refInfo.getBaseName(), QUOTE,
-                ", this, ", refInfo.isExposedEndFirst(),
-                ", null, ",
+                ", this, ", refInfo.isExposedEndFirst(), ", ",
+                QUOTE, attrib.getName(), QUOTE, ", ",
                 listElemType, ".class);");
             startConditionalBlock(CondType.ELSE);
             writeln(
                 "return new ",
-                LIST_PROXY_CLASS,
+                ATTRIB_LIST_PROXY_CLASS,
                 "<", listElemType, ">",
                 "(",
                 getReferenceAccessorName(refInfo),
                 "(), this, ",
-                refInfo.isExposedEndFirst(), ", null, ",
+                refInfo.isExposedEndFirst(), ", ",
+                QUOTE, attrib.getName(), QUOTE, ", ",
                 listElemType, ".class);");
             endBlock();
         }
@@ -1548,39 +1560,6 @@ public class HibernateJavaHandler
 
             endBlock();                        
         }
-    }
-
-    private void generateClassInstanceComponentRefManyToManyMethods(
-        Attribute attrib, ReferenceInfo refInfo)
-    throws GenerationException
-    {
-        // TODO: EVENT: Configure ListProxy to send Attribute events
-
-        startAccessorBlock(attrib);
-        String listElemType = 
-            getReferenceEndType(refInfo, true);
-        // TODO: Cache ListProxy in a field?
-        startConditionalBlock(
-            CondType.IF,
-            getReferenceAccessorName(refInfo), "() == null");
-        writeln(
-            "return new ", 
-            LIST_PROXY_CLASS, "<", listElemType, ">",
-            "(", QUOTE, refInfo.getBaseName(), QUOTE,
-            ", this, ",
-            refInfo.isExposedEndFirst(),
-            ", null, ",
-            listElemType, ".class);");
-        startConditionalBlock(CondType.ELSE);
-        writeln(
-            "return new ",
-            LIST_PROXY_CLASS, "<", listElemType, ">",
-            "(", 
-            getReferenceAccessorName(refInfo), "(), this, ",
-            refInfo.isExposedEndFirst(), ", null, ",
-            listElemType, ".class);");
-        endBlock();
-        endBlock();
     }
 
     private void generateClassInstanceConstructors(
@@ -1721,7 +1700,7 @@ public class HibernateJavaHandler
                 throw new UnsupportedOperationException(
                     "derived attributes not supported");
             }
-            
+
             // REVIEW: SWZ: 2008-02-06: Since we have two pairs of methods
             // (one for Hibernate and one for the API), we should:
             // 1) Make the Hibernate method for boolean types be 
@@ -1732,6 +1711,7 @@ public class HibernateJavaHandler
             if (upper == 1) {
                 // Hibernate accessor
                 newLine();
+                writeln("// Internal use only");
                 startAccessorBlock(attrib, IMPL_SUFFIX);
                 writeln("return ", fieldName, ";");
                 endBlock();
@@ -1749,6 +1729,7 @@ public class HibernateJavaHandler
                 // set the value at load time.  This method isn't in the
                 // class instance interface.
                 newLine();
+                writeln("// Internal use only");
                 startMutatorBlock(attrib, IMPL_SUFFIX);
                 writeln("this.", fieldName, " = newValue;");
                 endBlock();
@@ -1769,32 +1750,61 @@ public class HibernateJavaHandler
                     endBlock();
                 }
             } else if (upper != 0) {
-                // REVIEW: SWZ: 2008-02-06: Need to rework this in the event
-                // we have multi-valued simple attributes.  (e.g., distinguish
-                // between Hibernate setting properties at load time vs. user
-                // modification.
+                // Hibernate accessor
+                newLine();
+                writeln("// Internal use only");
+                startAccessorBlock(attrib, IMPL_SUFFIX);
+                writeln("return ", fieldName, ";");
+                endBlock();
+
+                // Public API accessor
+                boolean isOrdered = attrib.getMultiplicity().isOrdered();
                 newLine();
                 startAccessorBlock(attrib);
-                
                 if (attrib.isChangeable()) {
-                    writeln("return ", fieldName, ";");
+                    if (isOrdered) {
+                        writeln(
+                            "return new ",
+                            ATTRIB_LIST_WRAPPER_CLASS,
+                            "(this, ", 
+                            QUOTE, attrib.getName(), QUOTE, ", ",
+                            generator.getAccessorName(attrib), IMPL_SUFFIX, 
+                            "());");
+                    } else {
+                        writeln(
+                            "return new ",
+                            ATTRIB_COLLECTION_WRAPPER_CLASS,
+                            "(this, ", 
+                            QUOTE, attrib.getName(), QUOTE, ", ",
+                            generator.getAccessorName(attrib), IMPL_SUFFIX, 
+                            "());");
+                    }
                 } else {
-                    if (attrib.getMultiplicity().isOrdered()) {
+                    if (isOrdered) {
                         writeln(
                             "return ", 
                             JAVA_UTIL_COLLECTIONS_CLASS, 
                             ".unmodifiableList(", 
-                            fieldName,
-                            ");");
+                            generator.getAccessorName(attrib), IMPL_SUFFIX,
+                            "());");
                     } else {
                         writeln(
                             "return ",
                             JAVA_UTIL_COLLECTIONS_CLASS, 
                             ".unmodifiableSet(",
-                            fieldName,
-                            ");");                            
+                            generator.getAccessorName(attrib), IMPL_SUFFIX,
+                            "());");                            
                     }
                 }
+                endBlock();
+                
+                // Hibernate mutator. Hibernate will use this method to
+                // set the value at load time.  This method isn't in the
+                // class instance interface.
+                newLine();
+                writeln("// Internal use only");
+                startMutatorBlock(attrib, IMPL_SUFFIX);
+                writeln("this.", fieldName, " = newValue;");
                 endBlock();
             }
         }

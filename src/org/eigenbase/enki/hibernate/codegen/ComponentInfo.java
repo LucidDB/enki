@@ -60,9 +60,14 @@ public class ComponentInfo implements ReferenceInfo
         this.cls = cls;
         this.attrib = attrib;
         
+        Classifier attribBaseType = attrib.getType();
+        if (attribBaseType instanceof CollectionType) {
+            attribBaseType = ((CollectionType)attribBaseType).getType();
+        }
+        
         this.types = new String[] {
             generator.getTypeName(cls),
-            generator.getTypeName(attrib)
+            generator.getTypeName(attribBaseType)
         };
         
         this.baseName = 

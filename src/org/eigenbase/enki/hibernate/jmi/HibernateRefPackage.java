@@ -46,6 +46,8 @@ public abstract class HibernateRefPackage
     {
         if (refImmediatePackage() == null) {
             HibernateMDRepository.enqueueExtentDeleteEvent(this);
+            
+            // TODO: remove the extent
         }
         
         deleteObjectsRecursively();

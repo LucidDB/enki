@@ -1154,7 +1154,7 @@ public abstract class TransientImplementationHandler
                 endBlock();
             }
 
-            // TODO: exceptions?
+            // TODO: MOF exceptions?
             
             writeEntityFooter();
         }

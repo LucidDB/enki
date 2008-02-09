@@ -26,100 +26,92 @@ import javax.jmi.reflect.*;
 import org.netbeans.api.mdr.events.*;
 
 /**
- * AttributeSetEventValidator validates attribute set events.
+ * AttributeRemoveEventValidator validates attribute remove events for 
+ * multi-valued attributes.
  * 
  * @author Stephan Zuercher
  */
-public class AttributeSetEventValidator extends AttributeEventValidator
+public class AttributeRemoveEventValidator
+    extends AttributeEventValidator
 {
-    public AttributeSetEventValidator(
+    public AttributeRemoveEventValidator(
         EventType expectedEventType,
-        String attributeName,
-        Object newValue,
-        Object oldValue)
+        String expectedAttributeName,
+        Object expectedOldValue)
     {
         this(
             expectedEventType,
-            attributeName,
-            newValue, 
-            oldValue,
-            AttributeEvent.POSITION_NONE);
-    }
-    
-    public AttributeSetEventValidator(
-        EventType expectedEventType,
-        String attributeName,
-        Object newValue,
-        Object oldValue,
-        int position)
-    {
-        super(expectedEventType, attributeName, newValue, oldValue, position);
-    }
-    
-    public <E extends RefObject, F extends RefObject> AttributeSetEventValidator(
-        EventType expectedEventType,
-        String attributeName,
-        String valueAttributeName,
-        Class<E> expectedNewType,
-        Object expectedNewAttribValue,
-        Class<F> expectedOldType,
-        Object expectedOldAttribValue)
-    {
-        this(
-            expectedEventType,
-            attributeName,
-            valueAttributeName,
-            expectedNewType,
-            expectedNewAttribValue,
-            expectedOldType,
-            expectedOldAttribValue,
+            expectedAttributeName,
+            expectedOldValue,
             AttributeEvent.POSITION_NONE);
     }
 
-    public <E extends RefObject, F extends RefObject> AttributeSetEventValidator(
+    public AttributeRemoveEventValidator(
         EventType expectedEventType,
-        String attributeName,
-        String valueAttributeName,
-        Class<E> expectedNewType,
-        Object expectedNewAttribValue,
-        Class<F> expectedOldType,
-        Object expectedOldAttribValue,
+        String expectedAttributeName,
+        Object expectedOldValue,
         int position)
     {
         super(
             expectedEventType,
-            attributeName,
-            valueAttributeName,
-            expectedNewType,
-            expectedNewAttribValue,
-            expectedOldType,
-            expectedOldAttribValue,
+            expectedAttributeName,
+            null, 
+            expectedOldValue,
             position);
     }
 
+    public <E extends RefObject> AttributeRemoveEventValidator(
+        EventType expectedEventType,
+        String expectedAttributeName,
+        String valueAttributeName,
+        Class<E> expectedOldType,
+        Object expectedOldValue)
+    {
+        this(
+            expectedEventType,
+            expectedAttributeName,
+            valueAttributeName,
+            expectedOldType,
+            expectedOldValue,
+            AttributeEvent.POSITION_NONE);
+    }
+
+    public <E extends RefObject> AttributeRemoveEventValidator(
+        EventType expectedEventType,
+        String expectedAttributeName,
+        String valueAttributeName,
+        Class<E> expectedOldType,
+        Object expectedOldValue,
+        int position)
+    {
+        super(
+            expectedEventType,
+            expectedAttributeName,
+            valueAttributeName,
+            null,
+            null,
+            expectedOldType,
+            expectedOldValue,
+            position);
+    }
+    
     @Override
     EventValidator cloneWithNewExpectedEventType(EventType expectedEventType)
     {
-        Class<? extends RefObject> newType = null;
-        if (expectedNewType != null) {
-            newType = expectedNewType.asSubclass(RefObject.class);
-        }
-        
         Class<? extends RefObject> oldType = null;
         if (expectedOldType != null) {
             oldType = expectedOldType.asSubclass(RefObject.class);
         }
         
-        return new AttributeSetEventValidator(
+        return new AttributeRemoveEventValidator(
             expectedEventType,
             expectedAttributeName,
             valueAttributeName,
-            newType,
-            expectedNewValue,
             oldType,
             expectedOldValue,
-            expectedPosition);            
+            expectedPosition);
     }
+
 }
 
-// End AttributeSetEventValidator.java
+// End AttributeRemoveEventValidator.java

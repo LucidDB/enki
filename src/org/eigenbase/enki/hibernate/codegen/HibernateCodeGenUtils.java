@@ -121,7 +121,8 @@ public class HibernateCodeGenUtils
                     AssociationEnd refEnd = assocInfo.getEnd(1 - endIndex);
                  
                     // Verify it's not circular
-                    // TODO: handle circular association sans Reference case
+                    // REVIEW: SWZ: We do not handle the case where there is
+                    // a circular association without a Reference.
                     Classifier refEndType = refEnd.getType();
                     if (refEndType instanceof AliasType) {
                         refEndType = ((AliasType)refEndType).getType();

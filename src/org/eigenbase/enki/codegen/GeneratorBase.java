@@ -717,16 +717,14 @@ public abstract class GeneratorBase implements Generator
             
         String mutatorName = null;
 
-        // Upper bound -1 means infinity.
-        if (feature.getMultiplicity().getUpper() == 1) {
-            if (attribType instanceof PrimitiveType &&
-                attribType.getName().equals("Boolean") &&
-                baseName.startsWith("Is"))
-            {
-                mutatorName = "set" + baseName.substring(2);
-            } else {
-                mutatorName = "set" + baseName;
-            }
+        if (feature.getMultiplicity().getUpper() == 1 &&
+            attribType instanceof PrimitiveType &&
+            attribType.getName().equals("Boolean") &&
+            baseName.startsWith("Is"))
+        {
+            mutatorName = "set" + baseName.substring(2);
+        } else {
+            mutatorName = "set" + baseName;
         }
 
         return mutatorName;

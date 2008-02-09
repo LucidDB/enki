@@ -292,7 +292,7 @@ public class XmlHandlerBase
      * 
      * @param strings objects to convert to strings before output
      */
-    protected void writeText(Object... strings)
+    protected void writeText(Object... strings) throws GenerationException
     {
         StringBuilder buffer = new StringBuilder();
         for(Object s: strings) {
@@ -350,16 +350,34 @@ public class XmlHandlerBase
      * 
      * @param value attribute value to escape
      * @return escaped value
+     * @throws GenerationException if the string cannot be represented in XML
      */
     protected String escapeAttrib(String value)
+        throws GenerationException
     {
         value = 
             value
-            .replaceAll("&", "&amp;")
-            .replaceAll("'", "&apos;")
-            .replaceAll(QUOTE, "&quot;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;");
+                .replaceAll("&", "&amp;")
+                .replaceAll("'", "&apos;")
+                .replaceAll(QUOTE, "&quot;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;");
+        
+        for(char ch: value.toCharArray()) {
+            if (ch < 0x0020 && ch != 0x0009 && ch != 0x000A && ch != 0x000D) {
+                throw newCharacterException(ch, "control character");
+            }
+
+            if (Character.isHighSurrogate(ch) || Character.isLowSurrogate(ch))
+            {
+                throw newCharacterException(ch, "surrogate");
+            }
+        
+            if (ch == 0xFFFE || ch == 0xFFFF) {
+                throw newCharacterException(ch, "reserved for BOM");
+            }
+        }
+        
         return value;
     }
     
@@ -370,10 +388,17 @@ public class XmlHandlerBase
      * @return escaped text data
      */
     protected String escapeText(String value)
+        throws GenerationException
     {
-        // TODO: test escaped value for XML validity (e.g., no control 
-        // characters except tab, NL, CR, and so on) 
         return escapeAttrib(value);
+    }
+    
+    private GenerationException newCharacterException(char ch, String reason)
+    {
+        String hex = Integer.toHexString((int)ch & 0xFFFF);
+        
+        return new GenerationException(
+            "Cannot escape character " + hex + ": " + reason);
     }
 }
 

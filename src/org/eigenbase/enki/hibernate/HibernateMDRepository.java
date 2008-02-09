@@ -87,8 +87,7 @@ public class HibernateMDRepository
         ClassLoader classLoader)
     {
         if (repos != null) {
-            // TODO: better exception type
-            throw new IllegalStateException(
+            throw new EnkiHibernateException(
                 "Cannot instantiate multiple repositories");
         }
         this.modelPropertiesList = modelProperties;
@@ -141,8 +140,7 @@ public class HibernateMDRepository
             } else {
                 // Allow certain nested read transactions.
                 if (context.isWrite && write) {
-                    // TODO: better exception type
-                    throw new IllegalStateException(
+                    throw new EnkiHibernateException(
                         "Cannot nest write transactions");
                 }
                 
@@ -211,8 +209,7 @@ public class HibernateMDRepository
     {
         Context context = tls.get();
         if (context == null) {
-            // TODO: better exception type
-            throw new IllegalStateException(
+            throw new EnkiHibernateException(
                 "No current transaction on this thread");
         }
         
@@ -285,59 +282,64 @@ public class HibernateMDRepository
         RefPackage[] existingInstances)
     throws CreationFailedException
     {
-        initStorage();
+        synchronized(extentMap) {
+            initStorage();
 
-        ExtentDescriptor extentDesc = extentMap.get(name);
-        if (extentDesc != null) {
-            throw new EnkiCreationFailedException(
-                "Extent '" + name + "' already exists");
-        }
-        
-        enqueueEvent(
-            getContext(), 
-            new ExtentEvent(
-                this, 
-                ExtentEvent.EVENT_EXTENT_CREATE, 
-                name, 
-                metaPackage,
-                Collections.unmodifiableCollection(extentMap.keySet()), 
-                true));
-        
-        try {
-            extentDesc = 
-                createExtentStorage(name, metaPackage, existingInstances);
+            ExtentDescriptor extentDesc = extentMap.get(name);
+            if (extentDesc != null) {
+                throw new EnkiCreationFailedException(
+                    "Extent '" + name + "' already exists");
+            }
             
-            return extentDesc.extent;
-        }
-        catch(ProviderInstantiationException e) {
-            throw new EnkiCreationFailedException(
-                    "could not create extent '" + name + "'", e);
+            enqueueEvent(
+                getContext(), 
+                new ExtentEvent(
+                    this, 
+                    ExtentEvent.EVENT_EXTENT_CREATE, 
+                    name, 
+                    metaPackage,
+                    Collections.unmodifiableCollection(
+                        new ArrayList<String>(extentMap.keySet())), 
+                    true));
+            
+            try {
+                extentDesc = 
+                    createExtentStorage(name, metaPackage, existingInstances);
+                
+                return extentDesc.extent;
+            }
+            catch(ProviderInstantiationException e) {
+                throw new EnkiCreationFailedException(
+                        "could not create extent '" + name + "'", e);
+            }
         }
     }
 
     public void dropExtentStorage(String extent) throws EnkiDropFailedException
     {
-        // TODO: locking
-        initStorage();
-        
-        ExtentDescriptor extentDesc = extentMap.get(extent);
-        if (extentDesc == null) {
-            return;
+        synchronized(extentMap) {
+            initStorage();
+
+            ExtentDescriptor extentDesc = extentMap.get(extent);
+            if (extentDesc == null) {
+                return;
+            }
+            
+            dropExtentStorage(extentDesc);
         }
-        
-        dropExtentStorage(extentDesc);
     }
 
     public void dropExtentStorage(RefPackage refPackage) 
         throws EnkiDropFailedException
     {
-        // TODO: locking
-        initStorage();
-        
-        for(ExtentDescriptor extentDesc: extentMap.values()) {
-            if (extentDesc.extent.equals(refPackage)) {
-                dropExtentStorage(extentDesc);
-                return;
+        synchronized(extentMap) {
+            initStorage();
+            
+            for(ExtentDescriptor extentDesc: extentMap.values()) {
+                if (extentDesc.extent.equals(refPackage)) {
+                    dropExtentStorage(extentDesc);
+                    return;
+                }
             }
         }
     }
@@ -352,7 +354,8 @@ public class HibernateMDRepository
                 ExtentEvent.EVENT_EXTENT_DELETE,
                 extentDesc.name,
                 null,
-                Collections.unmodifiableCollection(extentMap.keySet())));
+                Collections.unmodifiableCollection(
+                    new ArrayList<String>(extentMap.keySet()))));
         
         extentMap.remove(extentDesc.name);
         
@@ -385,15 +388,17 @@ public class HibernateMDRepository
         long mofIdLong = MofIdUtil.parseMofIdStr(mofId); 
 
         if ((mofIdLong & MetamodelInitializer.METAMODEL_MOF_ID_MASK) != 0) {
-            for(ExtentDescriptor extentDesc: extentMap.values()) {
-                // Only search in metamodels
-                if (extentDesc.modelDescriptor == null ||
-                    extentDesc.modelDescriptor.name.equals(MOF_EXTENT))
-                {
-                    RefBaseObject result = 
-                        extentDesc.initializer.getByMofId(mofId);
-                    if (result != null) {
-                        return result;
+            synchronized(extentMap) {
+                for(ExtentDescriptor extentDesc: extentMap.values()) {
+                    // Only search in metamodels
+                    if (extentDesc.modelDescriptor == null ||
+                        extentDesc.modelDescriptor.name.equals(MOF_EXTENT))
+                    {
+                        RefBaseObject result = 
+                            extentDesc.initializer.getByMofId(mofId);
+                        if (result != null) {
+                            return result;
+                        }
                     }
                 }
             }
@@ -402,12 +407,7 @@ public class HibernateMDRepository
         } else {
             Session session = getCurrentSession();
             
-            // TODO: convert to named query
-            Query query = 
-                session.createQuery(
-                    "from " + RefBaseObject.class.getName() 
-                    + " where mofId = ?");
-            query.setCacheable(true);
+            Query query = session.getNamedQuery("ObjectByMofId");
             query.setLong(0, mofIdLong);
             
             return (RefBaseObject)query.uniqueResult();
@@ -416,47 +416,57 @@ public class HibernateMDRepository
 
     public RefPackage getExtent(String name)
     {
-        initStorage();
-        
-        ExtentDescriptor extentDesc = extentMap.get(name);
-        if (extentDesc == null) {
-            return null;
+        synchronized(extentMap) {
+            initStorage();
+            
+            ExtentDescriptor extentDesc = extentMap.get(name);
+            if (extentDesc == null) {
+                return null;
+            }
+            
+            assert(extentDesc.modelDescriptor != null);
+            
+            return extentDesc.extent;
         }
-        
-        assert(extentDesc.modelDescriptor != null);
-        
-        return extentDesc.extent;
     }
 
     public String[] getExtentNames()
     {
-        return extentMap.keySet().toArray(new String[extentMap.size()]);
+        synchronized(extentMap) {
+            return extentMap.keySet().toArray(new String[extentMap.size()]);
+        }
     }
 
     public void shutdown()
-    {
-        // TODO: locking
-        
-        if (sessionFactory != null) {
-            try {
-                thread.shutdown();
-            }
-            catch(InterruptedException e) {
-                log.log(
-                    Level.SEVERE, 
-                    "EnkiChangeEventThread interrupted on shutdown",
-                    e);
-            }
-            
-            if (sessionFactory.getStatistics().isStatisticsEnabled()) {
-                sessionFactory.getStatistics().logSummary();
-            }
-            
-            sessionFactory.close();
+    {                
+        synchronized(listeners) {
+            listeners.clear();
+            listeners = null;
         }
 
-        // Clear the repository used for implicit read transactions
-        repos = null;
+        synchronized(extentMap) {
+            if (sessionFactory != null) {
+                try {
+                    thread.shutdown();
+                }
+                catch(InterruptedException e) {
+                    log.log(
+                        Level.SEVERE, 
+                        "EnkiChangeEventThread interrupted on shutdown",
+                        e);
+                }
+                
+                if (sessionFactory.getStatistics().isStatisticsEnabled()) {
+                    sessionFactory.getStatistics().logSummary();
+                }
+                
+                sessionFactory.close();
+                sessionFactory = null;
+            }
+    
+            // Clear the repository used for implicit read transactions
+            repos = null;
+        }
     }
 
     public void addListener(MDRChangeListener listener)
@@ -515,16 +525,18 @@ public class HibernateMDRepository
     // Implement EnkiMDRepository
     public boolean isExtentBuiltIn(String name)
     {
-        initStorage();
-        
-        ExtentDescriptor extentDesc = extentMap.get(name);
-        if (extentDesc == null) {
-            return false;
+        synchronized(extentMap) {
+            initStorage();
+            
+            ExtentDescriptor extentDesc = extentMap.get(name);
+            if (extentDesc == null) {
+                return false;
+            }
+            
+            assert(extentDesc.modelDescriptor != null);
+            
+            return extentDesc.builtIn;        
         }
-        
-        assert(extentDesc.modelDescriptor != null);
-        
-        return extentDesc.builtIn;        
     }
     
     // Implement EnkiMDRepository
@@ -621,26 +633,29 @@ public class HibernateMDRepository
     public static void enqueueExtentDeleteEvent(RefPackage pkg)
     {
         Map<String, ExtentDescriptor> extentMap = repos.extentMap;
-        String extentName = null;
-        for(Map.Entry<String, ExtentDescriptor> entry: extentMap.entrySet()) {
-            if (entry.getValue().extent.equals(pkg)) {
-                extentName = entry.getKey();
-                break;
+        synchronized(extentMap) {
+            String extentName = null;
+            for(Map.Entry<String, ExtentDescriptor> entry: extentMap.entrySet()) {
+                if (entry.getValue().extent.equals(pkg)) {
+                    extentName = entry.getKey();
+                    break;
+                }
             }
+            
+            if (extentName == null) {
+                throw new InternalMdrError(
+                    "Extent delete event only valid on top-level package");
+            }
+            
+            enqueueEvent(
+                new ExtentEvent(
+                    pkg,
+                    ExtentEvent.EVENT_EXTENT_DELETE,
+                    extentName,
+                    pkg.refMetaObject(),
+                    Collections.unmodifiableCollection(
+                        new ArrayList<String>(extentMap.keySet()))));
         }
-        
-        if (extentName == null) {
-            throw new InternalMdrError(
-                "Extent delete event only valid on top-level package");
-        }
-        
-        enqueueEvent(
-            new ExtentEvent(
-                pkg,
-                ExtentEvent.EVENT_EXTENT_DELETE,
-                extentName,
-                pkg.refMetaObject(),
-                Collections.unmodifiableCollection(extentMap.keySet())));
     }
 
     private void enqueueEvent(Context context, MDRChangeEvent event)
@@ -841,9 +856,9 @@ public class HibernateMDRepository
         return extentDesc;
     }
 
+    // Must be externally synchronized
     private void initStorage()
     {
-        // TODO: locking (don't want to double-init the session factory)
         if (sessionFactory == null) {
             Configuration config = newConfiguration();
 
