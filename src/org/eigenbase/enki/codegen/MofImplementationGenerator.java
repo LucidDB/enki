@@ -26,8 +26,8 @@ import java.util.*;
 
 /**
  * MofImplementationGenerator outputs a basic implementation of the MOF M3
- * model.  This generator was useful for creating the 
- * {@link org.eigenbase.enki.mof} package.
+ * model.  This generator was useful for creating much of the 
+ * {@link org.eigenbase.enki.jmi} package.
  * 
  * @author Stephan Zuercher
  */

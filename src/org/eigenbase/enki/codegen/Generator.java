@@ -135,7 +135,7 @@ public interface Generator
      * and combines it with the Parameter's {@link MultiplicityType}
      * to return the correct type name. 
      * 
-     * @param feature Parameter for which to compute a type name
+     * @param param Parameter for which to compute a type name
      * @return a type name string (e.g., "List&lt;a.b.Class&gt;").
      */
     public String getTypeName(Parameter param);

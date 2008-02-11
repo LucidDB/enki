@@ -29,8 +29,8 @@ import org.eigenbase.enki.hibernate.*;
 import org.netbeans.api.mdr.events.*;
 
 /**
- * AttributeCollectionWrapper wraps {@Collection} instances used to implement 
- * multi-valued non-entity attributes.
+ * AttributeCollectionWrapper wraps {@link Collection} instances used to 
+ * implement multi-valued non-entity attributes.
  *
  * @author Stephan Zuercher
  */

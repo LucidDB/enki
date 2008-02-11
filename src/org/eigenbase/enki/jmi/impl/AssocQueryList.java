@@ -151,7 +151,7 @@ public class AssocQueryList
     }
     
     /**
-     * ListIter implements the result of {@List#listIterator()} and 
+     * ListIter implements the result of {@link List#listIterator()} and 
      * {@link List#listIterator(int)} for AssocQueryList.Throws 
      * {@link UnsupportedOperationException} for list modification operations
      * other than {@link ListIterator#add(Object)}.
@@ -229,7 +229,7 @@ public class AssocQueryList
     }
     
     /**
-     * SubList implements the result of {@List#subList(int, int)} for
+     * SubList implements the result of {@link List#subList(int, int)} for
      * AssocQueryList.  Depends on the underlying {@link AbstractList} 
      * implementation throwing {@link UnsupportedOperationException} for
      * list modification operations other than those that add new members.

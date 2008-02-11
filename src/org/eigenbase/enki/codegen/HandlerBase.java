@@ -73,7 +73,7 @@ public abstract class HandlerBase implements Handler
     public static final String QUOTE = "\"";
     
     /** 
-     * Default wrapping column for {@link #writeWrapped(String, String...)}.
+     * Default wrapping column for {@link #writeWrapped(String, Object...)}.
      */
     protected static final int WRAP_WIDTH = 78;
     
@@ -221,9 +221,9 @@ public abstract class HandlerBase implements Handler
     
     /**
      * Closes the current open file.  Closes the file opened by
-     * {@link #open(String)}.  This method may store an exception
-     * in {@link #pendingEx} which will be thrown by the next call to
-     * {@link #open(String)}.  In particular, this method checks for
+     * {@link #open(File)} or {@link #open(File, String)}.  This method may 
+     * store an exception in {@link #pendingEx} which will be thrown by the 
+     * next call to either open method.  In particular, this method checks for
      * unbalanced calls to {@link #increaseIndent()} and 
      * {@link #decreaseIndent()}.
      */
@@ -634,7 +634,7 @@ public abstract class HandlerBase implements Handler
      * scope.
      * 
      * @param <E> content type
-     * @param entity entity to search over
+     * @param namespace namespace to search over
      * @param visibility content visibility
      * @param scope content scope
      * @param cls Class for E

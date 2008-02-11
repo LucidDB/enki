@@ -144,8 +144,10 @@ abstract class AssociationEventValidator extends EventValidator
      * or old end.
      *
      * @param refObject entity to check
-     * @param expectedType entity's expected type (e.g. {@link #expectedFixedType}, 
-     *                     {@link #newType}, or {@link #expectedOldType}
+     * @param expectedType entity's expected type 
+     *                     (e.g. {@link #expectedFixedType},
+     *                     {@link #expectedNewType}, or 
+     *                     {@link #expectedOldType})
      * @param attribName attribute name (may be null to prevent test)
      * @param expectedAttribValue expected attribute value
      */

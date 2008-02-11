@@ -74,7 +74,7 @@ public class HibernateCodeGenUtils
      * @param references collection of {@link Reference} instances associated
      *                   with <code>cls</code>
      * @param unrefAssocRefInfoMap empty, modifiable map which is populated 
-     *                             with pseudo-{@link ReferenceInfo] objects
+     *                             with pseudo-{@link ReferenceInfo} objects
      *                             to facilitate code gen for the unreferenced
      *                             associations
      * @return collection of unreferenced {@link Association} instances

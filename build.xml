@@ -60,6 +60,10 @@
   <property name="test.config.dir" location="${test.dir}/config"/>
   <property name="test.results.dir" location="${test.dir}/results"/>
 
+  <!-- directory in which javadoc should be generated -->
+  <property name="javadoc.dir" location="${enki.dir}/doc/api"/>
+
+
   <!-- Sample Catalog properties -->
   <property name="sample.dir" location="${test.dir}/sample"/>
   <property name="sample.catalog.dir" location="${sample.dir}/catalog"/>
@@ -81,6 +85,13 @@
   -->
   <property name="enki.impl" value="${enki.impl.default}"/>
   <property name="enki.all.impl" value="netbeans,hibernate"/>
+
+  <!-- classpath for javadoc generation -->
+  <path id="enki.javadoc.classpath">
+    <pathelement path="${enki.3p.ant.run.classpath}"/>
+    <pathelement location="${sample.jar}"/>
+  </path>
+  <property name="enki.javadoc.classpath" refid="enki.javadoc.classpath"/>
 
   <target name="createClasspathFile">
     <delete file="${file.classpath}" quiet="true"/>
@@ -273,16 +284,20 @@
   </target>
 
   <target name="test-single-impl">
-    <fail message="Invoked via test-all-impls target" unless="impl.name"/>
+    <fail 
+      message="Must be invoked via test-all-impls target" 
+      unless="impl.name"/>
 
     <exec executable="ant" failonerror="true" taskname="test-${impl.name}">
       <arg value="${enki.forkVerbosity}"/>
-      <arg value="test"/>
+      <arg value="test-with-setup"/>
       <arg value="-Denki.impl=${impl.name}"/>
     </exec>
   </target>
 
-  <target name="test" depends="createSampleRepository,test-only"/>
+  <target name="test" depends="test-with-setup,javadoc"/>
+
+  <target name="test-with-setup" depends="createSampleRepository,test-only"/>
 
   <target name="test-only">
     <echo message="**********************************************"/>
@@ -335,6 +350,57 @@
     <delete includeEmptyDirs="true">
       <fileset dir="${sample.catalog.dir}/java" includes="**/*"/>
     </delete>
+  </target>
+
+  <!-- Ensure that javadoc has no warnings/errors. -->
+  <target name="checkJavadoc">
+    <record 
+        name="javadoc-complaints.log"
+        action="start" 
+        emacsmode="true"
+        loglevel="warn"/>
+    <antcall target="javadoc"/>
+    <record name="javadoc-complaints.log" action="stop"/>
+
+    <loadfile srcFile="javadoc-complaints.log" property="javadoc.complaints">
+      <filterchain>
+        <filterreader classname="org.apache.tools.ant.filters.LineContains">
+          <param type="negate" value="true"/>
+          <param type="contains" value="Error fetching URL"/>
+        </filterreader>
+        <striplinebreaks />
+      </filterchain>
+    </loadfile>
+
+    <fail
+        if="javadoc.complaints"
+        message="Javadoc reported warnings or errors; see javadoc-complaints.log for details"/>
+
+    <delete file="javadoc-complaints.log"/>
+  </target>
+
+  <target name="cleanJavadoc">
+    <delete includeEmptyDirs="true" quiet="true">
+      <fileset dir="${javadoc.dir}" includes="**/*"/>
+    </delete>
+  </target>
+
+  <target name="javadoc">
+    <mkdir dir="${javadoc.dir}"/>
+    <javadoc
+      maxmemory="1024m"
+      private="true"
+      destdir="${javadoc.dir}"
+      source="${enki.javasrc.version}"
+      classpathref="enki.javadoc.classpath">
+      <packageset dir="${src.dir}">
+        <include name="**"/>
+      </packageset>
+      <link href="http://www.netbeans.org/download/dev/javadoc/org-netbeans-api-mdr"/>
+      <link href="http://java.sun.com/products/jmi/jmi-1_0-fr-doc"/>
+      <link href="http://java.sun.com/j2se/1.5.0/docs/api"/>
+      <link href="http://junit.sourceforge.net/javadoc_40"/>
+    </javadoc>
   </target>
 
   <target name="start-mysql-server">

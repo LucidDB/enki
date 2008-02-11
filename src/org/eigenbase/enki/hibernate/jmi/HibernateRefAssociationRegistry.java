@@ -23,16 +23,17 @@ package org.eigenbase.enki.hibernate.jmi;
 
 import java.util.*;
 
+import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
 
 /**
  * HibernateRefAssociationRegistry provides a mechanism for 
- * {@link HibernateAssociation} instances to lookup their 
- * {@link HibernateRefAssociation}.  This is necessary because Hibernate allows
- * for lazy initialization of objects through associations, so it's possible
- * that a newly loaded {@link HibernateAssociation} will we loaded at a time
- * when it's not possible to know what {@link HibernateRefAssociation} to 
- * associate with it.  
+ * {@link org.eigenbase.enki.hibernate.storage.HibernateAssociation} instances 
+ * to lookup their {@link HibernateRefAssociation}.  This is necessary because 
+ * Hibernate allows for lazy initialization of objects through associations, 
+ * so it's possible that a newly loaded {@link HibernateAssociation} will we 
+ * loaded at a time when it's not possible to know which 
+ * {@link HibernateRefAssociation} to associate with it.  
  * 
  * @author Stephan Zuercher
  */
@@ -54,7 +55,7 @@ public class HibernateRefAssociationRegistry
     }
     
     /**
-     * Find the identified {@link RefAssociation}.
+     * Find the identified {@link HibernateRefAssociation}.
      * 
      * @param uid unique {@link HibernateRefAssociation} identifier
      * @return {@link HibernateRefAssociation} associated with UID

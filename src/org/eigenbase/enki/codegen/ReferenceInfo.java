@@ -30,7 +30,8 @@ import javax.jmi.model.*;
  * Note: This class also supports situations where an Association exists 
  * between two classes, but there is no corresponding Reference.  The name
  * of this class is, therefore, misleading.  
- * (See {@link #ReferenceInfo(Generator, Association, AssociationEnd)}.)
+ * (See {@link ReferenceInfoImpl#ReferenceInfoImpl(
+ *                 Generator, Association, AssociationEnd)}.)
  * 
  * @author Stephan Zuercher
  */

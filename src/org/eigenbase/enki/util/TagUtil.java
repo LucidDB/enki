@@ -120,7 +120,7 @@ public class TagUtil
      * @param modelElement model element
      * @param tagId tag identifier
      * @return the values for the tag or an empty list
-     * @see {@link #getTag(ModelElement, String)}
+     * @see #getTag(ModelElement, String)
      */
     public static List<String> getTagValues(
         ModelElement modelElement, String tagId)

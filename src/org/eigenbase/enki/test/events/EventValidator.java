@@ -54,10 +54,10 @@ public abstract class EventValidator
     
     /**
      * Re-throws the first exception encountered by this EventValidator.
-     * If the exception is an {@link Error} or {@link RuntimeExceptoin} it
+     * If the exception is an {@link Error} or {@link RuntimeException} it
      * is thrown directly.  If the exception is a check {@link Exception} or
-     * other {@link Throwable} it is wrapped in a {@link RuntimeException}
-     * first.
+     * other {@link Throwable} it is first wrapped in a 
+     * {@link RuntimeException}.
      */
     public void rethrow()
     {

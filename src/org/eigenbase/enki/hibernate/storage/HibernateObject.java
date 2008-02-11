@@ -46,7 +46,7 @@ public abstract class HibernateObject extends RefObjectBase
     }
     
     /**
-     * Save this object to the current Hibernate {@link Session}.
+     * Save this object to the current Hibernate {@link org.hibernate.Session}.
      * 
      * @throws IllegalStateException if no write transaction is in progress
      */

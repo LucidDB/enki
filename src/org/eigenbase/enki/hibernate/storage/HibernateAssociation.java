@@ -76,7 +76,7 @@ public abstract class HibernateAssociation extends HibernateObject
      *  
      * @param left left-side of association
      * @param right right-side of association
-     * @returns true if the association was found and removed, false otherwise
+     * @return true if the association was found and removed, false otherwise
      */
     public abstract boolean remove(
         HibernateAssociable left, HibernateAssociable right);

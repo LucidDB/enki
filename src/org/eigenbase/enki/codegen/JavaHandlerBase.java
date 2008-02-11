@@ -205,7 +205,7 @@ public abstract class JavaHandlerBase
      * 
      * @param entity entity the interface represents
      * @param className type name of the interface
-     * @param superInterfaceNames zero or more parent interfaces
+     * @param superInterfaceRefs zero or more parent interface references
      * @param comment JavaDoc comment
      */
     protected void writeInterfaceHeader(
@@ -263,7 +263,7 @@ public abstract class JavaHandlerBase
      * Generates the start of a Java class.
      * 
      * @param entity entity the class represents
-     * @param classRef type name of the class
+     * @param className type name of the class
      * @param superClassRef an explicit super class, if any
      * @param interfaceRefs zero or more implemented interfaces
      * @param isFinal if true the class is marked final
@@ -292,10 +292,9 @@ public abstract class JavaHandlerBase
      * 
      * @param entity entity the class represents
      * @param className type name of the class
-     * @param superClassName an explicit super class, if any
-     * @param interfaceNames zero or more implemented interfaces
-     * @param imports names of classes to import (e.g., "java.util.List" or
-     *                "java.text.*")
+     * @param superClassRef an explicit super class reference, or null
+     * @param interfaceRefs zero or more implemented interface references
+     * @param importRefs references to classes to import
      * @param isFinal if true the class is marked final
      * @param comment JavaDoc comment
      */
@@ -381,7 +380,7 @@ public abstract class JavaHandlerBase
      * @param isInterface if true the class is an interface
      * @param isFinal if true the class is marked final
      * @param comment JavaDoc comment
-     * @see {@link #writeEntityDeclarationStart(String, String[], String[], boolean, boolean)}
+     * @see #writeEntityDeclarationStart(String, String[], String[], boolean, boolean)
      */
     private void writeEntityHeader(
         ModelElement entity, 
@@ -1166,8 +1165,6 @@ public abstract class JavaHandlerBase
      * @param feature field type
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
-     * @param suffix suffix for the type (and therefore field) name
-     * 
      * @return the field's name
      */
     protected String writePrivateField(
@@ -1288,8 +1285,6 @@ public abstract class JavaHandlerBase
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
      * @param typeSuffix suffix for the type name
-     * 
-     * @return the field's name
      */
     private void writePrivateField(
         ModelElement type, 

@@ -307,7 +307,7 @@ public class EventValidatingChangeListener implements MDRPreChangeListener
     
     /**
      * Blocks until the listener has received at least one event.  Equivalent
-     * to {@link #waitForEvent(int) waitForEvent(1)}.
+     * to {@link #waitForSomeEvents(int) waitForSomeEvents(1)}.
      */
     public void waitForEvent()
     {
@@ -317,7 +317,7 @@ public class EventValidatingChangeListener implements MDRPreChangeListener
     /**
      * Blocks until the listener has received at least one event or the given
      * number of milliseconds passes.  Equivalent
-     * to {@link #waitForEvent(int, long) waitForEvent(1, timeout)}.
+     * to {@link #waitForSomeEvents(int, long) waitForSomeEvents(1, timeout)}.
      * 
      * @param timeoutMillis timeout period in milliseconds
      * @return true if the timeout elapsed before the event arrived
@@ -330,7 +330,7 @@ public class EventValidatingChangeListener implements MDRPreChangeListener
     /**
      * Blocks until the listener has received at least the given number of
      * events.  Equivalent to 
-     * {@link #waitForEvent(int, long) waitForEvent(numEvents, -1L)}.
+     * {@link #waitForSomeEvents(int, long) waitForSomeEvent(numEvents, -1L)}.
      * 
      * @param numEvents number of events to wait for
      */

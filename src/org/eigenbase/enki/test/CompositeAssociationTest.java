@@ -36,7 +36,8 @@ import eem.sample.special.*;
  * {@link RefObject#refImmediateComposite()} and 
  * {@link RefObject#refOutermostComposite()} for simple associations, 
  * situations where an entity is a component of multiple classes, and
- * situations where an {@link Attribute} is used to specify composition.
+ * situations where a {@link javax.jmi.model.Attribute} is used to specify 
+ * composition.
  * 
  * @author Stephan Zuercher
  */

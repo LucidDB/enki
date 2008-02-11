@@ -136,7 +136,7 @@ public class EnkiChangeEventThread
     
     /**
      * ListenerSource represents an object that is a source of 
-     * {@link MDRChangeListeners} instances.  Typically, this object is
+     * {@link MDRChangeListener} instances.  Typically, this object is
      * also an {@link MDRepository}.
      */
     public interface ListenerSource

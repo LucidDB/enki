@@ -71,7 +71,7 @@ public class GenericCollections
     /**
      * Wraps the given List with type information.  The wrapper is
      * identical to the one provided by 
-     * {@link Collections#checkedList(Collection, Class)}.  This method 
+     * {@link Collections#checkedList(List, Class)}. This method 
      * verifies that all members of the given collection are of the given type 
      * before returning.
      * 
