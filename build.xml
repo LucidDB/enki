@@ -281,6 +281,7 @@
         list="${enki.all.impl}" 
         target="test-single-impl"
         param="impl.name"/>
+    <antcall target="checkJavadoc"/>
   </target>
 
   <target name="test-single-impl">
@@ -295,7 +296,7 @@
     </exec>
   </target>
 
-  <target name="test" depends="test-with-setup,javadoc"/>
+  <target name="test" depends="test-with-setup,checkJavadoc"/>
 
   <target name="test-with-setup" depends="createSampleRepository,test-only"/>
 
