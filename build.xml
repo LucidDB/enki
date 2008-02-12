@@ -532,7 +532,8 @@
             file="${farrago.model.xmi}"
             dir="${farrago.catalog.dir}/java"
             extent="FarragoMetamodel"
-            generatorClass="${gen.cls}"/>
+            generatorClass="${gen.cls}"
+            generatorOptions="tablePrefix='FEM'"/>
       </mdr-tasks>
     </enki.mdr>
 

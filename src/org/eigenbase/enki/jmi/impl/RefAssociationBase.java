@@ -25,6 +25,8 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.mdr.*;
+
 /**
  * RefAssociationBase implements {@link RefAssociation}.  
  * {@link RefAssociationBase} is designed for use with metamodels only. 
@@ -37,7 +39,8 @@ public abstract class RefAssociationBase
     extends RefBaseObjectBase
     implements RefAssociation
 {
-    private final RefPackage container;
+    private final RefPackage container;    
+    private final EnkiMDRepository repos;
     
     private final Set<RefAssociationLinkImpl> links;
     private final Map<RefObject, Collection<RefAssociationLinkImpl>> firstToSecondMap;
@@ -56,6 +59,7 @@ public abstract class RefAssociationBase
         Multiplicity end2Multiplicity)
     {
         this.container = container;
+        this.repos = getCurrentInitializer().getRepository();
 
         this.links = new HashSet<RefAssociationLinkImpl>();
         this.firstToSecondMap =
@@ -244,6 +248,12 @@ public abstract class RefAssociationBase
                 isFirstEnd,
                 links);
         }
+    }
+    
+    @Override
+    protected EnkiMDRepository getRepository()
+    {
+        return repos;
     }
 }
 

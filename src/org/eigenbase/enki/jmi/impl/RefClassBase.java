@@ -25,6 +25,8 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.mdr.*;
+
 /**
  * RefClassBase is a base class for {@link RefClass} implementations.
  * 
@@ -33,10 +35,14 @@ import javax.jmi.reflect.*;
 public abstract class RefClassBase extends RefFeaturedBase implements RefClass
 {
     private final RefPackage container;
+    private final EnkiMDRepository repos;
     
     protected RefClassBase(RefPackage container)
     {
+        super();
+        
         this.container = container;
+        this.repos = getCurrentInitializer().getRepository();
     }
     
     // Implement RefBaseObject
@@ -83,6 +89,12 @@ public abstract class RefClassBase extends RefFeaturedBase implements RefClass
     public RefEnum refGetEnum(String enumTypeName, String literalName)
     {
         return getEnum(null, enumTypeName, literalName);
+    }
+    
+    @Override
+    protected EnkiMDRepository getRepository()
+    {
+        return repos;
     }
 }
 

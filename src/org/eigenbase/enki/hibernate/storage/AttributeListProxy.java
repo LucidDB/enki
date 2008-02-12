@@ -63,7 +63,7 @@ public class AttributeListProxy<E extends RefObject> extends ListProxy<E>
     @Override
     protected void fireAddEvent(E e, int position)
     {
-        HibernateMDRepository.enqueueEvent(
+        enqueueEvent(
             new AttributeEvent(
                 source,
                 AttributeEvent.EVENT_ATTRIBUTE_ADD,
@@ -82,7 +82,7 @@ public class AttributeListProxy<E extends RefObject> extends ListProxy<E>
     @Override
     protected void fireRemoveEvent(E e, int position)
     {
-        HibernateMDRepository.enqueueEvent(
+        enqueueEvent(
             new AttributeEvent(
                 source,
                 AttributeEvent.EVENT_ATTRIBUTE_REMOVE,
@@ -101,7 +101,7 @@ public class AttributeListProxy<E extends RefObject> extends ListProxy<E>
     @Override
     protected void fireSetEvent(E oldE, E newE, int position)
     {
-        HibernateMDRepository.enqueueEvent(
+        enqueueEvent(
             new AttributeEvent(
                 source,
                 AttributeEvent.EVENT_ATTRIBUTE_SET,
@@ -109,6 +109,13 @@ public class AttributeListProxy<E extends RefObject> extends ListProxy<E>
                 oldE,
                 newE,
                 position));
+    }
+    
+    private void enqueueEvent(MDRChangeEvent event)
+    {
+        HibernateMDRepository repos = 
+            ((HibernateObject)source).getHibernateRepository();
+        repos.enqueueEvent(event);
     }
 }
 

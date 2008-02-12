@@ -25,7 +25,6 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
-import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
 
 /**
@@ -158,7 +157,7 @@ public abstract class HibernateOneToOneAssociation
         thisParent.setAssociation(type, true, null);
         thisChild.setAssociation(type, false, null);
         
-        HibernateMDRepository.getCurrentSession().delete(this);
+        delete(getHibernateRepository(parent));
         
         return true;
     }
@@ -224,11 +223,18 @@ public abstract class HibernateOneToOneAssociation
     @Override
     public List<? extends RefObject> query(boolean returnSecondEnd)
     {
+        RefObject result;
         if (returnSecondEnd) {
-            return Collections.singletonList(getChild());
+            result = getChild();
         } else {
-            return Collections.singletonList(getParent());
+            result = getParent();
         }
+        
+        if (result == null) {
+            return Collections.emptyList();
+        }
+        
+        return Collections.singletonList(result);
     }
 }
 

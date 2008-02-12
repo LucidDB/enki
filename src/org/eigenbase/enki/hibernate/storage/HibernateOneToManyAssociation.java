@@ -25,7 +25,6 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
-import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
 
 /**
@@ -283,7 +282,7 @@ public abstract class HibernateOneToManyAssociation
         if (children.isEmpty()) {
             parent.setAssociation(type, parentIsFirstEnd, null);
             
-            HibernateMDRepository.getCurrentSession().delete(this);
+            delete(getHibernateRepository(parent));
         }
         
         return true;
@@ -364,7 +363,12 @@ public abstract class HibernateOneToManyAssociation
         boolean returnParent = (returnSecondEnd == getReversed());
 
         if (returnParent) {
-            return Collections.singletonList(getParent());
+            RefObject parent = getParent();
+            if (parent != null) {
+                return Collections.singletonList(getParent());
+            } else {
+                return Collections.emptyList();
+            }
         } else {
             return Collections.unmodifiableList(getChildren());
         }

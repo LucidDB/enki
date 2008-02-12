@@ -30,7 +30,6 @@ import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.codegen.*;
-import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
@@ -137,18 +136,23 @@ public class HibernateJavaHandler
     public static final JavaClassReference ASSOCIATION_MANY_TO_MANY_BASE = 
         new JavaClassReference(HibernateManyToManyAssociation.class, false);
 
+    /** Reference to {@link Multiplicity}. */
     public static final JavaClassReference MULTIPLICITY_ENUM =
         new JavaClassReference(Multiplicity.class, true);
     
+    /** Reference to {@link ListProxy}. */
     private static final JavaClassReference LIST_PROXY_CLASS = 
         new JavaClassReference(ListProxy.class, true);
     
+    /** Reference to {@link AttributeListProxy}. */
     private static final JavaClassReference ATTRIB_LIST_PROXY_CLASS = 
         new JavaClassReference(AttributeListProxy.class, true);
     
+    /** Reference to {@link AttributeCollectionWrapper}. */
     private static final JavaClassReference ATTRIB_COLLECTION_WRAPPER_CLASS = 
         new JavaClassReference(AttributeCollectionWrapper.class, true);
     
+    /** Reference to {@link AttributeListWrapper}. */
     private static final JavaClassReference ATTRIB_LIST_WRAPPER_CLASS = 
         new JavaClassReference(AttributeListWrapper.class, true);
     
@@ -176,30 +180,35 @@ public class HibernateJavaHandler
     private static final JavaClassReference ORDERED_COLLECTION_IMPL_CLASS = 
         new JavaClassReference(ArrayList.class);
 
+    /** Reference to {@link List}. */
     private static final JavaClassReference JAVA_UTIL_LIST_CLASS =
         new JavaClassReference(List.class, true);
     
+    /** Reference to {@link Collections}. */
     private static final JavaClassReference JAVA_UTIL_COLLECTIONS_CLASS =
         new JavaClassReference(Collections.class, true);
     
+    /** Reference to {@link Arrays}. */
     private static final JavaClassReference JAVA_UTIL_ARRAYS_CLASS =
         new JavaClassReference(Arrays.class, true);
     
+    /** Reference to {@link GenericCollections}. */
     private static final JavaClassReference GENERIC_COLLECTIONS_CLASS =
         new JavaClassReference(GenericCollections.class, true);
     
+    /** Reference to {@link UnsupportedOperationException}. */
     private static final JavaClassReference UNSUPPORTED_OPERATION_EXCEPTION =
         new JavaClassReference(UnsupportedOperationException.class, true);
     
+    /** Reference to {@link MetamodelInitializer}. */
     private static final JavaClassReference METAMODEL_INITIALIZER_CLASS =
         new JavaClassReference(MetamodelInitializer.class, true);
     
-    private static final JavaClassReference HIBERNATE_MDREPOSITORY_CLASS =
-        new JavaClassReference(HibernateMDRepository.class, true);
-    
-    private static final JavaClassReference INSTANCE_EVENT_CLASS =
+    /** Reference to {@link CreateInstanceEvent}. */
+    private static final JavaClassReference CREATE_INSTANCE_EVENT_CLASS =
         new JavaClassReference(CreateInstanceEvent.class, true);
     
+    /** References to import into class instance implementations. */
     private static final JavaClassReference[] CLASS_INSTANCE_REFS = {
         OBJECT_IMPL_CLASS,
         ASSOCIABLE_INTERFACE,
@@ -220,18 +229,40 @@ public class HibernateJavaHandler
     private final Logger log = 
         Logger.getLogger(HibernateJavaHandler.class.getName());
 
+    /** 
+     * Transient MDR implementation handler.  Implementation of transient
+     * classes, packages and associations are delegated to this handler. 
+     */
     private final TransientImplementationHandler transientHandler;
     
+    /** Map of {@link MofClass} to unique class identifier. */
     private Map<MofClass, String> classIdentifierMap;
+
+    /** Map of {@link Association} to unique association identifier. */
     private Map<Association, String> assocIdentifierMap;
     
+    /** Map of {@link Association} to {@link AssociationInfo}. */
     private Map<Association, AssociationInfo> assocInfoMap;
     
     /** Maps a component type to a list of references to it. */
     private Map<Classifier, List<ComponentInfo>> componentAttribMap;
     
+    /** 
+     * Reference to the model-specific, generated subclass of 
+     * {@link HibernateOneToOneAssociation}.
+     */
     private JavaClassReference assocOneToOneClass;
+
+    /** 
+     * Reference to the model-specific, generated subclass of 
+     * {@link HibernateOneToManyAssociation}.
+     */
     private JavaClassReference assocOneToManyClass;
+
+    /** 
+     * Reference to the model-specific, generated subclass of 
+     * {@link HibernateManyToManyAssociation}.
+     */
     private JavaClassReference assocManyToManyClass;
     
     public HibernateJavaHandler()
@@ -360,6 +391,13 @@ public class HibernateJavaHandler
         transientHandler.endGeneration(throwing);
     }
     
+    /**
+     * Generates a trivial, model-specific subclass with the given name.
+     * 
+     * @param classRef name of the subclass
+     * @param superClassRef class to extend
+     * @throws GenerationException if there is an error generating the class
+     */
     private void generateAssociationStorageSubclass(
         JavaClassReference classRef, JavaClassReference superClassRef)
     throws GenerationException
@@ -979,6 +1017,13 @@ public class HibernateJavaHandler
         }
     }
 
+    /**
+     * Adds the given {@link ComponentInfo component attribute reference} to
+     * the given component type in {@link #componentAttribMap}.
+     * 
+     * @param type component type 
+     * @param compInfo component attribute reference
+     */
     private void addComponentAttrib(
         Classifier type, ComponentInfo compInfo)
     {
@@ -992,6 +1037,16 @@ public class HibernateJavaHandler
         componentOfList.add(compInfo);
     }
 
+    /**
+     * Generates an implementation of {@link RefObject#refImmediateComposite()}
+     * for the given {@link MofClass}.
+     * 
+     * @param cls MofClass being generated
+     * @param refInfoMap map of referenced
+     * @param unrefAssocInfoMap map of unreferenced associations
+     * @param componentInfoMap map of component types
+     * @throws GenerationException if there's an error generating the method
+     */
     private void generateRefImmediateComposite(
         MofClass cls,
         Map<Reference, ReferenceInfo> refInfoMap,
@@ -1111,6 +1166,16 @@ public class HibernateJavaHandler
         endBlock();
     }
 
+    /**
+     * Generates an implementation of 
+     * {@link HibernateAssociable#getAssociation(String, boolean)} for the
+     * described references.  Delegates to 
+     * {@link #generateGenericAssociationMethod(List, AssocMethodGenerator)}.
+     * 
+     * @param refInfos descriptions of {@link Reference} instances which must
+     *                 be handled by the generated method
+     * @throws GenerationException if there's an error generating the method
+     */
     private void generateGetAssociationMethod(List<ReferenceInfo> refInfos)
         throws GenerationException
     {
@@ -1135,67 +1200,16 @@ public class HibernateJavaHandler
         endBlock();
     }
 
-    private void generateGenericAssociationMethod(
-        List<ReferenceInfo> refInfos,
-        AssocMethodGenerator assocMethodGenerator) 
-    throws GenerationException
-    {
-        List<ReferenceInfo> firstEndsExposed = new ArrayList<ReferenceInfo>();
-        List<ReferenceInfo> secondEndsExposed = new ArrayList<ReferenceInfo>();
-        for(ReferenceInfo refInfo: refInfos) {
-            if (refInfo.isExposedEndFirst()) {
-                firstEndsExposed.add(refInfo);
-            } else {
-                secondEndsExposed.add(refInfo);
-            }
-        }
-        
-        boolean firstFirstEnd = true;
-        for(ReferenceInfo refInfo: firstEndsExposed) {
-            if (firstFirstEnd) {
-                startConditionalBlock(CondType.IF, "firstEnd");
-            }
-            startConditionalBlock(
-                firstFirstEnd ? CondType.IF : CondType.ELSEIF,
-                QUOTE,
-                refInfo.getBaseName(),
-                QUOTE,
-                ".equals(type)");
-            assocMethodGenerator.generate(refInfo);
-            firstFirstEnd = false;
-        }
-        if (!firstFirstEnd) {
-            endBlock();
-        }
-        
-        boolean firstSecondEnd = true;
-        for(ReferenceInfo refInfo: secondEndsExposed) {
-            if (firstSecondEnd) {
-                if (firstFirstEnd) {
-                    // No first ends
-                    startConditionalBlock(CondType.IF, "!firstEnd");
-                } else {
-                    startConditionalBlock(CondType.ELSE);
-                }
-            }
-            startConditionalBlock(
-                firstSecondEnd ? CondType.IF : CondType.ELSEIF,
-                QUOTE,
-                refInfo.getBaseName(),
-                QUOTE,
-                ".equals(type)");
-            assocMethodGenerator.generate(refInfo);
-            firstSecondEnd = false;
-        }
-        if (!firstSecondEnd) {
-            endBlock();
-        }
-        endBlock();
-        
-        newLine();
-        generateThrowUnknownAssocTypeException();    
-    }
-    
+    /**
+     * Generates an implementation of 
+     * {@link HibernateAssociable#setAssociation(String, boolean, HibernateAssociation)}
+     * for the described references.  Delegates to 
+     * {@link #generateGenericAssociationMethod(List, AssocMethodGenerator)}.
+     * 
+     * @param refInfos descriptions of {@link Reference} instances which must
+     *                 be handled by the generated method
+     * @throws GenerationException if there's an error generating the method
+     */
     private void generateSetAssociationMethod(List<ReferenceInfo> refInfos)
         throws GenerationException
     {
@@ -1222,6 +1236,16 @@ public class HibernateJavaHandler
         endBlock();
     }
 
+    /**
+     * Generates an implementation of 
+     * {@link HibernateAssociable#getOrCreateAssociation(String, boolean)}
+     * for the described references.  Delegates to 
+     * {@link #generateGenericAssociationMethod(List, AssocMethodGenerator)}.
+     * 
+     * @param refInfos descriptions of {@link Reference} instances which must
+     *                 be handled by the generated method
+     * @throws GenerationException if there's an error generating the method
+     */
     private void generateGetOrCreateAssociationMethod(
         List<ReferenceInfo> refInfos)
     throws GenerationException
@@ -1286,8 +1310,74 @@ public class HibernateJavaHandler
         endBlock();
     }
 
-    private void generateThrowUnknownAssocTypeException()
+    /**
+     * Generates an association method generically based on the described
+     * references and {@link AssocMethodGenerator}.
+     * 
+     * @param refInfos descriptions of {@link Reference} instances that the
+     *                 generated method must handle
+     * @param assocMethodGenerator generator class for the method
+     * @throws GenerationException if there's an error generating the method
+     */
+    private void generateGenericAssociationMethod(
+        List<ReferenceInfo> refInfos,
+        AssocMethodGenerator assocMethodGenerator) 
+    throws GenerationException
     {
+        List<ReferenceInfo> firstEndsExposed = new ArrayList<ReferenceInfo>();
+        List<ReferenceInfo> secondEndsExposed = new ArrayList<ReferenceInfo>();
+        for(ReferenceInfo refInfo: refInfos) {
+            if (refInfo.isExposedEndFirst()) {
+                firstEndsExposed.add(refInfo);
+            } else {
+                secondEndsExposed.add(refInfo);
+            }
+        }
+        
+        boolean firstFirstEnd = true;
+        for(ReferenceInfo refInfo: firstEndsExposed) {
+            if (firstFirstEnd) {
+                startConditionalBlock(CondType.IF, "firstEnd");
+            }
+            startConditionalBlock(
+                firstFirstEnd ? CondType.IF : CondType.ELSEIF,
+                QUOTE,
+                refInfo.getBaseName(),
+                QUOTE,
+                ".equals(type)");
+            assocMethodGenerator.generate(refInfo);
+            firstFirstEnd = false;
+        }
+        if (!firstFirstEnd) {
+            endBlock();
+        }
+        
+        boolean firstSecondEnd = true;
+        for(ReferenceInfo refInfo: secondEndsExposed) {
+            if (firstSecondEnd) {
+                if (firstFirstEnd) {
+                    // No first ends
+                    startConditionalBlock(CondType.IF, "!firstEnd");
+                } else {
+                    startConditionalBlock(CondType.ELSE);
+                }
+            }
+            startConditionalBlock(
+                firstSecondEnd ? CondType.IF : CondType.ELSEIF,
+                QUOTE,
+                refInfo.getBaseName(),
+                QUOTE,
+                ".equals(type)");
+            assocMethodGenerator.generate(refInfo);
+            firstSecondEnd = false;
+        }
+        if (!firstSecondEnd) {
+            endBlock();
+        }
+        endBlock();
+        
+        newLine();
+
         writeln(
             "throw new IllegalArgumentException(",
             QUOTE, "Unknown assoc type '", QUOTE,
@@ -1295,6 +1385,10 @@ public class HibernateJavaHandler
             " + (firstEnd ? 1 : 2) + ", QUOTE, "'", QUOTE, ");");
     }
 
+    /**
+     * Gather together a List of {@link ReferenceInfo} instances from the
+     * given parameters.
+     */
     private List<ReferenceInfo> gatherRefInfos(
         Collection<Reference> instanceReferences,
         Map<Reference, ReferenceInfo> refInfoMap,
@@ -1315,6 +1409,17 @@ public class HibernateJavaHandler
         return refInfos;
     }
 
+    /**
+     * Generates public API accessors and mutators and Hibernate
+     * accessors and mutators for the given references.   Public API 
+     * mutators are not generated unless the {@link Reference} is 
+     * changeable.
+     * 
+     * @param instanceReferences all class instance 
+     *                           {@link Reference references}
+     * @param refInfoMap map of {@link Reference} to {@link ReferenceInfo}
+     * @throws GenerationException if there's an error generating the methods
+     */
     private void generateClassInstanceRefMethods(
         Collection<Reference> instanceReferences,
         Map<Reference, ReferenceInfo> refInfoMap)
@@ -1351,6 +1456,19 @@ public class HibernateJavaHandler
         }
     }
 
+    /**
+     * Generates public API accessors and mutators and Hibernate
+     * accessors and mutators for the given component attributes.  Public API
+     * methods are only generated for an {@link Attribute} passed as a key in
+     * the map if that attribute is a member of the class being generated.
+     * Other wise only the internal {@link HibernateAssociation} methods
+     * are generated. 
+     * 
+     * @param componentInfoMap map of {@link Attribute component attributes}
+     *                         to {@link ComponentInfo}. 
+     * @param cls {@link MofClass} being generated.
+     * @throws GenerationException if there's an error generating the methods
+     */
     private void generateClassInstanceComponentMethods(
         Map<Attribute, ComponentInfo> componentInfoMap,
         MofClass cls)
@@ -1390,6 +1508,12 @@ public class HibernateJavaHandler
         }
     }
     
+    /**
+     * Generates the internal {@link HibernateAssociation} accessor and
+     * mutator methods for a {@link Reference}.
+     * 
+     * @param refInfo Reference description
+     */
     private void generateClassInstanceAssocMethods(ReferenceInfo refInfo)
     {
         newLine();
@@ -1415,6 +1539,15 @@ public class HibernateJavaHandler
         endBlock();
     }
 
+    /**
+     * Generates public API accessor and mutator methods for the given
+     * {@link Reference} to a 1-to-1 {@link Association}.  Mutators are
+     * only generated if the reference is changeable.
+     * 
+     * @param ref the Reference
+     * @param refInfo description of the Reference
+     * @throws GenerationException if there's an error generating the methods
+     */
     private void generateClassInstanceRefOneToOneMethods(
         Reference ref,
         ReferenceInfo refInfo)
@@ -1451,6 +1584,16 @@ public class HibernateJavaHandler
         }
     }
 
+    /**
+     * Generates public API accessor and mutator methods for the given
+     * {@link Reference} to a 1-to-many {@link Association}.  Mutators are
+     * only generated if the reference is changeable and the referenced end
+     * is single.
+     * 
+     * @param ref the Reference
+     * @param refInfo description of the Reference
+     * @throws GenerationException if there's an error generating the methods
+     */
     private void generateClassInstanceRefOnetoManyMethods(
         Reference ref,
         ReferenceInfo refInfo)
@@ -1515,6 +1658,14 @@ public class HibernateJavaHandler
         }
     }
 
+    /**
+     * Generates public API accessor method for the given {@link Reference} to 
+     * a many-to-many {@link Association}.
+     * 
+     * @param ref the Reference
+     * @param refInfo description of the Reference
+     * @throws GenerationException if there's an error generating the method
+     */
     private void generateClassInstanceRefManyToManyMethods(
         Reference ref,
         ReferenceInfo refInfo)
@@ -1548,22 +1699,30 @@ public class HibernateJavaHandler
         endBlock();
     }
 
+    /**
+     * Generates public API accessor and mutator methods for the given
+     * {@link Attribute component attribute} with 1-to-1 multiplicity.
+     * 
+     * @param attrib the {@link Attribute}
+     * @param compInfo description of the component Attribute
+     * @throws GenerationException if there's an error generating the methods
+     */
     private void generateClassInstanceComponentRefOneToOneMethods(
-        Attribute attrib, ReferenceInfo refInfo)
+        Attribute attrib, ComponentInfo compInfo)
     {
         startAccessorBlock(attrib);
         startConditionalBlock(
             CondType.IF,
-            getReferenceAccessorName(refInfo), "() == null");
+            getReferenceAccessorName(compInfo), "() == null");
         writeln("return null;");
         endBlock();
 
         writeln(
             "return ", 
-            getReferenceAccessorName(refInfo),
-            "().get", getReferenceEndName(refInfo, true),
+            getReferenceAccessorName(compInfo),
+            "().get", getReferenceEndName(compInfo, true),
             "(",
-            refInfo.getReferencedTypeName(),
+            compInfo.getReferencedTypeName(),
             ".class",
             ");");
         endBlock();
@@ -1573,46 +1732,54 @@ public class HibernateJavaHandler
             
         writeln(
             "super.attributeSetSingle(", 
-            QUOTE, refInfo.getBaseName(), QUOTE, ", ", 
+            QUOTE, compInfo.getBaseName(), QUOTE, ", ", 
             QUOTE, attrib.getName(), QUOTE, 
-            ", ", refInfo.isExposedEndFirst(), ", (",
+            ", ", compInfo.isExposedEndFirst(), ", (",
             ASSOCIABLE_INTERFACE, ")newValue);");
         
         endBlock();                        
     }
 
+    /**
+     * Generates public API accessor and mutator methods for the given
+     * {@link Attribute component attribute} with 1-to-many multiplicity.
+     * 
+     * @param attrib the {@link Attribute}
+     * @param compInfo description of the component Attribute
+     * @throws GenerationException if there's an error generating the methods
+     */
     private void generateClassInstanceComponentRefOneToManyMethods(
-        Attribute attrib, ReferenceInfo refInfo)
+        Attribute attrib, ComponentInfo compInfo)
     throws GenerationException
     {
         startAccessorBlock(attrib);
 
-        boolean hasParent = refInfo.isSingle(refInfo.getReferencedEndIndex());
+        boolean hasParent = compInfo.isSingle(compInfo.getReferencedEndIndex());
         if (hasParent) {
             startConditionalBlock(
                 CondType.IF, 
-                getReferenceAccessorName(refInfo), "() == null");
+                getReferenceAccessorName(compInfo), "() == null");
             writeln("return null;");
             endBlock();
             writeln(
                 "return (",
-                refInfo.getEndType(refInfo.isSingle(0) ? 0 : 1),                            
+                compInfo.getEndType(compInfo.isSingle(0) ? 0 : 1),                            
                 ")", 
-                getReferenceAccessorName(refInfo), 
+                getReferenceAccessorName(compInfo), 
                 "().getParent();");
         } else {
             String listElemType = 
-                refInfo.getEndType(refInfo.isSingle(0) ? 1 : 0);
+                compInfo.getEndType(compInfo.isSingle(0) ? 1 : 0);
             // REVIEW: SWZ: Consider caching AttributeListProxy in a field
             startConditionalBlock(
                 CondType.IF, 
-                getReferenceAccessorName(refInfo), "() == null");
+                getReferenceAccessorName(compInfo), "() == null");
             writeln(
                 "return new ", 
                 ATTRIB_LIST_PROXY_CLASS,
                 "<", listElemType, ">",
-                "(", QUOTE, refInfo.getBaseName(), QUOTE,
-                ", this, ", refInfo.isExposedEndFirst(), ", ",
+                "(", QUOTE, compInfo.getBaseName(), QUOTE,
+                ", this, ", compInfo.isExposedEndFirst(), ", ",
                 QUOTE, attrib.getName(), QUOTE, ", ",
                 listElemType, ".class);");
             startConditionalBlock(CondType.ELSE);
@@ -1621,9 +1788,9 @@ public class HibernateJavaHandler
                 ATTRIB_LIST_PROXY_CLASS,
                 "<", listElemType, ">",
                 "(",
-                getReferenceAccessorName(refInfo),
+                getReferenceAccessorName(compInfo),
                 "(), this, ",
-                refInfo.isExposedEndFirst(), ", ",
+                compInfo.isExposedEndFirst(), ", ",
                 QUOTE, attrib.getName(), QUOTE, ", ",
                 listElemType, ".class);");
             endBlock();
@@ -1636,15 +1803,29 @@ public class HibernateJavaHandler
 
             writeln(
                 "super.attributeSetSingle(", 
-                QUOTE, refInfo.getBaseName(), QUOTE, ", ", 
+                QUOTE, compInfo.getBaseName(), QUOTE, ", ", 
                 QUOTE, attrib.getName(), QUOTE, 
-                ", ", refInfo.isExposedEndFirst(), ", (",
+                ", ", compInfo.isExposedEndFirst(), ", (",
                 ASSOCIABLE_INTERFACE, ")newValue);");
 
             endBlock();                        
         }
     }
 
+    /**
+     * Generates constructors for a class instance implementation.  A zero
+     * argument constructor is always generated.  A constructor with parameters
+     * is constructed if there are 1 or more instance attributes.
+     * 
+     * @param cls {@link MofClass} being generated
+     * @param instanceAttributes instance attributes (including those inherited
+     *                           from super classes)
+     * @param nonDerivedAttribs list of non-derived Attributes
+     * @param nonDerivedAttribNames map of non-derived Attributes to their 
+     *                              field names.
+     * @param nonDataTypeAttribs set of component Attributes
+     * @param componentInfoMap details about component attributes
+     */
     private void generateClassInstanceConstructors(
         MofClass cls,
         Collection<Attribute> instanceAttributes,
@@ -1767,6 +1948,16 @@ public class HibernateJavaHandler
         endBlock();
     }
 
+    /**
+     * Generates public API accessors and mutators and internal Hiberate
+     * accessors and mutators as necessary.
+     * 
+     * @param instanceAttributes collection of all instance attributes
+     *                           (including those from super types)
+     * @param nonDerivedAttribNames map of non-derived Attributes to their
+     *                              field names
+     * @param entityTypeAttribs set of component Attributes.
+     */
     private void generateClassInstanceAttribMethods(
         Collection<Attribute> instanceAttributes,
         Map<Attribute, String> nonDerivedAttribNames,
@@ -1926,10 +2117,9 @@ public class HibernateJavaHandler
                 new String[] { interfaceName }, 
                 JavaClassReference.computeImports(
                     METAMODEL_INITIALIZER_CLASS,
-                    HIBERNATE_MDREPOSITORY_CLASS,
                     JAVA_UTIL_COLLECTIONS_CLASS,
                     JAVA_UTIL_ARRAYS_CLASS,
-                    INSTANCE_EVENT_CLASS),
+                    CREATE_INSTANCE_EVENT_CLASS),
                 false,
                 CLASS_PROXY_IMPL_COMMENT);
             
@@ -2049,10 +2239,17 @@ public class HibernateJavaHandler
         }
     }
     
+    /**
+     * Generates code to fire an {@link CreateInstanceEvent} when a class 
+     * instance implementation is instantiated.
+     * 
+     * @param paramNames method parameter names containing the arguments used
+     *                   to construct the object, or null
+     */
     private void generateInstanceEventCall(List<String> paramNames)
     {
         writeln(
-            INSTANCE_EVENT_CLASS, " event = new ", INSTANCE_EVENT_CLASS, "(");
+            CREATE_INSTANCE_EVENT_CLASS, " event = new ", CREATE_INSTANCE_EVENT_CLASS, "(");
         increaseIndent();
         writeln("this,");
         if (paramNames == null || paramNames.isEmpty()) {
@@ -2073,9 +2270,16 @@ public class HibernateJavaHandler
         }
         decreaseIndent();
 
-        writeln(HIBERNATE_MDREPOSITORY_CLASS, ".enqueueEvent(event);");
+        writeln("getHibernateRepository().enqueueEvent(event);");
     }
     
+    /**
+     * Generates code to update an existing {@link CreateInstanceEvent} with
+     * the created instance.
+     * 
+     * @param instanceName variable name pointing to the newly constructed
+     *                     instance
+     */
     private void generateUpdateInstanceEventCall(String instanceName)
     {
         writeln("event.setInstance(", instanceName, ");");
@@ -2339,6 +2543,16 @@ public class HibernateJavaHandler
         return false;
     }
     
+    /**
+     * Retrieves the unique identifier for the given {@link MofClass}.  Checks
+     * the cache (in {@link #classIdentifierMap}) first, and if not found,
+     * generates a value based on the class name, super type names, attribute 
+     * type names, attribute names, reference type names and reference names.
+     *
+     * @param cls {@link MofClass} to get an identifier for
+     * @return the class's unique identifier
+     * @throws GenerationException if there's an error computing the identifier
+     */
     private String getClassIdentifier(MofClass cls) throws GenerationException
     {
         if (classIdentifierMap.containsKey(cls)) {
@@ -2400,6 +2614,16 @@ public class HibernateJavaHandler
         }
     }
     
+    /**
+     * Retrieves the unique identifier for the given {@link Association}.  
+     * Checks the cache (in {@link #assocIdentifierMap}) first, and if not 
+     * found, generates a value based on the association name, 
+     * association end names, association end types, and multiplicity.
+     *
+     * @param assoc {@link Association} to get an identifier for
+     * @return the association's unique identifier
+     * @throws GenerationException if there's an error computing the identifier
+     */
     private String getAssociationIdentifier(Association assoc)
         throws GenerationException
     {
@@ -2452,6 +2676,12 @@ public class HibernateJavaHandler
         }
     }
 
+    /**
+     * Converts a {@link MessageDigest} into a hexadecimal string.
+     * 
+     * @param md MessageDigest
+     * @return hex string
+     */
     private String computeDigestString(MessageDigest md)
     {
         byte[] digest = md.digest();
@@ -2470,6 +2700,14 @@ public class HibernateJavaHandler
         return digestStr;
     }
 
+    /**
+     * Convert an {@link AssociationKindEnum} to name of one of the 
+     * model-specific {@link HibernateAssociation} subclasses generated 
+     * in {@link #generateAssociationStorageSubclass(JavaClassReference, JavaClassReference)}.
+     * 
+     * @param kind simple multiplicity
+     * @return full name of the implementation class
+     */
     private String makeType(AssociationKindEnum kind)
     {
         switch(kind)
@@ -2488,6 +2726,15 @@ public class HibernateJavaHandler
             "Unknown AssociationKindEnum: " + kind);
     }
     
+    /**
+     * Determines the base name of the accessor or mutator on the correct
+     * type of {@link HibernateAssociation} subclass for the given end of 
+     * the described {@link Reference}.
+     * 
+     * @param refInfo description of the Reference
+     * @param isRefEnd if the referenced (vs. exposed) end is requested
+     * @return accessor/mutator base name
+     */
     private String getReferenceEndName(
         ReferenceInfo refInfo, boolean isRefEnd)
     {
@@ -2516,6 +2763,14 @@ public class HibernateJavaHandler
             "Unknown AssociationKindEnum: " + refInfo.getKind());
     }
     
+    /**
+     * Retrieves the name of the class instance inteface that represents the
+     * given end of the described {@link Reference}.
+     * 
+     * @param refInfo description of the Reference
+     * @param isRefEnd if the referenced (vs. exposed) end is requested
+     * @return class instance interface name
+     */
     private String getReferenceEndType(
         ReferenceInfo refInfo, boolean isRefEnd)
     {
@@ -2538,6 +2793,13 @@ public class HibernateJavaHandler
         return "set" + refInfo.getReferencedEndBaseName() + IMPL_SUFFIX;
     }
     
+    /**
+     * Returns the name of the generic {@link RefAssociation} subclass that 
+     * handles the described {@link Association}.
+     * 
+     * @param assocInfo description of the Association
+     * @return name of the type that handles it
+     */
     private String makeType(AssociationInfo assocInfo)
     {
         StringBuffer type = new StringBuffer();
@@ -2569,8 +2831,15 @@ public class HibernateJavaHandler
         return type.toString();
     }
     
+    /**
+     * AssocMethodGenerator generates code for association methods within
+     * a class instance implementation.
+     */
     private static interface AssocMethodGenerator
     {
+        /**
+         * Generate code for the described {@link ReferenceInfo reference}.
+         */
         public void generate(ReferenceInfo refInfo) throws GenerationException;
     }
 }

@@ -46,11 +46,17 @@ public abstract class HibernateObject extends RefObjectBase
     }
     
     /**
-     * Save this object to the current Hibernate {@link org.hibernate.Session}.
+     * Saves this object to the current Hibernate 
+     * {@link org.hibernate.Session}.
      * 
      * @throws IllegalStateException if no write transaction is in progress
      */
     public void save()
+    {
+        save(getHibernateRepository());
+    }
+    
+    protected void save(HibernateMDRepository repos)
     {
         if (deleted) {
             throw new IllegalStateException("Saving deleted object");
@@ -62,17 +68,17 @@ public abstract class HibernateObject extends RefObjectBase
             return;
         }
 
-        if (!HibernateMDRepository.isWriteTransaction()) {
+        if (!repos.isWriteTransaction()) {
             throw new IllegalStateException("Not in write transaction");
         }
         
         if (getMofId() == 0L) {
-            long mofId = HibernateMDRepository.getMofIdGenerator().nextMofId();
+            long mofId = repos.getMofIdGenerator().nextMofId();
             
             setMofId(mofId);
         }
         
-        HibernateMDRepository.getCurrentSession().save(this);
+        repos.getCurrentSession().save(this);
         
         log.finer(
             "Save on '" + getClass().getName() + "':" + refMofId());
@@ -80,17 +86,29 @@ public abstract class HibernateObject extends RefObjectBase
         saved = true;
     }
     
+    
+    /**
+     * Deletes this object from the current Hibernate 
+     * {@link org.hibernate.Session}.
+     * 
+     * @throws IllegalStateException if no write transaction is in progress
+     */
     public void delete()
+    {
+        delete(getHibernateRepository());
+    }
+    
+    protected void delete(HibernateMDRepository repos)
     {
         if (deleted) {
             return;
         }
         
-        if (!HibernateMDRepository.isWriteTransaction()) {
+        if (!repos.isWriteTransaction()) {
             throw new IllegalStateException("Not in write transaction");
         }
         
-        HibernateMDRepository.getCurrentSession().delete(this);
+        repos.getCurrentSession().delete(this);
         
         deleted = true;        
     }
@@ -103,6 +121,18 @@ public abstract class HibernateObject extends RefObjectBase
      * @return true if constraints are met, false otherwise
      */
     public abstract boolean checkConstraints(List<String> errors);
+    
+    /**
+     * Returns the {@link HibernateMDRepository} that stores this object.
+     * This method is a convenience method that simply casts the result of 
+     * {@link #getRepository()} to HibernateMDRepository.
+     * 
+     * @return the HibernateMDRepository that stores this object.
+     */
+    protected HibernateMDRepository getHibernateRepository()
+    {
+        return (HibernateMDRepository)getRepository();
+    }
 }
 
 // End HibernateObject.java

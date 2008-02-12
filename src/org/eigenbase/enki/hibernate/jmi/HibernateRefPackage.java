@@ -45,14 +45,14 @@ public abstract class HibernateRefPackage
     public void refDelete()
     {
         if (refImmediatePackage() == null) {
-            HibernateMDRepository.enqueueExtentDeleteEvent(this);
+            getHibernateRepository().enqueueExtentDeleteEvent(this);
             
             // TODO: remove the extent
         }
         
         deleteObjectsRecursively();
     }
-    
+
     private void deleteObjectsRecursively()
     {
         for(RefPackage refPackage: 
@@ -91,5 +91,10 @@ public abstract class HibernateRefPackage
                 refObject.refDelete();
             }
         }        
+    }
+    
+    protected HibernateMDRepository getHibernateRepository()
+    {
+        return (HibernateMDRepository)getRepository();
     }
 }

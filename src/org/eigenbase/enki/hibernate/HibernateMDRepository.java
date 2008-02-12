@@ -34,6 +34,7 @@ import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.jmi.model.init.*;
 import org.eigenbase.enki.mdr.*;
+import org.eigenbase.enki.mdr.EnkiChangeEventThread.*;
 import org.eigenbase.enki.util.*;
 import org.hibernate.*;
 import org.hibernate.cfg.*;
@@ -44,8 +45,10 @@ import org.netbeans.api.mdr.*;
 import org.netbeans.api.mdr.events.*;
 
 /**
- * HibernateMDRepository implements {@link MDRepository} for Hibernate-based
- * metamodel storage.
+ * HibernateMDRepository implements {@link MDRepository} and 
+ * {@link EnkiMDRepository} for Hibernate-based metamodel storage.  In
+ * addition, it acts as a {@link ListenerSource source} of 
+ * {@link MDRChangeEvent} instances.
  * 
  * @author Stephan Zuercher
  */
@@ -53,29 +56,69 @@ public class HibernateMDRepository
     implements MDRepository, EnkiMDRepository, 
                EnkiChangeEventThread.ListenerSource
 {
+    /** 
+     * The name of the HibernateMDRepository metamodel configuration properties
+     * file. Stored in the <code>META-INF/enki</code> directory of an Enki 
+     * model JAR file.
+     */
     public static final String CONFIG_PROPERTIES = "config.properties";
+
+    /** 
+     * The name of the metamodel-specific Hibernate mapping file. Stored in 
+     * the <code>META-INF/enki</code> directory of an Enki model JAR file.
+     */
     public static final String MAPPING_XML = "mapping.xml";
+    
+    /**
+     * Path to the resource that contains a Hibernate mapping file for
+     * persistent entities used across metamodels. 
+     */
     public static final String HIBERNATE_STORAGE_MAPPING_XML = 
         "/org/eigenbase/enki/hibernate/storage/hibernate-storage-mapping.xml";
     
+    /**
+     * Configuration file property that contains the name of the 
+     * {@link MetamodelInitializer} class used to initialize the metamodel.
+     */
     public static final String PROPERTY_MODEL_INITIALIZER = 
         "enki.model.initializer";
     
+    /**
+     * Identifier for the built-in MOF extent.
+     */
     private static final String MOF_EXTENT = "--mof--";
     
+    /** Thread-local storage for MDR transaction contexts. */
     private static final ThreadLocal<Context> tls = new ThreadLocal<Context>();
-    private static HibernateMDRepository repos;
     
+    /** List of all known model configuration properties files. */
     private final List<Properties> modelPropertiesList;
+    
+    /** Storage configuration properties. */
     private final Properties storageProperties;
+
+    /** Given default class loader, if any. */
     private final ClassLoader classLoader;
+    
+    /** Map of metamodel extent names to ModelDescriptor instances. */
     private final Map<String, ModelDescriptor> modelMap;
+    
+    /** Map of extent names to ExtentDescriptor instances. */
     private final Map<String, ExtentDescriptor> extentMap;
     
+    /** The Hibernate {@link SessionFactory} for this repository. */
     private SessionFactory sessionFactory;
+    
+    /** The {@link MofIdGenerator} for this repository. */
     private MofIdGenerator mofIdGenerator;
     
+    /** The {@link EnkiChangeEventThread} for this repository. */
     private EnkiChangeEventThread thread;
+    
+    /** 
+     * Map of {@link MDRChangeListener} instances to 
+     * {@link EnkiMaskedMDRChangeListener} instances.
+     */
     private Map<MDRChangeListener, EnkiMaskedMDRChangeListener> listeners;
     
     private final Logger log = 
@@ -86,10 +129,6 @@ public class HibernateMDRepository
         Properties storageProperties,
         ClassLoader classLoader)
     {
-        if (repos != null) {
-            throw new EnkiHibernateException(
-                "Cannot instantiate multiple repositories");
-        }
         this.modelPropertiesList = modelProperties;
         this.storageProperties = storageProperties;
         this.classLoader = classLoader;
@@ -101,16 +140,6 @@ public class HibernateMDRepository
         
         initModelMap();
         initModelExtent(MOF_EXTENT);
-        
-        // REVIEW: SWZ: 2008-02-01: Strictly speaking, multiple instance of
-        // this class should be acceptable (may even be required).  However,
-        // we need a way to find the repository instance for implicit read
-        // transactions.  Hibernate instantiates objects as necessary, so
-        // it's hard to know when/where it'll happen.  Could burn the repos 
-        // instance into the RefPackage/RefClass/etc instances at init time 
-        // and then set it on the objects loaded by them (have to check every 
-        // object every time, which is ugly).
-        repos = this;
     }
     
     public void beginTrans(boolean write)
@@ -463,9 +492,6 @@ public class HibernateMDRepository
                 sessionFactory.close();
                 sessionFactory = null;
             }
-    
-            // Clear the repository used for implicit read transactions
-            repos = null;
         }
     }
 
@@ -550,23 +576,18 @@ public class HibernateMDRepository
         return sessionFactory;
     }
     
-    public static HibernateMDRepository getRepository()
-    {
-        return repos;
-    }
-
-    public static Session getCurrentSession()
+    public Session getCurrentSession()
     {
         return getContext().session;
     }
     
     
-    public static boolean isWriteTransaction()
+    public boolean isWriteTransaction()
     {
         return isWriteTransaction(getContext(), false);
     }
     
-    private static boolean isWriteTransaction(
+    private boolean isWriteTransaction(
         Context context, boolean checkNested)
     {
         if (!checkNested) {
@@ -584,34 +605,34 @@ public class HibernateMDRepository
         return false;
     }
 
-    public static MofIdGenerator getMofIdGenerator()
+    public MofIdGenerator getMofIdGenerator()
     {
         return getContext().getMofIdGenerator();
     }
 
-    public static Collection<?> lookupAllOfTypeResult(HibernateRefClass cls)
+    public Collection<?> lookupAllOfTypeResult(HibernateRefClass cls)
     {
         return getContext().allOfTypeCache.get(cls);
     }
     
-    public static void storeAllOfTypeResult(
+    public void storeAllOfTypeResult(
         HibernateRefClass cls, Collection<?> allOfType)
     {
         getContext().allOfTypeCache.put(cls, allOfType);
     }
     
-    public static Collection<?> lookupAllOfClassResult(HibernateRefClass cls)
+    public Collection<?> lookupAllOfClassResult(HibernateRefClass cls)
     {
         return getContext().allOfClassCache.get(cls);
     }
     
-    public static void storeAllOfClassResult(
+    public void storeAllOfClassResult(
         HibernateRefClass cls, Collection<?> allOfClass)
     {
         getContext().allOfClassCache.put(cls, allOfClass);
     }
 
-    public static void enqueueEvent(MDRChangeEvent event)
+    public void enqueueEvent(MDRChangeEvent event)
     {
         Context context = getContext();
         if (!isWriteTransaction(context, true)) {
@@ -622,7 +643,7 @@ public class HibernateMDRepository
             context = context.ancestor;
         }
         
-        repos.enqueueEvent(context, event);
+        enqueueEvent(context, event);
     }
     
     /**
@@ -630,9 +651,8 @@ public class HibernateMDRepository
      * 
      * @param pkg top-level RefPackage of the extent being deleted
      */
-    public static void enqueueExtentDeleteEvent(RefPackage pkg)
+    public void enqueueExtentDeleteEvent(RefPackage pkg)
     {
-        Map<String, ExtentDescriptor> extentMap = repos.extentMap;
         synchronized(extentMap) {
             String extentName = null;
             for(Map.Entry<String, ExtentDescriptor> entry: extentMap.entrySet()) {
@@ -690,7 +710,7 @@ public class HibernateMDRepository
                 this, TransactionEvent.EVENT_TRANSACTION_END));
     }
 
-    private static Context getContext()
+    private Context getContext()
     {
         Context context = tls.get();
         if (context != null) {
@@ -698,7 +718,7 @@ public class HibernateMDRepository
         }
 
         // begin an implicit read transaction for this thread
-        return repos.beginTrans(false, true);
+        return beginTrans(false, true);
     }
     
     private void fireCanceledChanges(Context context)
@@ -1218,6 +1238,7 @@ public class HibernateMDRepository
             
             metaModelPackage = mofExtentDesc.initializer.getModelPackage();
         }
+        init.setOwningRepository(this);
         init.init(metaModelPackage);
         
         extentDesc.extent = init.getModelPackage();
@@ -1257,6 +1278,9 @@ public class HibernateMDRepository
         context.allOfClassCache.clear();
     }
 
+    /**
+     * ModelDescriptor describes a meta-model.
+     */
     private static class ModelDescriptor
     {
         private final String name;
@@ -1277,6 +1301,9 @@ public class HibernateMDRepository
         }
     }    
     
+    /**
+     * ExtentDescriptor describes an instantiated model extent.
+     */
     private static class ExtentDescriptor
     {
         private final String name;
@@ -1291,6 +1318,9 @@ public class HibernateMDRepository
         }
     }
     
+    /**
+     * Context represents an implicit or explicit MDR transaction.
+     */
     private class Context
     {
         private Session session;
@@ -1339,6 +1369,13 @@ public class HibernateMDRepository
         }
     }
     
+    /**
+     * EventListener implements Hibernate's {@link FlushEventListener} and 
+     * {@link AutoFlushEventListener} and invokes 
+     * {@link HibernateMDRepository#onFlush(FlushEvent)} and
+     * {@link HibernateMDRepository#onAutoFlush(AutoFlushEvent)} to process
+     * those events.
+     */
     private class EventListener 
         implements FlushEventListener, AutoFlushEventListener
     {

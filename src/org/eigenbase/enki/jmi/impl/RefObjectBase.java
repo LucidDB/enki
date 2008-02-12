@@ -26,6 +26,8 @@ import java.util.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.mdr.*;
+
 /**
  * RefObjectBase is a base class for {@link RefObject} implementations.
  * It provides implementations of various MOF mode 
@@ -542,6 +544,12 @@ public abstract class RefObjectBase
     private boolean isDepOfKind(String kind, ModelElement other)
     {
         return findDepsOfKind(kind).contains(other);
+    }
+    
+    @Override
+    protected EnkiMDRepository getRepository()
+    {
+        return ((RefClassBase)refClass()).getRepository();
     }
 }
 

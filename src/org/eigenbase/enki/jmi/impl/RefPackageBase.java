@@ -27,6 +27,8 @@ import java.util.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.mdr.*;
+
 /**
  * RefPackageBase is a base class for {@link RefPackage} implementations.
  * 
@@ -37,7 +39,8 @@ public abstract class RefPackageBase
     implements RefPackage
 {
     private final RefPackage container;
-    
+    private final EnkiMDRepository repos;
+
     private final Map<String, RefClass> classMap;
     private final Map<String, RefAssociation> associationMap;
     private final Map<String, RefPackage> packageMap;
@@ -45,6 +48,7 @@ public abstract class RefPackageBase
     protected RefPackageBase(RefPackage container)
     {
         this.container = container;
+        this.repos = getCurrentInitializer().getRepository();
         this.classMap = new HashMap<String, RefClass>();
         this.associationMap = new HashMap<String, RefAssociation>();
         this.packageMap = new HashMap<String, RefPackage>();
@@ -189,6 +193,12 @@ public abstract class RefPackageBase
         }
 
         return entity;
+    }
+    
+    @Override
+    protected EnkiMDRepository getRepository()
+    {
+        return repos;
     }
 }
 

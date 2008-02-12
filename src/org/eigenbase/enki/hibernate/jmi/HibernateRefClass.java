@@ -74,19 +74,20 @@ public abstract class HibernateRefClass
     public Collection<?> refAllOfClass()
     {
         if (allOfClassQueryName != null) {
-            Collection<?> cacheResult = 
-                HibernateMDRepository.lookupAllOfClassResult(this);
+            HibernateMDRepository repos = getHibernateRepository();
+            
+            Collection<?> cacheResult = repos.lookupAllOfClassResult(this);
             if (cacheResult != null) {
                 return cacheResult;
             }
             
-            Session session = HibernateMDRepository.getCurrentSession();
+            Session session = repos.getCurrentSession();
             
             Query query = session.getNamedQuery(allOfClassQueryName);
 
             Collection<?> result = Collections.unmodifiableList(query.list());
 
-            HibernateMDRepository.storeAllOfClassResult(this, result);
+            repos.storeAllOfClassResult(this, result);
             
             return result;
         }
@@ -98,20 +99,27 @@ public abstract class HibernateRefClass
     @SuppressWarnings("unchecked")
     public Collection<?> refAllOfType()
     {
-        Collection<?> cacheResult = 
-            HibernateMDRepository.lookupAllOfTypeResult(this);
+        HibernateMDRepository repos = getHibernateRepository();
+
+        Collection<?> cacheResult = repos.lookupAllOfTypeResult(this);
         if (cacheResult != null) {
             return cacheResult;
         }
         
-        Session session = HibernateMDRepository.getCurrentSession();
+        Session session = repos.getCurrentSession();
         
         Query query = session.getNamedQuery(allOfTypeQueryName);
         
         Collection<?> result = Collections.unmodifiableList(query.list());
         
-        HibernateMDRepository.storeAllOfTypeResult(this, result);
+        repos.storeAllOfTypeResult(this, result);
         
         return result;
+    }
+    
+    
+    protected HibernateMDRepository getHibernateRepository()
+    {
+        return (HibernateMDRepository)getRepository();
     }
 }

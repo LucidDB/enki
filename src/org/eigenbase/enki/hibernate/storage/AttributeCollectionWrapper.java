@@ -140,7 +140,7 @@ public class AttributeCollectionWrapper<E> implements Collection<E>
     
     protected void fireAddEvent(Object o)
     {
-        HibernateMDRepository.enqueueEvent(
+        enqueueEvent(
             new AttributeEvent(
                 source,
                 AttributeEvent.EVENT_ATTRIBUTE_ADD,
@@ -152,7 +152,7 @@ public class AttributeCollectionWrapper<E> implements Collection<E>
 
     protected void fireRemoveEvent(Object o)
     {
-        HibernateMDRepository.enqueueEvent(
+        enqueueEvent(
             new AttributeEvent(
                 source,
                 AttributeEvent.EVENT_ATTRIBUTE_REMOVE,
@@ -160,6 +160,13 @@ public class AttributeCollectionWrapper<E> implements Collection<E>
                 o,
                 null,
                 AttributeEvent.POSITION_NONE));
+    }
+    
+    protected void enqueueEvent(MDRChangeEvent event)
+    {
+        HibernateMDRepository repos = 
+            ((HibernateObject)source).getHibernateRepository();
+        repos.enqueueEvent(event);
     }
     
     private class Itr implements Iterator<E>

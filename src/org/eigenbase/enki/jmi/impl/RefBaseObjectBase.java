@@ -27,6 +27,7 @@ import java.util.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 
 /**
@@ -465,6 +466,13 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         
         return null;
     }
+    
+    /**
+     * Retrieves the {@link EnkiMDRepository} that stores this object.
+     * 
+     * @return the EnkiMDRepository that stores this object
+     */
+    protected abstract EnkiMDRepository getRepository();
 }
 
 // End RefBaseObjectBase.java

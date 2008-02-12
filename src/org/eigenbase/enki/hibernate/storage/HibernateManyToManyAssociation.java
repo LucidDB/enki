@@ -25,7 +25,6 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
-import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
 
 /**
@@ -202,7 +201,7 @@ public abstract class HibernateManyToManyAssociation
             if (sourceAssocTargets.isEmpty()) {
                 source.setAssociation(type, sourceIsFirstEnd, null);
     
-                HibernateMDRepository.getCurrentSession().delete(sourceAssoc);
+                sourceAssoc.delete(getHibernateRepository(source));
             }
         }
         
@@ -213,7 +212,7 @@ public abstract class HibernateManyToManyAssociation
             if (targetAssocTargets.isEmpty()) {
                 target.setAssociation(type, targetIsFirstEnd, null);
     
-                HibernateMDRepository.getCurrentSession().delete(targetAssoc);
+                targetAssoc.delete(getHibernateRepository(source));
             }
         }
         
@@ -288,7 +287,24 @@ public abstract class HibernateManyToManyAssociation
     @Override
     public List<? extends RefObject> query(boolean returnSecondEnd)
     {
-        return Collections.unmodifiableList(getTarget());
+        boolean reversed = getReversed();
+        boolean getSource;
+        if (reversed) {
+            getSource = returnSecondEnd;
+        } else {
+            getSource = !returnSecondEnd;
+        }
+
+        if (getSource) {
+            RefObject source = getSource();
+            if (source != null) {
+                return Collections.singletonList(getSource());
+            } else {
+                return Collections.emptyList();
+            }
+        } else {
+            return Collections.unmodifiableList(getTarget());
+        }
     }
 }
 

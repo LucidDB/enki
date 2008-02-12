@@ -27,6 +27,7 @@ import java.util.logging.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 
 /**
@@ -52,6 +53,8 @@ public abstract class MetamodelInitializer
     private ModelPackage modelPackage;
     private ModelPackage metaModelPackage;
     
+    private EnkiMDRepository owningRepository;
+    
     protected Logger log = 
         Logger.getLogger(MetamodelInitializer.class.getName());
     
@@ -62,6 +65,11 @@ public abstract class MetamodelInitializer
             new TreeMap<RefClassBase, Collection<RefObjectBase>>(
                 RefBaseObjectComparator.instance);
         this.propertyMap = new HashMap<String, Object>();
+    }
+    
+    public void setOwningRepository(EnkiMDRepository repos)
+    {
+        this.owningRepository = repos;
     }
     
     public void init(ModelPackage metaModelPackage)
@@ -83,6 +91,11 @@ public abstract class MetamodelInitializer
     public ModelPackage getModelPackage()
     {
         return modelPackage;
+    }
+    
+    public EnkiMDRepository getRepository()
+    {
+        return owningRepository;
     }
     
     protected void setModelPackage(ModelPackage modelPackage)

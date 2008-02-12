@@ -71,7 +71,7 @@ public abstract class HibernateRefAssociation
     
     public Collection<?> refAllLinks()
     {
-        Session session = HibernateMDRepository.getCurrentSession();
+        Session session = getHibernateRepository().getCurrentSession();
         
         Query query = session.getNamedQuery(getAllLinksQueryName());
         query.setString(
@@ -240,7 +240,7 @@ public abstract class HibernateRefAssociation
     private void generateAddEvent(
         RefObject fixedEnd, String fixedEndName, RefObject end, int index)
     {
-        HibernateMDRepository.enqueueEvent(
+        getHibernateRepository().enqueueEvent(
             new AssociationEvent(
                 this,
                 AssociationEvent.EVENT_ASSOCIATION_ADD,
@@ -294,7 +294,7 @@ public abstract class HibernateRefAssociation
     private void generateRemoveEvent(
         RefObject fixedEnd, String fixedEndName, RefObject end, int index)
     {
-        HibernateMDRepository.enqueueEvent(
+        getHibernateRepository().enqueueEvent(
             new AssociationEvent(
                 this,
                 AssociationEvent.EVENT_ASSOCIATION_REMOVE,
@@ -326,7 +326,7 @@ public abstract class HibernateRefAssociation
             index = AssociationEvent.POSITION_NONE;
         }
         
-        HibernateMDRepository.enqueueEvent(
+        getHibernateRepository().enqueueEvent(
             new AssociationEvent(
                 this,
                 AssociationEvent.EVENT_ASSOCIATION_SET,
@@ -335,5 +335,10 @@ public abstract class HibernateRefAssociation
                 oldEnd,
                 newEnd,
                 index));
+    }
+    
+    protected HibernateMDRepository getHibernateRepository()
+    {
+        return (HibernateMDRepository)getRepository();
     }
 }

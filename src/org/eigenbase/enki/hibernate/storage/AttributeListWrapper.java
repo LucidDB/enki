@@ -25,7 +25,6 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
-import org.eigenbase.enki.hibernate.*;
 import org.netbeans.api.mdr.events.*;
 
 /**
@@ -132,7 +131,7 @@ public class AttributeListWrapper<E>
  
     protected void fireAddEvent(Object o, int position)
     {
-        HibernateMDRepository.enqueueEvent(
+        enqueueEvent(
             new AttributeEvent(
                 source,
                 AttributeEvent.EVENT_ATTRIBUTE_ADD,
@@ -144,7 +143,7 @@ public class AttributeListWrapper<E>
 
     protected void fireRemoveEvent(Object o, int position)
     {
-        HibernateMDRepository.enqueueEvent(
+        enqueueEvent(
             new AttributeEvent(
                 source,
                 AttributeEvent.EVENT_ATTRIBUTE_REMOVE,
@@ -156,7 +155,7 @@ public class AttributeListWrapper<E>
 
     protected void fireSetEvent(Object oldObj, Object newObj, int position)
     {
-        HibernateMDRepository.enqueueEvent(
+        enqueueEvent(
             new AttributeEvent(
                 source,
                 AttributeEvent.EVENT_ATTRIBUTE_SET,

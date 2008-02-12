@@ -49,7 +49,7 @@ public abstract class HibernateRefObject
     @Override
     public void refDelete()
     {
-        HibernateMDRepository.enqueueEvent(
+        enqueueEvent(
             new InstanceEvent(
                 this,
                 InstanceEvent.EVENT_INSTANCE_DELETE,
@@ -203,7 +203,7 @@ public abstract class HibernateRefObject
     protected void fireAttributeSetEvent(
         String attribName, Object oldValue, Object newValue)
     {
-        HibernateMDRepository.enqueueEvent(
+        enqueueEvent(
             new AttributeEvent(
                 this,
                 AttributeEvent.EVENT_ATTRIBUTE_SET,
@@ -228,5 +228,10 @@ public abstract class HibernateRefObject
             refAssoc.fireRemoveEvent(
                 isExposedEndFirst, this, otherEnds.get(i), i);
         }
+    }
+    
+    private void enqueueEvent(MDRChangeEvent event)
+    {
+        ((HibernateMDRepository)getRepository()).enqueueEvent(event);
     }
 }
