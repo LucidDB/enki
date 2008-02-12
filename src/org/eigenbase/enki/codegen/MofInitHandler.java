@@ -95,8 +95,6 @@ public class MofInitHandler
         Logger.getLogger(MofInitHandler.class.getName());
 
     private boolean isMetaMetamodel;
-    private String prefixTagValue;
-    private String prefixTagPackage;
 
     private List<MofClass> classes;
     private List<Association> associations;
@@ -487,58 +485,22 @@ public class MofInitHandler
         }
         
         ModelPackage modelPackage = (ModelPackage)refBaseObject;
-        Collection<?> pkgs = modelPackage.getMofPackage().refAllOfType();
-        for(MofPackage pkg: 
-                GenericCollections.asTypedCollection(pkgs, MofPackage.class))
-        {
-            // Ignore these ancillary types.
-            if (pkg.getName().equals("PrimitiveTypes") ||
-                pkg.getName().equals("CorbaIdlTypes"))
-            {
-                continue;
-            }
-         
-            if (pkg.getContainer() != null) {
-                continue;
-            }
-            
-            for(Tag tag: contentsOfType(pkg, Tag.class)) {
-                if (!tag.getTagId().equals("javax.jmi.packagePrefix")) {
-                    continue;
-                }
-                List<?> values = tag.getValues();
-
-                prefixTagValue = values.get(0).toString();
-            }
-            
-            prefixTagPackage = pkg.getName();
-        }
         
-        String packageName;
-        if (prefixTagValue != null) {
-            packageName = 
-                prefixTagValue + 
-                "." + 
-                prefixTagPackage.toLowerCase(Locale.US) +
-                ".init";
-        } else {
-            packageName = 
-                prefixTagPackage.toLowerCase(Locale.US) +
-                ".init";
-        }
+        String packageName = TagUtil.getFullyQualifiedPackageName(modelPackage);
+        packageName += ".init";
         
         if (!packageName.startsWith(
                 MofImplementationHandler.JMI_PACKAGE_PREFIX))
         {
             return packageName;
         }
-        
+    
         packageName = 
             MofImplementationHandler.JMI_PACKAGE_PREFIX_SUBST + 
             packageName.substring(
                 MofImplementationHandler.JMI_PACKAGE_PREFIX.length());
         
-        return packageName;
+        return packageName;        
     }
     
     private void initElement(MofClass mofClass)

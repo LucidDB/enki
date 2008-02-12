@@ -93,6 +93,11 @@ public abstract class GeneratorBase implements Generator
     }
     
     // implements Generator
+    public void setOptions(Map<String, String> options)
+    {
+    }
+    
+    // implements Generator
     public boolean setUseGenerics(boolean enableGenerics)
     {
         boolean oldSetting = this.enableGenerics;

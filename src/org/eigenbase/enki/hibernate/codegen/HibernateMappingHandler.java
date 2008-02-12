@@ -107,25 +107,9 @@ public class HibernateMappingHandler
         "target_id";
 
     /**
-     * Name of the class for one-to-one associations.
+     * Default prefix for association entity names.
      */
-    public static final JavaClassReference ASSOCIATION_ONE_TO_ONE_IMPL_CLASS = 
-        new JavaClassReference(
-            HibernateJavaHandler.ASSOCIATION_ONE_TO_ONE_IMPL_CLASS, false);
-    
-    /**
-     * Name of the class for one-to-many associations.
-     */
-    public static final JavaClassReference ASSOCIATION_ONE_TO_MANY_IMPL_CLASS = 
-        new JavaClassReference(
-            HibernateJavaHandler.ASSOCIATION_ONE_TO_MANY_IMPL_CLASS, false);
-    
-    /**
-     * Name of the class for many-to-many associations.
-     */
-    public static final JavaClassReference ASSOCIATION_MANY_TO_MANY_IMPL_CLASS = 
-        new JavaClassReference(
-            HibernateJavaHandler.ASSOCIATION_MANY_TO_MANY_IMPL_CLASS, false);
+    public static final String DEFAULT_ASSOC_ENTITY_PREFIX = "_ENTITY_";
 
     // Association HQL query names and named parameters.
     public static final String QUERY_NAME_ALLLINKS = "allLinks";
@@ -166,10 +150,16 @@ public class HibernateMappingHandler
     
     private String extentName;
     
+    private String tablePrefix;
+    
     private String initializerName;
 
     private Map<Association, AssociationInfo> assocInfoMap;
 
+    private JavaClassReference assocOneToOneClass;
+    private JavaClassReference assocOneToManyClass;
+    private JavaClassReference assocManyToManyClass;
+    
     public HibernateMappingHandler()
     {
         this.oneToOneParentTypeSet = new LinkedHashSet<Classifier>();
@@ -194,6 +184,11 @@ public class HibernateMappingHandler
     {
         this.extentName = extentName;
     }
+    
+    public void setTablePrefix(String tablePrefix)
+    {
+        this.tablePrefix = tablePrefix;
+    }
 
     public void setInitializerClassName(String initializerName)
     {
@@ -210,6 +205,24 @@ public class HibernateMappingHandler
     public void beginGeneration() throws GenerationException
     {        
         super.beginGeneration();
+
+        ModelPackage modelPackage = 
+            (ModelPackage)generator.getRefBaseObject();
+        String packageName = 
+            TagUtil.getFullyQualifiedPackageName(modelPackage);
+        
+        assocOneToOneClass = 
+            new JavaClassReference(
+                packageName,
+                HibernateJavaHandler.ASSOCIATION_ONE_TO_ONE_BASE.toSimple());
+        assocOneToManyClass = 
+            new JavaClassReference(
+                packageName,
+                HibernateJavaHandler.ASSOCIATION_ONE_TO_MANY_BASE.toSimple());
+        assocManyToManyClass = 
+            new JavaClassReference(
+                packageName,
+                HibernateJavaHandler.ASSOCIATION_MANY_TO_MANY_BASE.toSimple());
 
         File metaInfDir = 
             new File(outputDir, MDRepositoryFactory.META_INF_DIR_NAME);
@@ -312,7 +325,6 @@ public class HibernateMappingHandler
             writeln(
                 HibernateMDRepository.PROPERTY_MODEL_INITIALIZER, "=", 
                 initializerName);
-
             close();
         }
         
@@ -335,13 +347,10 @@ public class HibernateMappingHandler
             childLength = Math.max(childLength, key.length());
         }
 
-        // TODO: distinct tables/names for multiple extents in one schema
-        // (or else move these standard to a built-in config file and use 
-        // them across repositories)
         startElem(
             "class",
-            "name", ASSOCIATION_ONE_TO_ONE_IMPL_CLASS,
-            "table", ASSOC_ONE_TO_ONE_TABLE);
+            "name", assocOneToOneClass,
+            "table", tableName(ASSOC_ONE_TO_ONE_TABLE));
         
         writeEmptyElem("cache", "usage", "read-write");
         
@@ -402,7 +411,7 @@ public class HibernateMappingHandler
             "name", QUERY_NAME_ALLLINKS);
         writeCData(
             "from ", 
-            ASSOCIATION_ONE_TO_ONE_IMPL_CLASS.toFull(),
+            assocOneToOneClass,
             " where type = :", QUERY_PARAM_ALLLINKS_TYPE);
         endElem("query");
         
@@ -425,13 +434,10 @@ public class HibernateMappingHandler
             childLength = Math.max(childLength, key.length());
         }
         
-        // TODO: distinct tables/names for multiple extents in one schema
-        // (or else move these standard to a built-in config file and use 
-        // them across repositories)
         startElem(
             "class",
-            "name", ASSOCIATION_ONE_TO_MANY_IMPL_CLASS,
-            "table", ASSOC_ONE_TO_MANY_TABLE);
+            "name", assocOneToManyClass,
+            "table", tableName(ASSOC_ONE_TO_MANY_TABLE));
         
         writeEmptyElem("cache", "usage", "read-write");
         
@@ -471,7 +477,7 @@ public class HibernateMappingHandler
         startElem(
             "list",
             "name", ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY,
-            "table", ASSOC_ONE_TO_MANY_CHILDREN_TABLE,
+            "table", tableName(ASSOC_ONE_TO_MANY_CHILDREN_TABLE),
             "cascade", "save-update",
             "fetch", "subselect");
         writeEmptyElem("cache", "usage", "read-write");        
@@ -504,7 +510,7 @@ public class HibernateMappingHandler
             "name", QUERY_NAME_ALLLINKS);
         writeCData(
             "from ", 
-            ASSOCIATION_ONE_TO_MANY_IMPL_CLASS.toFull(),
+            assocOneToManyClass,
             " where type = :", QUERY_PARAM_ALLLINKS_TYPE);
         endElem("query");
         
@@ -528,13 +534,10 @@ public class HibernateMappingHandler
         }
         int length = Math.max(sourceLength, targetLength);
 
-        // TODO: distinct tables/names for multiple extents in one schema
-        // (or else move these standard to a built-in config file and use 
-        // them across repositories)
         startElem(
             "class",
-            "name", ASSOCIATION_MANY_TO_MANY_IMPL_CLASS,
-            "table", ASSOC_MANY_TO_MANY_TABLE);
+            "name", assocManyToManyClass,
+            "table", tableName(ASSOC_MANY_TO_MANY_TABLE));
         
         writeEmptyElem("cache", "usage", "read-write");
         
@@ -581,7 +584,7 @@ public class HibernateMappingHandler
         startElem(
             "list",
             "name", ASSOC_MANY_TO_MANY_TARGET_PROPERTY,
-            "table", ASSOC_MANY_TO_MANY_TARGET_TABLE,
+            "table", tableName(ASSOC_MANY_TO_MANY_TARGET_TABLE),
             "cascade", "save-update",
             "fetch", "join");
         writeEmptyElem("cache", "usage", "read-write");
@@ -620,8 +623,7 @@ public class HibernateMappingHandler
             "query", 
             "name", QUERY_NAME_ALLLINKS);
         writeCData(
-            "from ", 
-            ASSOCIATION_MANY_TO_MANY_IMPL_CLASS.toFull(),
+            "from ", assocManyToManyClass,
             " where type = :", QUERY_PARAM_ALLLINKS_TYPE, " and reversed = 0");
         endElem("query");
         
@@ -763,7 +765,7 @@ public class HibernateMappingHandler
         startElem(
             "class", 
             "name", typeName,
-            "table", hibernateQuote(tableName),
+            "table", tableName(tableName),
             "batch-size", "25");
 
         writeEmptyElem("cache", "usage", "read-write");
@@ -867,7 +869,7 @@ public class HibernateMappingHandler
                 startElem(
                     mappingType == MappingType.LIST ? "list" : "set",
                     "name", propertyName,
-                    "table", hibernateQuote(collTableName),
+                    "table", tableName(collTableName),
                     "cascade", "all",
                     "fetch", "join");
                 writeEmptyElem("cache", "usage", "read-write");
@@ -956,12 +958,12 @@ public class HibernateMappingHandler
     {
         String fieldName = refInfo.getFieldName();
 
-        JavaClassReference classRef = ASSOCIATION_ONE_TO_MANY_IMPL_CLASS;
+        JavaClassReference classRef = assocOneToManyClass;
 
         if (refInfo.isSingle(0) && refInfo.isSingle(1)) {
-            classRef = ASSOCIATION_ONE_TO_ONE_IMPL_CLASS;
+            classRef = assocOneToOneClass;
         } else if (!refInfo.isSingle(0) && !refInfo.isSingle(1)) {
-            classRef = ASSOCIATION_MANY_TO_MANY_IMPL_CLASS;
+            classRef = assocManyToManyClass;
         }
 
         // NOTE: Cannot specify not-null=true here because Hibernate
@@ -974,7 +976,6 @@ public class HibernateMappingHandler
             "many-to-one",
             "name", fieldName + HibernateJavaHandler.IMPL_SUFFIX,
             "column", hibernateQuote(fieldName),
-            "class", classRef,
             "not-null", "false",
             "cascade", "save-update");
     }
@@ -983,7 +984,16 @@ public class HibernateMappingHandler
     {
         return "`" + fieldName + "`";
     }
-
+    
+    private String tableName(String tableName)
+    {
+        if (tablePrefix != null) {
+            tableName = tablePrefix + tableName;
+        }
+        
+        return hibernateQuote(tableName);
+    }
+    
     private MappingType getMappingType(
         Classifier type, MultiplicityType multiplicity)
     {

@@ -23,7 +23,6 @@ package org.eigenbase.enki.codegen;
 
 import javax.jmi.model.*;
 
-import org.eigenbase.enki.codegen.Generator.*;
 import org.eigenbase.enki.util.*;
 
 public class AssociationInfoImpl implements AssociationInfo

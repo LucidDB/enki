@@ -22,9 +22,12 @@
 package org.eigenbase.enki.codegen;
 
 import java.io.*;
+import java.util.*;
 
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
+
+import org.eigenbase.enki.util.*;
 
 /**
  * Generator represents a class that generates JMI code for a UML model.
@@ -68,6 +71,14 @@ public interface Generator
      */
     public boolean setUseGenerics(boolean enable);
 
+    /**
+     * Configures implementation-specific options for this Generator.  Unknown
+     * options should be ignored.
+     * 
+     * @param options map of option name to value
+     */
+    public void setOptions(Map<String, String> options);
+    
     /**
      * Adds a {@link Handler} implementation to the list of handlers for this
      * generator.  All calls to this method must occur <b>before</b> 
@@ -309,12 +320,4 @@ public interface Generator
      *         1-to-1, 1-to-many or many-to-many association.
      */
     public AssociationKindEnum getAssociationKind(Association assoc);
-    
-    /** Identifies the type of an association. */
-    public static enum AssociationKindEnum
-    {
-        ONE_TO_ONE,
-        ONE_TO_MANY,
-        MANY_TO_MANY;
-    }
 }

@@ -25,8 +25,7 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
-import org.eigenbase.enki.hibernate.codegen.*;
-import org.eigenbase.enki.hibernate.storage.*;
+import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
 import org.hibernate.*;
@@ -41,10 +40,6 @@ import org.hibernate.*;
 public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 extends RefObject>
     extends HibernateRefAssociation
 {
-    private static final String ALL_LINKS_QUERY = 
-        HibernateOneToManyAssociation.class.getName() + "." +
-        HibernateMappingHandler.QUERY_NAME_ALLLINKS;
-
     private final Class<E1> end1Class;
     private final Class<E2> end2Class;
     private final boolean end1IsParent;
@@ -80,13 +75,6 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
         this.end1IsParent = (end1Multiplicity == Multiplicity.SINGLE);
     }
 
-    @Override
-    protected Query getAllLinksQuery(Session session)
-    {
-        Query query = session.getNamedQuery(ALL_LINKS_QUERY);
-        return query;
-    }
-    
     protected boolean exists(E1 parent, E2 child)
     {
         return refLinkExists(parent, child);

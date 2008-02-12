@@ -24,7 +24,6 @@ package org.eigenbase.enki.hibernate.codegen;
 import javax.jmi.model.*;
 
 import org.eigenbase.enki.codegen.*;
-import org.eigenbase.enki.codegen.Generator.*;
 import org.eigenbase.enki.util.*;
 
 /**

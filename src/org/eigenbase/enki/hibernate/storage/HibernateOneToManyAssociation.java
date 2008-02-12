@@ -29,13 +29,15 @@ import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
 
 /**
- * HibernateOneToManyAssociation extends HibernateAssociation and stores
- * one-to-many associations.  Specifically this class handles 0..1 to 0..*, 
- * 1 to 0..*, 0..1 to 1..*, and 1 to 1..* associations. 
+ * HibernateOneToManyAssociation extends HibernateAssociation to provide a
+ * base class that stores one-to-many associations.  It is extended per-model
+ * to provide separate storage for each model's associations. Specifically,
+ * this class handles 0..1 to 0..*, 1 to 0..*, 0..1 to 1..*, and 1 to 1..* 
+ * associations. 
  * 
  * @author Stephan Zuercher
  */
-public class HibernateOneToManyAssociation
+public abstract class HibernateOneToManyAssociation
     extends HibernateAssociation
 {
     /** 

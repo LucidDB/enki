@@ -40,7 +40,7 @@ public abstract class JavaHandlerBase
      * Contains a warning about sub-classing generated interfaces.
      */
     public static final String HEADER_WARNING =
-        "<p><em><strong>Note:</strong> This type should not be subclassed or implemented by clients. It is generated from a MOF metamodel and implemented by Enki or MDR.</em></p>";
+        "<p><em><strong>Note:</strong> This type should not be subclassed, implemented or directly instantiated by clients. It is generated from a MOF metamodel and implemented by Enki or MDR.</em></p>";
 
     // package comments
     public static final String PACKAGE_COMMENT = "{0} package interface.";
@@ -401,7 +401,7 @@ public abstract class JavaHandlerBase
         
         writePackageClause(className);
         writeImports(imports);
-        if (entity != null) {
+        if (comment != null) {
             writeClassJavaDoc(entity, comment);
         }
         writeEntityDeclarationStart(
@@ -450,11 +450,18 @@ public abstract class JavaHandlerBase
     {
         writeln("/**");
         if (comment != null) {
+            String entityName = null;
+            if (entity != null) {
+                entityName = entity.getName();
+            }
             writeWrapped(
-                " *", MessageFormat.format(comment, entity.getName()));
+                " *", MessageFormat.format(comment, entityName));
         }
         
-        writeWrapped(" *", entity.getAnnotation());
+        if (entity != null) {
+            writeWrapped(" *", entity.getAnnotation());
+        }
+        
         if (displayHeaderWarning) {
             writeWrapped(" *", " ");
             writeWrapped(" *", HEADER_WARNING);

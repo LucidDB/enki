@@ -38,7 +38,9 @@ public class JavaClassReference
 {
     private static final int MIN_REFS_FOR_STAR = 1;
     
-    private final Class<?> cls;
+    private final String simpleName;
+    private final String fullName;
+    private final String packageName;
     private final boolean useImport;
     
     /**
@@ -49,7 +51,9 @@ public class JavaClassReference
      */
     public JavaClassReference(Class<?> cls)
     {
-        this.cls = cls;
+        this.simpleName = cls.getSimpleName();
+        this.fullName = cls.getName();
+        this.packageName = cls.getPackage().getName();
         this.useImport = false;
     }
     
@@ -62,8 +66,25 @@ public class JavaClassReference
      */
     public JavaClassReference(Class<?> cls, boolean useImport)
     {
-        this.cls = cls;
+        this.simpleName = cls.getSimpleName();
+        this.fullName = cls.getName();
+        this.packageName = cls.getPackage().getName();
         this.useImport = useImport;
+    }
+    
+    /**
+     * Constructs a JavaClassReference from the names of as yet non-existent
+     * classes.
+     * 
+     * @param packageName fully qualified package name (e.g., "java.lang")
+     * @param className simple class name (e.g., "String");
+     */
+    public JavaClassReference(String packageName, String className)
+    {
+        this.packageName = packageName;
+        this.simpleName = className;
+        this.fullName = packageName + "." + className;
+        this.useImport = false;
     }
     
     /**
@@ -79,7 +100,9 @@ public class JavaClassReference
      */
     public JavaClassReference(JavaClassReference ref, boolean useImport)
     {
-        this.cls = ref.cls;
+        this.simpleName = ref.simpleName;
+        this.fullName = ref.fullName;
+        this.packageName = ref.packageName;
         this.useImport = useImport;
     }
     
@@ -131,7 +154,7 @@ public class JavaClassReference
      */
     public String toFull()
     {
-        return cls.getName();
+        return fullName;
     }
     
     /**
@@ -140,7 +163,16 @@ public class JavaClassReference
      */
     public String toSimple()
     {
-        return cls.getSimpleName();
+        return simpleName;
+    }
+    
+    /**
+     * Returns the name of the class's package.
+     * @return the name of the class's package.
+     */
+    public String getPackageName()
+    {
+        return packageName;
     }
     
     /**
@@ -158,15 +190,17 @@ public class JavaClassReference
         Map<String, List<String>> imports =
             new TreeMap<String, List<String>>();
         
-        for(JavaClassReference ref: refs) {
-            if (ref.useImport) {
-                String pkgName = ref.cls.getPackage().getName();
-                List<String> classNames = imports.get(pkgName);
-                if (classNames == null) {
-                    classNames = new ArrayList<String>();
-                    imports.put(pkgName, classNames);
+        if (refs != null) {
+            for(JavaClassReference ref: refs) {
+                if (ref.useImport) {
+                    String pkgName = ref.getPackageName();
+                    List<String> classNames = imports.get(pkgName);
+                    if (classNames == null) {
+                        classNames = new ArrayList<String>();
+                        imports.put(pkgName, classNames);
+                    }
+                    classNames.add(ref.toSimple());
                 }
-                classNames.add(ref.cls.getSimpleName());
             }
         }
         

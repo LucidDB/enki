@@ -23,7 +23,7 @@ package org.eigenbase.enki.codegen;
 
 import javax.jmi.model.*;
 
-import org.eigenbase.enki.codegen.Generator.*;
+import org.eigenbase.enki.util.*;
 
 /**
  * AssociationInfo contains commonly used information about a MOF 

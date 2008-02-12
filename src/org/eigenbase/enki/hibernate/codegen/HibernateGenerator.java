@@ -21,6 +21,8 @@
 */
 package org.eigenbase.enki.hibernate.codegen;
 
+import java.util.*;
+
 import org.eigenbase.enki.codegen.*;
 
 /**
@@ -36,10 +38,27 @@ import org.eigenbase.enki.codegen.*;
  */
 public class HibernateGenerator extends MdrGenerator
 {
+    public static final String TABLE_PREFIX_OPTION = "tablePrefix";
+    
+    private String tablePrefix;
+    
     public HibernateGenerator()
     {
         super();
     }
+    
+    @Override
+    public void setOptions(Map<String, String> options)
+    {
+        tablePrefix = options.get(TABLE_PREFIX_OPTION);
+        
+        if (tablePrefix == null || tablePrefix.length() == 0) {
+            System.err.println(
+                "WARNING: use of tablePrefix option is highly recommended");
+            tablePrefix = null;
+        }
+    }
+    
     
     @Override
     protected void configureHandlers()
@@ -52,6 +71,7 @@ public class HibernateGenerator extends MdrGenerator
         
         HibernateMappingHandler mappingHandler = new HibernateMappingHandler();
         mappingHandler.setExtentName(getExtentName());
+        mappingHandler.setTablePrefix(tablePrefix);
         addHandler(mappingHandler);
         
         MofInitHandler metamodelInitHandler = 

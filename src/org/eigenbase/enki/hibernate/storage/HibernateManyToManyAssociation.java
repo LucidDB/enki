@@ -29,12 +29,13 @@ import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
 
 /**
- * HibernateManyToManyAssociation extends HibernateAssociation to store
- * many-to-many associations. 
+ * HibernateManyToManyAssociation extends HibernateAssociation to provide a
+ * base class that stores many-to-many associations.  It is extended per-model
+ * to provide separate storage for each model's associations. 
 
  * @author Stephan Zuercher
  */
-public class HibernateManyToManyAssociation
+public abstract class HibernateManyToManyAssociation
     extends HibernateAssociation
 {
     private boolean reversed;

@@ -73,7 +73,7 @@ public abstract class HibernateRefAssociation
     {
         Session session = HibernateMDRepository.getCurrentSession();
         
-        Query query = getAllLinksQuery(session);
+        Query query = session.getNamedQuery(getAllLinksQueryName());
         query.setString(
             HibernateMappingHandler.QUERY_PARAM_ALLLINKS_TYPE, type);
         
@@ -95,14 +95,13 @@ public abstract class HibernateRefAssociation
     }
 
     /**
-     * Obtain a query to implement {@link #refAllLinks()} where the query 
-     * parameter is the association type.  Query returns a list of
-     * {@link HibernateAssociation} objects.  
+     * Obtain the name of the query that implements {@link #refAllLinks()} 
+     * where the query parameter is the association type.  Query must return
+     * a list of {@link HibernateAssociation} objects.  
      * 
-     * @param session session to create query in
-     * @return Hibernate Query object as described above
+     * @return Hibernate query name for query as described above
      */
-    protected abstract Query getAllLinksQuery(Session session);
+    protected abstract String getAllLinksQueryName();
 
     public boolean refLinkExists(RefObject end1, RefObject end2)
     {

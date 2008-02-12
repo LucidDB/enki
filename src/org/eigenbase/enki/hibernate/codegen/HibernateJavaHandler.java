@@ -30,7 +30,6 @@ import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.codegen.*;
-import org.eigenbase.enki.codegen.Generator.*;
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.hibernate.storage.*;
@@ -121,22 +120,22 @@ public class HibernateJavaHandler
         new JavaClassReference(HibernateAssociation.class, true);
     
     /**
-     * Name of the class for one-to-one associations.
+     * Name of the base class for one-to-one associations.
      */
-    public static final JavaClassReference ASSOCIATION_ONE_TO_ONE_IMPL_CLASS = 
-        new JavaClassReference(HibernateOneToOneAssociation.class, true);
+    public static final JavaClassReference ASSOCIATION_ONE_TO_ONE_BASE = 
+        new JavaClassReference(HibernateOneToOneAssociation.class, false);
     
     /**
-     * Name of the class for one-to-many associations.
+     * Name of the base class for one-to-many associations.
      */
-    public static final JavaClassReference ASSOCIATION_ONE_TO_MANY_IMPL_CLASS = 
-        new JavaClassReference(HibernateOneToManyAssociation.class, true);
+    public static final JavaClassReference ASSOCIATION_ONE_TO_MANY_BASE = 
+        new JavaClassReference(HibernateOneToManyAssociation.class, false);
     
     /**
-     * Name of the class for many-to-many associations.
+     * Name of the base class for many-to-many associations.
      */
-    public static final JavaClassReference ASSOCIATION_MANY_TO_MANY_IMPL_CLASS = 
-        new JavaClassReference(HibernateManyToManyAssociation.class, true);
+    public static final JavaClassReference ASSOCIATION_MANY_TO_MANY_BASE = 
+        new JavaClassReference(HibernateManyToManyAssociation.class, false);
 
     public static final JavaClassReference MULTIPLICITY_ENUM =
         new JavaClassReference(Multiplicity.class, true);
@@ -205,9 +204,6 @@ public class HibernateJavaHandler
         OBJECT_IMPL_CLASS,
         ASSOCIABLE_INTERFACE,
         ASSOCIATION_BASE_CLASS,
-        ASSOCIATION_ONE_TO_ONE_IMPL_CLASS,        
-        ASSOCIATION_ONE_TO_MANY_IMPL_CLASS,
-        ASSOCIATION_MANY_TO_MANY_IMPL_CLASS,
         LIST_PROXY_CLASS,
         ATTRIB_LIST_PROXY_CLASS,
         ATTRIB_LIST_WRAPPER_CLASS,
@@ -234,10 +230,14 @@ public class HibernateJavaHandler
     /** Maps a component type to a list of references to it. */
     private Map<Classifier, List<ComponentInfo>> componentAttribMap;
     
+    private JavaClassReference assocOneToOneClass;
+    private JavaClassReference assocOneToManyClass;
+    private JavaClassReference assocManyToManyClass;
+    
     public HibernateJavaHandler()
     {
         super();
-        
+
         this.transientHandler = new TransientImplementationHandler() {
             @Override
             protected String convertToTypeName(String entityName)
@@ -322,15 +322,68 @@ public class HibernateJavaHandler
         super.beginGeneration();
         
         transientHandler.beginGeneration();
+        
+        ModelPackage modelPackage = 
+            (ModelPackage)generator.getRefBaseObject();
+        String packageName = 
+            TagUtil.getFullyQualifiedPackageName(modelPackage);
+        
+        assocOneToOneClass = 
+            new JavaClassReference(
+                packageName,
+                ASSOCIATION_ONE_TO_ONE_BASE.toSimple());
+        assocOneToManyClass = 
+            new JavaClassReference(
+                packageName,
+                ASSOCIATION_ONE_TO_MANY_BASE.toSimple());
+        assocManyToManyClass = 
+            new JavaClassReference(
+                packageName,
+                ASSOCIATION_MANY_TO_MANY_BASE.toSimple());
     }
 
     @Override
     public void endGeneration(boolean throwing)
         throws GenerationException
     {
+        if (!throwing) {
+            generateAssociationStorageSubclass(
+                assocOneToOneClass, ASSOCIATION_ONE_TO_ONE_BASE);
+            generateAssociationStorageSubclass(
+                assocOneToManyClass, ASSOCIATION_ONE_TO_MANY_BASE);
+            generateAssociationStorageSubclass(
+                assocManyToManyClass, ASSOCIATION_MANY_TO_MANY_BASE);
+        }
+        
         super.endGeneration(throwing);
         
         transientHandler.endGeneration(throwing);
+    }
+    
+    private void generateAssociationStorageSubclass(
+        JavaClassReference classRef, JavaClassReference superClassRef)
+    throws GenerationException
+    {
+        String typeName = classRef.toFull();
+        
+        open(typeName);
+        try {
+            writeClassHeader(
+                null, 
+                typeName,
+                superClassRef,
+                new JavaClassReference[0],
+                false,
+                "Model-specific storage sub-class.");
+            
+            startBlock("public ", classRef.toSimple(), "()");
+            writeln("super();");
+            endBlock();
+            writeEntityFooter();
+        }
+        finally {
+            close();
+        }
     }
 
     public void generateAssociation(Association assoc)
@@ -372,7 +425,32 @@ public class HibernateJavaHandler
         
             String assocIdentifier = getAssociationIdentifier(assoc);
             writeConstant(
-                "String", "_id", "\"" + assocIdentifier + "\"", true);
+                "String", "_id", QUOTE + assocIdentifier + QUOTE, true);
+            newLine();
+            
+            String queryName;
+            switch(assocInfo.getKind()) {
+            default:
+                assert(false);
+            case ONE_TO_ONE:
+                queryName =
+                    assocOneToOneClass.toFull() + "." +
+                    HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                break;
+            case ONE_TO_MANY:
+                queryName =
+                    assocOneToManyClass.toFull() + "." +
+                    HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                break;
+            case MANY_TO_MANY:
+                queryName =
+                    assocManyToManyClass.toFull() + "." +
+                    HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                break;
+            }
+            writeConstant(
+                "String", "_allLinksQueryName", 
+                QUOTE + queryName + QUOTE, true);
             newLine();
             
             startConstructorBlock(
@@ -587,6 +665,11 @@ public class HibernateJavaHandler
             writeln("return _id;");
             endBlock();
 
+            newLine();
+            startBlock("protected String getAllLinksQueryName()");
+            writeln("return _allLinksQueryName;");
+            endBlock();
+            
             writeEntityFooter();
         }
         finally {
@@ -2392,13 +2475,13 @@ public class HibernateJavaHandler
         switch(kind)
         {
         case ONE_TO_ONE:
-            return ASSOCIATION_ONE_TO_ONE_IMPL_CLASS.toString();
+            return assocOneToOneClass.toString();
             
         case ONE_TO_MANY:
-            return ASSOCIATION_ONE_TO_MANY_IMPL_CLASS.toString();            
+            return assocOneToManyClass.toString();            
 
         case MANY_TO_MANY:
-            return ASSOCIATION_MANY_TO_MANY_IMPL_CLASS.toString();
+            return assocManyToManyClass.toString();
         }
         
         throw new IllegalArgumentException(

@@ -186,7 +186,8 @@
             file="${sample.model.xmi}"
             dir="${sample.catalog.dir}/java"
             extent="SampleMetamodel"
-            generatorClass="${gen.cls}"/>
+            generatorClass="${gen.cls}"
+            generatorOptions="tablePrefix='SMPL_'"/>
       </mdr-tasks>
     </enki.mdr>
 

@@ -197,6 +197,55 @@ public class TagUtil
             return name;
         }
     }
+    
+    private static MofPackage getBasePackage(ModelPackage modelPackage)
+    {
+        Collection<?> pkgs = modelPackage.getMofPackage().refAllOfType();
+        for(MofPackage pkg: 
+                GenericCollections.asTypedCollection(pkgs, MofPackage.class))
+        {
+            // Ignore these ancillary types.
+            if (pkg.getName().equals("PrimitiveTypes") ||
+                pkg.getName().equals("CorbaIdlTypes"))
+            {
+                continue;
+            }
+         
+            if (pkg.getContainer() != null) {
+                continue;
+            }
+
+            return pkg;
+        }
+        
+        return null;
+    }
+    
+    public static String getFullyQualifiedPackageName(ModelPackage modelPackage)
+    {
+        MofPackage pkg = getBasePackage(modelPackage);
+        
+        return getFullyQualifiedPackageName(pkg);
+    }
+    
+    public static String getFullyQualifiedPackageName(MofPackage pkg)
+    {
+        String prefixTagValue = 
+            TagUtil.getTagValue(pkg, "javax.jmi.packagePrefix");
+        String basePkgName = pkg.getName();
+        
+        String packageName;
+        if (prefixTagValue != null) {
+            packageName = 
+                prefixTagValue + 
+                "." + 
+                basePkgName.toLowerCase(Locale.US);
+        } else {
+            packageName = basePkgName.toLowerCase(Locale.US);
+        }
+        
+        return packageName;
+    }
 }
 
 // End TagUtils.java
