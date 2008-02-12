@@ -33,32 +33,90 @@ import org.eigenbase.enki.util.*;
  */
 public interface AssociationInfo
 {
+    /**
+     * Retrieves the {@link Association} this object describes.
+     */
     public Association getAssoc();
     
+    /**
+     * Retrieves the name of the association proxy interface for the described
+     * {@link Association}. 
+     */
     public String getAssocInterfaceName();
     
+    /**
+     * Retrieves simplified multiplicity of the described {@link Association}. 
+     */
     public AssociationKindEnum getKind();
     
+    /**
+     * Retrieves the base name for the described {@link Association}.  The
+     * base name is the association's simple name.
+     */
     public String getBaseName();
     
+    /**
+     * Retrieves the specified {@link AssociationEnd} of the described
+     * {@link Association}.
+     * 
+     * @param end 0-based index of the end to retrieve
+     * @return the selected AssociationEnd
+     */
     public AssociationEnd getEnd(int end);
     
+    /**
+     * Retrieves the name of the class instance interface for the given
+     * end of the described {@link Association}.
+     */
     public String getEndType(int end);
     
+    /**
+     * Retrieves the names of the class instance interfaces for both ends of 
+     * the described {@link Association} as a String array.
+     */
     public String[] getEndTypes();
     
+    /**
+     * Retrieves the name of the given {@link AssociationEnd} of the described
+     * {@link Association}.
+     */
     public String getEndName(int end);
     
+    /**
+     * Retrieves the name of the given {@link AssociationEnd} of the described
+     * {@link Association}, optionally forcing the initial letter of the name
+     * to be capitalized.
+     */
     public String getEndName(int end, boolean forceInitCaps);
     
+    /**
+     * Retrieves the names of the {@link AssociationEnd ends} of the described
+     * {@link Association} as a String array.
+     */
     public String[] getEndNames();
     
+    /**
+     * Tests whether the selected end of the described {@link Association}
+     * has an upper multiplicity bound of exactly 1.
+     */
     public boolean isSingle(int end);
     
+    /**
+     * Tests whether the selected end of the described {@link Association}
+     * has a ordered multiplicity.
+     */
     public boolean isOrdered(int end);
     
+    /**
+     * Tests whether the selected end of the described {@link Association}
+     * is changeable.
+     */
     public boolean isChangeable(int end);
     
+    /**
+     * Tests whether the selected end of the described {@link Association}
+     * has composite aggregation semantics.
+     */
     public boolean isComposite(int end);
 }
 

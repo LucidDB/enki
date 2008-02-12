@@ -25,7 +25,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.*;
 
-import org.netbeans.api.mdr.*;
 import org.netbeans.api.mdr.events.*;
 
 /**
@@ -137,7 +136,7 @@ public class EnkiChangeEventThread
     /**
      * ListenerSource represents an object that is a source of 
      * {@link MDRChangeListener} instances.  Typically, this object is
-     * also an {@link MDRepository}.
+     * also an {@link EnkiMDRepository}.
      */
     public interface ListenerSource
     {

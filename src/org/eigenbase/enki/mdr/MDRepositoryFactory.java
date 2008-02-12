@@ -28,13 +28,12 @@ import java.util.logging.*;
 
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.netbeans.*;
-import org.netbeans.api.mdr.*;
 import org.netbeans.mdr.*;
 import org.netbeans.mdr.handlers.*;
 import org.netbeans.mdr.persistence.btreeimpl.btreestorage.*;
 
 /**
- * MDRepositoryFactory is a factory class for {@link MDRepository}
+ * MDRepositoryFactory is a factory class for {@link EnkiMDRepository}
  * instances.
  *  
  * @author Stephan Zuercher
@@ -80,7 +79,7 @@ public class MDRepositoryFactory
     {
     }
     
-    public static MDRepository newMDRepository(Properties storageProps)
+    public static EnkiMDRepository newMDRepository(Properties storageProps)
     {
         String providerName = storageProps.getProperty(ENKI_IMPL_TYPE);
         MdrProvider provider = 
@@ -121,7 +120,7 @@ public class MDRepositoryFactory
         }
     }
 
-    private static MDRepository newNetbeansMDRepository(
+    private static EnkiMDRepository newNetbeansMDRepository(
         Properties storageProps)
     {
         if (classLoaderProvider != null) {
@@ -183,7 +182,7 @@ public class MDRepositoryFactory
         }
     }
     
-    private static MDRepository newHibernateRepository(
+    private static EnkiMDRepository newHibernateRepository(
         Properties storageProps, 
         List<Properties> modelProperties,
         ClassLoader classLoader)

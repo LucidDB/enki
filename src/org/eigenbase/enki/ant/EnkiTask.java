@@ -36,7 +36,7 @@ import org.netbeans.api.mdr.*;
  * in various orders to produce useful combinations.
  * 
  * <p>Attributes:
- * <table>
+ * <table border="1">
  * <tr>
  *   <th>Name</th>
  *   <th>Description</th>
@@ -283,6 +283,10 @@ public class EnkiTask
         return props;
     }
     
+    /**
+     * SubTask is an abstract base class for sub-tasks nested with an outer
+     * {@link EnkiTask}.
+     */
     abstract static class SubTask
     {
         private final String name;

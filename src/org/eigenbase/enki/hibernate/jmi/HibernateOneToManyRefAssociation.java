@@ -25,10 +25,8 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
-import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
-import org.hibernate.*;
 
 /**
  * HibernateOneToManyRefAssociation extends {@link HibernateRefAssociation}
@@ -40,8 +38,13 @@ import org.hibernate.*;
 public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 extends RefObject>
     extends HibernateRefAssociation
 {
+    /** Expected end 1 type. */
     private final Class<E1> end1Class;
+
+    /** Expected end 1 type. */
     private final Class<E2> end2Class;
+
+    /** If true end 1 is the single end.  If false, end 2 is the single end. */
     private final boolean end1IsParent;
     
     protected HibernateOneToManyRefAssociation(
@@ -75,6 +78,9 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
         this.end1IsParent = (end1Multiplicity == Multiplicity.SINGLE);
     }
 
+    /**
+     * Delegates to {@link #refLinkExists(RefObject, RefObject)}.
+     */
     protected boolean exists(E1 parent, E2 child)
     {
         return refLinkExists(parent, child);
@@ -132,11 +138,17 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
         return end2Class;
     }
     
+    /**
+     * Delegates to {@link #refAddLink(RefObject, RefObject)}.
+     */
     protected boolean add(E1 end1, E2 end2)
     {
         return refAddLink(end1, end2);
     }
 
+    /**
+     * Delegates to {@link #refRemoveLink(RefObject, RefObject)}.
+     */
     protected boolean remove(E1 end1, E2 end2)
     {
         return refRemoveLink(end1, end2);

@@ -22,8 +22,8 @@
 package org.eigenbase.enki.mdr;
 
 /**
- * InternalJmiError represents an unexpected condition or programming error
- * in the JMI metamodel implementation.
+ * InternalMdrError represents an unexpected condition or programming error
+ * in the MDR provider.
  * 
  * @author Stephan Zuercher
  */

@@ -28,13 +28,14 @@ import javax.jmi.reflect.*;
 import org.netbeans.api.mdr.events.*;
 
 /**
- * CreateInstanceEventValidator extends {@link InstanceEvent} to allow setting
+ * CreateInstanceEvent extends {@link InstanceEvent} to allow setting
  * the instance field after the object is created.  This allows planned-change
- * events to be fired with a null instance (as required by the MDR Events API)
- * and then to change the event object to return the actual instance for
- * the canceled-change or change events at rollback/commit time.  Note that
+ * events to be fired with a null instance (as required by the MDR Events API).
+ * The event is then updated to return the actual instance for the 
+ * canceled-change or change events at rollback/commit time.  Note that
  * the MDR Events API requires that the same event object instance be
- * delivered at both times.
+ * delivered to both the planned-change and canceled-change/change listener
+ * methods.
  * 
  * @author Stephan Zuercher
  */

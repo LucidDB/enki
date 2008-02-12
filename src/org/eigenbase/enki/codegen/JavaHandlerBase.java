@@ -31,6 +31,29 @@ import javax.jmi.reflect.*;
  * JavaHandlerBase extends {@link HandlerBase} to provide convenience functions
  * for generator Java code.
  * 
+ * <p>Various methods in this class format comments.  Formatting is 
+ * achieved via {@link MessageFormat} and the methods usually provide one or
+ * two fields implicitly and allow the caller to specify more.  Implicit
+ * fields always start at 0.  So for instance, calling
+ * 
+ * <pre>
+ *     writeClassJavaDoc(c, "The class {0} has a comment.");
+ * </pre>
+ * 
+ * for a {@link MofClass} whose name is "SimpleClass" generates a JavaDoc 
+ * comment like this (with asterisks in place of x):
+ * 
+ * <pre>
+ *     /xx
+ *      x The class SimpleClass has a comment.
+ *      x/
+ * </pre>
+ *
+ * Typically, if a "write" method takes a {@link ModelElement} and a comment
+ * string, the model element's name is used as the first format parameter.
+ * If the method takes additional ModelElements or other arrays to specify
+ * argument types, those are appended to the format parameters in order.
+ * 
  * @author Stephan Zuercher
  */
 public abstract class JavaHandlerBase
@@ -1462,10 +1485,22 @@ public abstract class JavaHandlerBase
         writeln("@SuppressWarnings(", QUOTE, "unchecked", QUOTE, ")");
     }
 
+    /**
+     * CondType enumerates the various types of conditional blocks that may
+     * be started via 
+     * {@link JavaHandlerBase#startConditionalBlock(CondType, Object...)}.
+     * These are, an initial <code>if</code> statement and subsequent
+     * <code>else if</code> or <code>else</code> statements.
+     */
     public static enum CondType
     {
+        /** Emit an <code>if (<i>condition</i>) {</code> block. */
         IF,
+        
+        /** Emit an <code>} else if (<i>condition</i>) {</code> block. */
         ELSEIF,
+        
+        /** Emit an <code>} else {</code> block. */
         ELSE;
     }
 }

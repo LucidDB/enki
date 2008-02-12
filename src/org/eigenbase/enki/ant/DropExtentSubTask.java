@@ -30,7 +30,7 @@ import org.netbeans.api.mdr.*;
  * DropExtentSubTask is responsible for dropping MDR extents.
  * 
  * <p>Attributes:
- * <table>
+ * <table border="1">
  * <tr>
  *   <th>Name</th>
  *   <th>Description</th>

@@ -37,32 +37,87 @@ import javax.jmi.model.*;
  */
 public interface ReferenceInfo extends AssociationInfo
 {
+    /**
+     * Retrieves the described {@link Reference} object.
+     */
     public Reference getReference();
-    
+
+    /**
+     * Retrieves the type referenced by the described {@link Reference}.
+     */
     public Classifier getReferencedType();
-    
+
+    /**
+     * Retrieves the name of the class instance interface for the type 
+     * referenced by the described {@link Reference}.
+     */
     public String getReferencedTypeName();
     
+    /**
+     * Retrieves the name of the field used to store information about the
+     * association of the described {@link Reference}.
+     */
     public String getFieldName();
     
+    /**
+     * Retrieves the {@link AssociationInfo#getBaseName() base name} for the
+     * referenced end.  If this object describes a reference-less Association,
+     * the name is prefixed with the Association's name to insure uniqueness.
+     */
     public String getReferencedEndBaseName();
     
+    /**
+     * Retrieves the name of the accessor (getter) method used to retrieve
+     * the reference's value(s) from a 
+     * {@link javax.jmi.reflect.RefAssociation}.
+     */
     public String getAccessorName();
     
+    /**
+     * Tests whether the referenced end of the association has an upper
+     * multiplicity bound of exactly 1.
+     */
     public boolean isSingle();
     
+    /**
+     * Tests whether the referenced end of the association has ordered
+     * multiplicity.
+     */
     public boolean isOrdered();
     
+    /**
+     * Tests whether the referenced end of the association is changeable.
+     */
     public boolean isChangeable();
     
+    /**
+     * Tests whether the referenced end of the association has composite
+     * aggregation semantics.
+     */    
     public boolean isComposite();
     
+    /**
+     * Tests whether the referenced end of the association is the first 
+     * (index 0) {@link AssociationEnd} of the underlying {@link Association}.
+     */
     public boolean isReferencedEndFirst();
     
+    /**
+     * Tests whether the exposed end of the association is the first 
+     * (index 0) {@link AssociationEnd} of the underlying {@link Association}.
+     */
     public boolean isExposedEndFirst();
     
+    /**
+     * Retrieves the 0-based index of the {@link AssociationEnd} in the
+     * underlying {@link Association} which represents the referenced end.
+     */
     public int getReferencedEndIndex();
     
+    /**
+     * Retrieves the 0-based index of the {@link AssociationEnd} in the
+     * underlying {@link Association} which represents the exposed end.
+     */
     public int getExposedEndIndex();
 }
 

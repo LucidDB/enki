@@ -47,12 +47,19 @@ public class HibernateMappingHandler
     implements ClassInstanceHandler, AssociationHandler, PackageHandler, 
                EnumerationClassHandler, MofInitHandler.SubordinateHandler
 {
+    /** Name of the column that stores an entity's MOF ID. */
     private static final String MOF_ID_COLUMN_NAME = "mofId";
+
+    /** Name of the object property that stores an entity's MOF ID. */
     private static final String MOF_ID_PROPERTY_NAME = "mofId";
 
+    /** Suffix for enumeration type defs. */
     private static final String TYPEDEF_SUFFIX = "Type";
 
+    /** Name of the type property for association. */
     private static final String ASSOC_TYPE_PROPERTY = "type";
+    
+    /** Name of the reversed property for association. */
     private static final String ASSOC_REVERSE_POLARITY_PROPERTY = 
         "reversed";
 
@@ -958,14 +965,6 @@ public class HibernateMappingHandler
     {
         String fieldName = refInfo.getFieldName();
 
-        JavaClassReference classRef = assocOneToManyClass;
-
-        if (refInfo.isSingle(0) && refInfo.isSingle(1)) {
-            classRef = assocOneToOneClass;
-        } else if (!refInfo.isSingle(0) && !refInfo.isSingle(1)) {
-            classRef = assocManyToManyClass;
-        }
-
         // NOTE: Cannot specify not-null=true here because Hibernate
         // may try to insert the object without the association and
         // then circle back to create the association.  Instead, the
@@ -1152,6 +1151,11 @@ public class HibernateMappingHandler
         }
     }
     
+    /**
+     * FakeMultiplicityType is a trivial implementation of 
+     * {@link MultiplicityType} that represents a multiplicity with upper 
+     * bound 1.  All JMI reflective APIs return null.
+     */
     private final class FakeMultiplicityType
         implements MultiplicityType
     {
@@ -1193,15 +1197,44 @@ public class HibernateMappingHandler
         }
     }
 
+    /**
+     * MappingType distinguishes between several ways that an {@link Attribute}
+     * may be mapped to a database column.
+     */
     private enum MappingType
     {
-        BOOLEAN,          // Primitive boolean
-        STRING,           // Primitive string
-        ENUMERATION,      // any EnumerationType
-        OTHER_DATA_TYPE,  // any other DataType
-        CLASS,            // MofClass for the model
-        LIST,             // List of primitives
-        COLLECTION;       // Collection of primitives
+        /** Boolean value.  Mapped using {@link BooleanPropertyAccessor}. */
+        BOOLEAN,
+        
+        /** String value.  Maybe mapped as varchar or text. */
+        STRING,
+        
+        /** Enumeration value.  Mapped using a Hibernate typedef. */
+        ENUMERATION,
+        
+        /** 
+         * Generic value.  Mapped by allowing Hibernate to inspect property's 
+         * type.
+         */
+        OTHER_DATA_TYPE,
+        
+        /** 
+         * Component attribute.  Mapped by modeling it as if it were an
+         * {@link Association}.
+         */
+        CLASS,
+        
+        /** 
+         * List of values. Mapped as a Hibernate list.  Note that the 
+         * underlying type must still be mapped properly.
+         */
+        LIST,
+        
+        /** 
+         * Collection of values.  Mapped as a Hibernate set.  Note that the 
+         * underlying type must still be mapped properly.
+         */ 
+        COLLECTION;
     }
 }
 

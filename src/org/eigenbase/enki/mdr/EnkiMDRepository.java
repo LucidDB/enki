@@ -33,13 +33,42 @@ import org.netbeans.api.mdr.*;
  */
 public interface EnkiMDRepository extends MDRepository
 {
+    /**
+     * Drops the extent associated with the given top-level package.  If
+     * {@link EnkiDropFailedException} is thrown, the extent's storage is
+     * left in an indeterminate state.  Do not assume it is fully deleted
+     * or that it can still be used.
+     * 
+     * @param refPackage top-level {@link RefPackage}
+     * @throws EnkiDropFailedException if there's an error dropping the extent
+     */
     public void dropExtentStorage(RefPackage refPackage)
         throws EnkiDropFailedException;
+    
+    
+    /**
+     * Drops the named extent.  If {@link EnkiDropFailedException} is thrown, 
+     * the extent's storage is left in an indeterminate state.  Do not assume 
+     * it is fully deleted or that it can still be used.
+     * 
+     * @param extentName name of the extent whose storage is to be dropped 
+     * @throws EnkiDropFailedException if there's an error dropping the extent
+     */
     public void dropExtentStorage(String extentName) 
         throws EnkiDropFailedException;
     
+    /**
+     * Tests whether the named extent is built into this repository.  Built-in
+     * extents cannot be imported or deleted.
+     * 
+     * @param extentName extent name to test
+     * @return true if the extent is built-in, false otherwise
+     */
     public boolean isExtentBuiltIn(String extentName);
     
+    /**
+     * Retrieves the default {@link ClassLoader} for this repository.
+     */
     public ClassLoader getDefaultClassLoader();
 }
 

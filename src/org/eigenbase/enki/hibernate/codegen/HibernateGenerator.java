@@ -38,8 +38,10 @@ import org.eigenbase.enki.codegen.*;
  */
 public class HibernateGenerator extends MdrGenerator
 {
+    /** The name of the generator option for setting the table prefix. */
     public static final String TABLE_PREFIX_OPTION = "tablePrefix";
     
+    /** Prefix for all table names in this metamodel. */
     private String tablePrefix;
     
     public HibernateGenerator()
@@ -47,6 +49,11 @@ public class HibernateGenerator extends MdrGenerator
         super();
     }
     
+    /**
+     * Accepts the {@link #TABLE_PREFIX_OPTION} option and ignores all others.
+     * 
+     * @param options map of option name to option value
+     */
     @Override
     public void setOptions(Map<String, String> options)
     {
@@ -60,6 +67,11 @@ public class HibernateGenerator extends MdrGenerator
     }
     
     
+    /**
+     * Configures a {@link JmiTemplateHandler} for UML interfaces, a
+     * {@link HibernateJavaHandler} for Hibernate entities and a 
+     * {@link HibernateMappingHandler} to generate a Hibernate mapping file.
+     */
     @Override
     protected void configureHandlers()
     {
@@ -79,6 +91,11 @@ public class HibernateGenerator extends MdrGenerator
         addHandler(metamodelInitHandler);
     }
 
+    /**
+     * Provides an entry point for testing without Any.
+     * 
+     * @param args
+     */
     public static void main(String[] args)
     {
         HibernateGenerator generator = new HibernateGenerator();

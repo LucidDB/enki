@@ -284,8 +284,26 @@ public class GenericCollectionsTest
         return c;
     }
     
+    /**
+    * Bag is an implementation of {@link Collection} that does not provide
+    * {@link Set} semantics.  Instead it maintains a count of the number of
+    * times a particular object is added and provides for iterating over
+    * each instance.  That is, 
+    * <pre>
+    *   Bag<Integer> bag = new Bag<Integer>();
+    *   bag.add(1);
+    *   bag.add(2);
+    *   bag.add(1);
+    * </pre>
+    * has a {@link #size()} of 3.  All elements with the same value are
+    * returned consecutively from the bag's {@link #iterator()}, but the 
+    * order of value is non-deterministic.
+    */
     private static class Bag<E> implements Collection<E>
     {
+        /**
+         * Implements {@link Iterator} for a {@link Bag}.
+         */
         private final class BagIterator
             implements Iterator<E>
         {

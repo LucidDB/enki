@@ -36,7 +36,7 @@ import org.netbeans.api.xmi.*;
  * {@link CreateExtentSubTask created extent}.
  * 
  * <p>Attributes:
- * <table>
+ * <table border="1">
  * <tr>
  *   <th>Name</th>
  *   <th>Description</th>

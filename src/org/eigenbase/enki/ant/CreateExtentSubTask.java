@@ -32,7 +32,7 @@ import org.netbeans.api.mdr.*;
  * metadata repository extent.
  * 
  * <p>Attributes:
- * <table>
+ * <table border="1">
  * <tr>
  *   <th>Name</th>
  *   <th>Description</th>

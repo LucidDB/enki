@@ -25,10 +25,8 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
-import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
-import org.hibernate.*;
 
 /**
  * HibernateManyToManyRefAssociation extends {@link HibernateRefAssociation}
@@ -40,7 +38,10 @@ import org.hibernate.*;
 public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2 extends RefObject>
     extends HibernateRefAssociation
 {
+    /** Expected end 1 type. */
     private final Class<E1> end1Class;
+
+    /** Expected end 2 type. */
     private final Class<E2> end2Class;
     
     protected HibernateManyToManyRefAssociation(
@@ -68,6 +69,9 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
         this.end2Class = end2Class;
     }
 
+    /**
+     * Delegates to {@link #refLinkExists(RefObject, RefObject)}
+     */
     protected boolean exists(E1 source, E2 target)
     {
         return super.refLinkExists(source, target);
@@ -107,11 +111,17 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
         return end2Class;
     }
     
+    /**
+     * Delegates to {@link #refAddLink(RefObject, RefObject)}.
+     */
     protected boolean add(E1 end1, E2 end2)
     {
         return refAddLink(end1, end2);
     }
 
+    /**
+     * Delegates to {@link #refRemoveLink(RefObject, RefObject)}.
+     */
     protected boolean remove(E1 end1, E2 end2)
     {
         return refRemoveLink(end1, end2);

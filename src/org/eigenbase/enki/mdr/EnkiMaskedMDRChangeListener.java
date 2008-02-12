@@ -26,12 +26,16 @@ import java.util.logging.*;
 import org.netbeans.api.mdr.events.*;
 
 /**
- * EnkiMaskedMDRChangeListener wraps {@link MDRPreChangeListener} and 
- * automatically propagates or blocks pre-change and change events according
- * to the specified event mask.  In addition, pre-change events are 
- * automatically discarded if the given listener is not an 
- * {@link MDRPreChangeListener}.  Events are also discarded if the
- * listener throws any {@link RuntimeException}.
+ * EnkiMaskedMDRChangeListener wraps an {@link MDRChangeListener} and 
+ * automatically propagates events according to the specified event mask.
+ * If the given listener is also an {@link MDRPreChangeListener}, pre-change
+ * events are also propagated, other they are discarded. Events are also 
+ * discarded if the listener throws any {@link RuntimeException}.
+ * 
+ * <p><b>Mask Bits</b></p>
+ * The mask bits used by this class correspond to the constants fields in
+ * {@link MDRChangeEvent} and its subclasses in the MDR API.  Mask bits
+ * may be combined to produce the desired set of events for a listener.
  * 
  * @author Stephan Zuercher
  */
@@ -44,6 +48,15 @@ public class EnkiMaskedMDRChangeListener implements MDRPreChangeListener
     private final MDRPreChangeListener preListener;
     private int mask;
     
+    /**
+     * Constructs an EnkiMaskedMDRChangeListener with the given mask.
+     * See class description for explanation of mask bits.
+     * 
+     * @param listener {@link MDRChangeListener} (or 
+     *                 {@link MDRPreChangeListener}) to invoke for events
+     *                 matching the mask
+     * @param mask mask bits for the desired events
+     */
     public EnkiMaskedMDRChangeListener(MDRChangeListener listener, int mask)
     {
         this.listener = listener;
@@ -55,12 +68,18 @@ public class EnkiMaskedMDRChangeListener implements MDRPreChangeListener
         this.mask = mask;
     }
     
+    // Implements MDRPreChangeListener
     public void changeCancelled(MDRChangeEvent event)
     {
         if (preListener == null) {
             return;
         }
-        
+
+        int mask;
+        synchronized(this) {
+            mask = this.mask;
+        }
+               
         if (event.isOfType(mask)) {
             try {
                 preListener.changeCancelled(event);
@@ -74,10 +93,16 @@ public class EnkiMaskedMDRChangeListener implements MDRPreChangeListener
         }
     }
 
+    // Implements MDRPreChangeListener
     public void plannedChange(MDRChangeEvent event)
     {
         if (preListener == null) {
             return;
+        }
+        
+        int mask;
+        synchronized(this) {
+            mask = this.mask;
         }
         
         if (event.isOfType(mask)) {
@@ -93,8 +118,14 @@ public class EnkiMaskedMDRChangeListener implements MDRPreChangeListener
         }
     }
 
+    // Implements MDRChangeListener
     public void change(MDRChangeEvent event)
     {
+        int mask;
+        synchronized(this) {
+            mask = this.mask;
+        }
+        
         if (event.isOfType(mask)) {
             try {
                 listener.change(event);
@@ -108,18 +139,39 @@ public class EnkiMaskedMDRChangeListener implements MDRPreChangeListener
         }
     }
     
-    public void add(int addMask)
+    /**
+     * Updates this instance's mask to include the given mask bits.  Performs 
+     * a bitwise OR of the current mask with the new mask.  Mask bits are 
+     * described in the class description.
+     * 
+     * @param addMask additional mask bits to set
+     * @see EnkiMaskedMDRChangeListener
+     */
+    public synchronized void add(int addMask)
     {
         mask = mask | addMask;
     }
     
-    public boolean remove(int removeMask)
+    /**
+     * Updates this instance's mask to exclude the given mask bits.  Performs
+     * a bitwise negation of the <code>removeMask</code> and then a bitwise
+     * AND of the result with the current mask bits. Mask bits are described 
+     * in the class description.
+     * 
+     * @param removeMask mask bits to clear
+     * @see EnkiMaskedMDRChangeListener
+     */
+    public synchronized boolean remove(int removeMask)
     {
         mask = mask & ~removeMask;
         
         return mask != 0;
     }
     
+    /**
+     * Compares two EnkiMaskedMDRChangeListener instances for equality by
+     * identity of the underlying {@link MDRChangeListener}.
+     */
     @Override
     public boolean equals(Object o)
     {
@@ -128,6 +180,10 @@ public class EnkiMaskedMDRChangeListener implements MDRPreChangeListener
         return this.listener == that.listener;
     }
     
+    /**
+     * Delegates to the {@link MDRChangeListener}'s {@link Object#hashCode()}
+     * method. 
+     */
     @Override
     public int hashCode()
     {

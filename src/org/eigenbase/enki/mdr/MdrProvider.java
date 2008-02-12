@@ -28,7 +28,15 @@ package org.eigenbase.enki.mdr;
  */
 public enum MdrProvider
 {
+    /**
+     * Basic MDR provider that delegates nearly all operations directly to
+     * the Netbeans MDR library.
+     */
     NETBEANS_MDR,
+    
+    /**
+     * Hibernate-based MDR provider.
+     */
     ENKI_HIBERNATE;
 }
 

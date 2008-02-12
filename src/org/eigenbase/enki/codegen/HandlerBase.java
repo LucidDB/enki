@@ -22,7 +22,6 @@
 package org.eigenbase.enki.codegen;
 
 import java.io.*;
-import java.text.*;
 import java.util.*;
 import java.util.logging.*;
 
@@ -33,33 +32,6 @@ import org.eigenbase.enki.util.*;
 /**
  * HandlerBase is an abstract class that provides common functionality for
  * implementations of {@link Handler} and its sub-interfaces.
- * 
- * <p>Various methods in this class format comments.  Formatting is 
- * achieved via {@link MessageFormat} and the methods usually provide one or
- * two fields implicitly and allow the caller to specify more.  Implicit
- * fields always start at 0.  So for instance, calling
- * 
- * <pre>
- *     writeClassJavaDoc(c, "The class {0} has a comment.");
- * </pre>
- * 
- * for a {@link MofClass} whose name is "SimpleClass" generates a JavaDoc 
- * comment like this (with asterisks in place of x):
- * 
- * <pre>
- *     /xx
- *      x The class SimpleClass has a comment.
- *      x/
- * </pre>
- * 
- * <table>
- * <tr>
- * <th>Method</th><th>Implicit Format Parameters</th>
- * </tr>
- * <tr>
- * <td>writeClassJavaDoc</td><td>Class Name</td><
- * </tr>
- * </table>
  * 
  * @author Stephan Zuercher
  */
@@ -734,11 +706,14 @@ public abstract class HandlerBase implements Handler
     
     /**
      * HierarchySearchKindEnum is used as a flag to control methods that may
-     * either search only an entity or the entity and its super types.
+     * either search only a given entity or the entity and its super types.
      */
     protected static enum HierachySearchKindEnum
     {
+        /** Search only the given entity, ignoring super types. */
         ENTITY_ONLY,
+        
+        /** Search the given entity, followed by all of its super types. */
         INCLUDE_SUPERTYPES;
     }    
 }

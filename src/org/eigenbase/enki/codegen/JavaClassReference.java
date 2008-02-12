@@ -73,8 +73,9 @@ public class JavaClassReference
     }
     
     /**
-     * Constructs a JavaClassReference from the names of as yet non-existent
-     * classes.
+     * Constructs a JavaClassReference for the name of a class that is in
+     * the process of being generated.  Do not use this constructor when
+     * one of the other forms could be used.
      * 
      * @param packageName fully qualified package name (e.g., "java.lang")
      * @param className simple class name (e.g., "String");

@@ -27,8 +27,8 @@ import org.eigenbase.enki.codegen.*;
 import org.eigenbase.enki.util.*;
 
 /**
- * ComponentInfo implements {@link ReferenceInfo} so as to model component
- * attributes as pseudo-references.
+ * ComponentInfo implements {@link ReferenceInfo} to allow component attributes
+ * to be modeled and stored as in the same way as first-class references.
  * 
  * @author Stephan Zuercher
  */

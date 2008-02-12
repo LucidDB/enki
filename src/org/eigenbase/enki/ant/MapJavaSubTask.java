@@ -33,7 +33,7 @@ import org.eigenbase.enki.netbeans.codegen.*;
  * MapJavaSubTask generates code for a given metamodel.
  * 
  * <p>Attributes:
- * <table>
+ * <table border="1">
  * <tr>
  *   <th>Name</th>
  *   <th>Description</th>
@@ -293,6 +293,10 @@ public class MapJavaSubTask extends EnkiTask.SubTask
         this.generatorOptions = generatorOptions;
     }
     
+    /**
+     * ParseState enumerates states for the state machine used to parse
+     * {@link MapJavaSubTask#setGeneratorOptions(String) generator options}.
+     */
     private enum ParseState
     {
         FIND_OPTION_NAME,

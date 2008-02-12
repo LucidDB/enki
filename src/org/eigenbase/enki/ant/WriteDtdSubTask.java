@@ -31,7 +31,7 @@ import org.eigenbase.enki.ant.EnkiTask.*;
  * extent.
  * 
  * <p>Attributes:
- * <table>
+ * <table border="1">
  * <tr>
  *   <th>Name</th>
  *   <th>Description</th>

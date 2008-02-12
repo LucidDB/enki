@@ -184,7 +184,7 @@ public abstract class GeneratorBase implements Generator
     
     protected void visitRefObject(RefObject obj) throws GenerationException
     {
-        if (!generatObject(obj)) {
+        if (!generateObject(obj)) {
             return;
         }
         
@@ -264,7 +264,7 @@ public abstract class GeneratorBase implements Generator
         }
     }
 
-    protected boolean generatObject(RefObject obj)
+    protected boolean generateObject(RefObject obj)
     {
         if (visited.contains(obj) || !(obj instanceof Namespace)) {
             return false;

@@ -98,6 +98,13 @@ public abstract class MdrGenerator
         }
     }
 
+    /**
+     * Provides processing for executing a concrete subclass from the command
+     * line.
+     * 
+     * @param args XMI file name, output directory
+     * @param useGenerics if true, use Java generic types
+     */
     protected void doMain(String[] args, boolean useGenerics)
     {
     
