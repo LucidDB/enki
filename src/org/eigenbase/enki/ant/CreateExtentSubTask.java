@@ -93,6 +93,7 @@ public class CreateExtentSubTask extends EnkiTask.SubTask
         
         MDRepository repos = task.getMDRepository(true);
         
+        repos.beginTrans(true);
         try {
             if (modelExtentName == null && packageName == null) {
                 repos.createExtent(extentName);
@@ -131,7 +132,10 @@ public class CreateExtentSubTask extends EnkiTask.SubTask
                 
                 repos.createExtent(extentName, extentPackage);
             }
+            
+            repos.endTrans(false);
         } catch(CreationFailedException ex) {
+            repos.endTrans(true);
             throw new BuildException(ex);
         }
     }

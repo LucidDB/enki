@@ -24,10 +24,11 @@ package org.eigenbase.enki.test;
 import java.io.*;
 import java.util.*;
 
+import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 import javax.jmi.xmi.*;
 
-import org.eigenbase.enki.mdr.*;
+import org.eigenbase.enki.util.*;
 import org.junit.*;
 import org.netbeans.api.mdr.*;
 import org.netbeans.api.xmi.*;
@@ -41,6 +42,8 @@ import eem.sample.*;
  */
 public class ExportImportTest extends SampleModelTestBase
 {
+    private static String sampleMetamodelName;
+    
     @BeforeClass
     public static void populateExtent()
     {
@@ -114,20 +117,20 @@ public class ExportImportTest extends SampleModelTestBase
         } finally {
             getRepository().endTrans(rollback);
         }
+        
+        for(String extentName: getRepository().getExtentNames()) {
+            if (!extentName.equals(getTestExtentName())) {
+                sampleMetamodelName = extentName;
+                break;
+            }
+        }
+        
+        System.out.println("Metamodel = " + sampleMetamodelName);
     }
     
     @Test
     public void testExportImport() throws Exception
     {
-        if (getMdrProvider() == MdrProvider.NETBEANS_MDR) {
-            // TODO: Fix discrepancy between Netbeans and Enki-Hibernate.
-            // Netbeans RefPackage.refDelete() destroys the metamodel as well,
-            // requiring a re-import (which this test doesn't do, hence the
-            // skip).
-            System.out.println("Skipping export/import test for Netbeans");
-            return;
-        }
-        
         File file = new File("test/results/ExportImportTest.xmi");
         
         RefPackage refPackage = getPackage();
@@ -138,6 +141,11 @@ public class ExportImportTest extends SampleModelTestBase
         Assert.assertTrue(file.length() > 0L);
         
         deleteExtent(refPackage);
+        
+        // From here forward, the old refPackage instance and any base class 
+        // methods are invalid!
+        
+        refPackage = createExtent();
         
         importExtent(refPackage, file);
         
@@ -173,6 +181,36 @@ public class ExportImportTest extends SampleModelTestBase
         try {
             refPackage.refDelete();
         } finally {
+            getRepository().endTrans();
+        }
+    }
+    
+    private RefPackage createExtent() throws Exception
+    {
+        getRepository().beginTrans(true);
+        
+        try {
+            RefPackage metamodelExtent =
+                getRepository().getExtent(sampleMetamodelName);
+            
+            ModelPackage modelPackage = (ModelPackage)metamodelExtent;
+            
+            MofPackage extentPackage = null;
+            for(MofPackage mofPkg: 
+                    GenericCollections.asTypedCollection(
+                        modelPackage.getMofPackage().refAllOfClass(),
+                        MofPackage.class))
+            {
+                if (mofPkg.getName().equals("EEM")) {
+                    extentPackage = mofPkg;
+                    break;
+                }
+            }
+
+            return getRepository().createExtent(
+                getTestExtentName(), extentPackage);
+        }
+        finally {
             getRepository().endTrans();
         }
     }

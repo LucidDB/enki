@@ -25,6 +25,7 @@ import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
+import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 
 /**
@@ -44,23 +45,28 @@ public abstract class HibernateRefPackage
     
     public void refDelete()
     {
+        boolean deleteExtent = false;
         if (refImmediatePackage() == null) {
             getHibernateRepository().enqueueExtentDeleteEvent(this);
             
-            // TODO: remove the extent
+            deleteExtent = true;
         }
         
-        deleteObjectsRecursively();
+        deleteObjectsRecursively(deleteExtent);
+        
+        if (deleteExtent) {
+            getHibernateRepository().deleteExtentDescriptor(this);
+        }
     }
 
-    private void deleteObjectsRecursively()
+    private void deleteObjectsRecursively(boolean unregister)
     {
         for(RefPackage refPackage: 
                 GenericCollections.asTypedCollection(
                     refAllPackages(), RefPackage.class))
         {
             if (refPackage instanceof HibernateRefPackage) {
-                ((HibernateRefPackage)refPackage).deleteObjectsRecursively();
+                ((HibernateRefPackage)refPackage).deleteObjectsRecursively(unregister);
             }
             
             // TODO: transient packages deletion
@@ -91,6 +97,37 @@ public abstract class HibernateRefPackage
                 refObject.refDelete();
             }
         }        
+
+        if (!unregister) {
+            return;
+        }
+        
+        HibernateRefAssociationRegistry refAssocRegistry = 
+            HibernateRefAssociationRegistry.instance();
+        for(RefAssociation refAssociation:
+            GenericCollections.asTypedCollection(
+                refAllAssociations(), RefAssociation.class))
+        {
+            if (refAssociation instanceof HibernateRefAssociation) {
+                HibernateRefAssociation hibRefAssociation =
+                    (HibernateRefAssociation)refAssociation;
+                refAssocRegistry.unregisterRefAssociation(
+                    hibRefAssociation.getAssociationIdentifier());
+            }
+        }
+        
+        HibernateRefClassRegistry refClassRegistry =
+            HibernateRefClassRegistry.instance();
+        for(RefClass refClass: 
+            GenericCollections.asTypedCollection(
+                refAllClasses(), RefClass.class))
+        {
+            if (refClass instanceof HibernateRefClass) {
+                HibernateRefClass hibRefClass = (HibernateRefClass)refClass;
+                refClassRegistry.unregisterRefClass(
+                    hibRefClass.getClassIdentifier());
+            }
+        }
     }
     
     protected HibernateMDRepository getHibernateRepository()

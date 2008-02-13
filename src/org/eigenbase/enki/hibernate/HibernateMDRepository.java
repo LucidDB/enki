@@ -140,6 +140,7 @@ public class HibernateMDRepository
         
         initModelMap();
         initModelExtent(MOF_EXTENT);
+        initStorage();
     }
     
     public void beginTrans(boolean write)
@@ -312,12 +313,14 @@ public class HibernateMDRepository
     throws CreationFailedException
     {
         synchronized(extentMap) {
-            initStorage();
-
             ExtentDescriptor extentDesc = extentMap.get(name);
             if (extentDesc != null) {
                 throw new EnkiCreationFailedException(
                     "Extent '" + name + "' already exists");
+            }
+            
+            if (!isWriteTransaction()) {
+                throw new EnkiHibernateException("not a write txn");
             }
             
             enqueueEvent(
@@ -347,8 +350,6 @@ public class HibernateMDRepository
     public void dropExtentStorage(String extent) throws EnkiDropFailedException
     {
         synchronized(extentMap) {
-            initStorage();
-
             ExtentDescriptor extentDesc = extentMap.get(extent);
             if (extentDesc == null) {
                 return;
@@ -362,8 +363,6 @@ public class HibernateMDRepository
         throws EnkiDropFailedException
     {
         synchronized(extentMap) {
-            initStorage();
-            
             for(ExtentDescriptor extentDesc: extentMap.values()) {
                 if (extentDesc.extent.equals(refPackage)) {
                     dropExtentStorage(extentDesc);
@@ -443,11 +442,36 @@ public class HibernateMDRepository
         }
     }
 
+    public void deleteExtentDescriptor(RefPackage refPackage)
+    {
+        synchronized(extentMap) {
+            for(ExtentDescriptor extentDesc: extentMap.values()) {
+                if (extentDesc.extent.equals(refPackage)) {
+                    deleteExtentDescriptor(extentDesc);
+                    return;
+                }
+            }
+        }  
+    }
+    
+    private void deleteExtentDescriptor(ExtentDescriptor extentDesc)
+    {
+        extentMap.remove(extentDesc.name);
+
+        if (!isWriteTransaction()) {
+            throw new EnkiHibernateException("not in a write txn");
+        }
+        
+        Session session = getCurrentSession();
+        Query query = session.getNamedQuery("ExtentByName");
+        query.setString(0, extentDesc.name);
+        Extent extent = (Extent)query.uniqueResult();
+        session.delete(extent);
+    }
+    
     public RefPackage getExtent(String name)
     {
         synchronized(extentMap) {
-            initStorage();
-            
             ExtentDescriptor extentDesc = extentMap.get(name);
             if (extentDesc == null) {
                 return null;
@@ -552,8 +576,6 @@ public class HibernateMDRepository
     public boolean isExtentBuiltIn(String name)
     {
         synchronized(extentMap) {
-            initStorage();
-            
             ExtentDescriptor extentDesc = extentMap.get(name);
             if (extentDesc == null) {
                 return false;
@@ -852,24 +874,13 @@ public class HibernateMDRepository
             MetamodelInitializer.setCurrentInitializer(null);
         }
 
-        Session session = sessionFactory.getCurrentSession();
-        Transaction trans = session.beginTransaction();
+        Session session = getCurrentSession();
         
-        boolean rollback = true;
-        try {
-            Extent extentDbObj = new Extent();
-            extentDbObj.setExtentName(extentDesc.name);
-            extentDbObj.setModelExtentName(modelDesc.name);
-            
-            session.save(extentDbObj);
-            rollback = false;
-        } finally {
-            if (rollback) {
-                trans.rollback();
-            } else {
-                trans.commit();
-            }
-        }
+        Extent extentDbObj = new Extent();
+        extentDbObj.setExtentName(extentDesc.name);
+        extentDbObj.setModelExtentName(modelDesc.name);
+        
+        session.save(extentDbObj);
         
         extentMap.put(name, extentDesc);
 
@@ -1088,18 +1099,6 @@ public class HibernateMDRepository
                 "Schema drop for model '" + modelDesc.name + 
                 "' failed (cause is first exception)",
                 (Throwable)exceptions.get(0));
-        }
-        
-        SessionFactory tempSessionFactory = config.buildSessionFactory();
-
-        try {
-            MofIdGenerator mofIdGenerator = 
-                new MofIdGenerator(
-                    tempSessionFactory, config, storageProperties);
-            mofIdGenerator.dropTable();
-        }
-        finally {
-            tempSessionFactory.close();
         }
     }
     

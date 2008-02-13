@@ -102,6 +102,27 @@ public class HibernateRefAssociationRegistry
                 refAssoc.getClass().getName() + ")"); 
         }
     }
+    
+    /**
+     * Unregister a previously 
+     * {@link #registerRefAssociation(String, HibernateRefAssociation) registered} 
+     * {@link HibernateRefAssociation}.
+     * 
+     * @param uid unique identifier for the HibernateRefAssociation
+     */
+    public void unregisterRefAssociation(String uid)
+    {
+        if (uid == null) {
+            throw new NullPointerException("uid == null");
+        }
+        
+        HibernateRefAssociation old = registry.remove(uid);
+        if (old == null) {
+            throw new InternalJmiError(
+                "HibernateRefAssociation (uid " + uid + 
+                ") was never registered");
+        }
+    }
 }
 
 // End HibernateRefAssociationRegistry.java

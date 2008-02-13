@@ -99,6 +99,26 @@ public class HibernateRefClassRegistry
                 refClass.getClass().getName() + ")"); 
         }
     }
+    
+    /**
+     * Unregister a previously 
+     * {@link #registerRefClass(String, HibernateRefClass) registered} 
+     * {@link HibernateRefClass}.
+     * 
+     * @param uid unique identifier for the HibernateRefClass
+     */
+    public void unregisterRefClass(String uid)
+    {
+        if (uid == null) {
+            throw new NullPointerException("uid == null");
+        }
+        
+        HibernateRefClass old = registry.remove(uid);
+        if (old == null) {
+            throw new InternalJmiError(
+                "HibernateRefClass (uid " + uid + ") was never registered");
+        }
+    }
 }
 
 // End HibernateRefClassRegistry.java
