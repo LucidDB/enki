@@ -99,8 +99,8 @@ public class MofInitHandler
     private List<MofClass> classes;
     private List<Association> associations;
     private Map<RefObject, Integer> indexMap;
-    private Map<String, String> metaObjInitMap;
-    
+    private Map<String, String> classMetaObjInitMap;
+    private Map<String, String> associationMetaObjInitMap;
     
     private SubordinateHandler subordinateHandler;
     
@@ -111,7 +111,8 @@ public class MofInitHandler
         this.classes = new ArrayList<MofClass>();
         this.associations = new ArrayList<Association>();
         this.indexMap = new IdentityHashMap<RefObject, Integer>();
-        this.metaObjInitMap = new HashMap<String, String>();
+        this.classMetaObjInitMap = new HashMap<String, String>();
+        this.associationMetaObjInitMap = new HashMap<String, String>();
         
         this.subordinateHandler = null;
     }
@@ -172,7 +173,7 @@ public class MofInitHandler
                 ModelPackage mofModelPkg = (ModelPackage)mofBase;
                 ModelPackage modelPkg = 
                     (ModelPackage)generator.getRefBaseObject();
-                
+
                 Collection<?> allClasses = 
                     mofModelPkg.getMofClass().refAllOfType();
                 for(MofClass mofClass: 
@@ -206,11 +207,16 @@ public class MofInitHandler
             
             writeln("// Initialize Model Package");
             writeln(
-                MODEL_PACKAGE_INTERFACE, 
+                MODEL_PACKAGE_IMPL_CLASS, 
                 " modelPackage = new " +
                 "", MODEL_PACKAGE_IMPL_CLASS, 
                 "();");
             writeln("setModelPackage(modelPackage);");
+            if (!isMetaMetamodel) {
+                writeln(
+                    "setRefMetaObject(modelPackage, ", 
+                    QUOTE, "Model", QUOTE, ");");
+            }
     
             newLine();
             writeln("// Pass 1: Instances and attributes");
@@ -226,10 +232,20 @@ public class MofInitHandler
             
             newLine();
             writeln("// Pass 3: Meta Objects");
-            for(Map.Entry<String, String> entry: metaObjInitMap.entrySet()) {
+            for(Map.Entry<String, String> entry: 
+                classMetaObjInitMap.entrySet())
+            {
                 writeln(
                     "setRefMetaObject(getModelPackage().get", entry.getKey(),
                     "(), findMofClassByName(", 
+                    QUOTE, entry.getValue(), QUOTE, ", true));");
+            }
+            for(Map.Entry<String, String> entry: 
+                associationMetaObjInitMap.entrySet())
+            {
+                writeln(
+                    "setRefMetaObject(getModelPackage().get", entry.getKey(),
+                    "(), findAssociationByName(", 
                     QUOTE, entry.getValue(), QUOTE, ", true));");
             }
             
@@ -258,6 +274,9 @@ public class MofInitHandler
         MofClass cls, Collection<?> instances)
     throws GenerationException
     {
+        String clsName = TagUtil.getSubstName(cls);
+        classMetaObjInitMap.put(clsName, cls.getName());
+
         if (cls.isAbstract()) {
             log.fine("Skipping class initializer for " + cls.getName());   
             return;
@@ -272,11 +291,6 @@ public class MofInitHandler
 
         String var = makeVarName(cls);
         String func = makeVarName(cls, INIT_SUFFIX);
-        String clsName = 
-            TagUtil.getTagValue(cls, TagUtil.TAGID_SUBSTITUTE_NAME);
-        if (clsName == null) {
-            clsName = cls.getName();
-        }
         
         boolean requiresWarningSupression = false;
         Collection<Attribute> attribs = 
@@ -307,7 +321,7 @@ public class MofInitHandler
         }
         startBlock("private void ", func, "()");
         
-        metaObjInitMap.put(clsName, cls.getName());
+        classMetaObjInitMap.put(clsName, cls.getName());
         
         if (!instances.isEmpty()) {
             writeln(var, " = new ", clsName, "[", instances.size(), "];");
@@ -367,6 +381,9 @@ public class MofInitHandler
         Association assoc, RefAssociation refAssociation)
     throws GenerationException
     {
+        String assocName = TagUtil.getSubstName(assoc);
+        associationMetaObjInitMap.put(assocName, assoc.getName());
+
         AssociationEnd[] assocEnds =
             contentsOfType(assoc, AssociationEnd.class)
             .toArray(new AssociationEnd[2]);

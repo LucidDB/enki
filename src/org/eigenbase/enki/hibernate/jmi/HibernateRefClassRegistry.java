@@ -40,8 +40,7 @@ import org.eigenbase.enki.jmi.impl.*;
  */
 public class HibernateRefClassRegistry
 {
-    private static HibernateRefClassRegistry instance = 
-        new HibernateRefClassRegistry();
+    private static HibernateRefClassRegistry instance;
     
     private final HashMap<String, HibernateRefClass> registry;
     
@@ -50,8 +49,12 @@ public class HibernateRefClassRegistry
         this.registry = new HashMap<String, HibernateRefClass>();
     }
     
-    public static HibernateRefClassRegistry instance()
+    public static synchronized HibernateRefClassRegistry instance()
     {
+        if (instance == null) {
+            instance = new HibernateRefClassRegistry();
+        }
+        
         return instance;
     }
     
@@ -118,6 +121,15 @@ public class HibernateRefClassRegistry
             throw new InternalJmiError(
                 "HibernateRefClass (uid " + uid + ") was never registered");
         }
+    }
+    
+    /**
+     * Called on shutdown to remove all items from the registry.
+     */
+    public void shutdown()
+    {
+        registry.clear();
+        instance = null;
     }
 }
 

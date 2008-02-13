@@ -291,8 +291,22 @@ public abstract class MetamodelInitializer
     
     protected RefObject findMofPackageByName(String name)
     {
-        ModelPackage mp = getModelPackage();
+        return findMofPackageByName(name, false);
+    }
 
+    protected RefObject findMofPackageByName(
+        String name, boolean searchMetaModel)
+    {
+        ModelPackage mp = getModelPackage();
+        if (searchMetaModel && metaModelPackage != null) {
+            mp = metaModelPackage;
+        }
+        
+        return findMofPackageByName(mp, name);
+    }
+
+    private RefObject findMofPackageByName(ModelPackage mp, String name)
+    {
         for(MofPackage mofPackage:         
             GenericCollections.asTypedCollection(
                 mp.getMofPackage().refAllOfClass(), MofPackage.class)) 
@@ -307,7 +321,12 @@ public abstract class MetamodelInitializer
     
     public void setRefMetaObject(RefPackageBase pkg, String pkgName)
     {
-        RefObject metaObj = findMofPackageByName(pkgName);
+        RefObject metaObj;
+        if (pkg == getModelPackage()) {
+            metaObj = findMofPackageByName(getMetaModelPackage(), pkgName);            
+        } else {
+            metaObj = findMofPackageByName(pkgName);
+        }
 
         pkg.setRefMetaObject(metaObj);
     }
@@ -321,8 +340,22 @@ public abstract class MetamodelInitializer
 
     protected RefObject findAssociationByName(String name)
     {
-        ModelPackage mp = getModelPackage();
+        return findAssociationByName(name, false);
+    }
 
+    protected RefObject findAssociationByName(
+        String name, boolean searchMetaModel)
+    {
+        ModelPackage mp = getModelPackage();
+        if (searchMetaModel && metaModelPackage != null) {
+            mp = metaModelPackage;
+        }
+        
+        return findAssociationByName(mp, name);
+    }
+
+    private RefObject findAssociationByName(ModelPackage mp, String name)
+    {
         for(Association association:         
             GenericCollections.asTypedCollection(
                 mp.getAssociation().refAllOfClass(), Association.class)) 

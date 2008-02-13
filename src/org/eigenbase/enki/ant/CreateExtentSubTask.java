@@ -91,7 +91,7 @@ public class CreateExtentSubTask extends EnkiTask.SubTask
                 "A name for new extent must be specified using the \"name\" attribute");
         }
         
-        MDRepository repos = task.getMDRepository(true);
+        MDRepository repos = getMDRepository(true);
         
         repos.beginTrans(true);
         try {

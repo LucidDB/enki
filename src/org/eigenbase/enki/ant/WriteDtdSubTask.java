@@ -21,10 +21,13 @@
 */
 package org.eigenbase.enki.ant;
 
+import java.io.*;
+
 import javax.jmi.reflect.*;
 
 import org.apache.tools.ant.*;
 import org.eigenbase.enki.ant.EnkiTask.*;
+import org.netbeans.api.mdr.*;
 
 /**
  * WriteDtdSubTask implements the generation of a DTD for a given metamodel
@@ -82,13 +85,19 @@ public class WriteDtdSubTask extends SubTask
             throw new BuildException("Missing \"extent\" attribute");
         }
 
-        RefPackage refPackage = task.getMDRepository().getExtent(extent);
+        RefPackage refPackage = getMDRepository(true).getExtent(extent);
         if (refPackage == null) {
             throw new BuildException("Extent '" + extent + "' does not exist");
         }
         
-        // TODO: implement DTD export
-        System.out.println("Skipping DTD write (not implemented yet)");
+        FileOutputStream out;
+        try {
+            out = new FileOutputStream(file);
+        } catch (FileNotFoundException e) {
+            throw new BuildException(e);
+        }
+        
+        DTDProducer.getDefault().generate(out, refPackage);
     }
 }
 

@@ -71,6 +71,7 @@
     name="sample.model.xmi" 
     location="${sample.catalog.dir}/xmi/EnkiSampleMetamodel.xmi"/>
   <property name="sample.jar" location="${sample.dir}/sample.jar"/>
+  <property name="sample.dtd" location="${sample.catalog.dir}/xmi/sample.dtd"/>
 
   <!-- classpath for Sample model implementation JAR -->
   <path id="sample.mdr.classpath">
@@ -211,15 +212,6 @@
       target="forked_importSampleMetamodel"
       classpathref="sample.mdr.classpath"/>
 
-    <!-- TODO: write DTD -->
-    <!--
-    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
-      <mdr-tasks>
-        <writeDtd extent="SampleMetamodel" file="some.dtd"/>
-      </mdr-tasks>
-    </enki.mdr>
-    -->
-
     <antcall target="compile.impl"/>
   </target>
 
@@ -234,6 +226,12 @@
             name="SampleRepository"
             extent="SampleMetamodel"
             package="EEM"/>
+      </mdr-tasks>
+    </enki.mdr>
+
+    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
+      <mdr-tasks>
+        <writeDtd extent="SampleMetamodel" file="${sample.dtd}"/>
       </mdr-tasks>
     </enki.mdr>
   </target>
@@ -465,6 +463,9 @@
   <property 
     name="farrago-catalog.jar"
     location="${farrago.dir}/farrago-catalog.jar"/>
+  <property 
+    name="farrago.dtd"
+    location="${farrago.catalog.dir}/xmi/FarragoCatalog.dtd"/>
 
   <!-- classpath for Farrago model implementation JAR -->
   <path id="farrago.mdr.classpath">
@@ -557,15 +558,6 @@
       target="forked_importFarragoMetamodel"
       classpathref="farrago.mdr.classpath"/>
     
-    <!-- TODO: write DTD -->
-    <!--
-    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
-      <mdr-tasks>
-        <writeDtd extent="FarragoMetamodel" file="some.dtd"/>
-      </mdr-tasks>
-    </enki.mdr>
-    -->
-
     <antcall target="compile.impl"/>
   </target>
 
@@ -580,6 +572,12 @@
             name="FarragoCatalog"
             extent="FarragoMetamodel"
             package="Farrago"/>
+      </mdr-tasks>
+    </enki.mdr>
+
+    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
+      <mdr-tasks>
+        <writeDtd extent="FarragoMetamodel" file="${farrago.dtd}"/>
       </mdr-tasks>
     </enki.mdr>
   </target>

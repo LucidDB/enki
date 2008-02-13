@@ -89,7 +89,7 @@ public class ImportXmiSubTask extends SubTask
         
         File xmiFile = new File(file);
         
-        MDRepository repos = task.getMDRepository(true);
+        MDRepository repos = getMDRepository(true);
 
         boolean builtIn = ((EnkiMDRepository)repos).isExtentBuiltIn(extent);
         if (builtIn) {            

@@ -494,7 +494,6 @@ public class HibernateMDRepository
     {                
         synchronized(listeners) {
             listeners.clear();
-            listeners = null;
         }
 
         synchronized(extentMap) {
@@ -515,6 +514,9 @@ public class HibernateMDRepository
                 
                 sessionFactory.close();
                 sessionFactory = null;
+                
+                HibernateRefClassRegistry.instance().shutdown();
+                HibernateRefAssociationRegistry.instance().shutdown();
             }
         }
     }

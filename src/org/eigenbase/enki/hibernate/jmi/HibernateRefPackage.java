@@ -25,7 +25,6 @@ import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
-import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 
 /**

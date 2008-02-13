@@ -141,6 +141,40 @@ public class JmiTest extends JmiTestBase
         Assert.assertEquals("Class", ((MofClass)metaObj).getName());
     }
     
+    @Test
+    public void testMetamodelRefMetaObject()
+    {
+        String metamodelExtentName = null;
+        for(String extentName: getRepository().getExtentNames()) {
+            if (!extentName.equals(getTestExtentName())) {
+                metamodelExtentName = extentName;
+                break;
+            }
+        }
+        Assert.assertNotNull(metamodelExtentName);
+        
+        RefPackage p = getRepository().getExtent(metamodelExtentName);
+        Assert.assertNotNull(p);
+        
+        ModelPackage modelPkg = (ModelPackage)p;
+        
+        List<RefObject> metaObjs = 
+            getMetaObjects("Sample Model Package", modelPkg);
+        Assert.assertEquals(3, metaObjs.size());
+        
+        RefObject metaObj = metaObjs.get(0);
+        Assert.assertTrue(metaObj instanceof MofPackage);
+        Assert.assertEquals("Model", ((MofPackage)metaObj).getName());
+
+        metaObj = metaObjs.get(1);
+        Assert.assertTrue(metaObj instanceof MofClass);
+        Assert.assertEquals("Package", ((MofClass)metaObj).getName());
+
+        metaObj = metaObjs.get(2);
+        Assert.assertTrue(metaObj instanceof MofClass);
+        Assert.assertEquals("Class", ((MofClass)metaObj).getName());
+    }
+    
     private List<RefObject> getMetaObjects(String desc, RefBaseObject o)
     {
         ArrayList<RefObject> result = new ArrayList<RefObject>();

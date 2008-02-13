@@ -67,7 +67,7 @@ public class DropExtentSubTask
             throw new BuildException("Missing extent attribute");
         }
         
-        MDRepository repos = task.getMDRepository(true);
+        MDRepository repos = getMDRepository(true);
         if (repos instanceof EnkiMDRepository) {
             EnkiMDRepository enkiRepos = (EnkiMDRepository)repos;
             

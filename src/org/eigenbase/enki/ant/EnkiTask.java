@@ -290,7 +290,7 @@ public class EnkiTask
     abstract static class SubTask
     {
         private final String name;
-        protected EnkiTask task;
+        private EnkiTask task;
         
         protected SubTask(String name)
         {
@@ -321,6 +321,16 @@ public class EnkiTask
                 props.getProperty(MDRepositoryFactory.ENKI_IMPL_TYPE);
             MdrProvider implType = MdrProvider.valueOf(enkiImplType);
             return implType;
+        }
+        
+        protected MDRepository getMDRepository()
+        {
+            return task.getMDRepository();
+        }
+        
+        protected MDRepository getMDRepository(boolean create)
+        {
+            return task.getMDRepository(create);
         }
     }
 }
