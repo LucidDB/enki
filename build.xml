@@ -60,9 +60,6 @@
   <property name="test.config.dir" location="${test.dir}/config"/>
   <property name="test.results.dir" location="${test.dir}/results"/>
 
-  <!-- directory in which javadoc should be generated -->
-  <property name="javadoc.dir" location="${enki.dir}/doc/api"/>
-
 
   <!-- Sample Catalog properties -->
   <property name="sample.dir" location="${test.dir}/sample"/>
@@ -236,14 +233,39 @@
     </enki.mdr>
   </target>
 
-  <target name="jar" depends="compile">
-    <mkdir dir="${dist.dir}"/>
-    <jar jarfile="${enki.dist.jar}">
+  <target name="dist" depends="createSampleRepository,javadoc">
+    <fail unless="package.name"/>
+    <fail unless="product.version.major"/>
+    <fail unless="product.version.minor"/>
+    <fail unless="product.version.point"/>
+
+    <jar jarfile="${enki.dist.jar}" compress="true">
+      <fileset dir="${enki.dir}">
+        <include name="LICENSE"/>
+      </fileset>
       <fileset dir="${classes.dir}">
         <include name="**/*.class"/>
       </fileset>
       <fileset dir="${src.dir}">
         <include name="**/*.xml"/>
+      </fileset>
+    </jar>
+
+    <jar jarfile="${enki.dist.src.jar}" compress="true">
+      <fileset dir="${enki.dir}">
+        <include name="LICENSE"/>
+      </fileset>
+      <fileset dir="${src.dir}">
+        <include name="**/*"/>
+      </fileset>
+    </jar>
+
+    <jar jarfile="${enki.dist.doc.jar}" compress="true">
+      <fileset dir="${enki.dir}">
+        <include name="LICENSE"/>
+      </fileset>
+      <fileset dir="${doc.dir}">
+        <include name="**/*"/>
       </fileset>
     </jar>
   </target>
@@ -257,8 +279,6 @@
       srcdir="${src.dir}"
       destdir="${classes.dir}"
       classpathref="enki.sample.classpath">
-      <include name="org/eigenbase/enki/prototype/**/*.java"/>
-      <include name="org/eigenbase/enki/hibernate/prototype/**/*.java"/>
       <include name="org/eigenbase/enki/test/**/*.java"/>
     </enki.javac>
   </target>
@@ -269,8 +289,6 @@
       destdir="${classes.dir}"
       classpathref="enki.build.classpath">
       <include name="**/*.java"/>
-      <exclude name="org/eigenbase/enki/prototype/**/*.java"/>
-      <exclude name="org/eigenbase/enki/hibernate/prototype/**/*.java"/>
       <exclude name="org/eigenbase/enki/test/**/*.java"/>
     </enki.javac>
   </target>
@@ -343,6 +361,8 @@
         <include name="*.log"/>
         <include name="*.log.*"/>
       </fileset>
+      <fileset dir="${javadoc.dir}" includes="**/*"/>
+      <fileset dir="${dist.dir}" includes="*.jar"/>
     </delete>
 
     <!-- Clean up sample -->

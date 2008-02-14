@@ -36,12 +36,29 @@
   <property name="classes.dir" location="${enki.dir}/classes"/>
   <property name="src.dir" location="${enki.dir}/src"/>
 
+  <!-- directory in which javadoc should be generated -->
+  <property name="doc.dir" location="${enki.dir}/doc"/>
+  <property name="javadoc.dir" location="${doc.dir}/api"/>
+
+
   <property name="thirdparty.dir" location="${enki.dir}/thirdparty"/>
 
   <property name="trace.dir" location="trace"/>
 
   <property name="dist.dir" location="${enki.dir}/dist"/>
-  <property name="enki.dist.jar" location="${dist.dir}/enki.jar"/>
+  <property file="${dist.dir}/EnkiRelease.properties"/>
+  <property 
+      name="release.version"
+      value="${product.version.major}.${product.version.minor}.${product.version.point}"/>
+  <property 
+      name="enki.dist.jar" 
+      location="${dist.dir}/${package.name}-${release.version}.jar"/>
+  <property 
+      name="enki.dist.src.jar" 
+      location="${dist.dir}/${package.name}-${release.version}-src.jar"/>
+  <property 
+      name="enki.dist.doc.jar" 
+      location="${dist.dir}/${package.name}-${release.version}-doc.jar"/>
 
   <!-- properties for thirdparty libraries -->
   <property name="commons-collections.dir" location="${thirdparty.dir}/commons-collections"/>
