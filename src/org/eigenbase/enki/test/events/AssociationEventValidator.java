@@ -161,7 +161,8 @@ abstract class AssociationEventValidator extends EventValidator
         if (attribName != null) {
             Assert.assertEquals(
                 toString(), 
-                expectedAttribValue, refObject.refGetValue(attribName));
+                expectedAttribValue, 
+                refObject.refGetValue(attribName).toString());
         }
     }
 

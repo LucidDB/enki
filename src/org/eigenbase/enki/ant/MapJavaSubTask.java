@@ -261,6 +261,7 @@ public class MapJavaSubTask extends EnkiTask.SubTask
         }
     }
         
+    @Override
     boolean isCombinableWith(EnkiTask.SubTask subTask)
     {
         // Can't combine since another task might instantiate the MDR 

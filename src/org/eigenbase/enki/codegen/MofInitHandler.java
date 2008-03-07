@@ -248,6 +248,11 @@ public class MofInitHandler
                     "(), findAssociationByName(", 
                     QUOTE, entry.getValue(), QUOTE, ", true));");
             }
+            if (isMetaMetamodel) {
+                writeln(
+                    "setRefMetaObject(getModelPackage(), findMofPackageByName(",
+                    QUOTE, "Model", QUOTE, ", true));");
+            }
             
             endBlock();
             writeEntityFooter();

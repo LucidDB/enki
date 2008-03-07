@@ -39,9 +39,9 @@ public class Generalizes
     {
         super(
             container,
-            "Supertype",
+            "supertype",
             Multiplicity.UNIQUE_ORDERED_COLLECTION,
-            "Subtype",
+            "subtype",
             Multiplicity.UNIQUE_COLLECTION);
 
     }
@@ -58,7 +58,7 @@ public class Generalizes
         javax.jmi.model.GeneralizableElement subtype)
     {
         return (List)super.refQuery(
-            "Subtype", subtype);
+            "subtype", subtype);
     }
 
     @SuppressWarnings("unchecked")
@@ -66,7 +66,7 @@ public class Generalizes
         javax.jmi.model.GeneralizableElement supertype)
     {
         return super.refQuery(
-            "Supertype", supertype);
+            "supertype", supertype);
     }
 
     public boolean add(

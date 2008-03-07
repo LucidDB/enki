@@ -47,6 +47,8 @@ public class HibernateMappingHandler
     implements ClassInstanceHandler, AssociationHandler, PackageHandler, 
                EnumerationClassHandler, MofInitHandler.SubordinateHandler
 {
+    private static final String CACHE_REGION_SUFFIX = "ENKI";
+
     /** Name of the column that stores an entity's MOF ID. */
     private static final String MOF_ID_COLUMN_NAME = "mofId";
 
@@ -62,6 +64,9 @@ public class HibernateMappingHandler
     /** Name of the reversed property for association. */
     private static final String ASSOC_REVERSE_POLARITY_PROPERTY = 
         "reversed";
+
+    /** Name of the uniqueness property for association. */
+    private static final String ASSOC_UNIQUE_PROPERTY = "unique";
 
     private static final String ASSOC_ONE_TO_ONE_TABLE = "AssocOneToOne";
     private static final String ASSOC_ONE_TO_ONE_PARENT_PROPERTY = "parent";
@@ -126,6 +131,7 @@ public class HibernateMappingHandler
     // Class HQL query names and named parameters
     public static final String QUERY_NAME_ALLOFCLASS = "allOfClass";
     public static final String QUERY_NAME_ALLOFTYPE = "allOfType";
+    public static final String QUERY_NAME_BYMOFID = "byMofId";
     
     private static final JavaClassReference BOOLEAN_PROPERTY_ACCESSOR_CLASS =
         new JavaClassReference(BooleanPropertyAccessor.class, false);
@@ -359,7 +365,7 @@ public class HibernateMappingHandler
             "name", assocOneToOneClass,
             "table", tableName(ASSOC_ONE_TO_ONE_TABLE));
         
-        writeEmptyElem("cache", "usage", "read-write");
+        writeCacheElement();
         
         writeIdBlock();
         
@@ -424,7 +430,7 @@ public class HibernateMappingHandler
         
         endElem("class");
     }
-    
+
     private void writeOneToManyMapping() throws GenerationException
     {
         Map<String, String> oneToManyParentTypeMap = 
@@ -446,7 +452,7 @@ public class HibernateMappingHandler
             "name", assocOneToManyClass,
             "table", tableName(ASSOC_ONE_TO_MANY_TABLE));
         
-        writeEmptyElem("cache", "usage", "read-write");
+        writeCacheElement();
         
         writeIdBlock();
         
@@ -459,6 +465,12 @@ public class HibernateMappingHandler
         writeEmptyElem(
             "property",
             "name", ASSOC_REVERSE_POLARITY_PROPERTY,
+            "not-null", "true");
+
+        writeEmptyElem(
+            "property",
+            "name", ASSOC_UNIQUE_PROPERTY,
+            "column", hibernateQuote(ASSOC_UNIQUE_PROPERTY),
             "not-null", "true");
 
         startElem(
@@ -487,7 +499,7 @@ public class HibernateMappingHandler
             "table", tableName(ASSOC_ONE_TO_MANY_CHILDREN_TABLE),
             "cascade", "save-update",
             "fetch", "subselect");
-        writeEmptyElem("cache", "usage", "read-write");        
+        writeCacheElement();        
         writeEmptyElem("key", "column", ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN);
         writeEmptyElem(
             "list-index", "column", ASSOC_ONE_TO_MANY_CHILD_ORDINAL_COLUMN);
@@ -546,7 +558,7 @@ public class HibernateMappingHandler
             "name", assocManyToManyClass,
             "table", tableName(ASSOC_MANY_TO_MANY_TABLE));
         
-        writeEmptyElem("cache", "usage", "read-write");
+        writeCacheElement();
         
         writeIdBlock();
         
@@ -561,6 +573,12 @@ public class HibernateMappingHandler
             "name", ASSOC_REVERSE_POLARITY_PROPERTY,
             "not-null", "true");
         
+        writeEmptyElem(
+            "property",
+            "name", ASSOC_UNIQUE_PROPERTY,
+            "column", hibernateQuote(ASSOC_UNIQUE_PROPERTY),
+            "not-null", "true");
+
         startElem(
             "any",
             "name", ASSOC_MANY_TO_MANY_SOURCE_PROPERTY,
@@ -594,7 +612,7 @@ public class HibernateMappingHandler
             "table", tableName(ASSOC_MANY_TO_MANY_TARGET_TABLE),
             "cascade", "save-update",
             "fetch", "join");
-        writeEmptyElem("cache", "usage", "read-write");
+        writeCacheElement();
         writeEmptyElem("key", "column", ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN);
         writeEmptyElem(
             "list-index", "column", ASSOC_MANY_TO_MANY_TARGET_ORDINAL_COLUMN);
@@ -775,7 +793,7 @@ public class HibernateMappingHandler
             "table", tableName(tableName),
             "batch-size", "25");
 
-        writeEmptyElem("cache", "usage", "read-write");
+        writeCacheElement();
         
         // MOF Id
         writeIdBlock();
@@ -879,7 +897,7 @@ public class HibernateMappingHandler
                     "table", tableName(collTableName),
                     "cascade", "all",
                     "fetch", "join");
-                writeEmptyElem("cache", "usage", "read-write");
+                writeCacheElement();
                 writeEmptyElem(
                     "key",
                     "column", hibernateQuote(MOF_ID_COLUMN_NAME));
@@ -955,6 +973,15 @@ public class HibernateMappingHandler
         // instances of this exact class.
         writeCData("from ", typeName);
         endElem("query");        
+        
+        newLine();
+        startElem(
+            "query",
+            "name", QUERY_NAME_BYMOFID,
+            "cacheable", "true");
+        // Query against mofId to type mapping.
+        writeCData("from ", typeName, " where mofId = :mofId");
+        endElem("query");
         
         endElem("class");
         newLine();
@@ -1151,6 +1178,19 @@ public class HibernateMappingHandler
         }
     }
     
+    private void writeCacheElement() throws GenerationException
+    {
+        String region;
+        if (tablePrefix != null) {
+            region = tablePrefix + CACHE_REGION_SUFFIX;
+        } else{
+            region = CACHE_REGION_SUFFIX;
+        }
+        
+        writeEmptyElem(
+            "cache", "usage", "read-write", "region", region);
+    }
+
     /**
      * FakeMultiplicityType is a trivial implementation of 
      * {@link MultiplicityType} that represents a multiplicity with upper 

@@ -71,6 +71,8 @@ public abstract class HibernateRefAssociation
     
     public Collection<?> refAllLinks()
     {
+        getHibernateRepository().checkTransaction(false);
+
         Session session = getHibernateRepository().getCurrentSession();
         
         Query query = session.getNamedQuery(getAllLinksQueryName());
@@ -107,14 +109,15 @@ public abstract class HibernateRefAssociation
     {
         checkTypes(end1, end2);
         
+        getHibernateRepository().checkTransaction(false);
+
         HibernateAssociation assoc = 
             ((HibernateAssociable)end1).getAssociation(type, true);
         if (assoc == null) {
             return false;
         }
         
-        Collection<? extends RefObject> queryResult = 
-            assoc.query(true);
+        Collection<? extends RefObject> queryResult = assoc.query(true);
         
         return queryResult.contains(end2);
     }
@@ -128,6 +131,8 @@ public abstract class HibernateRefAssociation
         } else {
             checkSecondEndType(queryObject);
         }
+        
+        getHibernateRepository().checkTransaction(false);
         
         HibernateAssociation assoc = 
             ((HibernateAssociable)queryObject).getAssociation(
@@ -143,6 +148,8 @@ public abstract class HibernateRefAssociation
     {
         checkTypes(end1, end2);
 
+        getHibernateRepository().checkTransaction(true);
+
         fireAddEvent(end1, end2);
         
         HibernateAssociable assoc1 = (HibernateAssociable)end1;
@@ -155,6 +162,8 @@ public abstract class HibernateRefAssociation
     {
         checkTypes(end1, end2);
 
+        getHibernateRepository().checkTransaction(true);
+
         fireRemoveEvent(end1, end2);
         
         HibernateAssociable associable1 = (HibernateAssociable)end1;
@@ -164,10 +173,7 @@ public abstract class HibernateRefAssociation
             associable1.getAssociation(type, true);
         HibernateAssociation association2 = 
             associable2.getAssociation(type, false);
-        if (association1 == null || 
-            association2 == null || 
-            !association1.equals(association2))
-        {
+        if (association1 == null || association2 == null) {
             // These are not associated
             return false;
         }

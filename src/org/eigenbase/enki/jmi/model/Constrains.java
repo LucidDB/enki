@@ -39,9 +39,9 @@ public class Constrains
     {
         super(
             container,
-            "Constraint",
+            "constraint",
             Multiplicity.UNIQUE_COLLECTION,
-            "ConstrainedElement",
+            "constrainedElement",
             Multiplicity.UNIQUE_COLLECTION);
 
     }
@@ -58,7 +58,7 @@ public class Constrains
         javax.jmi.model.ModelElement constrainedElement)
     {
         return super.refQuery(
-            "ConstrainedElement", constrainedElement);
+            "constrainedElement", constrainedElement);
     }
 
     @SuppressWarnings("unchecked")
@@ -66,7 +66,7 @@ public class Constrains
         javax.jmi.model.Constraint constraint)
     {
         return super.refQuery(
-            "Constraint", constraint);
+            "constraint", constraint);
     }
 
     public boolean add(

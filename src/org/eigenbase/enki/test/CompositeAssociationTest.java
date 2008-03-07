@@ -45,7 +45,15 @@ public class CompositeAssociationTest
     extends SampleModelTestBase
 {
     @BeforeClass
-    public static void createCompositeAssociations()
+    public static void setupAssociations()
+    {
+        createCompositeBuildingAssociations();
+        createCompositeLogCabinAssociations();
+        createCompositeLogRaftAssociations();
+        createCompositePhoneAssociations();
+    }
+    
+    public static String createCompositeBuildingAssociations()
     {
         getRepository().beginTrans(true);
         
@@ -76,127 +84,175 @@ public class CompositeAssociationTest
             firstFloor.getRooms().add(room100);
             secondFloor.getRooms().add(room200);
             secondFloor.getRooms().add(room201);
-            
-            LogCabin cabin = 
-                getSpecialPackage().getLogCabin().createLogCabin();
-            Log cabinLog = getSpecialPackage().getLog().createLog();
-            cabin.getLogs().add(cabinLog);
-            
-            LogRaft raft = getSpecialPackage().getLogRaft().createLogRaft();
-            Log raftLog = getSpecialPackage().getLog().createLog();
-            raft.getLogs().add(raftLog);
-    
-            AreaCode areaCode = 
-                getSpecialPackage().getAreaCode().createAreaCode("619", true);
-            
-            // Yes, they'd be annoyed if you called.
-            getSpecialPackage().getPhoneNumber().createPhoneNumber(
-                areaCode, "440-5428");
-            
             rollback = false;
+            
+            return building.refMofId();
         }
         finally {
             getRepository().endTrans(rollback);
         }
     }
     
-    @Before
-    public void startReadTxn()
+    public static String createCompositeLogCabinAssociations()
     {
-        getRepository().beginTrans(false);        
+        getRepository().beginTrans(true);
+        
+        boolean rollback = true;
+        try {
+            LogCabin cabin = 
+                getSpecialPackage().getLogCabin().createLogCabin();
+            Log cabinLog = getSpecialPackage().getLog().createLog();
+            cabin.getLogs().add(cabinLog);
+            
+            rollback = false;
+            
+            return cabin.refMofId();
+        }
+        finally {
+            getRepository().endTrans(rollback);
+        }
     }
-    
-    @After
-    public void endReadTxn()
+            
+    public static String createCompositeLogRaftAssociations()
     {
-        getRepository().endTrans();
+        getRepository().beginTrans(true);
+        
+        boolean rollback = true;
+        try {
+            LogRaft raft = getSpecialPackage().getLogRaft().createLogRaft();
+            Log raftLog = getSpecialPackage().getLog().createLog();
+            raft.getLogs().add(raftLog);
+            
+            rollback = false;
+            
+            return raft.refMofId();
+        }
+        finally {
+            getRepository().endTrans(rollback);
+        }
+    }
+
+    public static String createCompositePhoneAssociations()
+    {
+        getRepository().beginTrans(true);
+        
+        boolean rollback = true;
+        try {
+            AreaCode areaCode = 
+                getSpecialPackage().getAreaCode().createAreaCode("619", true);
+            
+            // Yes, they'd be annoyed if you called.
+            PhoneNumber phoneNumber =
+                getSpecialPackage().getPhoneNumber().createPhoneNumber(
+                    areaCode, "440-5428");
+            
+            rollback = false;
+            
+            return phoneNumber.refMofId();
+        }
+        finally {
+            getRepository().endTrans(rollback);
+        }
     }
     
     @Test
     public void testRefImmediateComposite()
     {
-        Collection<Room> rooms =
-            GenericCollections.asTypedCollection(
-                getSpecialPackage().getRoom().refAllOfClass(),
-                Room.class);
-        Assert.assertFalse(rooms.isEmpty());
-        
-        // refImmediateComposite of each room is a floor
-        for(Room room: rooms) {
-            int expectedFloorNumber = room.getRoomNumber() / 100;
+        getRepository().beginTrans(false);        
+        try {
+            Collection<Room> rooms =
+                GenericCollections.asTypedCollection(
+                    getSpecialPackage().getRoom().refAllOfClass(),
+                    Room.class);
+            Assert.assertFalse(rooms.isEmpty());
             
-            RefFeatured immediateComposite = room.refImmediateComposite();
+            // refImmediateComposite of each room is a floor
+            for(Room room: rooms) {
+                int expectedFloorNumber = room.getRoomNumber() / 100;
+                
+                RefFeatured immediateComposite = room.refImmediateComposite();
+                
+                Assert.assertNotNull(immediateComposite);
+                Assert.assertTrue(immediateComposite instanceof Floor);
+                
+                Floor floor = (Floor)immediateComposite;
+                
+                Assert.assertEquals(
+                    expectedFloorNumber, floor.getFloorNumber());
+            }
             
-            Assert.assertNotNull(immediateComposite);
-            Assert.assertTrue(immediateComposite instanceof Floor);
+            Building expectedBuilding = 
+                (Building)getSpecialPackage().getBuilding().refAllOfClass().iterator().next();
             
-            Floor floor = (Floor)immediateComposite;
+            Collection<Floor> floors =
+                GenericCollections.asTypedCollection(
+                    getSpecialPackage().getFloor().refAllOfClass(),
+                    Floor.class);
+            Assert.assertFalse(floors.isEmpty());
             
-            Assert.assertEquals(expectedFloorNumber, floor.getFloorNumber());
+            // refImmediateComposite of each floor is a building
+            for(Floor floor: floors) {
+                RefFeatured immediateComposite = floor.refImmediateComposite();
+                
+                Assert.assertNotNull(immediateComposite);
+                Assert.assertTrue(immediateComposite instanceof Building);
+                
+                Building building = (Building)immediateComposite;
+                
+                Assert.assertEquals(expectedBuilding, building);
+            }
         }
-        
-        Building expectedBuilding = 
-            (Building)getSpecialPackage().getBuilding().refAllOfClass().iterator().next();
-        
-        Collection<Floor> floors =
-            GenericCollections.asTypedCollection(
-                getSpecialPackage().getFloor().refAllOfClass(),
-                Floor.class);
-        Assert.assertFalse(floors.isEmpty());
-        
-        // refImmediateComposite of each floor is a building
-        for(Floor floor: floors) {
-            RefFeatured immediateComposite = floor.refImmediateComposite();
-            
-            Assert.assertNotNull(immediateComposite);
-            Assert.assertTrue(immediateComposite instanceof Building);
-            
-            Building building = (Building)immediateComposite;
-            
-            Assert.assertEquals(expectedBuilding, building);
+        finally {
+            getRepository().endTrans();
         }
     }
     
     @Test
     public void testRefOutermostComposite()
     {
-        Building expectedBuilding = 
-            (Building)getSpecialPackage().getBuilding().refAllOfClass().iterator().next();
-        
-        Collection<Room> rooms =
-            GenericCollections.asTypedCollection(
-                getSpecialPackage().getRoom().refAllOfClass(),
-                Room.class);
-        Assert.assertFalse(rooms.isEmpty());
-
-        // refOutermostComposite of each room is a building
-        for(Room room: rooms) {
-            RefFeatured outermostComposite = room.refOutermostComposite();
+        getRepository().beginTrans(false);        
+        try {
+            Building expectedBuilding = 
+                (Building)getSpecialPackage().getBuilding().refAllOfClass().iterator().next();
             
-            Assert.assertNotNull(outermostComposite);
-            Assert.assertTrue(outermostComposite instanceof Building);
-
-            Building building = (Building)outermostComposite;
+            Collection<Room> rooms =
+                GenericCollections.asTypedCollection(
+                    getSpecialPackage().getRoom().refAllOfClass(),
+                    Room.class);
+            Assert.assertFalse(rooms.isEmpty());
+    
+            // refOutermostComposite of each room is a building
+            for(Room room: rooms) {
+                RefFeatured outermostComposite = room.refOutermostComposite();
+                
+                Assert.assertNotNull(outermostComposite);
+                Assert.assertTrue(outermostComposite instanceof Building);
+    
+                Building building = (Building)outermostComposite;
+                
+                Assert.assertEquals(expectedBuilding, building);                
+            }
             
-            Assert.assertEquals(expectedBuilding, building);                
+            Collection<Floor> floors =
+                GenericCollections.asTypedCollection(
+                    getSpecialPackage().getFloor().refAllOfClass(),
+                    Floor.class);
+            Assert.assertFalse(floors.isEmpty());
+            
+            // refOutermostComposite of each floor is a building
+            for(Floor floor: floors) {
+                RefFeatured outermostComposite = floor.refOutermostComposite();
+                
+                Assert.assertNotNull(outermostComposite);
+                Assert.assertTrue(outermostComposite instanceof Building);
+                
+                Building building = (Building)outermostComposite;
+                
+                Assert.assertEquals(expectedBuilding, building);
+            }
         }
-        
-        Collection<Floor> floors =
-            GenericCollections.asTypedCollection(
-                getSpecialPackage().getFloor().refAllOfClass(),
-                Floor.class);
-        Assert.assertFalse(floors.isEmpty());
-        
-        // refOutermostComposite of each floor is a building
-        for(Floor floor: floors) {
-            RefFeatured outermostComposite = floor.refOutermostComposite();
-            
-            Assert.assertNotNull(outermostComposite);
-            Assert.assertTrue(outermostComposite instanceof Building);
-            
-            Building building = (Building)outermostComposite;
-            
-            Assert.assertEquals(expectedBuilding, building);
+        finally {
+            getRepository().endTrans();
         }
     }
     
@@ -205,51 +261,141 @@ public class CompositeAssociationTest
     {
         // TODO: test that a single Log cannot simultaneously be a component
         // of a LogCabin and LogRaft (not current enforced)
-        
-        Collection<Log> logs =
-            GenericCollections.asTypedCollection(
-                getSpecialPackage().getLog().refAllOfClass(),
-                Log.class);
-        Assert.assertFalse(logs.isEmpty());
-
-        LogCabin expectedLogCabin = 
-            (LogCabin)getSpecialPackage().getLogCabin().refAllOfClass().iterator().next();
-
-        LogRaft expectedLogRaft= 
-            (LogRaft)getSpecialPackage().getLogRaft().refAllOfClass().iterator().next();
-        
-        for(Log log: logs) {
-            RefFeatured immediateComposite = log.refImmediateComposite();
+        getRepository().beginTrans(false);        
+        try {
+            Collection<Log> logs =
+                GenericCollections.asTypedCollection(
+                    getSpecialPackage().getLog().refAllOfClass(),
+                    Log.class);
+            Assert.assertFalse(logs.isEmpty());
+    
+            LogCabin expectedLogCabin = 
+                (LogCabin)getSpecialPackage().getLogCabin().refAllOfClass().iterator().next();
+    
+            LogRaft expectedLogRaft= 
+                (LogRaft)getSpecialPackage().getLogRaft().refAllOfClass().iterator().next();
             
-            Assert.assertNotNull(immediateComposite);
-            
-            if (immediateComposite instanceof LogCabin) {
-                LogCabin logCabin = (LogCabin)immediateComposite;
+            for(Log log: logs) {
+                RefFeatured immediateComposite = log.refImmediateComposite();
                 
-                Assert.assertEquals(expectedLogCabin, logCabin);
-            } else if (immediateComposite instanceof LogRaft) {
-                LogRaft logRaft = (LogRaft)immediateComposite;
+                Assert.assertNotNull(immediateComposite);
                 
-                Assert.assertEquals(expectedLogRaft, logRaft);
-            } else {
-                Assert.fail("unexpected type for Log's composite");
+                if (immediateComposite instanceof LogCabin) {
+                    LogCabin logCabin = (LogCabin)immediateComposite;
+                    
+                    Assert.assertEquals(expectedLogCabin, logCabin);
+                } else if (immediateComposite instanceof LogRaft) {
+                    LogRaft logRaft = (LogRaft)immediateComposite;
+                    
+                    Assert.assertEquals(expectedLogRaft, logRaft);
+                } else {
+                    Assert.fail("unexpected type for Log's composite");
+                }
             }
+        }
+        finally {
+            getRepository().endTrans();
         }
     }
     
     @Test
     public void testAttributeComposition()
     {
-        AreaCode areaCode = 
-            (AreaCode)getSpecialPackage().getAreaCode().refAllOfClass().iterator().next();
+        getRepository().beginTrans(false);        
+        try {
+            AreaCode areaCode = 
+                (AreaCode)getSpecialPackage().getAreaCode().refAllOfClass().iterator().next();
+            
+            RefFeatured immediateComposite = areaCode.refImmediateComposite();
+            Assert.assertNotNull(immediateComposite);
+            Assert.assertTrue(immediateComposite instanceof PhoneNumber);
+            
+            PhoneNumber phoneNumber = (PhoneNumber)immediateComposite;
+            
+            Assert.assertEquals(areaCode, phoneNumber.getAreaCode());
+        }
+        finally {
+            getRepository().endTrans();
+        }
+    }
+    
+    @Test
+    public void testAttributeCompositionDeleteCascade()
+    {
+        String phoneNumberMofId = createCompositePhoneAssociations();
+
+        // Delete phone number and expect area code is deleted as well.
+        String areaCodeMofId;
+        getRepository().beginTrans(true);
+        try {
+            PhoneNumber phoneNumber = 
+                (PhoneNumber)getRepository().getByMofId(phoneNumberMofId);
+            
+            areaCodeMofId = phoneNumber.getAreaCode().refMofId();
+            
+            phoneNumber.refDelete();
+        }
+        finally {
+            getRepository().endTrans(false);
+        }
         
-        RefFeatured immediateComposite = areaCode.refImmediateComposite();
-        Assert.assertNotNull(immediateComposite);
-        Assert.assertTrue(immediateComposite instanceof PhoneNumber);
+        getRepository().beginTrans(false);
+        try {
+            Assert.assertNull(
+                getRepository().getByMofId(phoneNumberMofId));
+            Assert.assertNull(
+                getRepository().getByMofId(areaCodeMofId));
+        }
+        finally {
+            getRepository().endTrans();
+        }
+    }
+    
+    @Test
+    public void testReferenceCompositionDeleteCascade()
+    {
+        String buildingMofId = createCompositeBuildingAssociations();
+
+        // Delete build and expect floors are deleted as well.
+        List<String> floorMofIds = new ArrayList<String>();
+        List<String> roomMofIds = new ArrayList<String>();
+        getRepository().beginTrans(true);
+        try {
+            Building building = 
+                (Building)getRepository().getByMofId(buildingMofId);
+            
+            for(Floor floor: building.getFloors()) {
+                floorMofIds.add(floor.refMofId());
+                
+                for(Room room: floor.getRooms()) {
+                    roomMofIds.add(room.refMofId());
+                }
+            }
+            
+            building.refDelete();
+        }
+        finally {
+            getRepository().endTrans(false);
+        }
         
-        PhoneNumber phoneNumber = (PhoneNumber)immediateComposite;
-        
-        Assert.assertEquals(areaCode, phoneNumber.getAreaCode());
+        getRepository().beginTrans(false);
+        try {
+            Assert.assertNull(
+                getRepository().getByMofId(buildingMofId));
+
+            for(String floorMofId: floorMofIds) {
+                Assert.assertNull(
+                    getRepository().getByMofId(floorMofId));
+            }
+            
+            for(String roomMofId: roomMofIds) {
+                Assert.assertNull(
+                    getRepository().getByMofId(roomMofId));
+            }
+        }
+        finally {
+            getRepository().endTrans();
+        }
     }
 }
 

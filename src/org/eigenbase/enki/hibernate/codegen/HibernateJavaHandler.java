@@ -246,6 +246,8 @@ public class HibernateJavaHandler
     
     /** Maps a component type to a list of references to it. */
     private Map<Classifier, List<ComponentInfo>> componentAttribMap;
+
+    private Map<AssociationEnd, Integer> assocEndOrderMap;
     
     /** 
      * Reference to the model-specific, generated subclass of 
@@ -318,6 +320,7 @@ public class HibernateJavaHandler
         this.assocIdentifierMap = new HashMap<Association, String>();
         
         this.assocInfoMap = new LinkedHashMap<Association, AssociationInfo>();
+        this.assocEndOrderMap = new HashMap<AssociationEnd, Integer>();
         this.componentAttribMap = 
             new HashMap<Classifier, List<ComponentInfo>>();
     }
@@ -502,9 +505,9 @@ public class HibernateJavaHandler
                 writeln(
                     "super(container, ", 
                     QUOTE, assocInfo.getBaseName(), QUOTE, ", ",
-                    QUOTE, assocInfo.getEndName(0, true), QUOTE, ", ",
+                    QUOTE, assocInfo.getEndName(0), QUOTE, ", ",
                     assocInfo.getEndType(0), ".class, ",
-                    QUOTE, assocInfo.getEndName(1, true), QUOTE, ", ",
+                    QUOTE, assocInfo.getEndName(1), QUOTE, ", ",
                     assocInfo.getEndType(1), ".class);");
                 break;
                 
@@ -513,12 +516,12 @@ public class HibernateJavaHandler
                 writeln(
                     "super(container, ", 
                     QUOTE, assocInfo.getBaseName(), QUOTE, ", ",
-                    QUOTE, assocInfo.getEndName(0, true), QUOTE, ", ",
+                    QUOTE, assocInfo.getEndName(0), QUOTE, ", ",
                     assocInfo.getEndType(0), ".class, ",
                     MULTIPLICITY_ENUM, ".", 
                     Multiplicity.fromMultiplicityType(
                         assocInfo.getEnd(0).getMultiplicity()), ", ",
-                    QUOTE, assocInfo.getEndName(1, true), QUOTE, ", ",
+                    QUOTE, assocInfo.getEndName(1), QUOTE, ", ",
                     assocInfo.getEndType(1), ".class, ",
                     MULTIPLICITY_ENUM, ".", 
                     Multiplicity.fromMultiplicityType(
@@ -541,11 +544,11 @@ public class HibernateJavaHandler
                 "boolean",
                 "exists", 
                 assocInfo.getEndTypes(),
-                assocInfo.getEndNames());
+                assocInfo.getEndIdentifiers());
             writeln(
                 "return super.exists(", 
-                assocInfo.getEndName(0), ", ",
-                assocInfo.getEndName(1), ");");
+                assocInfo.getEndIdentifier(0), ", ",
+                assocInfo.getEndIdentifier(1), ");");
             endBlock();
             newLine();
             
@@ -565,29 +568,31 @@ public class HibernateJavaHandler
                     returnTypeName,
                     generator.getAccessorName(assocInfo.getEnd(0), null),
                     new String[] { assocInfo.getEndType(1) },
-                    new String[] { assocInfo.getEndName(1) });
+                    new String[] { assocInfo.getEndIdentifier(1) });
                 switch(assocInfo.getKind()) {
                 case ONE_TO_ONE:
-                    writeln("return getParentOf(", assocInfo.getEndName(1), ");");
+                    writeln(
+                        "return getParentOf(", 
+                        assocInfo.getEndIdentifier(1), ");");
                     break;
 
                 case ONE_TO_MANY:
                     if (assocInfo.isSingle(0)) {
                         writeln(
                             "return getParentOf(", 
-                            assocInfo.getEndName(1), ", ",
+                            assocInfo.getEndIdentifier(1), ", ",
                             assocInfo.getEndType(0), ".class);");
                     } else if (assocInfo.isOrdered(0)) {
                         writeln(
                             "return (",
                             returnTypeName,
                             ")getChildrenOf(",
-                            assocInfo.getEndName(1), ", ",
+                            assocInfo.getEndIdentifier(1), ", ",
                             assocInfo.getEndType(0), ".class);");
                     } else {
                         writeln(
                             "return getChildrenOf(",
-                            assocInfo.getEndName(1), ", ",
+                            assocInfo.getEndIdentifier(1), ", ",
                             assocInfo.getEndType(0), ".class);");
                     }
                     break;
@@ -597,9 +602,12 @@ public class HibernateJavaHandler
                         writeln(
                             "return (",
                             returnTypeName,
-                            ")getSourceOf(", assocInfo.getEndName(1), ");");                        
+                            ")getSourceOf(", 
+                            assocInfo.getEndIdentifier(1), ");");                        
                     } else {
-                        writeln("return getSourceOf(", assocInfo.getEndName(1), ");");
+                        writeln(
+                            "return getSourceOf(", 
+                            assocInfo.getEndIdentifier(1), ");");
                     }
                 }
                 endBlock();
@@ -622,29 +630,31 @@ public class HibernateJavaHandler
                     returnTypeName,
                     generator.getAccessorName(assocInfo.getEnd(1), null),
                     new String[] { assocInfo.getEndType(0) },
-                    new String[] { assocInfo.getEndName(0) });
+                    new String[] { assocInfo.getEndIdentifier(0) });
                 switch(assocInfo.getKind()) {
                 case ONE_TO_ONE:
-                    writeln("return getChildOf(", assocInfo.getEndName(0), ");");
+                    writeln(
+                        "return getChildOf(", 
+                        assocInfo.getEndIdentifier(0), ");");
                     break;
 
                 case ONE_TO_MANY:
                     if (assocInfo.isSingle(1)) {
                         writeln(
                             "return getParentOf(", 
-                            assocInfo.getEndName(0), ", ",
+                            assocInfo.getEndIdentifier(0), ", ",
                             assocInfo.getEndType(1), ".class);");
                     } else if (assocInfo.isOrdered(1)) {
                         writeln(
                             "return (",
                             returnTypeName,
                             ")getChildrenOf(", 
-                            assocInfo.getEndName(0), ", ",
+                            assocInfo.getEndIdentifier(0), ", ",
                             assocInfo.getEndType(1), ".class);");
                     } else {
                         writeln(
                             "return getChildrenOf(", 
-                            assocInfo.getEndName(0), ", ",
+                            assocInfo.getEndIdentifier(0), ", ",
                             assocInfo.getEndType(1), ".class);");
                     }
                     break;
@@ -654,10 +664,12 @@ public class HibernateJavaHandler
                         writeln(
                             "return (",
                             returnTypeName,
-                            ")getTargetOf(", assocInfo.getEndName(0), ");");
+                            ")getTargetOf(", 
+                            assocInfo.getEndIdentifier(0), ");");
                     } else {
                         writeln(
-                            "return getTargetOf(", assocInfo.getEndName(0), ");");
+                            "return getTargetOf(",
+                            assocInfo.getEndIdentifier(0), ");");
                     }
                 }
                 endBlock();
@@ -671,12 +683,12 @@ public class HibernateJavaHandler
                     "boolean",
                     "add",
                     assocInfo.getEndTypes(),
-                    assocInfo.getEndNames());
+                    assocInfo.getEndIdentifiers());
                 writeln(
                     "return super.add(",
-                    assocInfo.getEndName(0),
+                    assocInfo.getEndIdentifier(0),
                     ", ",
-                    assocInfo.getEndName(1),
+                    assocInfo.getEndIdentifier(1),
                     ");");
                 endBlock();
 
@@ -688,12 +700,12 @@ public class HibernateJavaHandler
                     "boolean",
                     "remove",
                     assocInfo.getEndTypes(),
-                    assocInfo.getEndNames());
+                    assocInfo.getEndIdentifiers());
                 writeln(
                     "return super.remove(",
-                    assocInfo.getEndName(0),
+                    assocInfo.getEndIdentifier(0),
                     ", ",
-                    assocInfo.getEndName(1),
+                    assocInfo.getEndIdentifier(1),
                     ");");
                 endBlock();
             }
@@ -956,36 +968,9 @@ public class HibernateJavaHandler
                 newLine();
                 generateGetOrCreateAssociationMethod(refInfos);
 
-                newLine();
-                writeln("// Implement HibernateRefObject");
-                startBlock("protected void removeAssociations()");
-                
-                for(ReferenceInfo refInfo: refInfos) {
-                    startConditionalBlock(
-                        CondType.IF, 
-                        getReferenceAccessorName(refInfo), "() != null");
-                    boolean isComponent = refInfo instanceof ComponentInfo;
-                    if (!isComponent) {
-                        writeln(
-                            "super.fireAssociationRemoveAllEvents(",
-                            QUOTE, getAssociationIdentifier(refInfo.getAssoc()), QUOTE, ", ",
-                            refInfo.isExposedEndFirst(), ", ",
-                            getReferenceAccessorName(refInfo), "());");
-                    }
-                    
-                    boolean cascadeRefDelete = 
-                        isComponent && refInfo.isExposedEndFirst();
-                    writeln(
-                        getReferenceAccessorName(refInfo), 
-                        "().removeAll(this, ", cascadeRefDelete, ");");
-                    endBlock();
-                }
-                endBlock();
+                generateRemoveAssociationMethod(cls, refInfos);
             } else {
-                newLine();
-                writeln("// Implement HibernateRefObject");
-                startBlock("protected void removeAssociations()");
-                endBlock();
+                generateRemoveAssociationMethod(cls, null);
             }
 
             // TODO: generate constraint checks for association multiplicity
@@ -1291,11 +1276,17 @@ public class HibernateJavaHandler
                         }
                         writeln(
                             "assoc.setReversed(", refInfo.isSingle(1), ");");
+                        writeln(
+                            "assoc.setUnique(", 
+                            !(refInfo.isOrdered(0) || refInfo.isOrdered(1)),
+                            ");");
                         break;
 
                     case MANY_TO_MANY:
                         writeln("assoc.setSource(this);");
                         writeln("assoc.setReversed(!firstEnd);");
+                        writeln(
+                            "assoc.setUnique(", !refInfo.isOrdered(), ");");
                         break;
                     }
                     
@@ -1383,6 +1374,158 @@ public class HibernateJavaHandler
             QUOTE, "Unknown assoc type '", QUOTE,
             " + type + ", QUOTE, "' for 'end ", QUOTE,
             " + (firstEnd ? 1 : 2) + ", QUOTE, "'", QUOTE, ");");
+    }
+
+    /**
+     * Generates an implementation of the 
+     * {@link HibernateRefObject#removeAssociations} method.  Associations
+     * are remove in strict order:
+     * <ol>
+     * <li>Composite attributes (see {@link ComponentInfo})</li>
+     * <li>Super-type association ends</li>
+     * <li>Current class association ends</li>
+     * <li>Composite owner associations</li>
+     * </ol>
+     * 
+     * @param cls the class being generated
+     * @param refInfos descriptions of {@link Reference} instances which must
+     *                 be handled by the generated method
+     * @throws GenerationException if there's an error generating the method
+     */
+    private void generateRemoveAssociationMethod(
+        MofClass cls, List<ReferenceInfo> refInfos)
+    throws GenerationException
+    {
+        newLine();
+        writeln("// Implement HibernateRefObject");
+        startBlock("protected void removeAssociations()");
+
+        if (refInfos == null) {
+            endBlock();
+            return;
+        }
+        
+        // Associations are removed in a specific order (which matches Netbeans
+        // MDR):
+        // 1. composite attribute(s) (in order of appearance in code)
+        // 2. super-type association ends
+        // 3. this class's association ends
+        // 4. remove this class from its composite owner
+        
+        // Super-types are traversed in the order given by cls.getSupertypes(),
+        // ignoring repeats.
+        
+        // AssociationEnds within a class are ordered first by their containing
+        // Association (in the order in which it is returned by recursive
+        // traversal of MofPackage contents) and then by end number.
+        
+        writeln("// Composite Attributes");
+        List<ReferenceInfo> assocRefInfos = new ArrayList<ReferenceInfo>();
+        for(ReferenceInfo refInfo: refInfos) {
+            boolean isComponentAttrib = refInfo instanceof ComponentInfo;
+            if (isComponentAttrib) {
+                // ComponentInfo always has the composite owner as the first
+                // end.  If this class is the owner, generate the cascade
+                // delete (and remove our internal association link).
+                // We'll pick the rest up later (step 4).
+                if (refInfo.isExposedEndFirst()) {
+                    generateRemoveAssociationClause(refInfo, true, false);
+                }
+            } else {
+                assocRefInfos.add(refInfo);
+            }
+        }
+
+        newLine();
+        writeln("// References/Associations");
+        // Step 2/3.  First determine the global association end ordering,
+        // if it hasn't been done already.
+        if (assocEndOrderMap.isEmpty()) {
+            List<AssociationEnd> orderedEnds = new ArrayList<AssociationEnd>();
+            for(AssociationInfo assocInfo: assocInfoMap.values()) {
+                orderedEnds.add(assocInfo.getEnd(0));
+                orderedEnds.add(assocInfo.getEnd(1));
+            }
+
+            for(int i = 0; i < orderedEnds.size(); i++) {
+                // Don't use 0 as an ordinal: we check for it later in the
+                // comparator.
+                assocEndOrderMap.put(orderedEnds.get(i), i + 1);
+            }
+        } else {
+            assert(assocEndOrderMap.size() == assocInfoMap.size() * 2);
+        }
+        
+        // Step 2/3 continued: Compute the type ordering (including the
+        // current class).
+        Map<Classifier, Integer> typeOrderMap = 
+            new HashMap<Classifier, Integer>();
+        int ordinal = 0;
+        for(Classifier supertype: collectSupertypes(cls)) {
+            // Don't use ordinal 0: we use it to check for missing types
+            // in the comparator
+            typeOrderMap.put(supertype, ++ordinal);
+        }
+
+        // Step 2/3 continued: sort the associations ends and generate code.
+        Collections.sort(
+            assocRefInfos, 
+            new AssociationRemoveOrderComparator(
+                typeOrderMap, assocEndOrderMap));
+
+        for(ReferenceInfo refInfo: assocRefInfos) {
+            boolean cascadeRefDelete = 
+                refInfo.isComposite(refInfo.getExposedEndIndex());
+
+            generateRemoveAssociationClause(refInfo, cascadeRefDelete, true);
+        }
+
+        // Step 4.  Go back and remove associations to composite owners.
+        newLine();
+        writeln("// Composite owners");
+        for(ReferenceInfo refInfo: refInfos) {
+            boolean isComponentAttrib = refInfo instanceof ComponentInfo;
+            if (isComponentAttrib && !refInfo.isExposedEndFirst()) {
+                generateRemoveAssociationClause(refInfo, false, false);
+            }
+        }
+        
+        endBlock();
+    }
+
+    /**
+     * Generates a clause that removes a particular {@link Reference}'s 
+     * association links, with or without cascading deletion of linked
+     * references and association remove events.
+     * 
+     * @param refInfo the description of a particular {@link Reference}
+     * @param cascadeRefDelete if true, generate cascading delete of
+     *                         associated instances
+     * @param generateRemoveAssociationEvents if true, generates association
+     *                                        remove events
+     * @throws GenerationException if there's an error generating code
+     */
+    private void generateRemoveAssociationClause(
+        ReferenceInfo refInfo,
+        boolean cascadeRefDelete,
+        boolean generateRemoveAssociationEvents)
+    throws GenerationException
+    {
+        startConditionalBlock(
+            CondType.IF, 
+            getReferenceAccessorName(refInfo), "() != null");
+        if (generateRemoveAssociationEvents) {
+            writeln(
+                "super.fireAssociationRemoveAllEvents(",
+                QUOTE, getAssociationIdentifier(refInfo.getAssoc()), QUOTE, 
+                ", ",
+                refInfo.isExposedEndFirst(), ", ",
+                getReferenceAccessorName(refInfo), "());");            
+        }
+        writeln(
+            getReferenceAccessorName(refInfo), 
+            "().removeAll(this, ", cascadeRefDelete, ");");
+        endBlock();
     }
 
     /**
@@ -2036,6 +2179,8 @@ public class HibernateJavaHandler
                 newLine();
                 startAccessorBlock(attrib);
                 if (attrib.isChangeable()) {
+                    // TODO: add generic type specifier to ATTRIB_LIST_WRAPPER_CLASS
+                    // and ATTRIB_COLLECTION_WRAPPER_CLASS.
                     if (isOrdered) {
                         writeln(
                             "return new ",
@@ -2831,6 +2976,29 @@ public class HibernateJavaHandler
         return type.toString();
     }
     
+    private Collection<Classifier> collectSupertypes(Classifier cls)
+    {
+        Set<Classifier> result = new LinkedHashSet<Classifier>();
+        
+        collectSupertypes(cls, result);
+        
+        return result;
+    }
+    
+    private void collectSupertypes(Classifier cls, Set<Classifier> result)
+    {
+        for(Classifier supertype: 
+                GenericCollections.asTypedList(
+                    cls.getSupertypes(), Classifier.class))
+        {
+            if (!result.contains(supertype)) {
+                collectSupertypes(supertype, result);
+            }
+        }
+        
+        result.add(cls);
+    }
+    
     /**
      * AssocMethodGenerator generates code for association methods within
      * a class instance implementation.
@@ -2841,5 +3009,58 @@ public class HibernateJavaHandler
          * Generate code for the described {@link ReferenceInfo reference}.
          */
         public void generate(ReferenceInfo refInfo) throws GenerationException;
+    }
+    
+    /**
+     * AssociationRemoveOrderComparator sorts {@link ReferenceInfo} objects
+     * into the appropriate removal order. 
+     */
+    private static class AssociationRemoveOrderComparator
+        implements Comparator<ReferenceInfo>
+    {
+        private final Map<Classifier, Integer> typeOrderMap;
+        private final Map<AssociationEnd, Integer> assocEndOrderMap;
+        
+        public AssociationRemoveOrderComparator(
+            Map<Classifier, Integer> typeOrderMap,
+            Map<AssociationEnd, Integer> assocEndOrderMap)
+        {
+            this.typeOrderMap = typeOrderMap;
+            this.assocEndOrderMap = assocEndOrderMap;
+        }
+        
+        public int compare(ReferenceInfo refInfo1, ReferenceInfo refInfo2)
+        {
+            AssociationEnd exposedEnd1 = 
+                refInfo1.getEnd(refInfo1.getExposedEndIndex());
+            AssociationEnd exposedEnd2 = 
+                refInfo2.getEnd(refInfo2.getExposedEndIndex());
+            
+            Classifier exposedEndCls1 = exposedEnd1.getType();
+            if (exposedEnd1 instanceof AliasType) {
+                exposedEndCls1 = ((AliasType)exposedEndCls1).getType();
+            }
+            Classifier exposedEndCls2 = exposedEnd2.getType();
+            if (exposedEnd2 instanceof AliasType) {
+                exposedEndCls2 = ((AliasType)exposedEndCls2).getType();
+            }
+            
+            int o1 = typeOrderMap.get(exposedEndCls1);
+            int o2 = typeOrderMap.get(exposedEndCls2);
+            assert(o1 != 0);
+            assert(o2 != 0);
+            
+            int c = o1 - o2;
+            if (c != 0) {
+                return c;
+            }
+            
+            o1 = assocEndOrderMap.get(exposedEnd1);
+            o2 = assocEndOrderMap.get(exposedEnd2);
+            assert(o1 != 0);
+            assert(o2 != 0);
+            
+            return o1 - o2;
+        }        
     }
 }

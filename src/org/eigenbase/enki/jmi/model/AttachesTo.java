@@ -39,9 +39,9 @@ public class AttachesTo
     {
         super(
             container,
-            "ModelElement",
+            "modelElement",
             Multiplicity.UNIQUE_COLLECTION,
-            "Tag",
+            "tag",
             Multiplicity.UNIQUE_ORDERED_COLLECTION);
 
     }
@@ -58,7 +58,7 @@ public class AttachesTo
         javax.jmi.model.Tag tag)
     {
         return super.refQuery(
-            "Tag", tag);
+            "tag", tag);
     }
 
     @SuppressWarnings("unchecked")
@@ -66,7 +66,7 @@ public class AttachesTo
         javax.jmi.model.ModelElement modelElement)
     {
         return (List)super.refQuery(
-            "ModelElement", modelElement);
+            "modelElement", modelElement);
     }
 
     public boolean add(

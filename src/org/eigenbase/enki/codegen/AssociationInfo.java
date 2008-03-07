@@ -77,23 +77,28 @@ public interface AssociationInfo
     public String[] getEndTypes();
     
     /**
-     * Retrieves the name of the given {@link AssociationEnd} of the described
-     * {@link Association}.
+     * Retrieves an identifier for the given {@link AssociationEnd} of the 
+     * described {@link Association}.  The identifier is the end's name 
+     * mangled to be a valid Java identifier.
+     * 
+     * @param end 0-based end index
+     */
+    public String getEndIdentifier(int end);
+    
+    /**
+     * Retrieves identifiers for the {@link AssociationEnd ends} of the 
+     * described {@link Association} as a String array.  The identifiers are
+     * the end names mangled to be valid Java identifiers.
+     */
+    public String[] getEndIdentifiers();
+    
+    /**
+     * Retrieves the name of the given {@link AssociationEnd} of the
+     * describe {@link Association}.
+     * 
+     * @param end 0-based end index
      */
     public String getEndName(int end);
-    
-    /**
-     * Retrieves the name of the given {@link AssociationEnd} of the described
-     * {@link Association}, optionally forcing the initial letter of the name
-     * to be capitalized.
-     */
-    public String getEndName(int end, boolean forceInitCaps);
-    
-    /**
-     * Retrieves the names of the {@link AssociationEnd ends} of the described
-     * {@link Association} as a String array.
-     */
-    public String[] getEndNames();
     
     /**
      * Tests whether the selected end of the described {@link Association}

@@ -39,9 +39,9 @@ public class Contains
     {
         super(
             container,
-            "Container",
+            "container",
             Multiplicity.SINGLE,
-            "ContainedElement",
+            "containedElement",
             Multiplicity.UNIQUE_ORDERED_COLLECTION);
 
     }
@@ -57,7 +57,7 @@ public class Contains
         javax.jmi.model.ModelElement containedElement)
     {
         Collection<?> result = super.refQuery(
-            "ContainedElement", containedElement);
+            "containedElement", containedElement);
         Iterator<?> iter = result.iterator();
         if (iter.hasNext()) {
             return (javax.jmi.model.Namespace)iter.next();
@@ -70,7 +70,7 @@ public class Contains
         javax.jmi.model.Namespace container)
     {
         return (List)super.refQuery(
-            "Container", container);
+            "container", container);
     }
 
     public boolean add(

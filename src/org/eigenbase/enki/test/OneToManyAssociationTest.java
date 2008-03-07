@@ -635,6 +635,113 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             getRepository().endTrans();
         }
     }
+    
+    @Test
+    public void testUnorderedDuplicates()
+    {
+        final int N = 4;
+        final int EN = 1;
+        
+        String e12MofId;
+        String e13MofId;
+        
+        // Create Entity12 and duplicate Entity13s
+        getRepository().beginTrans(true);
+        try {
+            Entity12 e12 = getSimplePackage().getEntity12().createEntity12();
+            e12MofId = e12.refMofId();
+            
+            Entity13 e13 = getSimplePackage().getEntity13().createEntity13();
+            e13MofId = e13.refMofId();
+            
+            for(int i = 0; i < N; i++) {
+                e12.getEntity13().add(e13);
+            }
+        }
+        finally {
+            getRepository().endTrans();
+        }
+        
+        // Read it back
+        getRepository().beginTrans(false);
+        try {
+            Entity12 e12 = (Entity12)getRepository().getByMofId(e12MofId);
+            
+            Collection<Entity13> entities13 = e12.getEntity13();
+            
+            Assert.assertEquals(EN, entities13.size());
+            for(Entity13 e13: entities13) {
+                Assert.assertEquals(e13MofId, e13.refMofId());
+            }
+        }
+        finally {
+            getRepository().endTrans();
+        }
+    }
+    
+    @Test
+    public void testOrderedDuplicates()
+    {
+        final int N = 4;
+        
+        String e16MofId;
+        String e17MofId;
+        
+        // Create Entity16 and duplicate Entity17s
+        getRepository().beginTrans(true);
+        try {
+            Entity16 e16 = getSimplePackage().getEntity16().createEntity16();
+            e16MofId = e16.refMofId();
+            
+            Entity17 e17 = getSimplePackage().getEntity17().createEntity17();
+            e17MofId = e17.refMofId();
+            
+            for(int i = 0; i < N; i++) {
+                e16.getEntity17().add(e17);
+            }
+        }
+        finally {
+            getRepository().endTrans();
+        }
+        
+        // Read it back
+        getRepository().beginTrans(false);
+        try {
+            Entity16 e16 = (Entity16)getRepository().getByMofId(e16MofId);
+            
+            List<Entity17> entities17 = e16.getEntity17();
+            
+            Assert.assertEquals(N, entities17.size());
+            for(Entity17 e17: entities17) {
+                Assert.assertEquals(e17MofId, e17.refMofId());
+            }
+        }
+        finally {
+            getRepository().endTrans();
+        }
+        
+        // Remove by index, one at a time
+        for(int repeat = 0; repeat <= N; repeat++) {
+            getRepository().beginTrans(true);
+            try {
+                Entity16 e16 = (Entity16)getRepository().getByMofId(e16MofId);
+                
+                List<Entity17> entities17 = e16.getEntity17();
+                
+                Assert.assertEquals(N - repeat, entities17.size());
+                for(Entity17 e17: entities17) {
+                    Assert.assertEquals(e17MofId, e17.refMofId());
+                }
+                
+                if (entities17.size() > 0) {
+                    entities17.remove(0);
+                }
+            }
+            finally {
+                getRepository().endTrans();
+            }
+        }
+    }
 }
 
 // End OneToManyAssociationTest.java

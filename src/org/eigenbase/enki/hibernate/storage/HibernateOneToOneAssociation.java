@@ -161,7 +161,14 @@ public abstract class HibernateOneToOneAssociation
         
         return true;
     }
-    
+
+    @Override
+    public boolean remove(
+        int index, HibernateAssociable parent, HibernateAssociable child)
+    {
+        return remove(parent, child);
+    }
+
     @Override
     public void removeAll(HibernateAssociable item, boolean cascadeDelete)
     {

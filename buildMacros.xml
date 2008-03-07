@@ -51,14 +51,20 @@
       name="release.version"
       value="${product.version.major}.${product.version.minor}.${product.version.point}"/>
   <property 
+      name="enki.dist.prefix"
+      value="${package.name}-${release.version}"/>
+  <property 
       name="enki.dist.jar" 
-      location="${dist.dir}/${package.name}-${release.version}.jar"/>
+      location="${dist.dir}/${enki.dist.prefix}.jar"/>
   <property 
       name="enki.dist.src.jar" 
-      location="${dist.dir}/${package.name}-${release.version}-src.jar"/>
+      location="${dist.dir}/${enki.dist.prefix}-src.jar"/>
   <property 
       name="enki.dist.doc.jar" 
-      location="${dist.dir}/${package.name}-${release.version}-doc.jar"/>
+      location="${dist.dir}/${enki.dist.prefix}-doc.jar"/>
+  <property 
+      name="enki.dist.tarball" 
+      location="${dist.dir}/${enki.dist.prefix}.tar.gz"/>
 
   <!-- properties for thirdparty libraries -->
   <property name="commons-collections.dir" location="${thirdparty.dir}/commons-collections"/>
@@ -267,7 +273,7 @@
     <path id="empty.ref.id"/>
 
     <macrodef name="enki.mdr">
-      <attribute name="propertiesFile" default="NOT SET"/>
+      <attribute name="propertiesFile" default=""/>
       <attribute name="modelPathRef" default="empty.ref.id"/>
       <element name="mdr-tasks" optional="false"/>
       <sequential>

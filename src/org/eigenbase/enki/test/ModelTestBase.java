@@ -29,7 +29,6 @@ import javax.jmi.reflect.*;
 import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 import org.junit.*;
-import org.netbeans.api.mdr.*;
 
 /**
  * ModelTestBase is an abstract base class for model-based tests.
@@ -48,10 +47,10 @@ public abstract class ModelTestBase
 {
     private static final String PROPERTY_ENKI_TEST_EXTENT = "enki.test.extent";
     private static final String PROPERTY_ENKI_HOME = "enki.home";
-    private static MDRepository repos;
+    
+    private static EnkiMDRepository repos;
     private static RefPackage pkg;
     private static String testExtentName;
-    
     private static Properties storageProps;
     
     @BeforeClass
@@ -62,6 +61,7 @@ public abstract class ModelTestBase
         
         getPackage();
         
+        repos.beginSession();
         repos.beginTrans(true);
         try {
             delete(pkg);
@@ -113,8 +113,9 @@ public abstract class ModelTestBase
     @AfterClass
     public static void tearDownTestClass()
     {
-        MDRepository repository = repos;
+        EnkiMDRepository repository = repos;
         if (repository != null) {
+            repository.endSession();
             pkg = null;
             repos = null;
             repository.shutdown();
@@ -144,7 +145,7 @@ public abstract class ModelTestBase
         return pkg;
     }
     
-    protected static MDRepository getRepository()
+    protected static EnkiMDRepository getRepository()
     {
         if (repos == null) {
             load();
@@ -173,29 +174,47 @@ public abstract class ModelTestBase
     
     private static void load()
     {
-        String enkiHome = System.getProperty(PROPERTY_ENKI_HOME);
-        Assert.assertNotNull(enkiHome);
-        Assert.assertTrue(enkiHome.length() > 0);
-        
         testExtentName = System.getProperty(PROPERTY_ENKI_TEST_EXTENT);
         Assert.assertNotNull(testExtentName);
         Assert.assertTrue(testExtentName.length() > 0);
 
-        File storagePropsFile = 
-            new File(enkiHome, "test/TestStorage.properties");
+        RepositoryDetails result = 
+            loadRepository(testExtentName, "test/TestStorage.properties");
         
-        storageProps = new Properties();
+        storageProps = result.storageProps;
+        repos = result.repos;
+        pkg = result.pkg;
+    }
+    
+    protected static RepositoryDetails loadRepository(
+        String extentName, String storagePropsPath)
+    {
+        String enkiHome = System.getProperty(PROPERTY_ENKI_HOME);
+        Assert.assertNotNull(enkiHome);
+        Assert.assertTrue(enkiHome.length() > 0);
+        
+        RepositoryDetails result = new RepositoryDetails();
+
+        File storagePropsFile = new File(storagePropsPath);
+        if (!storagePropsFile.isAbsolute()) {
+            storagePropsFile = new File(enkiHome, storagePropsPath);
+        }
+        
+        result.storageProps = new Properties();
         try {
-            storageProps.load(new FileInputStream(storagePropsFile));
+            result.storageProps.load(new FileInputStream(storagePropsFile));
         } catch (IOException e) {
             fail(e);
         }
         
-        repos = MDRepositoryFactory.newMDRepository(storageProps);
-        Assert.assertNotNull(repos);
+        result.repos = 
+            MDRepositoryFactory.newMDRepository(result.storageProps);
+        Assert.assertNotNull(result.repos);
         
-        pkg = repos.getExtent(testExtentName);
-        Assert.assertNotNull(pkg);        
+        result.pkg = result.repos.getExtent(extentName);
+        Assert.assertNotNull(result.pkg);        
+        
+        return result;
     }
     
     protected static void fail(Throwable t)
@@ -213,6 +232,13 @@ public abstract class ModelTestBase
         t.printStackTrace(pw);
         
         Assert.fail(sw.toString());
+    }
+    
+    protected static class RepositoryDetails
+    {
+        public EnkiMDRepository repos;
+        public RefPackage pkg;
+        public Properties storageProps;
     }
 }
 

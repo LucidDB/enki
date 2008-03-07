@@ -49,6 +49,8 @@ public abstract class HibernateRefObject
     @Override
     public void refDelete()
     {
+        getHibernateRepository().checkTransaction(true);
+        
         enqueueEvent(
             new InstanceEvent(
                 this,
@@ -81,6 +83,8 @@ public abstract class HibernateRefObject
         boolean isExposedEndFirst,
         HibernateAssociable newValue)
     {
+        getHibernateRepository().checkTransaction(true);
+        
         HibernateRefAssociation refAssoc = null;
         if (refAssocId != null) {
             refAssoc = 
@@ -145,6 +149,8 @@ public abstract class HibernateRefObject
         boolean isExposedEndFirst,
         HibernateAssociable newValue)
     {
+        getHibernateRepository().checkTransaction(true);
+        
         HibernateAssociable me = (HibernateAssociable)this;
         
         boolean assocIsNew = false;
@@ -222,8 +228,7 @@ public abstract class HibernateRefObject
             HibernateRefAssociationRegistry.instance().findRefAssociation(
                 refAssocId);
         
-        List<? extends RefObject> otherEnds =
-            assoc.query(isExposedEndFirst);
+        List<? extends RefObject> otherEnds = assoc.query(isExposedEndFirst);
         for(int i = 0; i < otherEnds.size(); i++) {
             refAssoc.fireRemoveEvent(
                 isExposedEndFirst, this, otherEnds.get(i), i);

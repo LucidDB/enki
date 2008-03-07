@@ -457,7 +457,7 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         
         Collection<Tag> tags =
             GenericCollections.asTypedCollection(
-                attachesTo.refQuery("ModelElement", modelElem), Tag.class);
+                attachesTo.refQuery("modelElement", modelElem), Tag.class);
         for(Tag tag: tags) {
             if (tag.getTagId().equals(tagId)) {
                 return tag.getValues().get(0).toString();

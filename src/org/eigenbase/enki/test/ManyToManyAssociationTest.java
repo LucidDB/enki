@@ -26,6 +26,7 @@ import java.util.*;
 import org.junit.*;
 
 import eem.sample.simple.*;
+import eem.sample.special.*;
 
 /**
  * ManyToManyAssociationTest tests many-to-many associations.
@@ -461,6 +462,36 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
                 e23RefMofId, Collections.singletonList(e22RefMofId));
         }
     }
+        
+    @Test
+    public void testOrderedTraversalByProxy()
+    {
+        List<String> e23RefMofIds = new ArrayList<String>();
+        List<String> e22RefMofIds = createEntities22(N, N, e23RefMofIds, false);
+        
+        for(String e22RefMofId: e22RefMofIds) {
+            traverseEntity22to23ByProxy(e22RefMofId, e23RefMofIds);
+        }
+        
+        for(String e23RefMofId: e23RefMofIds) {
+            traverseEntity23to22ByProxy(e23RefMofId, e22RefMofIds);
+        }
+    }
+    
+    @Test
+    public void testUnorderedTraversalByProxy()
+    {
+        Set<String> e21RefMofIds = new HashSet<String>();
+        Set<String> e20RefMofIds = createEntities20(N, N, e21RefMofIds, false);
+        
+        for(String e20RefMofId: e20RefMofIds) {
+            traverseEntity20to21ByProxy(e20RefMofId, e21RefMofIds);
+        }
+        
+        for(String e21RefMofId: e21RefMofIds) {
+            traverseEntity21to20ByProxy(e21RefMofId, e20RefMofIds);
+        }
+    }
     
     private Set<String> createEntities20(
         int numEntities20, 
@@ -514,6 +545,15 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
     private void traverseEntity20to21(
         String e20RefMofId, Set<String> e21RefMofIds, boolean startTxn)
     {
+        traverseEntity20to21(e20RefMofId, e21RefMofIds, startTxn, false);
+    }
+    
+    private void traverseEntity20to21(
+        String e20RefMofId,
+        Set<String> e21RefMofIds,
+        boolean startTxn,
+        boolean useProxy)
+    {
         if (startTxn) {
             getRepository().beginTrans(false);
         }
@@ -524,7 +564,13 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
         try {
             Entity20 e20 = findEntity(e20RefMofId, Entity20.class);
             
-            Collection<Entity21> entities21 = e20.getEntity21();
+            Collection<Entity21> entities21;
+            if (useProxy) {
+                Entity20to21 assocProxy = getSimplePackage().getEntity20to21();
+                entities21 = assocProxy.getEntity21(e20);
+            } else {
+                entities21 = e20.getEntity21();
+            }
             
             Assert.assertEquals(expectedRefMofIds.size(), entities21.size());
             
@@ -540,6 +586,18 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
             }
         }
     }
+    
+    private void traverseEntity20to21ByProxy(
+        String e20RefMofId, Set<String> e21RefMofIds)
+    {
+        traverseEntity20to21ByProxy(e20RefMofId, e21RefMofIds, true);
+    }
+
+    private void traverseEntity20to21ByProxy(
+        String e20RefMofId, Set<String> e21RefMofIds, boolean startTxn)
+    {
+        traverseEntity20to21(e20RefMofId, e21RefMofIds, startTxn, true);
+    }
 
     private void traverseEntity21to20(
         String e21RefMofId, Set<String> e20RefMofIds)
@@ -549,6 +607,15 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
 
     private void traverseEntity21to20(
         String e21RefMofId, Set<String> e20RefMofIds, boolean startTxn)
+    {
+        traverseEntity21to20(e21RefMofId, e20RefMofIds, startTxn, false);
+    }
+    
+    private void traverseEntity21to20(
+        String e21RefMofId, 
+        Set<String> e20RefMofIds, 
+        boolean startTxn, 
+        boolean useProxy)
     {
         if (startTxn) {
             getRepository().beginTrans(false);
@@ -560,7 +627,13 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
         try {
             Entity21 e21 = findEntity(e21RefMofId, Entity21.class);
             
-            Collection<Entity20> entities20 = e21.getEntity20();
+            Collection<Entity20> entities20;
+            if (useProxy) {
+                Entity20to21 assocProxy = getSimplePackage().getEntity20to21();
+                entities20 = assocProxy.getEntity20(e21);
+            } else {
+                entities20 = e21.getEntity20();
+            }
             
             Assert.assertEquals(expectedRefMofIds.size(), entities20.size());
             
@@ -575,6 +648,18 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
                 getRepository().endTrans();
             }
         }
+    }
+    
+    private void traverseEntity21to20ByProxy(
+        String e21RefMofId, Set<String> e20RefMofIds)
+    {
+        traverseEntity21to20ByProxy(e21RefMofId, e20RefMofIds, true);
+    }
+
+    private void traverseEntity21to20ByProxy(
+        String e21RefMofId, Set<String> e20RefMofIds, boolean startTxn)
+    {
+        traverseEntity21to20(e21RefMofId, e20RefMofIds, startTxn, true);
     }
 
     private List<String> createEntities22(
@@ -629,6 +714,15 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
     private void traverseEntity22to23(
         String e22RefMofId, List<String> e23RefMofIds, boolean startTxn)
     {
+        traverseEntity22to23(e22RefMofId, e23RefMofIds, startTxn, false);
+    }
+    
+    private void traverseEntity22to23(
+        String e22RefMofId,
+        List<String> e23RefMofIds, 
+        boolean startTxn, 
+        boolean useProxy)
+    {
         if (startTxn) {
             getRepository().beginTrans(false);
         }
@@ -636,7 +730,13 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
         try {
             Entity22 e22 = findEntity(e22RefMofId, Entity22.class);
             
-            Collection<Entity23> entities23 = e22.getEntity23();
+            Collection<Entity23> entities23;
+            if (useProxy) {
+                Entity22to23 assocProxy = getSimplePackage().getEntity22to23();
+                entities23 = assocProxy.getEntity23(e22);
+            } else {
+                entities23 = e22.getEntity23();
+            }
 
             Iterator<Entity23> entities23Iter = entities23.iterator();
             Iterator<String> e23RefMofIdsIter = e23RefMofIds.iterator();
@@ -665,6 +765,15 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
     private void traverseEntity23to22(
         String e23RefMofId, List<String> e22RefMofIds, boolean startTxn)
     {
+        traverseEntity23to22(e23RefMofId, e22RefMofIds, startTxn, false);
+    }
+    
+    private void traverseEntity23to22(
+        String e23RefMofId,
+        List<String> e22RefMofIds,
+        boolean startTxn,
+        boolean useProxy)
+    {
         if (startTxn) {
             getRepository().beginTrans(false);
         }
@@ -672,7 +781,13 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
         try {
             Entity23 e23 = findEntity(e23RefMofId, Entity23.class);
             
-            Collection<Entity22> entities22 = e23.getEntity22();
+            Collection<Entity22> entities22;
+            if (useProxy) {
+                Entity22to23 assocProxy = getSimplePackage().getEntity22to23();
+                entities22 = assocProxy.getEntity22(e23);
+            } else {
+                entities22 = e23.getEntity22();
+            }
             
             Iterator<Entity22> entities22Iter = entities22.iterator();
             Iterator<String> e22RefMofIdsIter = e22RefMofIds.iterator();
@@ -689,6 +804,283 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
             if (startTxn) {
                 getRepository().endTrans();
             }
+        }
+    }
+
+    private void traverseEntity22to23ByProxy(
+        String e22RefMofId, List<String> e23RefMofIds)
+    {
+        traverseEntity22to23ByProxy(e22RefMofId, e23RefMofIds, true);
+    }
+
+    private void traverseEntity22to23ByProxy(
+        String e22RefMofId, List<String> e23RefMofIds, boolean startTxn)
+    {
+        traverseEntity22to23(e22RefMofId, e23RefMofIds, startTxn, true);
+    }
+
+    private void traverseEntity23to22ByProxy(
+        String e23RefMofId, List<String> e22RefMofIds)
+    {
+        traverseEntity23to22ByProxy(e23RefMofId, e22RefMofIds, true);
+    }
+
+    private void traverseEntity23to22ByProxy(
+        String e23RefMofId, List<String> e22RefMofIds, boolean startTxn)
+    {
+        traverseEntity23to22(e23RefMofId, e22RefMofIds, startTxn, false);
+    }
+    
+    @Test
+    public void testAssociationProxyOnUnidirectionalAssociation()
+    {
+        String mofId;
+        
+        getRepository().beginTrans(true);
+        try {
+            SampleElement sup = 
+                getSpecialPackage().getSampleElement().createSampleElement(
+                    "foo");
+            SampleElement client = 
+                getSpecialPackage().getSampleElement().createSampleElement(
+                    "bar");
+            
+            Dependency dep = 
+                getSpecialPackage().getDependency().createDependency("dep");
+            mofId = dep.refMofId();
+            
+            dep.getSupplier().add(sup);
+            dep.getClient().add(client);
+        }
+        finally {
+            getRepository().endTrans();
+        }
+        
+        getRepository().beginTrans(false);
+        try {
+            Dependency dep = (Dependency)getRepository().getByMofId(mofId);
+            
+            DependencySupplier depSupProxy = 
+                getSpecialPackage().getDependencySupplier();
+            
+            // Check that this succeeds and returns nothing (as expected).
+            Collection<Dependency> deps = 
+                depSupProxy.getSupplierDependency(dep);
+            Assert.assertTrue(deps.isEmpty());
+        }
+        finally {
+            getRepository().endTrans();
+        }
+    }
+
+    @Test
+    public void testUnorderedDuplicates()
+    {
+        final int N = 4;
+        final int EN = 1;
+        
+        String e20RefMofId;
+        String e21RefMofId;
+
+        // Create an entity 20 with duplicated entities 21.
+        getRepository().beginTrans(true);
+        try {
+            Entity20 e20 =
+                getSimplePackage().getEntity20().createEntity20();
+            e20RefMofId = e20.refMofId();
+            
+            Entity21 e21 = 
+                getSimplePackage().getEntity21().createEntity21();
+            e21RefMofId = e21.refMofId();
+
+            for(int i = 0; i < N; i++) {
+                e20.getEntity21().add(e21);
+            }
+        } finally {
+            getRepository().endTrans();
+        }
+        
+        // Read it back
+        getRepository().beginTrans(false);
+        try {
+            Entity20 e20 = (Entity20)getRepository().getByMofId(e20RefMofId);
+            
+            Collection<Entity21> entities21 = e20.getEntity21();
+            
+            Assert.assertEquals(EN, entities21.size());
+            
+            for(Entity21 e21: entities21) {
+                Assert.assertEquals(e21RefMofId, e21.refMofId());
+            }
+        }
+        finally {
+            getRepository().endTrans();
+        }
+    }
+
+    @Test
+    public void testOrderedDuplicates()
+    {
+        final int N = 4;
+        
+        String e22RefMofId;
+        String e23RefMofId;
+
+        // Create an entity 22 with duplicated entities 23.
+        getRepository().beginTrans(true);
+        try {
+            Entity22 e22 =
+                getSimplePackage().getEntity22().createEntity22();
+            e22RefMofId = e22.refMofId();
+            
+            Entity23 e23 = 
+                getSimplePackage().getEntity23().createEntity23();
+            e23RefMofId = e23.refMofId();
+
+            for(int i = 0; i < N; i++) {
+                e22.getEntity23().add(e23);
+            }
+        } finally {
+            getRepository().endTrans();
+        }
+        
+        // Read them back
+        getRepository().beginTrans(false);
+        try {
+            Entity22 e22 = (Entity22)getRepository().getByMofId(e22RefMofId);
+            
+            Collection<Entity23> entities23 = e22.getEntity23();
+            
+            Assert.assertEquals(N, entities23.size());
+            
+            for(Entity23 e23: entities23) {
+                Assert.assertEquals(e23RefMofId, e23.refMofId());
+            }
+        }
+        finally {
+            getRepository().endTrans();
+        }
+        
+        // Remove one by iterator
+        getRepository().beginTrans(true);
+        try {
+            Entity22 e22 = (Entity22)getRepository().getByMofId(e22RefMofId);
+            
+            Collection<Entity23> entities23 = e22.getEntity23();
+            
+            Assert.assertEquals(N, entities23.size());
+
+            int n = 0;
+            for(Iterator<Entity23> i = entities23.iterator(); i.hasNext(); ) {
+                Entity23 e23 = i.next();
+
+                Assert.assertEquals(e23RefMofId, e23.refMofId());
+                
+                if (n++ == 2) {
+                    i.remove();
+                }
+            }
+        }
+        finally {
+            getRepository().endTrans();
+        }
+        
+        // Read them back
+        getRepository().beginTrans(false);
+        try {
+            Entity22 e22 = (Entity22)getRepository().getByMofId(e22RefMofId);
+            
+            Collection<Entity23> entities23 = e22.getEntity23();
+
+            Assert.assertEquals(N - 1, entities23.size());
+            
+            for(Entity23 e23: entities23) {
+                Assert.assertEquals(e23RefMofId, e23.refMofId());
+            }
+        }
+        finally {
+            getRepository().endTrans();
+        }
+        
+        // Remove by collection
+        getRepository().beginTrans(true);
+        try {
+            Entity22 e22 = (Entity22)getRepository().getByMofId(e22RefMofId);
+            
+            Collection<Entity23> entities23 = e22.getEntity23();
+            
+            Assert.assertEquals(N - 1, entities23.size());
+
+            Entity23 toRemove = null;
+            int n = 0;
+            for(Entity23 e23: entities23) {
+                Assert.assertEquals(e23RefMofId, e23.refMofId());
+                
+                if (n++ == 1) {
+                    toRemove = e23;
+                }
+            }
+            
+            entities23.remove(toRemove);
+        }
+        finally {
+            getRepository().endTrans();
+        }
+
+        // Read them back
+        getRepository().beginTrans(false);
+        try {
+            Entity22 e22 = (Entity22)getRepository().getByMofId(e22RefMofId);
+            
+            Collection<Entity23> entities23 = e22.getEntity23();
+
+            Assert.assertEquals(N - 2, entities23.size());
+            
+            for(Entity23 e23: entities23) {
+                Assert.assertEquals(e23RefMofId, e23.refMofId());
+            }
+        }
+        finally {
+            getRepository().endTrans();
+        }
+        
+        // Remove one by proxy
+        getRepository().beginTrans(true);
+        try {
+            Entity22 e22 = (Entity22)getRepository().getByMofId(e22RefMofId);
+            
+            Collection<Entity23> entities23 = e22.getEntity23();
+
+            Assert.assertEquals(N - 2, entities23.size());
+            
+            Entity23 toRemove = null;
+            for(Entity23 e23: entities23) {
+                Assert.assertEquals(e23RefMofId, e23.refMofId());
+                
+                toRemove = e23;
+            }
+            
+            getSimplePackage().getEntity22to23().remove(e22, toRemove);
+        }
+        finally {
+            getRepository().endTrans();
+        }
+        
+        // Read them back
+        getRepository().beginTrans(false);
+        try {
+            Entity22 e22 = (Entity22)getRepository().getByMofId(e22RefMofId);
+            
+            Collection<Entity23> entities23 = e22.getEntity23();
+
+            Assert.assertEquals(N - 3, entities23.size());
+            
+            for(Entity23 e23: entities23) {
+                Assert.assertEquals(e23RefMofId, e23.refMofId());
+            }
+        }
+        finally {
+            getRepository().endTrans();
         }
     }
 }

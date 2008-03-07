@@ -23,8 +23,7 @@ package org.eigenbase.enki.hibernate.storage;
 
 import java.util.*;
 
-import javax.jmi.reflect.*;
-
+import org.eigenbase.enki.hibernate.jmi.*;
 import org.netbeans.api.mdr.events.*;
 
 /**
@@ -41,7 +40,7 @@ public class AttributeListWrapper<E>
     private final int offset;
     
     public AttributeListWrapper(
-        RefObject source,
+        HibernateRefObject source,
         String attributeName,
         List<E> list,
         Class<E> cls)
@@ -50,7 +49,7 @@ public class AttributeListWrapper<E>
     }
     
     private AttributeListWrapper(
-        RefObject source,
+        HibernateRefObject source,
         String attributeName,
         List<E> list,
         int offset)
@@ -62,6 +61,8 @@ public class AttributeListWrapper<E>
 
     public void add(int index, E element)
     {
+        checkSource();
+        
         if (index >= 0 && index <= size()) {
             fireAddEvent(element, index + offset);
         }
@@ -71,6 +72,8 @@ public class AttributeListWrapper<E>
 
     public boolean addAll(int index, Collection<? extends E> c)
     {
+        checkSource();
+
         if (index >= 0 && index <= size()) {
             int position = index;
             for(E e: c) {
@@ -108,6 +111,7 @@ public class AttributeListWrapper<E>
 
     public E remove(int index)
     {
+        checkSource();
         E e = list.get(index);
         fireRemoveEvent(e, index + offset);
         return list.remove(index);
@@ -115,6 +119,7 @@ public class AttributeListWrapper<E>
 
     public E set(int index, E element)
     {
+        checkSource();
         E oldElement = list.get(index);
         fireSetEvent(oldElement, element, index + offset);
         return list.set(index, element);
@@ -222,6 +227,8 @@ public class AttributeListWrapper<E>
 
         public void remove()
         {
+            checkSource();
+
             if (lastValid) {
                 fireRemoveEvent(last);
                 lastValid = false;
@@ -232,6 +239,8 @@ public class AttributeListWrapper<E>
 
         public void set(E o)
         {
+            checkSource();
+
             if (lastValid) {
                 fireSetEvent(last, o, AttributeEvent.POSITION_NONE);
                 lastValid = false;

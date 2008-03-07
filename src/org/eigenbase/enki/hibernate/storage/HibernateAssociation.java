@@ -85,6 +85,18 @@ public abstract class HibernateAssociation extends HibernateObject
         HibernateAssociable left, HibernateAssociable right);
     
     /**
+     * Generically remove an association between left and right.  The
+     * parameters left and right must be part of this association already.
+     *  
+     * @param index position of item to remove
+     * @param left left-side of association
+     * @param right right-side of association
+     * @return true if the association was found and removed, false otherwise
+     */
+    public abstract boolean remove(
+        int index, HibernateAssociable left, HibernateAssociable right);
+
+    /**
      * Generically removes all associations of this type for the given 
      * association end.  The item may be at either end of the association.
      * The cascade delete option is useful when this association represents
@@ -170,8 +182,7 @@ public abstract class HibernateAssociation extends HibernateObject
      * @param returnSecondEnd if true return the end2 object(s)
      * @return collection of objects for the requested end
      */
-    public abstract List<? extends RefObject> query(
-        boolean returnSecondEnd);
+    public abstract List<? extends RefObject> query(boolean returnSecondEnd);
 
     /**
      * Retrieves a {@link HibernateMDRepository} instance via one of this

@@ -216,9 +216,9 @@ public abstract class TransientImplementationHandler
                 "super(");
             increaseIndent();
             writeln("container,");
-            writeln(QUOTE, assocInfo.getEndName(0, true), QUOTE, ",");
+            writeln(QUOTE, assocInfo.getEndName(0), QUOTE, ",");
             writeln(MULTIPLICITY_CLASS, ".", end1Multiplicity, ",");
-            writeln(QUOTE, assocInfo.getEndName(1, true), QUOTE, ",");
+            writeln(QUOTE, assocInfo.getEndName(1), QUOTE, ",");
             writeln(MULTIPLICITY_CLASS, ".", end2Multiplicity, ");");
             newLine();
             generateCustomAssociationInit(assoc);
@@ -232,12 +232,12 @@ public abstract class TransientImplementationHandler
                 "boolean",
                 "exists", 
                 assocInfo.getEndTypes(),
-                assocInfo.getEndNames());
+                assocInfo.getEndIdentifiers());
             writeln(
                 "return super.refLinkExists(", 
-                assocInfo.getEndName(0),
+                assocInfo.getEndIdentifier(0),
                 ", ",
-                assocInfo.getEndName(1), ");");
+                assocInfo.getEndIdentifier(1), ");");
             endBlock();
             newLine();
             
@@ -254,11 +254,11 @@ public abstract class TransientImplementationHandler
                     "boolean",
                     "add",
                     assocInfo.getEndTypes(),
-                    assocInfo.getEndNames());
+                    assocInfo.getEndIdentifiers());
                 writeln(
                     "return super.refAddLink(", 
-                    assocInfo.getEndName(0), ", ", 
-                    assocInfo.getEndName(1), ");");
+                    assocInfo.getEndIdentifier(0), ", ", 
+                    assocInfo.getEndIdentifier(1), ");");
                 endBlock();
 
                 newLine();
@@ -269,11 +269,11 @@ public abstract class TransientImplementationHandler
                     "boolean",
                     "remove",
                     assocInfo.getEndTypes(),
-                    assocInfo.getEndNames());
+                    assocInfo.getEndIdentifiers());
                 writeln(
                     "return super.refRemoveLink(", 
-                    assocInfo.getEndName(0), ", ", 
-                    assocInfo.getEndName(1), ");");
+                    assocInfo.getEndIdentifier(0), ", ", 
+                    assocInfo.getEndIdentifier(1), ");");
                 endBlock();
             }
             
@@ -312,7 +312,7 @@ public abstract class TransientImplementationHandler
                         assocInfo.getEndType(getIndex)),
                 generator.getAccessorName(assocInfo.getEnd(getIndex), null),
                 new String[] { assocInfo.getEndType(fromIndex) },
-                new String[] { assocInfo.getEndName(fromIndex) });
+                new String[] { assocInfo.getEndIdentifier(fromIndex) });
             if (getEndSingle) {
                 write(COLLECTION_CLASS, "<?> result = ");
             } else {
@@ -325,8 +325,8 @@ public abstract class TransientImplementationHandler
             writeln("super.refQuery(");
             increaseIndent();
             writeln(
-                QUOTE, assocInfo.getEndName(fromIndex, true), QUOTE, ", ", 
-                assocInfo.getEndName(fromIndex), ");");
+                QUOTE, assocInfo.getEndName(fromIndex), QUOTE, ", ", 
+                assocInfo.getEndIdentifier(fromIndex), ");");
             decreaseIndent();
             
             if (getEndSingle) {

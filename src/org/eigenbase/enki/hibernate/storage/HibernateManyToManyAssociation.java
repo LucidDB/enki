@@ -38,6 +38,8 @@ public abstract class HibernateManyToManyAssociation
     extends HibernateAssociation
 {
     private boolean reversed;
+    private boolean unique;
+    
     private HibernateAssociable source;
     private List<HibernateAssociable> target;
     
@@ -54,6 +56,16 @@ public abstract class HibernateManyToManyAssociation
     public void setReversed(boolean reversed)
     {
         this.reversed = reversed;
+    }
+    
+    public boolean getUnique()
+    {
+        return unique;
+    }
+    
+    public void setUnique(boolean unique)
+    {
+        this.unique = unique;
     }
     
     public HibernateAssociable getSource()
@@ -106,13 +118,17 @@ public abstract class HibernateManyToManyAssociation
         
         boolean result = false;
         List<HibernateAssociable> sourceAssocTargets = sourceAssoc.getTarget();
-        if (!sourceAssocTargets.contains(newTarget)) {
+        if (!sourceAssoc.getUnique() || 
+            !sourceAssocTargets.contains(newTarget))
+        {
             sourceAssocTargets.add(newTarget);
             result = true;
         }
         
         List<HibernateAssociable> targetAssocTargets = targetAssoc.getTarget();
-        if (!targetAssocTargets.contains(newSource)) {
+        if (!targetAssoc.getUnique() || 
+            !targetAssocTargets.contains(newSource))
+        {
             targetAssocTargets.add(newSource);
             result = true;
         }
@@ -140,7 +156,9 @@ public abstract class HibernateManyToManyAssociation
         assert(indexOnSourceAssoc || indexOnTargetAssoc);
         
         List<HibernateAssociable> sourceAssocTargets = sourceAssoc.getTarget();
-        if (!sourceAssocTargets.contains(newTarget)) {
+        if (!sourceAssoc.getUnique() ||
+            !sourceAssocTargets.contains(newTarget))
+        {
             if (indexOnSourceAssoc) {
                 sourceAssocTargets.add(index, newTarget);
             } else {
@@ -149,7 +167,9 @@ public abstract class HibernateManyToManyAssociation
         }
         
         List<HibernateAssociable> targetAssocTargets = targetAssoc.getTarget();
-        if (!targetAssocTargets.contains(newSource)) {
+        if (!targetAssoc.getUnique() &&
+            !targetAssocTargets.contains(newSource))
+        {
             if (indexOnTargetAssoc) {
                 targetAssocTargets.add(index, newSource);
             } else {
@@ -173,11 +193,28 @@ public abstract class HibernateManyToManyAssociation
             target = end2;
         }
 
-        return removeInternal(source, target);
+        return removeInternal(source, target, -1);
+    }
+    
+    @Override
+    public boolean remove(
+        int index, HibernateAssociable end1, HibernateAssociable end2)
+    {
+        HibernateAssociable source;
+        HibernateAssociable target;
+        if (getReversed()) {
+            source = end2;
+            target = end1;
+        } else {
+            source = end1;
+            target = end2;
+        }
+
+        return removeInternal(source, target, index);
     }
     
     private boolean removeInternal(
-        HibernateAssociable source, HibernateAssociable target) 
+        HibernateAssociable source, HibernateAssociable target, int index) 
     {        
         final String type = getType();
 
@@ -191,11 +228,24 @@ public abstract class HibernateManyToManyAssociation
             (HibernateManyToManyAssociation)target.getAssociation(
                 type, targetIsFirstEnd);
 
-        assert(equals(sourceAssoc, this) || equals(targetAssoc, this));
-        
+        boolean indexOnSourceAssoc = equals(sourceAssoc, this);
+        boolean indexOnTargetAssoc = equals(targetAssoc, this);
+        // This assertion also guarantees that either sourceAssoc or 
+        // targetAssoc equals this.
+        assert(indexOnSourceAssoc || indexOnTargetAssoc);
+
         boolean result = false;
         List<HibernateAssociable> sourceAssocTargets = sourceAssoc.getTarget();
-        if (sourceAssocTargets.remove(target)) {
+        
+        boolean removedFromSourceAssoc = false;
+        if (indexOnSourceAssoc && index != -1) {
+            HibernateAssociable removed = sourceAssocTargets.remove(index);
+            assert(target.equals(removed));
+            removedFromSourceAssoc = true;
+        } else {
+            removedFromSourceAssoc = sourceAssocTargets.remove(target);
+        }
+        if (removedFromSourceAssoc) {
             result = true;
             
             if (sourceAssocTargets.isEmpty()) {
@@ -206,7 +256,17 @@ public abstract class HibernateManyToManyAssociation
         }
         
         List<HibernateAssociable> targetAssocTargets = targetAssoc.getTarget();
-        if (targetAssocTargets.remove(source)) {
+        
+        boolean removedFromTargetAssoc = false;
+        if (indexOnTargetAssoc && index != -1) {
+            HibernateAssociable removed = targetAssocTargets.remove(index);
+            assert(source.equals(removed));
+            removedFromTargetAssoc = true;
+        } else {
+            removedFromTargetAssoc = targetAssocTargets.remove(source);
+        }
+        
+        if (removedFromTargetAssoc) {
             result = true;
 
             if (targetAssocTargets.isEmpty()) {
@@ -228,7 +288,7 @@ public abstract class HibernateManyToManyAssociation
         if (!equals(item, source)) {
             assert(targets.contains(item));
             
-            removeInternal(source, item);
+            removeInternal(source, item, -1);
             
             if (cascadeDelete) {
                 source.refDelete();
@@ -238,7 +298,7 @@ public abstract class HibernateManyToManyAssociation
         
         while(!targets.isEmpty()) {
             HibernateAssociable trg = targets.get(0);
-            removeInternal(item, trg);
+            removeInternal(item, trg, -1);
             
             if (cascadeDelete) {
                 trg.refDelete();

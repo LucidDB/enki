@@ -468,8 +468,7 @@ public abstract class RefObjectBase
         return extendedNamespace;
     }
     
-    private void recursiveFindDeps(
-        Collection<String> kinds, Set<ModelElement> seen)
+    void recursiveFindDeps(Collection<String> kinds, Set<ModelElement> seen)
     {
         HashSet<ModelElement> seen2 = new HashSet<ModelElement>();
         
@@ -480,15 +479,19 @@ public abstract class RefObjectBase
         
         // MOF spec has an "if seen = seen2".  Instead, just add all of seen2
         // into seen and recurse if there are new elements.
-        boolean performRecursion = false;
-        for(ModelElement m: seen2) {
-            if (seen.add(m)) {
-                performRecursion = true;
+        for(Iterator<ModelElement> iter = seen2.iterator(); iter.hasNext(); ) {
+            ModelElement elem = iter.next();
+            
+            if (!seen.add(elem)) {
+                // Seen already contained elem.
+                iter.remove();
             }
         }
         
-        if (performRecursion) {
-            recursiveFindDeps(kinds, seen);
+        if (!seen2.isEmpty()) {
+            for(ModelElement elem: seen2) {
+                ((RefObjectBase)elem).recursiveFindDeps(kinds, seen);
+            }
         }
     }
     

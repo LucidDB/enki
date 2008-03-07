@@ -25,10 +25,12 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.logging.*;
+import java.util.regex.*;
 
 import org.apache.tools.ant.*;
 import org.apache.tools.ant.types.*;
 import org.eigenbase.enki.mdr.*;
+import org.eigenbase.enki.netbeans.*;
 import org.netbeans.api.mdr.*;
 
 /**
@@ -79,13 +81,17 @@ public class EnkiTask
 
     private Reference modelPathRef;
     
+    private List<StorageProperty> storagePropertyElements;
     private List<SubTask> subTasks;
-
-    private MDRepository mdr;
+    private PropertySet propertySet;
+    
+    private Properties storageProperties;
+    private EnkiMDRepository mdr;
     
     public EnkiTask()
     {
         this.subTasks = new ArrayList<SubTask>();
+        this.storagePropertyElements = new ArrayList<StorageProperty>();
     }
     
     public void setPropertiesFile(String propertiesFile)
@@ -135,7 +141,8 @@ public class EnkiTask
                     }
                 }
                 
-                oldClassLoader = Thread.currentThread().getContextClassLoader();
+                oldClassLoader = 
+                    Thread.currentThread().getContextClassLoader();
                 URLClassLoader modelClassLoader = 
                     new URLClassLoader(
                         urls.toArray(new URL[urls.size()]),
@@ -151,7 +158,8 @@ public class EnkiTask
                 }
             } finally {
                 if (oldClassLoader != null) {
-                    Thread.currentThread().setContextClassLoader(oldClassLoader);                
+                    Thread.currentThread().setContextClassLoader(
+                        oldClassLoader);                
                 }
             }
             
@@ -181,6 +189,21 @@ public class EnkiTask
                 throw new BuildException(e);
             }
         }
+        
+        if (getMdrProvider() == MdrProvider.NETBEANS_MDR) {
+            Thread thread = Thread.currentThread();
+            ClassLoader oldContextClassLoader = thread.getContextClassLoader();
+            
+            thread.setContextClassLoader(MdrTraceUtil.class.getClassLoader());
+            
+            try {
+                // Configure Netbeans logging
+                Logger mdrLogger = Logger.getLogger(getClass().getName());
+                MdrTraceUtil.integrateTracing(mdrLogger);
+            } finally {
+                thread.setContextClassLoader(oldContextClassLoader);
+            }
+        }
     }
     
     private void resetLogManager()
@@ -195,6 +218,20 @@ public class EnkiTask
         }
     }
 
+    public PropertySet createPropertySet()
+    {
+        PropertySet propSet = new PropertySet();
+        propertySet = propSet;
+        return propSet;
+    }
+    
+    public StorageProperty createStorageProperty()
+    {
+        StorageProperty storageProp = new StorageProperty();
+        storagePropertyElements.add(storageProp);
+        return storageProp;
+    }
+    
     public CreateExtentSubTask createCreateExtent()
     {
         CreateExtentSubTask createExtentSubTask = 
@@ -221,6 +258,23 @@ public class EnkiTask
         return importXmiSubTask;
     }
     
+    public ExportXmiSubTask createExportXmi()
+    {
+        ExportXmiSubTask exportXmiSubTask = new ExportXmiSubTask("exportXmi");
+        subTasks.add(exportXmiSubTask);
+        exportXmiSubTask.setTask(this);
+        return exportXmiSubTask;
+    }
+    
+    public PrintExtentNames createPrintExtentNames()
+    {
+        PrintExtentNames printExtentNames = 
+            new PrintExtentNames("printExtentNames");
+        subTasks.add(printExtentNames);
+        printExtentNames.setTask(this);
+        return printExtentNames;
+    }
+    
     public WriteDtdSubTask createWriteDtd()
     {
         WriteDtdSubTask writeDtdSubTask = new WriteDtdSubTask("writeDtd");
@@ -237,17 +291,17 @@ public class EnkiTask
         return mapJavaSubTask;
     }
     
-    void setMDRepository(MDRepository mdr)
+    void setMDRepository(EnkiMDRepository mdr)
     {
         this.mdr = mdr;
     }
     
-    MDRepository getMDRepository()
+    EnkiMDRepository getMDRepository()
     {
         return getMDRepository(false);
     }
     
-    MDRepository getMDRepository(boolean create)
+    EnkiMDRepository getMDRepository(boolean create)
     {
         if (mdr != null) {
             return mdr;
@@ -257,30 +311,91 @@ public class EnkiTask
             throw new BuildException("MDR repository not instantiated");
         }
         
-        Properties props = getProperties();
+        loadProperties();
         
-        mdr = MDRepositoryFactory.newMDRepository(props);
+        mdr = MDRepositoryFactory.newMDRepository(storageProperties);
         
         return mdr;
     }
     
-    Properties getProperties() throws BuildException
+    MdrProvider getMdrProvider()
     {
-        if (propertiesFile == null) {
-            throw new BuildException(
-                "Configuration properties for repository storage must be passed using the \"propertiesFile\" attribute");
+        loadProperties();
+        
+        String enkiImplType = 
+            storageProperties.getProperty(MDRepositoryFactory.ENKI_IMPL_TYPE);
+        if (enkiImplType == null) {
+            return null;
         }
         
-        File propsFile = new File(propertiesFile);
+        MdrProvider implType = MdrProvider.valueOf(enkiImplType);
+        return implType;
+    }
+    
+    void loadProperties() throws BuildException
+    {
+        if (storageProperties != null) {
+            return;
+        }
         
         Properties props = new Properties();
-        try {
-            props.load(new FileInputStream(propsFile));
-        } catch (IOException ex) {
-            throw new BuildException(ex);
+
+        if (propertiesFile != null && propertiesFile.length() > 0) {
+            // Cannot have properties file AND storageProperty elements.
+            if (!storagePropertyElements.isEmpty()) {
+                throw new BuildException(
+                    "Use of the \"propertiesFile\" attribute and \"storageProperty\" may not be combined");
+            }
+            
+            File propsFile = new File(propertiesFile);
+            
+            try {
+                props.load(new FileInputStream(propsFile));
+            } catch (IOException ex) {
+                throw new BuildException(ex);
+            }
+        } else if (!storagePropertyElements.isEmpty()) {
+            for(StorageProperty storageProp: storagePropertyElements) {
+                props.put(storageProp.getName(), storageProp.getValue());
+            }
+        }
+
+        if (propertySet != null) {
+            Pattern propRegex = 
+                Pattern.compile("\\$(\\{([^$}]+)\\}|\\$)");
+            
+            // Use propertySet to do substitution into props.
+            Properties substProps = propertySet.getProperties();
+            for(Map.Entry<Object, Object> entry: props.entrySet()) {
+                String value = entry.getValue().toString();
+                
+                StringBuffer newValue = new StringBuffer();
+                Matcher propMatcher = propRegex.matcher(value);
+                while(propMatcher.find()) {
+                    String propName = propMatcher.group(1);
+                    String replacement;
+                    if (propName.equals("$")) {
+                        // found $$, replace with $
+                        replacement = "\\$";
+                    } else {
+                        // found property name
+                        propName = propMatcher.group(2);
+                        replacement = substProps.getProperty(propName);
+                        if (replacement == null) {
+                            // leave the unresolved property reference
+                            replacement = "$0";
+                        }
+                    }
+                    
+                    propMatcher.appendReplacement(newValue, replacement);
+                }
+                propMatcher.appendTail(newValue);
+                
+                entry.setValue(newValue.toString());
+            }
         }
         
-        return props;
+        storageProperties = props;
     }
     
     /**
@@ -316,11 +431,7 @@ public class EnkiTask
 
         protected MdrProvider getMdrProvider()
         {
-            Properties props = task.getProperties();
-            String enkiImplType = 
-                props.getProperty(MDRepositoryFactory.ENKI_IMPL_TYPE);
-            MdrProvider implType = MdrProvider.valueOf(enkiImplType);
-            return implType;
+            return task.getMdrProvider();
         }
         
         protected MDRepository getMDRepository()
@@ -328,7 +439,7 @@ public class EnkiTask
             return task.getMDRepository();
         }
         
-        protected MDRepository getMDRepository(boolean create)
+        protected EnkiMDRepository getMDRepository(boolean create)
         {
             return task.getMDRepository(create);
         }

@@ -21,6 +21,8 @@
 */
 package org.eigenbase.enki.netbeans;
 
+import java.util.logging.*;
+
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.mdr.*;
@@ -39,6 +41,12 @@ import org.netbeans.mdr.persistence.*;
  */
 public class NBMDRepositoryWrapper implements EnkiMDRepository
 {
+    private final Logger log = 
+        Logger.getLogger(NBMDRepositoryWrapper.class.getName());
+
+    private static final ThreadLocalSessionContext tls = 
+        new ThreadLocalSessionContext();
+
     private final NBMDRepositoryImpl impl;
     
     public NBMDRepositoryWrapper(NBMDRepositoryImpl impl)
@@ -81,51 +89,101 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     {
         impl.addListener(arg0);
     }
-
-    public void beginTrans(boolean arg0)
+    
+    public void beginSession()
     {
-        impl.beginTrans(arg0);
+        SessionContext context = tls.get();
+        beginSessionImpl(context, false);
+    }
+    
+    private void beginSessionImpl(SessionContext context, boolean implicit)
+    {
+        context.refCount++;
+        context.implicit = implicit;
+
+        if (context.implicit) {
+            log.warning("begin implicit repository session");
+        }
+    }
+
+    private void checkBeginImplicitSession()
+    {
+        SessionContext context = tls.get();
+        if (context.refCount == 0) {
+            beginSessionImpl(context, true);
+        }
+    }
+
+    private void checkEndImplicitSession()
+    {
+        SessionContext context = tls.get();
+        if (context.implicit == true && context.refCount == 1) {
+            endSessionImpl(context);
+        }
+    }
+
+    public void beginTrans(boolean write)
+    {
+        checkBeginImplicitSession();
+        impl.beginTrans(write);
     }
 
     public RefPackage createExtent(
-        String arg0,
-        RefObject arg1,
-        RefPackage[] arg2)
+        String name,
+        RefObject metaPackage,
+        RefPackage[] existingInstances)
         throws CreationFailedException
     {
-        return impl.createExtent(arg0, arg1, arg2);
+        return impl.createExtent(name, metaPackage, existingInstances);
     }
 
-    public RefPackage createExtent(String arg0, RefObject arg1)
+    public RefPackage createExtent(String name, RefObject metaPackage)
         throws CreationFailedException
     {
-        return impl.createExtent(arg0, arg1);
+        return impl.createExtent(name, metaPackage);
     }
 
-    public RefPackage createExtent(String arg0)
+    public RefPackage createExtent(String name)
         throws CreationFailedException
     {
-        return impl.createExtent(arg0);
+        return impl.createExtent(name);
+    }
+    
+    public void endSession()
+    {
+        SessionContext context = tls.get();
+        endSessionImpl(context);
+    }
+
+    private void endSessionImpl(SessionContext context)
+    {
+        if (context.refCount == 0) {
+            throw new RuntimeException("session never opened/already closed");
+        } else {
+            context.refCount--;
+        }
     }
 
     public void endTrans()
     {
         impl.endTrans();
+        checkEndImplicitSession();
     }
 
-    public void endTrans(boolean arg0)
+    public void endTrans(boolean rollback)
     {
-        impl.endTrans(arg0);
+        impl.endTrans(rollback);
+        checkEndImplicitSession();
     }
 
-    public RefBaseObject getByMofId(String arg0)
+    public RefBaseObject getByMofId(String mofId)
     {
-        return impl.getByMofId(arg0);
+        return impl.getByMofId(mofId);
     }
 
-    public RefPackage getExtent(String arg0)
+    public RefPackage getExtent(String name)
     {
-        return impl.getExtent(arg0);
+        return impl.getExtent(name);
     }
 
     public String[] getExtentNames()
@@ -133,14 +191,14 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
         return impl.getExtentNames();
     }
 
-    public void removeListener(MDRChangeListener arg0, int arg1)
+    public void removeListener(MDRChangeListener listener, int mask)
     {
-        impl.removeListener(arg0, arg1);
+        impl.removeListener(listener, mask);
     }
 
-    public void removeListener(MDRChangeListener arg0)
+    public void removeListener(MDRChangeListener listener)
     {
-        impl.removeListener(arg0);
+        impl.removeListener(listener);
     }
 
     public void shutdown()
@@ -161,6 +219,22 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     public ClassLoader getDefaultClassLoader()
     {
         return BaseObjectHandler.getDefaultClassLoader();
+    }
+    
+    private static class ThreadLocalSessionContext 
+        extends ThreadLocal<SessionContext>
+    {
+        @Override
+        protected SessionContext initialValue()
+        {
+            return new SessionContext();
+        }
+    }
+    
+    private static class SessionContext
+    {
+        public int refCount = 0;
+        public boolean implicit = false;
     }
 }
 

@@ -554,8 +554,23 @@ public class JmiTest extends JmiTestBase
                 Entity1.class);
         Assert.assertEquals(1, entities1ByQuery.size());
         Entity1 e1ByQuery = entities1ByQuery.iterator().next();
-        Assert.assertEquals(e1, e1ByQuery); 
+        Assert.assertEquals(e1, e1ByQuery);
+        
+        // negative refQuery
+        try {
+            hasAnEntity2Assoc.refQuery(ends[1], e1);
+            Assert.fail("expected exception");
+        } catch(Exception e) {
+            // expected
+        }
+        try {
+            hasAnEntity2Assoc.refQuery(ends[0], e2);
+            Assert.fail("expected exception");
+        } catch(Exception e) {
+            // expected
+        }
     }
+    
 
     @Test
     public void testRefAssociationMethodsOnOneToMany()
@@ -671,6 +686,20 @@ public class JmiTest extends JmiTestBase
         Assert.assertNotNull(anEntityByQuery);
         Assert.assertEquals(anotherContainer, anotherContainerByQuery2);
         Assert.assertEquals(anEntity, anEntityByQuery);
+        
+        // negative refQuery
+        try {
+            containsAssoc.refQuery(ends[0], anEntity);
+            Assert.fail("expected exception");
+        } catch(Exception e) {
+            // expected
+        }
+        try {
+            containsAssoc.refQuery(ends[0], anotherEntity);
+            Assert.fail("expected exception");
+        } catch(Exception e) {
+            // expected
+        }
     }
     
     @Test
@@ -801,6 +830,43 @@ public class JmiTest extends JmiTestBase
         Assert.assertEquals(2, statesByQuery.size());
         Assert.assertTrue(statesByQuery.contains(ca));
         Assert.assertTrue(statesByQuery.contains(nv));
+
+        // negative refQuery
+        try {
+            registrationsAssoc.refQuery(ends[1], car1);
+            Assert.fail("expected exception");
+        } catch(Exception e) {
+            // expected
+        }
+        try {
+            registrationsAssoc.refQuery(ends[0], ca);
+            Assert.fail("expected exception");
+        } catch(Exception e) {
+            // expected
+        }
+        try {
+            registrationsAssoc.refQuery(ends[0], nv);
+            Assert.fail("expected exception");
+        } catch(Exception e) {
+            // expected
+        }
+    }
+    
+    @Test
+    public void testMofExtent()
+    {
+        getRepository().beginTrans(false);
+        try {
+            RefPackage pkg = getRepository().getExtent("MOF");
+            Assert.assertNotNull(pkg);
+            
+            MofPackage mofPkg = (MofPackage)(pkg.refMetaObject());
+            Assert.assertNotNull(mofPkg);
+            Assert.assertNotNull(mofPkg.getContents());
+        }
+        finally {
+            getRepository().endTrans();
+        }
     }
 }
 

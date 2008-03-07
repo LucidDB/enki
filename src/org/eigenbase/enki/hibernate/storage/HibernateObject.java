@@ -26,6 +26,7 @@ import java.util.logging.*;
 
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.jmi.impl.*;
+import org.hibernate.*;
 
 /**
  * HibernateObject is a base class for all stored model entities.
@@ -68,17 +69,23 @@ public abstract class HibernateObject extends RefObjectBase
             return;
         }
 
-        if (!repos.isWriteTransaction()) {
-            throw new IllegalStateException("Not in write transaction");
-        }
+        repos.checkTransaction(true);
         
+        Session session = repos.getCurrentSession();
         if (getMofId() == 0L) {
             long mofId = repos.getMofIdGenerator().nextMofId();
             
             setMofId(mofId);
+        
+            if (!(this instanceof HibernateAssociation)) {
+                MofIdTypeMapping mapping = new MofIdTypeMapping();
+                mapping.setMofId(mofId);
+                mapping.setTypeName(this.getClass().getName());
+                session.save(mapping);
+            }
         }
         
-        repos.getCurrentSession().save(this);
+        session.save(this);
         
         log.finer(
             "Save on '" + getClass().getName() + "':" + refMofId());
@@ -104,11 +111,18 @@ public abstract class HibernateObject extends RefObjectBase
             return;
         }
         
-        if (!repos.isWriteTransaction()) {
-            throw new IllegalStateException("Not in write transaction");
-        }
+        repos.checkTransaction(true);
         
-        repos.getCurrentSession().delete(this);
+        Session session = repos.getCurrentSession();
+        session.delete(this);
+        
+        if (!(this instanceof HibernateAssociation)) {
+            Query query = session.getNamedQuery("TypeMappingByMofId");
+            query.setLong("mofId", getMofId());
+            
+            MofIdTypeMapping mapping = (MofIdTypeMapping)query.uniqueResult();
+            session.delete(mapping);
+        }
         
         deleted = true;        
     }

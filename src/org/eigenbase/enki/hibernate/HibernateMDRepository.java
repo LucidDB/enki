@@ -21,6 +21,7 @@
 */
 package org.eigenbase.enki.hibernate;
 
+import java.lang.ref.*;
 import java.lang.reflect.*;
 import java.net.*;
 import java.util.*;
@@ -29,6 +30,7 @@ import java.util.logging.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.codegen.*;
 import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
@@ -49,6 +51,10 @@ import org.netbeans.api.mdr.events.*;
  * {@link EnkiMDRepository} for Hibernate-based metamodel storage.  In
  * addition, it acts as a {@link ListenerSource source} of 
  * {@link MDRChangeEvent} instances.
+ * 
+ * <p>Logging Notes.  Session and transactions boundaries are logged at level
+ * {@link Level#FINE}.  If level is set to {@link Level#FINEST}, stack traces
+ * are logged for each session and transaction boundary. 
  * 
  * @author Stephan Zuercher
  */
@@ -84,12 +90,30 @@ public class HibernateMDRepository
         "enki.model.initializer";
     
     /**
+     * Storage property that configures the behavior of implicit sessions.
+     * Values are converted to boolean via {@link Boolean#valueOf(String)}.
+     * If the value evaluates to true, implicit sessions are allowed (and are
+     * closed when the first transaction within the session is committed or
+     * rolled back).
+     */
+    public static final String PROPERTY_STORAGE_ALLOW_IMPLICIT_SESSIONS =
+        "org.eigenbase.enki.hibernate.allowImplicitSessions";
+    
+    /**
+     * Contains the default value for the 
+     * {@link #PROPERTY_STORAGE_ALLOW_IMPLICIT_SESSIONS} storage property.
+     * The default is {@value}.
+     */
+    public static final boolean DEFAULT_ALLOW_IMPLICIT_SESSIONS = false;
+    
+    /**
      * Identifier for the built-in MOF extent.
      */
-    private static final String MOF_EXTENT = "--mof--";
+    private static final String MOF_EXTENT = "MOF";
     
-    /** Thread-local storage for MDR transaction contexts. */
-    private static final ThreadLocal<Context> tls = new ThreadLocal<Context>();
+    /** Thread-local storage for MDR session contexts. */
+    private static final ThreadLocal<MdrSession> tls =
+        new ThreadLocal<MdrSession>();
     
     /** List of all known model configuration properties files. */
     private final List<Properties> modelPropertiesList;
@@ -105,6 +129,8 @@ public class HibernateMDRepository
     
     /** Map of extent names to ExtentDescriptor instances. */
     private final Map<String, ExtentDescriptor> extentMap;
+    
+    private final boolean allowImplicitSessions;
     
     /** The Hibernate {@link SessionFactory} for this repository. */
     private SessionFactory sessionFactory;
@@ -138,93 +164,191 @@ public class HibernateMDRepository
         this.listeners = 
             new IdentityHashMap<MDRChangeListener, EnkiMaskedMDRChangeListener>();
         
+        this.allowImplicitSessions = 
+            readStorageProperty(
+                PROPERTY_STORAGE_ALLOW_IMPLICIT_SESSIONS, 
+                DEFAULT_ALLOW_IMPLICIT_SESSIONS,
+                Boolean.class);
+        
         initModelMap();
-        initModelExtent(MOF_EXTENT);
+        initModelExtent(MOF_EXTENT, false);
         initStorage();
+    }
+    
+    private <T> T readStorageProperty(
+        String name, T defaultValue, Class<T> cls)
+    {
+        String stringValue = storageProperties.getProperty(name);
+        if (stringValue == null) {
+            return defaultValue;
+        }
+        
+        try {
+            Constructor<T> cons = cls.getConstructor(String.class);
+            
+            return cons.newInstance(stringValue);
+        } catch (Exception e) {
+            log.log(
+                Level.SEVERE, 
+                "Error parsing storage property (" + name + "=[" + stringValue
+                + "], " + cls.getName() + ")",
+                e);
+            return defaultValue;
+        }
+    }
+    
+    public void beginSession()
+    {
+        MdrSession mdrSession = tls.get();
+        if (mdrSession != null) {
+            logStack(Level.FINE, "begin re-entrant repository session");
+            mdrSession.refCount++;
+            return;
+        }
+        
+        beginSessionImpl(false);
+    }
+    
+    private MdrSession beginSessionImpl(boolean implicit)
+    {
+        if (implicit) {
+            if (!allowImplicitSessions) {
+                throw new InternalMdrError("implicit session");
+            }
+            
+            logStack(Level.WARNING, "begin implicit repository session");
+        } else {
+            logStack(Level.FINE, "begin repository session");
+        }
+        
+        Session session = sessionFactory.openSession();
+        session.setFlushMode(FlushMode.COMMIT);
+        
+        MdrSession mdrSession = new MdrSession(session, implicit);
+        mdrSession.refCount++;
+        
+        tls.set(mdrSession);
+        
+        return mdrSession;
+    }
+    
+    public void endSession()
+    {
+        MdrSession mdrSession = tls.get();
+        if (mdrSession == null) {
+            throw new EnkiHibernateException(
+                "session never opened/already closed");
+        }
+        
+        if (--mdrSession.refCount != 0) {
+            logStack(Level.FINE, "end re-entrant repository session");
+            return;
+        }
+        
+        endSessionImpl(mdrSession);
+    }
+    
+    private void endSessionImpl(MdrSession mdrSession)
+    {
+        if (mdrSession.refCount != 0) {
+            throw new InternalMdrError(
+                "bad ref count: " + mdrSession.refCount);
+        }
+        
+        LinkedList<Context> contexts = mdrSession.context;
+        if (!contexts.isEmpty()) {
+            // More than 1 txn context implies at least one explicit txn.
+            if (contexts.size() > 1 || !contexts.getFirst().isImplicit) {
+                throw new EnkiHibernateException(
+                    "attempted to close session while txn remains open: " 
+                    + contexts.size());
+            }
+            
+            // End the remaining implicit txn
+            endTransImpl(false);
+        }
+        
+        if (mdrSession.isImplicit) {
+            log.warning("end implicit repository session");
+        } else {
+            log.fine("end repository session");
+        }
+        
+        mdrSession.session.close();
+        tls.set(null);
     }
     
     public void beginTrans(boolean write)
     {
-        beginTrans(write, false);
+        beginTransImpl(write, false);
     }
     
-    private Context beginTrans(boolean write, boolean implicit)
+    private Context beginTransImpl(boolean write, boolean implicit)
     {
         assert(!write || !implicit): "Cannot support implicit write txn";
         
-        Context ancestor = null;
-        Context implicitContext = null;
-        if (tls.get() != null) {
-            Context context = tls.get();
-
-            if (context.isImplicit) {
-                if (!write) {
-                    // Nested read.  May upgrade implicit to explicit read txn.
-                    context.isImplicit = implicit;
-                    return context;
-                }
-
-                // Replace implicit read with a write txn by falling through 
-                // with null ancestor.
-                implicitContext = context;
-            } else {
-                // Allow certain nested read transactions.
-                if (context.isWrite && write) {
-                    throw new EnkiHibernateException(
-                        "Cannot nest write transactions");
-                }
-                
-                ancestor = context;
-            }
+        if (log.isLoggable(Level.FINEST)) {
+            logStack(
+                Level.FINEST, 
+                "begin txn; "
+                + (write ? "write; " : "read; ")
+                + (implicit ? "implicit" : "explicit"));
         }
-
-        boolean explicitlyEnableFlush = false;
-        boolean explicitlyDisableFlush = false;
         
-        Session session;
-        Transaction txn;
-        if (ancestor != null) {
-            session = ancestor.session;
-            txn = ancestor.transaction;
-            
-            if (write && !isWriteTransaction(ancestor, true)) {
-                explicitlyEnableFlush = true;
-            }
-        } else if (implicitContext != null) {
-            // Don't open a new session/transaction.
-            session = implicitContext.session;
-            txn = implicitContext.transaction;
-            
-            // N.B.: We know this is a write txn because of the logic that
-            // set implicitContext.
-            explicitlyEnableFlush = true;
+        MdrSession mdrSession = tls.get();
+        if (mdrSession == null) {
+            mdrSession = beginSessionImpl(true);
+        }
+        
+        if (implicit) {
+            log.fine("begin implicit repository transaction");
         } else {
-            session = sessionFactory.getCurrentSession();
-            txn = session.beginTransaction();
-            
-            explicitlyEnableFlush = write;
-            explicitlyDisableFlush = !write;
+            log.fine("begin repository transaction");
         }
 
-        if (explicitlyDisableFlush) {
-            assert(!explicitlyEnableFlush);
-            
-            // Disable auto-flush to improve performance.  No need to flush 
-            // since this MDR transaction is read-only.
-            session.setFlushMode(FlushMode.COMMIT);
-        } else if (explicitlyEnableFlush) {
-            session.setFlushMode(FlushMode.AUTO);
-        }
+        LinkedList<Context> contexts = mdrSession.context;
         
-        Context context = new Context(session, txn, write, implicit, ancestor);
-        tls.set(context);
+        // Nested txns are okay, but the outermost txn is the only one that
+        // commits/rollsback.
+        boolean isCommitter = false;
+        boolean setFlushMode = false;
+        boolean beginTrans = false;
+        if (contexts.isEmpty()) {
+            isCommitter = true;
+            setFlushMode = true;
+            beginTrans = true;
+        } else {
+            isCommitter = contexts.getLast().isImplicit;
 
+            if (!mdrSession.containsWrites && write) {
+                setFlushMode = true;
+            }
+        }
+        
+        if (setFlushMode) {
+            if (write) {
+                mdrSession.session.setFlushMode(FlushMode.AUTO);
+            } else {
+                mdrSession.session.setFlushMode(FlushMode.COMMIT);
+            }
+        }
+
+        Transaction trans;
+        if (beginTrans) {
+            trans = mdrSession.session.beginTransaction();
+        } else {
+            trans = contexts.getLast().transaction;
+        }
+        
+        Context context = new Context(trans, write, implicit, isCommitter);
+
+        contexts.add(context);
         if (write) {
-            context.getEldestAncestor().mayContainWrites = true;
+            mdrSession.containsWrites = true;
         }
         
         if (write) {
-            enqueueBeginTransEvent(context);
+            enqueueBeginTransEvent(mdrSession);
         }
         
         return context;
@@ -237,32 +361,64 @@ public class HibernateMDRepository
 
     public void endTrans(boolean rollback)
     {
-        Context context = tls.get();
-        if (context == null) {
+        MdrSession mdrSession = endTransImpl(rollback);
+        
+        if (mdrSession.isImplicit && mdrSession.context.isEmpty()) {
+            mdrSession.refCount--;
+            endSessionImpl(mdrSession);
+        }
+    }
+    
+    private MdrSession endTransImpl(boolean rollback)
+    {
+        if (log.isLoggable(Level.FINEST)) {
+            logStack(
+                Level.FINEST, 
+                "end txn; "
+                + (rollback ? "rollback" : "commit"));
+        }
+
+        MdrSession mdrSession = tls.get();
+        if (mdrSession == null) {
             throw new EnkiHibernateException(
-                "No current transaction on this thread");
+                "No repository session associated with this thread");
         }
         
-        if (context.ancestor != null) {
-            tls.set(context.ancestor);
-            return;
+        LinkedList<Context> contexts = mdrSession.context;
+        if (contexts.isEmpty()) {
+            throw new EnkiHibernateException(
+                "No repository transactions associated with this thread");
         }
-        
-        tls.set(null);
+
+        Context context = contexts.removeLast();
+
+        if (context.isImplicit) {
+            log.fine("end implicit repository transaction");            
+        } else {
+            log.fine("end repository transaction");
+        }
+
+        if (!context.isCommitter) {
+            return mdrSession;
+        }
         
         Transaction txn = context.transaction;
 
         if (context.isWrite) {
-            enqueueEndTransEvent(context);
+            enqueueEndTransEvent(mdrSession);
         }
         
-        // No need to close the session, the txn commit or rollback took care 
-        // of that already.  Note that even if "commit" is requested, we'll
-        // rollback if no writing was possible.
+        // Note that even if "commit" is requested, we'll rollback if no 
+        // writing was possible.
         if (rollback) {
             txn.rollback();
             
-            fireCanceledChanges(context);
+            fireCanceledChanges(mdrSession);
+            
+            if (mdrSession.containsWrites) {
+                // Evict all cached and potentially modified objects.
+                mdrSession.session.clear();
+            }
         } else {
             // TODO: check for constraint violations
             if (false) {
@@ -278,20 +434,39 @@ public class HibernateMDRepository
             }
             
             try {
-                if (!context.mayContainWrites) {
+                if (!mdrSession.containsWrites) {
                     txn.rollback();
                 } else {
                     txn.commit();
                 }
                 
-                fireChanges(context);
+                fireChanges(mdrSession);
             } catch(HibernateException e) {
-                fireCanceledChanges(context);
+                fireCanceledChanges(mdrSession);
                 throw e;
             }
         }
+
+        if (!contexts.isEmpty()) {
+            if (contexts.size() != 1) {
+                throw new InternalMdrError(
+                    "ended nested txn with multiple containers");
+
+            }
+                
+            Context implicitContext = contexts.getFirst();
+            if (!implicitContext.isImplicit) {
+                throw new InternalMdrError(
+                    "ended nested txn but containing txn is not implicit");
+            }
+            
+            // Start a new transaction for the containing implicit read.
+            implicitContext.transaction = 
+                mdrSession.session.beginTransaction();
+            mdrSession.containsWrites = false;
+        }
         
-        
+        return mdrSession;
     }
 
     public RefPackage createExtent(String name)
@@ -319,12 +494,8 @@ public class HibernateMDRepository
                     "Extent '" + name + "' already exists");
             }
             
-            if (!isWriteTransaction()) {
-                throw new EnkiHibernateException("not a write txn");
-            }
-            
             enqueueEvent(
-                getContext(), 
+                getMdrSession(), 
                 new ExtentEvent(
                     this, 
                     ExtentEvent.EVENT_EXTENT_CREATE, 
@@ -337,7 +508,7 @@ public class HibernateMDRepository
             try {
                 extentDesc = 
                     createExtentStorage(name, metaPackage, existingInstances);
-                
+
                 return extentDesc.extent;
             }
             catch(ProviderInstantiationException e) {
@@ -376,7 +547,7 @@ public class HibernateMDRepository
         throws EnkiDropFailedException
     {
         enqueueEvent(
-            getContext(),
+            getMdrSession(),
             new ExtentEvent(
                 this,
                 ExtentEvent.EVENT_EXTENT_DELETE,
@@ -413,8 +584,16 @@ public class HibernateMDRepository
     
     public RefBaseObject getByMofId(String mofId)
     {
+        MdrSession mdrSession = getMdrSession();
+        
         long mofIdLong = MofIdUtil.parseMofIdStr(mofId); 
 
+        RefBaseObject cachedResult = lookupByMofId(mdrSession, mofIdLong);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+        
+        RefBaseObject result = null;
         if ((mofIdLong & MetamodelInitializer.METAMODEL_MOF_ID_MASK) != 0) {
             synchronized(extentMap) {
                 for(ExtentDescriptor extentDesc: extentMap.values()) {
@@ -422,24 +601,36 @@ public class HibernateMDRepository
                     if (extentDesc.modelDescriptor == null ||
                         extentDesc.modelDescriptor.name.equals(MOF_EXTENT))
                     {
-                        RefBaseObject result = 
-                            extentDesc.initializer.getByMofId(mofId);
+                        result = extentDesc.initializer.getByMofId(mofId);
                         if (result != null) {
-                            return result;
+                            break;
                         }
                     }
                 }
             }
-            
-            return null;
         } else {
-            Session session = getCurrentSession();
+            Session session = mdrSession.session;
             
-            Query query = session.getNamedQuery("ObjectByMofId");
-            query.setLong(0, mofIdLong);
+            Query query = session.getNamedQuery("TypeMappingByMofId");
+            query.setLong("mofId", mofIdLong);
             
-            return (RefBaseObject)query.uniqueResult();
+            MofIdTypeMapping mapping = (MofIdTypeMapping)query.uniqueResult();
+            if (mapping != null) {
+                query = 
+                    session.getNamedQuery(
+                        mapping.getTypeName() + "." + 
+                        HibernateMappingHandler.QUERY_NAME_BYMOFID);
+                query.setLong("mofId", mofIdLong);
+                
+                result = (RefBaseObject)query.uniqueResult();
+            }
         }
+        
+        if (result != null) {
+            storeByMofId(mdrSession, mofIdLong, result);
+        }
+        
+        return result;
     }
 
     public void deleteExtentDescriptor(RefPackage refPackage)
@@ -458,9 +649,7 @@ public class HibernateMDRepository
     {
         extentMap.remove(extentDesc.name);
 
-        if (!isWriteTransaction()) {
-            throw new EnkiHibernateException("not in a write txn");
-        }
+        checkTransaction(true);
         
         Session session = getCurrentSession();
         Query query = session.getNamedQuery("ExtentByName");
@@ -477,7 +666,9 @@ public class HibernateMDRepository
                 return null;
             }
             
-            assert(extentDesc.modelDescriptor != null);
+            assert(
+                extentDesc.modelDescriptor != null || 
+                extentDesc.name.equals(MOF_EXTENT));
             
             return extentDesc.extent;
         }
@@ -600,74 +791,133 @@ public class HibernateMDRepository
         return sessionFactory;
     }
     
-    public Session getCurrentSession()
+    private MdrSession getMdrSession()
     {
-        return getContext().session;
+        MdrSession session = tls.get();
+        if (session != null) {
+            return session;
+        }
+
+        return beginSessionImpl(true);
     }
     
+    private Context getContext()
+    {
+        MdrSession session = getMdrSession();
+        
+        if (session.context.isEmpty()) {
+            return beginTransImpl(false, true);
+        }
+        
+        return session.context.getLast();
+    }
+    
+    public Session getCurrentSession()
+    {
+        return getMdrSession().session;
+    }
+    
+    public void checkTransaction(boolean requireWrite)
+    {
+        if (requireWrite) {
+            if (!isWriteTransaction()) {
+                throw new EnkiHibernateException(
+                    "Operation required write transaction");
+            }
+        } else {
+            // Make sure a txn exists.
+            getContext();
+        }
+    }
     
     public boolean isWriteTransaction()
     {
-        return isWriteTransaction(getContext(), false);
+        return getContext().isWrite;
     }
     
-    private boolean isWriteTransaction(
-        Context context, boolean checkNested)
+    private boolean isNestedWriteTransaction(MdrSession session) 
     {
-        if (!checkNested) {
-            return context.isWrite;
-        }
-        
-        do {
+        LinkedList<Context> contexts = session.context;
+        ListIterator<Context> iter = contexts.listIterator(contexts.size());
+        while(iter.hasPrevious()) {
+            Context context = iter.previous();
+            
             if (context.isWrite) {
                 return true;
             }
-            
-            context = context.ancestor;
-        } while(context != null);
+        }
         
         return false;
     }
 
     public MofIdGenerator getMofIdGenerator()
     {
-        return getContext().getMofIdGenerator();
+        return getMdrSession().getMofIdGenerator();
+    }
+    
+    private RefBaseObject lookupByMofId(MdrSession mdrSession, long mofId)
+    {
+        Map<Long, SoftReference<RefBaseObject>> cache = 
+            mdrSession.byMofIdCache;
+
+        SoftReference<RefBaseObject> ref = cache.get(mofId);
+        if (ref == null) {
+            return null;
+        }
+        
+        RefBaseObject obj = ref.get();
+        if (obj == null) {
+            cache.remove(mofId);
+        }
+        
+        return obj;
     }
 
+    private void storeByMofId(
+        MdrSession mdrSession, long mofId, RefBaseObject obj)
+    {
+        mdrSession.byMofIdCache.put(
+            mofId, new SoftReference<RefBaseObject>(obj));
+    }
+    
     public Collection<?> lookupAllOfTypeResult(HibernateRefClass cls)
     {
-        return getContext().allOfTypeCache.get(cls);
+        return getMdrSession().allOfTypeCache.get(cls);
     }
     
     public void storeAllOfTypeResult(
         HibernateRefClass cls, Collection<?> allOfType)
     {
-        getContext().allOfTypeCache.put(cls, allOfType);
+        getMdrSession().allOfTypeCache.put(cls, allOfType);
     }
     
     public Collection<?> lookupAllOfClassResult(HibernateRefClass cls)
     {
-        return getContext().allOfClassCache.get(cls);
+        return getMdrSession().allOfClassCache.get(cls);
     }
     
     public void storeAllOfClassResult(
         HibernateRefClass cls, Collection<?> allOfClass)
     {
-        getContext().allOfClassCache.put(cls, allOfClass);
+        getMdrSession().allOfClassCache.put(cls, allOfClass);
     }
 
     public void enqueueEvent(MDRChangeEvent event)
     {
-        Context context = getContext();
-        if (!isWriteTransaction(context, true)) {
+        MdrSession mdrSession = getMdrSession();
+        if (!isNestedWriteTransaction(mdrSession)) {
             throw new IllegalStateException("Not in write transaction");
         }
 
-        while(!context.isWrite) {
-            context = context.ancestor;
+        if (event.isOfType(InstanceEvent.EVENT_INSTANCE_DELETE)) {
+            InstanceEvent instanceEvent = (InstanceEvent)event;
+            long mofId =
+                MofIdUtil.parseMofIdStr(
+                    instanceEvent.getInstance().refMofId());
+            mdrSession.byMofIdCache.remove(mofId);
         }
         
-        enqueueEvent(context, event);
+        enqueueEvent(mdrSession, event);
     }
     
     /**
@@ -702,11 +952,11 @@ public class HibernateMDRepository
         }
     }
 
-    private void enqueueEvent(Context context, MDRChangeEvent event)
+    private void enqueueEvent(MdrSession mdrSession, MDRChangeEvent event)
     {
         // Cache event in Context (we'll need to fire it upon commit even if
         // there are no listeners now.)
-        context.queuedEvents.add(event);
+        mdrSession.queuedEvents.add(event);
         
         // Fire as planned change immediately (and from this thread).
         synchronized(listeners) {
@@ -718,99 +968,125 @@ public class HibernateMDRepository
         }
     }
 
-    private void enqueueBeginTransEvent(Context context)
+    private void enqueueBeginTransEvent(MdrSession mdrSession)
     {
         enqueueEvent(
-            context, 
+            mdrSession, 
             new TransactionEvent(
                 this, TransactionEvent.EVENT_TRANSACTION_START));
     }
 
-    private void enqueueEndTransEvent(Context context)
+    private void enqueueEndTransEvent(MdrSession mdrSession)
     {
         enqueueEvent(
-            context, 
+            mdrSession, 
             new TransactionEvent(
                 this, TransactionEvent.EVENT_TRANSACTION_END));
     }
 
-    private Context getContext()
-    {
-        Context context = tls.get();
-        if (context != null) {
-            return context;
-        }
-
-        // begin an implicit read transaction for this thread
-        return beginTrans(false, true);
-    }
-    
-    private void fireCanceledChanges(Context context)
+    private void fireCanceledChanges(MdrSession mdrSession)
     {
         synchronized(listeners) {
-            for(MDRChangeEvent event: context.queuedEvents) {
+            for(MDRChangeEvent event: mdrSession.queuedEvents) {
                 for(EnkiMaskedMDRChangeListener listener: listeners.values()) {
                     listener.changeCancelled(event);
                 }
             }
-            context.queuedEvents.clear();
+            mdrSession.queuedEvents.clear();
         }
     }
     
-    private void fireChanges(Context context)
+    private void fireChanges(MdrSession mdrSession)
     {
         synchronized(listeners) {
-            for(MDRChangeEvent event: context.queuedEvents) {
+            for(MDRChangeEvent event: mdrSession.queuedEvents) {
                 thread.enqueueEvent(event);
             }
-            context.queuedEvents.clear();
+            mdrSession.queuedEvents.clear();
         }
     }
     
     private void loadExistingExtents(List<Extent> extents)
     {
+        // Sort metamodel extents ahead of models.
+        Collections.sort(
+            extents, 
+            new Comparator<Extent>() {
+                public int compare(Extent e1, Extent e2)
+                {
+                    String modelExtentName1 = e1.getModelExtentName();
+                    String modelExtentName2 = e2.getModelExtentName();
+                    
+                    boolean isMof1 = modelExtentName1.equals(MOF_EXTENT);
+                    boolean isMof2 = modelExtentName2.equals(MOF_EXTENT);
+                    
+                    int c;
+                    if (isMof1 && isMof2) {
+                        // Both metamodels
+                        c = 0;
+                    } else if (!isMof1 && !isMof2) {
+                        c = modelExtentName1.compareTo(modelExtentName2);
+                    } else if (isMof1) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                    
+                    if (c != 0) {
+                        return c;
+                    }
+                    
+                    return e1.getExtentName().compareTo(e2.getExtentName());
+                }
+            });
         for(Extent extent: extents) {
             String extentName = extent.getExtentName();
             String modelExtentName = extent.getModelExtentName();
-            
-            ModelDescriptor modelDesc = modelMap.get(modelExtentName);
 
-            if (modelDesc == null) {
-                throw new ProviderInstantiationException(
-                    "Missing model extent '" + modelExtentName + 
-                    "' for extent '" + extentName + "'");
+            if (modelExtentName.equals(MOF_EXTENT)) {
+                initModelExtent(extentName, false);                
+            } else {
+                ModelDescriptor modelDesc = modelMap.get(modelExtentName);
+    
+                if (modelDesc == null) {
+                    throw new ProviderInstantiationException(
+                        "Missing model extent '" + modelExtentName + 
+                        "' for extent '" + extentName + "'");
+                }
+                
+                if (!extentMap.containsKey(modelExtentName)) {
+                    // Should have been initialized previously (due to sorting)
+                    throw new InternalMdrError(
+                        "Missing metamodel extent '" + modelExtentName + "'");
+                }
+                
+                ExtentDescriptor modelExtentDesc = 
+                    extentMap.get(modelExtentName);
+                
+                if (modelExtentDesc.initializer == null) {
+                    throw new ProviderInstantiationException(
+                        "Missing initializer for metamodel extent '" + 
+                        modelExtentName + "'");
+                }
+                
+                ExtentDescriptor extentDesc = new ExtentDescriptor(extentName);
+                extentDesc.modelDescriptor = modelDesc;
+    
+                MetamodelInitializer.setCurrentInitializer(
+                    modelExtentDesc.initializer);
+                try {
+                    extentDesc.extent =
+                        modelDesc.topLevelPkgCons.newInstance(
+                            (Object)null);
+                } catch (Exception e) {
+                    throw new ProviderInstantiationException(
+                        "Cannot load extent '" + extentName + "'", e);
+                } finally {
+                    MetamodelInitializer.setCurrentInitializer(null);
+                }
+                
+                extentMap.put(extentName, extentDesc);
             }
-            
-            if (!extentMap.containsKey(modelExtentName)) {
-                initModelExtent(modelExtentName);
-            }
-            
-            ExtentDescriptor modelExtentDesc = 
-                extentMap.get(modelExtentName);
-            
-            if (modelExtentDesc.initializer == null) {
-                throw new ProviderInstantiationException(
-                    "Missing initializer for metamodel extent '" + 
-                    modelExtentName + "'");
-            }
-            
-            ExtentDescriptor extentDesc = new ExtentDescriptor(extentName);
-            extentDesc.modelDescriptor = modelDesc;
-
-            MetamodelInitializer.setCurrentInitializer(
-                modelExtentDesc.initializer);
-            try {
-                extentDesc.extent =
-                    modelDesc.topLevelPkgCons.newInstance(
-                        (Object)null);
-            } catch (Exception e) {
-                throw new ProviderInstantiationException(
-                    "Cannot load extent '" + extentName + "'", e);
-            } finally {
-                MetamodelInitializer.setCurrentInitializer(null);
-            }
-            
-            extentMap.put(extentName, extentDesc);
         }
     }
     
@@ -821,7 +1097,7 @@ public class HibernateMDRepository
     throws EnkiCreationFailedException
     {
         if (metaPackage == null) {
-            initModelExtent(name);
+            initModelExtent(name, true);
             return extentMap.get(name);
         }
         
@@ -876,19 +1152,24 @@ public class HibernateMDRepository
             MetamodelInitializer.setCurrentInitializer(null);
         }
 
-        Session session = getCurrentSession();
-        
-        Extent extentDbObj = new Extent();
-        extentDbObj.setExtentName(extentDesc.name);
-        extentDbObj.setModelExtentName(modelDesc.name);
-        
-        session.save(extentDbObj);
+        createExtentRecord(extentDesc.name, modelDesc.name);
         
         extentMap.put(name, extentDesc);
 
         return extentDesc;
     }
 
+    private void createExtentRecord(String extentName, String modelExtentName)
+    {
+        Session session = getCurrentSession();
+        
+        Extent extentDbObj = new Extent();
+        extentDbObj.setExtentName(extentName);
+        extentDbObj.setModelExtentName(modelExtentName);
+        
+        session.save(extentDbObj);
+    }
+    
     // Must be externally synchronized
     private void initStorage()
     {
@@ -1110,7 +1391,7 @@ public class HibernateMDRepository
             modelDesc.properties.getProperty(
                 MDRepositoryFactory.PROPERTY_ENKI_RUNTIME_CONFIG_URL);
         
-        log.info(
+        log.config(
             "Model: " + modelDesc.name + 
             ", Config URL: " + configUrlStr);
         
@@ -1185,24 +1466,30 @@ public class HibernateMDRepository
             
             modelMap.put(name, modelDesc);
             
-            log.info("Initialized Model Descriptor: " + name);
+            log.fine("Initialized Model Descriptor: " + name);
         }
     }
     
-    private void initModelExtent(String name)
+    private void initModelExtent(String name, boolean isNew)
     {
+        boolean isMof = name.equals(MOF_EXTENT);
+
         ModelDescriptor modelDesc = modelMap.get(name);
+        if (modelDesc == null) {
+            throw new InternalMdrError(
+                "Unknown metamodel extent '" + name + "'");
+        }
         ModelDescriptor mofDesc = 
-            name.equals(MOF_EXTENT) ? null : modelMap.get(MOF_EXTENT);
+            isMof ? null : modelMap.get(MOF_EXTENT);
         
-        log.info("Initialize Extent Descriptor: " + name);
+        log.info("Initializing Extent Descriptor: " + name);
         
         ExtentDescriptor extentDesc = new ExtentDescriptor(name);
         
         extentDesc.modelDescriptor = mofDesc;
         
         MetamodelInitializer init;
-        if (name.equals(MOF_EXTENT)) {
+        if (isMof) {
             init = new Initializer(MOF_EXTENT);
         } else {
             String initializerName = 
@@ -1246,39 +1533,55 @@ public class HibernateMDRepository
         extentDesc.initializer = init;
         extentDesc.builtIn = true;
         
+        if (isNew && !isMof) {
+            createExtentRecord(extentDesc.name, MOF_EXTENT);
+        }
+        
         extentMap.put(name, extentDesc);
+        
+        log.fine("Initialized Extent Descriptor: " + name);
     }
         
     public void onFlush(FlushEvent flushEvent) throws HibernateException
     {
-        Context context = tls.get();
-        if (context == null) {
+        MdrSession mdrSession = tls.get();
+        if (mdrSession == null) {
             // Not in a transaction (e.g. startup, shutdown)
             return;
         }
         
-        context.allOfTypeCache.clear();
-        context.allOfClassCache.clear();
+        mdrSession.allOfTypeCache.clear();
+        mdrSession.allOfClassCache.clear();
     }
 
     public void onAutoFlush(AutoFlushEvent autoFlushEvent) 
         throws HibernateException
     {
-        Context context = tls.get();
-        if (context == null) {
+        MdrSession mdrSession = tls.get();
+        if (mdrSession== null) {
             // Not in a transaction (e.g. startup, shutdown)
             return;
         }
 
-        if (!isWriteTransaction(context, true)) {
+        if (!isNestedWriteTransaction(mdrSession)) {
             // Ignore auto-flush on read-only transactions.
             return;
         }
         
-        context.allOfTypeCache.clear();
-        context.allOfClassCache.clear();
+        mdrSession.allOfTypeCache.clear();
+        mdrSession.allOfClassCache.clear();
     }
 
+    private void logStack(Level level, String msg)
+    {
+        Throwable t = null;
+        if (log.isLoggable(Level.FINEST)) {
+            t = new RuntimeException("SHOW STACK");
+        }
+        
+        log.log(level, msg, t);
+    }
+    
     /**
      * ModelDescriptor describes a meta-model.
      */
@@ -1319,54 +1622,61 @@ public class HibernateMDRepository
         }
     }
     
-    /**
-     * Context represents an implicit or explicit MDR transaction.
-     */
-    private class Context
+    private class MdrSession
     {
         private Session session;
-        private Transaction transaction;
-        private boolean isWrite;
+        private boolean containsWrites;
         private boolean isImplicit;
-        private final Context ancestor;
-        private Map<HibernateRefClass, Collection<?>> allOfTypeCache;
-        private Map<HibernateRefClass, Collection<?>> allOfClassCache;
-        private boolean mayContainWrites;
-        private List<MDRChangeEvent> queuedEvents;
+        private int refCount;
         
-        private Context(
-            Session sesson,
-            Transaction transaction, 
-            boolean isWrite, 
-            boolean isImplicit,
-            Context ancestor)
+        private final LinkedList<Context> context;
+        private final Map<HibernateRefClass, Collection<?>> allOfTypeCache;
+        private final Map<HibernateRefClass, Collection<?>> allOfClassCache;
+        private final Map<Long, SoftReference<RefBaseObject>> byMofIdCache;
+        private final List<MDRChangeEvent> queuedEvents;
+
+        private MdrSession(Session session, boolean isImplicit)
         {
-            this.session = sesson;
-            this.transaction = transaction;
-            this.isWrite = isWrite;
-            this.isImplicit = isImplicit;
-            this.ancestor = ancestor;
+            this.session = session;
+            this.context = new LinkedList<Context>();
             this.allOfTypeCache = 
                 new HashMap<HibernateRefClass, Collection<?>>();
             this.allOfClassCache =
                 new HashMap<HibernateRefClass, Collection<?>>();
-            this.mayContainWrites = false;
+            this.byMofIdCache =
+                new HashMap<Long, SoftReference<RefBaseObject>>();
+            this.containsWrites = false;
             this.queuedEvents = new LinkedList<MDRChangeEvent>();
+            this.isImplicit = isImplicit;
+            this.refCount = 0;
         }
         
         private MofIdGenerator getMofIdGenerator()
         {
             return HibernateMDRepository.this.mofIdGenerator;
         }
+    }
+    
+    /**
+     * Context represents an implicit or explicit MDR transaction.
+     */
+    private class Context
+    {
+        private Transaction transaction;
+        private boolean isWrite;
+        private boolean isImplicit;
+        private boolean isCommitter;
         
-        private Context getEldestAncestor()
+        private Context(
+            Transaction transaction, 
+            boolean isWrite, 
+            boolean isImplicit,
+            boolean isCommitter)
         {
-            Context context = this;
-            while(context.ancestor != null) {
-                context = context.ancestor;
-            }
-            
-            return context;
+            this.transaction = transaction;
+            this.isWrite = isWrite;
+            this.isImplicit = isImplicit;
+            this.isCommitter = isCommitter;
         }
     }
     

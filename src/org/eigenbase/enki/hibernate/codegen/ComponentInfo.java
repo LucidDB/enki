@@ -118,21 +118,17 @@ public class ComponentInfo implements ReferenceInfo
         throw new UnsupportedOperationException();
     }
 
-    public String getEndName(int end)
+    public String getEndIdentifier(int end)
     {
         throw new UnsupportedOperationException();
     }
 
-    public String getEndName(int end, boolean forceInitCaps)
+    public String[] getEndIdentifiers()
     {
-        String name = getEndName(end);
-        if (forceInitCaps) {
-            name = StringUtil.toInitialUpper(name);
-        }
-        return name;
+        throw new UnsupportedOperationException();
     }
-
-    public String[] getEndNames()
+    
+    public String getEndName(int end)
     {
         throw new UnsupportedOperationException();
     }

@@ -89,15 +89,43 @@ public class HibernateCodeGenUtils
         // Start with all associations
         Set<Association> result = 
             new LinkedHashSet<Association>(assocInfoMap.keySet());
+
         
-        // Remove associations that are included in references
+        Map<Association, Reference> circularAssociations = 
+            new HashMap<Association, Reference>();
+        
+        // Remove associations that are included in references.  If the
+        // referenced end type is the same as this class (or one of its super
+        // types), make note of it.  It will only be removed if there is a
+        // matching Reference in the reverse direction (e.g., circular 
+        // association with a reference to both ends.)
         for(Reference ref: references) {
             Association assoc = 
                 (Association)ref.getExposedEnd().getContainer();
             
-            result.remove(assoc);
+            Classifier refEndType = ref.getReferencedEnd().getType();
+            if (refEndType instanceof AliasType) {
+                refEndType = ((AliasType)refEndType).getType();
+            }
+
+            if (cls.equals(refEndType) || 
+                cls.allSupertypes().contains(refEndType))
+            {
+                if (!circularAssociations.containsKey(assoc)) {
+                    // No matching association previously found; keep track
+                    // of this one for later, but don't remove the association
+                    // from the result set.
+                    circularAssociations.put(assoc, ref);
+                    continue;
+                } else {
+                    // Matching association, fall through and remove it from
+                    // the result set.
+                }
+            }
+
+            result.remove(assoc);                
         }
-        
+
         // Remove associations that don't refer to the given MofClass
         Iterator<Association> iter = result.iterator();
         ASSOC_LOOP:
@@ -109,6 +137,16 @@ public class HibernateCodeGenUtils
             for(int endIndex = 0; endIndex < 2; endIndex++) {
                 AssociationEnd end = assocInfo.getEnd(endIndex);
     
+                // Ignore the end that's already exposed via a reference.
+                if (circularAssociations.containsKey(assoc)) {
+                    AssociationEnd refExposedEnd = 
+                        circularAssociations.get(assoc).getExposedEnd();
+                    
+                    if (end.equals(refExposedEnd)) {
+                        continue;
+                    }
+                }
+                
                 Classifier endType = end.getType();
                 if (endType instanceof AliasType) {
                     endType = ((AliasType)endType).getType();
@@ -117,22 +155,9 @@ public class HibernateCodeGenUtils
                 if (cls.equals(endType) || 
                     cls.allSupertypes().contains(endType))
                 {
-                    // End is the exposed end
+                    // End "endIndex" is the exposed end
                     AssociationEnd refEnd = assocInfo.getEnd(1 - endIndex);
                  
-                    // Verify it's not circular
-                    // REVIEW: SWZ: We do not handle the case where there is
-                    // a circular association without a Reference.
-                    Classifier refEndType = refEnd.getType();
-                    if (refEndType instanceof AliasType) {
-                        refEndType = ((AliasType)refEndType).getType();
-                    }
-                    if (cls.equals(refEndType) ||
-                        cls.allSupertypes().contains(refEndType))
-                    {
-                        throw new IllegalStateException("circular");
-                    }
-                    
                     ReferenceInfoImpl refInfo = 
                         new ReferenceInfoImpl(generator, assoc, refEnd);
                     unrefAssocRefInfoMap.put(assoc, refInfo);

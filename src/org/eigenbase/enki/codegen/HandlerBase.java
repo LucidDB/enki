@@ -173,6 +173,8 @@ public abstract class HandlerBase implements Handler
             stream = new FileOutputStream(currentFile);
             this.encoding = encoding;
             output = new PrintStream(stream, false, encoding);
+            
+            log.fine("Opened '" + currentFile.toString() + "'");
         } catch (IOException e) {
             throw new GenerationException(e);
         }
@@ -211,6 +213,8 @@ public abstract class HandlerBase implements Handler
             
             output.close();
             output = null;
+
+            log.fine("Closeed '" + currentFile.toString() + "'");
         }
     }
     

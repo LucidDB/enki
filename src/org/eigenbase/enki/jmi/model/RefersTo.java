@@ -39,9 +39,9 @@ public class RefersTo
     {
         super(
             container,
-            "Referent",
+            "referent",
             Multiplicity.UNIQUE_COLLECTION,
-            "ReferencedEnd",
+            "referencedEnd",
             Multiplicity.SINGLE);
 
     }
@@ -58,14 +58,14 @@ public class RefersTo
         javax.jmi.model.AssociationEnd referencedEnd)
     {
         return super.refQuery(
-            "ReferencedEnd", referencedEnd);
+            "referencedEnd", referencedEnd);
     }
 
     public javax.jmi.model.AssociationEnd getReferencedEnd(
         javax.jmi.model.Reference referent)
     {
         Collection<?> result = super.refQuery(
-            "Referent", referent);
+            "referent", referent);
         Iterator<?> iter = result.iterator();
         if (iter.hasNext()) {
             return (javax.jmi.model.AssociationEnd)iter.next();

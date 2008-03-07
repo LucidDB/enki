@@ -34,8 +34,9 @@ import java.util.*;
 public class MofImplementationGenerator
     extends MdrGenerator
 {
+    // Note: extra concatenation prevents P4 from modifying this id keyword
     private static final String COMMON_HEADER = 
-        "$Id$\n" +
+        "$" + "Id: $\n" +
         "Enki generates and implements the JMI and MDR APIs for MOF metamodels.\n" +
         "Copyright (C) 2007-@YEAR@ The Eigenbase Project\n" +
         "Copyright (C) 2007-@YEAR@ Disruptive Tech\n" +

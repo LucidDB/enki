@@ -23,9 +23,8 @@ package org.eigenbase.enki.hibernate.storage;
 
 import java.util.*;
 
-import javax.jmi.reflect.*;
-
 import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.hibernate.jmi.*;
 import org.netbeans.api.mdr.events.*;
 
 /**
@@ -36,12 +35,12 @@ import org.netbeans.api.mdr.events.*;
  */
 public class AttributeCollectionWrapper<E> implements Collection<E>
 {
-    protected final RefObject source;
+    protected final HibernateRefObject source;
     protected final String attributeName;
     private final Collection<E> coll;
     
     public AttributeCollectionWrapper(
-        RefObject source, 
+        HibernateRefObject source, 
         String attributeName, 
         Collection<E> coll)
     {
@@ -52,12 +51,14 @@ public class AttributeCollectionWrapper<E> implements Collection<E>
     
     public boolean add(E o)
     {
+        checkSource();
         fireAddEvent(o);
         return coll.add(o);
     }
 
     public boolean addAll(Collection<? extends E> c)
     {
+        checkSource();
         for(E e: c) {
             fireAddEvent(e);
         }
@@ -66,6 +67,7 @@ public class AttributeCollectionWrapper<E> implements Collection<E>
 
     public void clear()
     {
+        checkSource();
         for(E e: coll) {
             fireRemoveEvent(e);
         }
@@ -94,6 +96,7 @@ public class AttributeCollectionWrapper<E> implements Collection<E>
 
     public boolean remove(Object o)
     {
+        checkSource();
         if (coll.contains(o)) {
             fireRemoveEvent(o);
         }
@@ -103,6 +106,7 @@ public class AttributeCollectionWrapper<E> implements Collection<E>
 
     public boolean removeAll(Collection<?> c)
     {
+        checkSource();
         for(Object o: c) {
             if (coll.contains(o)) {
                 fireRemoveEvent(o);
@@ -114,6 +118,7 @@ public class AttributeCollectionWrapper<E> implements Collection<E>
 
     public boolean retainAll(Collection<?> c)
     {
+        checkSource();
         for(Object o: c) {
             if (!coll.contains(o)) {
                 fireRemoveEvent(o);
@@ -169,6 +174,11 @@ public class AttributeCollectionWrapper<E> implements Collection<E>
         repos.enqueueEvent(event);
     }
     
+    protected void checkSource()
+    {
+        source.getHibernateRepository().checkTransaction(true);
+    }
+    
     private class Itr implements Iterator<E>
     {
         private final Iterator<E> iter;
@@ -196,6 +206,7 @@ public class AttributeCollectionWrapper<E> implements Collection<E>
 
         public void remove()
         {
+            checkSource();
             if (lastValid) {
                 fireRemoveEvent(last);
                 lastValid = false;

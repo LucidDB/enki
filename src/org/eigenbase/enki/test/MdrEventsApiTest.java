@@ -37,7 +37,7 @@ import eem.sample.special.*;
 /**
  * Tests the MDR Events API.
  * 
- * See {@link org.netbeans.api.mdr.events}.
+ * See the org.netbeans.api.mdr.events package.
  * 
  * @author Stephan Zuercher
  */
@@ -1187,6 +1187,107 @@ public class MdrEventsApiTest extends SampleModelTestBase
         }
     }
 
+    @Test
+    public void testCompositeAssociationRemoveEventsWithRollback()
+    {
+        printTestName();
+        testCompositeAssociationRemoveEvents(true);
+    }
+    
+    @Test
+    public void testCompositeAssociationRemoveEventsWithCommit()
+    {
+        printTestName();
+        testCompositeAssociationRemoveEvents(false);
+    }
+    
+    private void testCompositeAssociationRemoveEvents(boolean rollback)
+    {
+        final EventType postTxnEventType = 
+            rollback ? EventType.CANCELED : EventType.CHANGED;
+
+        // Swallow events silently.  Want a listener so that we can wait
+        // for all the events generated to be delivered.  Otherwise, the
+        // new association remove event listener below may receive some
+        // stale CHANGED events from the object creation step.
+        configureListener(
+            AssociationEvent.EVENTMASK_ASSOCIATION,
+            new LenientEventValidator(4));
+
+        String[] mofIds = createCompositeAssociationsObjects();
+
+        waitAndCheckErrors();
+        destroyListener();
+        
+        int pos = 
+            getMdrProvider() == MdrProvider.ENKI_HIBERNATE 
+                ? 0 
+                : AssociationEvent.POSITION_NONE; 
+        
+        configureListener(
+            MDRChangeEvent.EVENTMASK_ON_ASSOCIATION, 
+            new DelegatingEventValidator(
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "building",
+                    Building.class, "address", "1510 Fashion Island Blvd.",
+                    Floor.class, "floorNumber", "2",
+                    pos),
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "floor",
+                    Floor.class, "floorNumber", "2",
+                    Room.class, "roomNumber", "240"),
+                // Can't access the objects on commit, so just verify types
+                new AssociationRemoveEventValidator(
+                    postTxnEventType, "building",
+                    Building.class, null, null,
+                    Floor.class, null, null,
+                    pos),
+                new AssociationRemoveEventValidator(
+                    postTxnEventType, "floor",
+                    Floor.class, null, null,
+                    Room.class, null, null)));
+        
+        getRepository().beginTrans(true);
+        try {
+            Building building = 
+                (Building)getRepository().getByMofId(mofIds[0]);
+            
+            building.refDelete();
+        } finally {
+            getRepository().endTrans(rollback);
+        }
+        
+        waitAndCheckErrors();
+    }
+    
+    private String[] createCompositeAssociationsObjects()
+    {
+        getRepository().beginTrans(true);
+        try {
+            Building building = 
+                getSpecialPackage().getBuilding().createBuilding(
+                    "1510 Fashion Island Blvd.", "San Mateo", "CA", "94404");
+
+            Floor floor = 
+                getSpecialPackage().getFloor().createFloor(2, 10);
+            
+            building.getFloors().add(floor);
+                
+            Room room = getSpecialPackage().getRoom().createRoom(240, 20, 20);
+                    
+            floor.getRooms().add(room);
+            
+            return new String[] {
+                building.refMofId(),
+                floor.refMofId(),
+                room.refMofId()
+            };
+        }
+        finally {
+            getRepository().endTrans();
+        }
+    }
+    
     @Test
     public void testAttributeSetEventsWithRollback()
     {

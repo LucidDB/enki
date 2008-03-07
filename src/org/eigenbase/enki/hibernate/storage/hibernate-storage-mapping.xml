@@ -4,12 +4,21 @@
      "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
 
 <hibernate-mapping>
-    <class name="org.eigenbase.enki.hibernate.storage.Extent">
+    <class 
+      name="org.eigenbase.enki.hibernate.storage.Extent"
+      table="ENKI_EXTENT">
         <id name="id" type="long" column="id" unsaved-value="0">
             <generator class="identity"/>
         </id>
         <property name="extentName" precision="256" unique="true"/>
         <property name="modelExtentName" precision="256" unique="true"/>
+    </class>
+    
+    <class 
+      name="org.eigenbase.enki.hibernate.storage.MofIdTypeMapping"
+      table="ENKI_TYPE_LOOKUP">
+        <id name="mofId" type="long" column="`mofId`"/>
+        <property name="typeName" precision="256" column="`typeName`"/>
     </class>
     
     <query name="AllExtents" cacheable="true">
@@ -20,7 +29,8 @@
         from org.eigenbase.enki.hibernate.storage.Extent where extentName = ?
     </query>
     
-    <query name="ObjectByMofId" cacheable="true">
-        from javax.jmi.reflect.RefBaseObject where mofId = ?
+    <query name="TypeMappingByMofId" cacheable="true">
+        from org.eigenbase.enki.hibernate.storage.MofIdTypeMapping 
+        where mofId = :mofId
     </query>
 </hibernate-mapping>

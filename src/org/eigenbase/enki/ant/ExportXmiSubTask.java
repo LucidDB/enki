@@ -1,9 +1,9 @@
 /*
 // $Id$
 // Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-// Copyright (C) 2007-2007 The Eigenbase Project
-// Copyright (C) 2007-2007 Disruptive Tech
-// Copyright (C) 2007-2007 LucidEra, Inc.
+// Copyright (C) 2008-2008 The Eigenbase Project
+// Copyright (C) 2008-2008 Disruptive Tech
+// Copyright (C) 2008-2008 LucidEra, Inc.
 //
 // This library is free software; you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License as published by
@@ -26,13 +26,11 @@ import java.io.*;
 import javax.jmi.reflect.*;
 
 import org.apache.tools.ant.*;
-import org.eigenbase.enki.ant.EnkiTask.*;
 import org.eigenbase.enki.mdr.*;
 import org.netbeans.api.xmi.*;
 
 /**
- * ImportXmi task imports the given XMI file into a newly 
- * {@link CreateExtentSubTask created extent}.
+ * ImportXmi task imports the named extent into the given XMI file.
  * 
  * <p>Attributes:
  * <table border="1">
@@ -43,28 +41,41 @@ import org.netbeans.api.xmi.*;
  * </tr>
  * <tr>
  *   <td>extent</td>
- *   <td>Extent into which the metamodel should be imported.</td>
+ *   <td>Extent from which to export an XMI file.</td>
  *   <td>Yes</td>
  * </tr>
  * <tr>
  *   <td>file</td>
- *   <td>XMI metamodel to import.</td>
+ *   <td>XMI export file</td>
  *   <td>Yes</td>
+ * </tr>
+ * <tr>
+ *   <td>xmiVersion</td>
+ *   <td>XMI version to emit</td>
+ *   <td>No, defaults to {@link #DEFAULT_XMI_VERSION}</td>
  * </tr>
  * </table>
  * 
  * @author Stephan Zuercher
  */
-public class ImportXmiSubTask extends SubTask
+public class ExportXmiSubTask extends EnkiTask.SubTask
 {
+    /**
+     * The default XMI version to use for exporting models. Currently {@value}.
+     */
+    public static final String DEFAULT_XMI_VERSION = "1.2";
+    
     private String file;
     private String extent;
+    private String xmiVersion;
     
-    public ImportXmiSubTask(String name)
+    public ExportXmiSubTask(String name)
     {
         super(name);
+        
+        this.xmiVersion = DEFAULT_XMI_VERSION;
     }
-    
+
     public void setFile(String file)
     {
         this.file = file;
@@ -75,8 +86,13 @@ public class ImportXmiSubTask extends SubTask
         this.extent = extent;
     }
     
+    public void setXmiVersion(String xmiVersion)
+    {
+        this.xmiVersion = xmiVersion;
+    }
+    
     @Override
-    void execute() throws BuildException
+    void execute()
     {
         if (file == null) {
             throw new BuildException("Missing \"file\" attribute");
@@ -86,37 +102,28 @@ public class ImportXmiSubTask extends SubTask
             throw new BuildException("Missing \"extent\" attribute");
         }
         
-        File xmiFile = new File(file);
+        if (xmiVersion == null || xmiVersion.equals("")) {
+            throw new BuildException("Invalid \"xmiVersion\" attribute");
+        }
         
         EnkiMDRepository repos = getMDRepository(true);
         repos.beginSession();
+        
         try {
-            boolean builtIn = repos.isExtentBuiltIn(extent);
-            if (builtIn) {            
-                // TODO: perform import for Hibernate implementation
-                System.out.println(
-                    "Ignoring import step for built-in extent '" + extent + "'");
-                return;
-            }
-    
-            RefPackage refPackage = repos.getExtent(extent);
-            if (refPackage == null) {
-                throw new BuildException(
-                    "Extent '" + extent + "' does not exist");
+            RefPackage pkg = repos.getExtent(extent);
+            FileOutputStream out;
+            try {
+                out = new FileOutputStream(file);
+            } catch (FileNotFoundException e) {
+                throw new BuildException(e);
             }
             
-            XMIReader xmiReader = 
-                XMIReaderFactory.getDefault().createXMIReader();
+            XMIWriter writer = XMIWriterFactory.getDefault().createXMIWriter();
     
-            repos.beginTrans(true);
-            boolean rollback = true;
             try {
-                xmiReader.read(xmiFile.toURL().toString(), refPackage);
-                rollback = false;
-            } catch (Exception e) {
+                writer.write(out, pkg, xmiVersion);
+            } catch (IOException e) {
                 throw new BuildException(e);
-            } finally {
-                repos.endTrans(rollback);
             }
         } finally {
             repos.endSession();
@@ -124,4 +131,4 @@ public class ImportXmiSubTask extends SubTask
     }
 }
 
-// End ImportXmiSubTask.java
+// End ExportXmiSubTask.java

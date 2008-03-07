@@ -45,6 +45,7 @@ public abstract class HibernateOneToManyAssociation
      */
     private boolean reversed;
     private HibernateAssociable parent;
+    private boolean unique;
     private List<HibernateAssociable> children;
     
     public HibernateOneToManyAssociation()
@@ -60,6 +61,16 @@ public abstract class HibernateOneToManyAssociation
     public void setReversed(boolean reversed)
     {
         this.reversed = reversed;
+    }
+    
+    public boolean getUnique()
+    {
+        return unique;
+    }
+    
+    public void setUnique(boolean unique)
+    {
+        this.unique = unique;
     }
     
     public HibernateAssociable getParent()
@@ -126,15 +137,13 @@ public abstract class HibernateOneToManyAssociation
         assert(sameParent || sameChild);
         
         if (sameParent) {
-            if (sameChild) {
-                // REVIEW: 12/19/07: There's a non-unique multiplicity type
-                // that probably needs to be handled here.
+            if (sameChild && getUnique()) {
                 assert(equals(getParent(), newParent));
                 assert(getChildren().contains(newChild));
                 return false;
             }
 
-            if (childAssoc != null) {
+            if (childAssoc != null && !sameChild) {
                 // Child associated with another parent.
                 childAssoc.removeAll(newChild, false);
             }
@@ -202,17 +211,13 @@ public abstract class HibernateOneToManyAssociation
         assert(sameParent || sameChild);
         
         if (sameParent) {
-            if (sameChild) {
-                // REVIEW: 12/19/07: There's a non-unique multiplicity type
-                // that probably needs to be handled here.
+            if (sameChild && getUnique()) {
                 return;
             }
 
-            if (childAssoc != null) {
+            if (childAssoc != null && !sameChild) {
                 // Child associated with another parent.
-                childAssoc.getChildren().remove(newChild);
-                
-                // REVIEW: 12/19/07: Should we delete childAssoc "if (childAssoc.getChildren().isEmpty())"?
+                childAssoc.removeAll(newChild, false);
             }
             
             newChild.setAssociation(type, childIsFirstEnd, this);
@@ -245,11 +250,28 @@ public abstract class HibernateOneToManyAssociation
             child = end2;
         }
 
-        return removeInternal(parent, child);
+        return removeInternal(parent, child, -1);
+    }
+    
+    @Override
+    public boolean remove(
+        int index, HibernateAssociable end1, HibernateAssociable end2)
+    {
+        HibernateAssociable parent;
+        HibernateAssociable child;
+        if (getReversed()) {
+            parent = end2;
+            child = end1;
+        } else {
+            parent = end1;
+            child = end2;
+        }
+
+        return removeInternal(parent, child, index);
     }
     
     private boolean removeInternal(
-        HibernateAssociable parent, HibernateAssociable child)
+        HibernateAssociable parent, HibernateAssociable child, int index)
     {   
         final String type = getType();
 
@@ -265,7 +287,7 @@ public abstract class HibernateOneToManyAssociation
                 type, childIsFirstEnd);
         
         if (!equals(parentAssoc, childAssoc)) {
-            // Objects aren't association
+            // Objects aren't associated
             return false;
         }
         
@@ -274,10 +296,20 @@ public abstract class HibernateOneToManyAssociation
         assert(parentAssoc.equals(this));
         assert(childAssoc.equals(this));
         assert(equals(getParent(), parent));
-        assert(children.contains(child));
         
-        child.setAssociation(type, childIsFirstEnd, null);
-        children.remove(child);
+        int count = getUnique() ? 1 : count(child, children);
+        assert(count >= 1);
+        
+        if (count == 1) {
+            child.setAssociation(type, childIsFirstEnd, null);
+        }
+        
+        if (index == -1) {
+            children.remove(child);
+        } else {
+            HibernateAssociable removed = children.remove(index);
+            assert(child.equals(removed));
+        }
         
         if (children.isEmpty()) {
             parent.setAssociation(type, parentIsFirstEnd, null);
@@ -286,6 +318,18 @@ public abstract class HibernateOneToManyAssociation
         }
         
         return true;
+    }
+    
+    private int count(
+        HibernateAssociable item, List<HibernateAssociable> items)
+    {
+        int count = 0;
+        for(HibernateAssociable a: items) {
+            if (a.equals(item)) {
+                count++;
+            }
+        }
+        return count;
     }
     
     @Override
@@ -301,7 +345,7 @@ public abstract class HibernateOneToManyAssociation
             // is added (via refAddLink) to a parent that already had a child.
             // Just ignore the call and the unused association should be gc'd.
             if (parent != null) {
-                removeInternal(parent, item);
+                removeInternal(parent, item, -1);
                 
                 if (cascadeDelete) {
                     parent.refDelete();
@@ -312,7 +356,7 @@ public abstract class HibernateOneToManyAssociation
         
         while(!children.isEmpty()) {
             HibernateAssociable child = children.get(0);
-            removeInternal(item, child);
+            removeInternal(item, child, -1);
             
             if (cascadeDelete) {
                 child.refDelete();

@@ -1,9 +1,9 @@
 /*
 // $Id$
 // Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-// Copyright (C) 2007-2007 The Eigenbase Project
-// Copyright (C) 2007-2007 Disruptive Tech
-// Copyright (C) 2007-2007 LucidEra, Inc.
+// Copyright (C) 2008-2008 The Eigenbase Project
+// Copyright (C) 2008-2008 Disruptive Tech
+// Copyright (C) 2008-2008 LucidEra, Inc.
 //
 // This library is free software; you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License as published by
@@ -21,63 +21,37 @@
 */
 package org.eigenbase.enki.ant;
 
-import org.apache.tools.ant.*;
-import org.eigenbase.enki.ant.EnkiTask.*;
 import org.eigenbase.enki.mdr.*;
 
+
 /**
- * DropExtentSubTask is responsible for dropping MDR extents.
+ * PrintExtentNamesSubTask prints a list of existing extent names.
  * 
- * <p>Attributes:
- * <table border="1">
- * <tr>
- *   <th>Name</th>
- *   <th>Description</th>
- *   <th>Required?</th>
- * </tr>
- * <tr>
- *   <td>extent</td>
- *   <td>Existing model extent to drop.</td>
- *   <td>Yes</td>
- * </tr>
- * </table>
+ * <p>Attributes: None.
  * 
  * @author Stephan Zuercher
  */
-public class DropExtentSubTask
-    extends SubTask
+public class PrintExtentNames extends EnkiTask.SubTask
 {
-    private String extentName;
-    
-    protected DropExtentSubTask(String name)
+    public PrintExtentNames(String name)
     {
         super(name);
     }
 
-    public void setExtent(String extentName)
-    {
-        this.extentName = extentName;
-    }
-    
     @Override
-    void execute() throws BuildException
+    void execute()
     {
-        if (extentName == null) {
-            throw new BuildException("Missing extent attribute");
-        }
-        
         EnkiMDRepository repos = getMDRepository(true);
         repos.beginSession();
-        repos.beginTrans(true);
         try {
-            repos.dropExtentStorage(extentName);
-        } catch (EnkiDropFailedException e) {
-            throw new BuildException(e);
+            String[] extentNames = repos.getExtentNames();
+            for(String extentName: extentNames) {
+                System.out.println(extentName);
+            }
         } finally {
-            repos.endTrans();
             repos.endSession();
         }
     }
 }
 
-// End DropExtentSubTask.java
+// End PrintExtentNames.java

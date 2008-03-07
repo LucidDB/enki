@@ -42,8 +42,12 @@ public class CircularAssociationTest
     private static final String CONTAINER_NAME_PREFIX = "container";
     private static final String ENTITY_NAME_PREFIX = "entity";
 
+    private static final String DEPENDENCY_NAME_PREFIX = "dep";
+    private static final String SUPPLIER_NAME_PREFIX = "supplier";
+    private static final String CLIENT_NAME_PREFIX = "client";    
+    
     @Test
-    public void testCircularAssociations()
+    public void testCircularOneToManyAssociations()
     {
         String topContainerMofId = createContainmentHierarchy(3, 3);
         
@@ -180,6 +184,207 @@ public class CircularAssociationTest
                 
                 container = nextContainer;
             } while(d > 0);
+        }
+        finally {
+            getRepository().endTrans();
+        }
+    }
+    
+    @Test
+    public void testCircularManyToManyAssociations()
+    {
+        List<String> supMofIds = new ArrayList<String>();
+        List<String> clientMofIds = new ArrayList<String>();
+        List<String> depMofIds = createDependencies(supMofIds, clientMofIds);
+        
+        validateDependencies(depMofIds, false);
+        validateDependencies(depMofIds, true);
+        
+        validateDependenciesInReverse(supMofIds, clientMofIds);
+    }
+    
+    private List<String> createDependencies(
+        List<String> supMofIds, List<String> clientMofIds)
+    {
+        getRepository().beginTrans(true);
+        
+        try {
+            return createDependenciesSansTxn(supMofIds, clientMofIds);
+        }
+        finally {
+            getRepository().endTrans();
+        }
+    }
+    
+    private List<String> createDependenciesSansTxn(
+        List<String> supMofIds, List<String> clientMofIds)
+    {
+        SampleElementClass sampleElemCls = 
+            getSpecialPackage().getSampleElement();
+        
+        SampleElement sup1 =
+            sampleElemCls.createSampleElement(SUPPLIER_NAME_PREFIX + "1");
+        supMofIds.add(sup1.refMofId());
+
+        SampleElement sup2 =
+            sampleElemCls.createSampleElement(SUPPLIER_NAME_PREFIX + "2");
+        supMofIds.add(sup2.refMofId());
+        
+        SampleElement client1 = 
+            sampleElemCls.createSampleElement(CLIENT_NAME_PREFIX + "1");
+        clientMofIds.add(client1.refMofId());
+
+        SampleElement client2 = 
+            sampleElemCls.createSampleElement(CLIENT_NAME_PREFIX + "2");
+        clientMofIds.add(client2.refMofId());
+
+        SampleElement client3 = 
+            sampleElemCls.createSampleElement(CLIENT_NAME_PREFIX + "3");
+        clientMofIds.add(client3.refMofId());
+
+        DependencyClass depCls = getSpecialPackage().getDependency();
+        
+        Dependency dep1 = 
+            depCls.createDependency(DEPENDENCY_NAME_PREFIX + "1");
+        dep1.getSupplier().add(sup1);
+        dep1.getClient().add(client1);
+        dep1.getClient().add(client2);
+        
+        Dependency dep2 = 
+            depCls.createDependency(DEPENDENCY_NAME_PREFIX + "2");
+        dep2.getSupplier().add(sup2);
+        dep2.getClient().add(client2);
+        dep2.getClient().add(client3);
+        
+        return Arrays.asList(
+            new String[] { dep1.refMofId(), dep2.refMofId() });
+    }
+    
+    private void validateDependencies(List<String> depMofIds, boolean useProxy)
+    {
+        getRepository().beginTrans(false);
+
+        DependencySupplier depSupAssoc = 
+            getSpecialPackage().getDependencySupplier();
+        DependencyClient depClientAssoc =
+            getSpecialPackage().getDependencyClient();
+        
+        try {
+            for(int i = 0; i < depMofIds.size(); i++) {
+                String depMofId = depMofIds.get(i);
+                
+                Dependency dep = 
+                    (Dependency)getRepository().getByMofId(depMofId);
+                
+                Collection<Element> suppliers;
+                if (useProxy) {
+                    suppliers = depSupAssoc.getSupplier(dep);
+                } else {
+                    suppliers = dep.getSupplier();
+                }
+                
+                Assert.assertEquals(1, suppliers.size());
+                
+                Element supplier = suppliers.iterator().next();
+                
+                Assert.assertEquals(
+                    SUPPLIER_NAME_PREFIX + (i + 1), supplier.getName());
+                
+                Collection<Element> clients;
+                if (useProxy) {
+                    clients = depClientAssoc.getClient(dep);
+                } else {
+                    clients = dep.getClient();
+                }
+                
+                Assert.assertEquals(2, clients.size());
+
+                Set<String> expectedNames = new HashSet<String>();
+                expectedNames.add(CLIENT_NAME_PREFIX + (i + 1));
+                expectedNames.add(CLIENT_NAME_PREFIX + (i + 2));
+
+                Set<String> gotNames = new HashSet<String>();
+                for(Element client: clients) {
+                    gotNames.add(client.getName());
+                }
+                
+                Assert.assertEquals(expectedNames, gotNames);   
+            }
+        }
+        finally {
+            getRepository().endTrans();
+        }
+    }
+    
+    private void validateDependenciesInReverse(
+        List<String> supMofIds, List<String> clientMofIds)
+    {
+        getRepository().beginTrans(false);
+
+        DependencySupplier depSupAssoc = 
+            getSpecialPackage().getDependencySupplier();
+        DependencyClient depClientAssoc =
+            getSpecialPackage().getDependencyClient();
+        
+        try {
+            for(String supMofId: supMofIds) {
+                Element supplier = 
+                    (Element)getRepository().getByMofId(supMofId);
+                Assert.assertNotNull(supplier);
+                
+                Collection<Dependency> deps = 
+                    depSupAssoc.getSupplierDependency(supplier);
+                Assert.assertEquals(1, deps.size());
+                
+                Dependency dep = deps.iterator().next();
+                
+                String expectedName = 
+                    DEPENDENCY_NAME_PREFIX + 
+                    supplier.getName().replaceAll("[A-Za-z]+", "");
+                
+                Assert.assertEquals(expectedName, dep.getName());
+            }
+
+            for(String clientMofId: clientMofIds) {
+                Element client = 
+                    (Element)getRepository().getByMofId(clientMofId);
+                Assert.assertNotNull(client);
+
+                Collection<Dependency> deps = 
+                    depClientAssoc.getClientDependency(client);
+                
+                int clientNameSuffix =
+                    Integer.parseInt(
+                        client.getName().replaceAll("[A-Za-z]+", ""));
+                
+                int expectedNumDeps = 1;
+                if (clientNameSuffix >= 2 && 
+                    clientNameSuffix < clientMofIds.size())
+                {
+                    expectedNumDeps = 2;
+                }
+                
+                Assert.assertEquals(expectedNumDeps, deps.size());
+                
+                Set<String> expectedDepNames = new HashSet<String>();
+                if (clientNameSuffix < clientMofIds.size()) {
+                    expectedDepNames.add(
+                        DEPENDENCY_NAME_PREFIX + clientNameSuffix);
+                }
+                if (expectedNumDeps > 1 || 
+                    clientNameSuffix == clientMofIds.size())
+                {
+                    expectedDepNames.add(
+                        DEPENDENCY_NAME_PREFIX + (clientNameSuffix - 1));                    
+                }
+                
+                Set<String> gotDepNames = new HashSet<String>();
+                for(Dependency dep: deps) {
+                    gotDepNames.add(dep.getName());
+                }
+                
+                Assert.assertEquals(expectedDepNames, gotDepNames);
+            }
         }
         finally {
             getRepository().endTrans();

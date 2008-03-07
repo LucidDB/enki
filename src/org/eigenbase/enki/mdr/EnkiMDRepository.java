@@ -58,6 +58,23 @@ public interface EnkiMDRepository extends MDRepository
         throws EnkiDropFailedException;
     
     /**
+     * Starts a repository session, which may be comprised of zero or more
+     * repository transactions.  If this method is not invoked before the
+     * {@link #beginTrans(boolean)} method on a particular thread, a session 
+     * is started automatically and ended when the transaction is ended.
+     * 
+     * @see MDRepository#beginTrans(boolean)
+     */
+    public void beginSession();
+
+    /**
+     * Ends a repository session.
+     * 
+     * @see #beginSession()
+     */
+    public void endSession();
+    
+    /**
      * Tests whether the named extent is built into this repository.  Built-in
      * extents cannot be imported or deleted.
      * 

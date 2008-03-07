@@ -39,9 +39,9 @@ public class IsOfType
     {
         super(
             container,
-            "Type",
+            "type",
             Multiplicity.SINGLE,
-            "TypedElements",
+            "typedElements",
             Multiplicity.UNIQUE_COLLECTION);
 
     }
@@ -57,7 +57,7 @@ public class IsOfType
         javax.jmi.model.TypedElement typedElements)
     {
         Collection<?> result = super.refQuery(
-            "TypedElements", typedElements);
+            "typedElements", typedElements);
         Iterator<?> iter = result.iterator();
         if (iter.hasNext()) {
             return (javax.jmi.model.Classifier)iter.next();
@@ -70,7 +70,7 @@ public class IsOfType
         javax.jmi.model.Classifier type)
     {
         return super.refQuery(
-            "Type", type);
+            "type", type);
     }
 
     public boolean add(

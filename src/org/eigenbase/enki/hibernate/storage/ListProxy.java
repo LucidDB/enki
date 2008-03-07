@@ -98,9 +98,13 @@ public class ListProxy<E extends RefObject> implements List<E>
     private void checkAssoc()
     {
         if (assoc == null) {
+            ((HibernateRefObject)source).getHibernateRepository().checkTransaction(true);
+            
             assoc = source.getOrCreateAssociation(type, firstEnd);
             
             proxiedList = assoc.get(source);
+        } else {
+            assoc.getHibernateRepository().checkTransaction(true);
         }
     }
 
@@ -137,7 +141,7 @@ public class ListProxy<E extends RefObject> implements List<E>
     public boolean add(E e)
     {
         checkAssoc();
-
+        
         fireAddEvent(e);
         
         if (firstEnd) {
@@ -312,8 +316,21 @@ public class ListProxy<E extends RefObject> implements List<E>
         
         fireRemoveEvent(element, index);
         
-        removeInternal(element);
+        boolean result;
+        if (firstEnd) {
+            result = assoc.remove(index, source, (HibernateAssociable)element);
+        } else {
+            result = assoc.remove(index, (HibernateAssociable)element, source);
+        }
+        assert(result);
         
+        if (source.getAssociation(type, firstEnd) == null) {
+            // Deleted last child.
+            assoc = null;
+            proxiedList = null;
+        }
+
+        size = -1;
         return element;
     }
 

@@ -39,9 +39,9 @@ public class DependsOn
     {
         super(
             container,
-            "Dependent",
+            "dependent",
             Multiplicity.UNIQUE_COLLECTION,
-            "Provider",
+            "provider",
             Multiplicity.UNIQUE_COLLECTION);
 
     }
@@ -58,7 +58,7 @@ public class DependsOn
         javax.jmi.model.ModelElement provider)
     {
         return super.refQuery(
-            "Provider", provider);
+            "provider", provider);
     }
 
     @SuppressWarnings("unchecked")
@@ -66,7 +66,7 @@ public class DependsOn
         javax.jmi.model.ModelElement dependent)
     {
         return super.refQuery(
-            "Dependent", dependent);
+            "dependent", dependent);
     }
 
 }

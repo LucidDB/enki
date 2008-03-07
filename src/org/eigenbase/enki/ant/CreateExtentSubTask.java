@@ -24,6 +24,7 @@ package org.eigenbase.enki.ant;
 import javax.jmi.model.*;
 
 import org.apache.tools.ant.*;
+import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 import org.netbeans.api.mdr.*;
 
@@ -91,8 +92,9 @@ public class CreateExtentSubTask extends EnkiTask.SubTask
                 "A name for new extent must be specified using the \"name\" attribute");
         }
         
-        MDRepository repos = getMDRepository(true);
+        EnkiMDRepository repos = getMDRepository(true);
         
+        repos.beginSession();
         repos.beginTrans(true);
         try {
             if (modelExtentName == null && packageName == null) {
@@ -137,6 +139,8 @@ public class CreateExtentSubTask extends EnkiTask.SubTask
         } catch(CreationFailedException ex) {
             repos.endTrans(true);
             throw new BuildException(ex);
+        } finally {
+            repos.endSession();
         }
     }
 }

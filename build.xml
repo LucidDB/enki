@@ -59,7 +59,7 @@
   <property name="test.dir" location="${enki.dir}/test"/>
   <property name="test.config.dir" location="${test.dir}/config"/>
   <property name="test.results.dir" location="${test.dir}/results"/>
-
+  <property name="test.catalog.dir" location="${test.dir}/catalog"/>
 
   <!-- Sample Catalog properties -->
   <property name="sample.dir" location="${test.dir}/sample"/>
@@ -104,6 +104,17 @@
         overwrite="true">
       <filterset begintoken="$${" endtoken="}">
         <filter token="ENKI_CATALOG_DIR" value="${sample.catalog.dir}"/>
+      </filterset>
+    </copy>
+
+    <!-- Always copy and transform this file: it's used for comparison testing
+         between Netbeans MDR and Enki repository implementations. -->
+    <copy 
+        file="${test.config.dir}/netbeans/ComparisonTestStorage.properties"
+        tofile="${test.dir}/ComparisonTestStorage.properties"
+        overwrite="true">
+      <filterset begintoken="$${" endtoken="}">
+        <filter token="ENKI_CATALOG_DIR" value="${test.catalog.dir}"/>
       </filterset>
     </copy>
   </target>
@@ -228,7 +239,7 @@
 
     <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
       <mdr-tasks>
-        <writeDtd extent="SampleMetamodel" file="${sample.dtd}"/>
+        <writeDtd extent="SampleRepository" file="${sample.dtd}"/>
       </mdr-tasks>
     </enki.mdr>
   </target>
@@ -268,6 +279,25 @@
         <include name="**/*"/>
       </fileset>
     </jar>
+
+    <tar destfile="${enki.dist.tarball}" compression="gzip">
+      <tarfileset dir="${dist.dir}" prefix="${enki.dist.prefix}">
+        <include name="*.jar"/>
+      </tarfileset>
+      <tarfileset dir="${hibernate.dir}" prefix="${enki.dist.prefix}">
+        <include name="*.jar"/>
+      </tarfileset>
+      <tarfileset dir="${hibernate.dir}/lib" prefix="${enki.dist.prefix}">
+        <include name="*"/>
+      </tarfileset>
+      <tarfileset dir="${commons-logging.dir}" prefix="${enki.dist.prefix}">
+        <include name="*.jar"/>
+      </tarfileset>
+      <tarfileset dir="${commons-collections.dir}" prefix="${enki.dist.prefix}">
+        <include name="*.jar"/>
+        <exclude name="*testframework*.jar"/>
+      </tarfileset>
+    </tar>
   </target>
 
   <target name="compile" depends="compile.dependencies">
@@ -351,6 +381,7 @@
   <target name="init">
     <mkdir dir="${classes.dir}"/>
     <mkdir dir="${test.results.dir}"/>
+    <mkdir dir="${test.catalog.dir}"/>
   </target>
 
   <target name="clean">
@@ -416,7 +447,9 @@
       <packageset dir="${src.dir}">
         <include name="**"/>
       </packageset>
+<!-- TODO: re-enable if this comes back or else make a local version
       <link href="http://www.netbeans.org/download/dev/javadoc/org-netbeans-api-mdr"/>
+-->
       <link href="http://java.sun.com/products/jmi/jmi-1_0-fr-doc"/>
       <link href="http://java.sun.com/j2se/1.5.0/docs/api"/>
       <link href="http://junit.sourceforge.net/javadoc_40"/>
@@ -597,7 +630,7 @@
 
     <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
       <mdr-tasks>
-        <writeDtd extent="FarragoMetamodel" file="${farrago.dtd}"/>
+        <writeDtd extent="FarragoCatalog" file="${farrago.dtd}"/>
       </mdr-tasks>
     </enki.mdr>
   </target>

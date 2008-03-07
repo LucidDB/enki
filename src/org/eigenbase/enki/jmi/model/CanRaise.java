@@ -39,9 +39,9 @@ public class CanRaise
     {
         super(
             container,
-            "Operation",
+            "operation",
             Multiplicity.UNIQUE_COLLECTION,
-            "Except",
+            "except",
             Multiplicity.UNIQUE_ORDERED_COLLECTION);
 
     }
@@ -58,7 +58,7 @@ public class CanRaise
         javax.jmi.model.MofException except)
     {
         return super.refQuery(
-            "Except", except);
+            "except", except);
     }
 
     @SuppressWarnings("unchecked")
@@ -66,7 +66,7 @@ public class CanRaise
         javax.jmi.model.Operation operation)
     {
         return (List)super.refQuery(
-            "Operation", operation);
+            "operation", operation);
     }
 
     public boolean add(

@@ -39,9 +39,9 @@ public class Aliases
     {
         super(
             container,
-            "Importer",
+            "importer",
             Multiplicity.UNIQUE_COLLECTION,
-            "Imported",
+            "imported",
             Multiplicity.SINGLE);
 
     }
@@ -58,14 +58,14 @@ public class Aliases
         javax.jmi.model.Namespace imported)
     {
         return super.refQuery(
-            "Imported", imported);
+            "imported", imported);
     }
 
     public javax.jmi.model.Namespace getImported(
         javax.jmi.model.Import importer)
     {
         Collection<?> result = super.refQuery(
-            "Importer", importer);
+            "importer", importer);
         Iterator<?> iter = result.iterator();
         if (iter.hasNext()) {
             return (javax.jmi.model.Namespace)iter.next();

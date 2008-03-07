@@ -38,7 +38,7 @@ public class AssociationInfoImpl implements AssociationInfo
     private final AssociationKindEnum kind;
     private final AssociationEnd[] ends;
     private final String[] types;
-    private final String[] names;
+    private final String[] identifiers;
     private final String baseName;
     
     public AssociationInfoImpl(Generator generator, Association assoc)
@@ -48,7 +48,7 @@ public class AssociationInfoImpl implements AssociationInfo
         this.kind = generator.getAssociationKind(assoc);
         this.ends = generator.getAssociationEnds(assoc);
 
-        this.names = new String[] {
+        this.identifiers = new String[] {
             generator.getSimpleTypeName(ends[0]),
             generator.getSimpleTypeName(ends[1]),
         };
@@ -117,7 +117,7 @@ public class AssociationInfoImpl implements AssociationInfo
     }
     
     /**
-     * Retrieves the names of the class instance interfaces for both ends of 
+     * Retrieves the identifiers of the class instance interfaces for both ends of 
      * the described {@link Association} as a String array.
      */
     public final String[] getEndTypes()
@@ -126,35 +126,36 @@ public class AssociationInfoImpl implements AssociationInfo
     }
     
     /**
-     * Retrieves the name of the given {@link AssociationEnd} of the described
-     * {@link Association}.
+     * Retrieves an identifier for the given {@link AssociationEnd} of the 
+     * described {@link Association}.  The identifier is the end's name 
+     * mangled to be a valid Java identifier.
+     * 
+     * @param end 0-based end index
      */
-    public final String getEndName(int end)
+    public final String getEndIdentifier(int end)
     {
-        return names[end];
+        return identifiers[end];
     }
     
     /**
-     * Retrieves the name of the given {@link AssociationEnd} of the described
-     * {@link Association}, optionally forcing the initial letter of the name
-     * to be capitalized.
+     * Retrieves identifiers for the {@link AssociationEnd ends} of the 
+     * described {@link Association} as a String array.  The identifiers are
+     * the end names mangled to be valid Java identifiers.
      */
-    public final String getEndName(int end, boolean forceInitCaps)
+    public final String[] getEndIdentifiers()
     {
-        String name = getEndName(end);
-        if (forceInitCaps) {
-            name = StringUtil.toInitialUpper(name);
-        }
-        return name;
+        return identifiers;
     }
     
     /**
-     * Retrieves the names of the {@link AssociationEnd ends} of the described
-     * {@link Association} as a String array.
+     * Retrieves the name of the given {@link AssociationEnd} of the
+     * describe {@link Association}.
+     * 
+     * @param end 0-based end index
      */
-    public final String[] getEndNames()
+    public String getEndName(int end)
     {
-        return names;
+        return ends[end].getName();
     }
     
     /**

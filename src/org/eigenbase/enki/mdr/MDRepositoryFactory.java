@@ -232,6 +232,10 @@ public class MDRepositoryFactory
             }
         }
         
+        if (modelProps.isEmpty()) {
+            log.warning("No model config resources found.");
+        }
+        
         return modelProps;
     }
     

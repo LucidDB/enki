@@ -76,6 +76,8 @@ public abstract class HibernateRefClass
         if (allOfClassQueryName != null) {
             HibernateMDRepository repos = getHibernateRepository();
             
+            repos.checkTransaction(false);
+            
             Collection<?> cacheResult = repos.lookupAllOfClassResult(this);
             if (cacheResult != null) {
                 return cacheResult;
@@ -101,6 +103,8 @@ public abstract class HibernateRefClass
     {
         HibernateMDRepository repos = getHibernateRepository();
 
+        repos.checkTransaction(false);
+        
         Collection<?> cacheResult = repos.lookupAllOfTypeResult(this);
         if (cacheResult != null) {
             return cacheResult;

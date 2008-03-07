@@ -27,6 +27,7 @@ import javax.jmi.reflect.*;
 
 import org.apache.tools.ant.*;
 import org.eigenbase.enki.ant.EnkiTask.*;
+import org.eigenbase.enki.mdr.*;
 import org.netbeans.api.mdr.*;
 
 /**
@@ -85,19 +86,25 @@ public class WriteDtdSubTask extends SubTask
             throw new BuildException("Missing \"extent\" attribute");
         }
 
-        RefPackage refPackage = getMDRepository(true).getExtent(extent);
-        if (refPackage == null) {
-            throw new BuildException("Extent '" + extent + "' does not exist");
-        }
-        
-        FileOutputStream out;
+        EnkiMDRepository repos = getMDRepository(true);
+        repos.beginSession();
         try {
-            out = new FileOutputStream(file);
-        } catch (FileNotFoundException e) {
-            throw new BuildException(e);
+            RefPackage refPackage = repos.getExtent(extent);
+            if (refPackage == null) {
+                throw new BuildException("Extent '" + extent + "' does not exist");
+            }
+            
+            FileOutputStream out;
+            try {
+                out = new FileOutputStream(file);
+            } catch (FileNotFoundException e) {
+                throw new BuildException(e);
+            }
+            
+            DTDProducer.getDefault().generate(out, refPackage);
+        } finally {
+            repos.endSession();
         }
-        
-        DTDProducer.getDefault().generate(out, refPackage);
     }
 }
 

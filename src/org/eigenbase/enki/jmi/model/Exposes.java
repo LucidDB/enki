@@ -39,9 +39,9 @@ public class Exposes
     {
         super(
             container,
-            "Referrer",
+            "referrer",
             Multiplicity.UNIQUE_COLLECTION,
-            "ExposedEnd",
+            "exposedEnd",
             Multiplicity.SINGLE);
 
     }
@@ -58,14 +58,14 @@ public class Exposes
         javax.jmi.model.AssociationEnd exposedEnd)
     {
         return super.refQuery(
-            "ExposedEnd", exposedEnd);
+            "exposedEnd", exposedEnd);
     }
 
     public javax.jmi.model.AssociationEnd getExposedEnd(
         javax.jmi.model.Reference referrer)
     {
         Collection<?> result = super.refQuery(
-            "Referrer", referrer);
+            "referrer", referrer);
         Iterator<?> iter = result.iterator();
         if (iter.hasNext()) {
             return (javax.jmi.model.AssociationEnd)iter.next();

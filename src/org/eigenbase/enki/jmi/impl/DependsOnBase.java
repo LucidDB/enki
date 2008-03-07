@@ -38,8 +38,8 @@ import javax.jmi.reflect.*;
  */
 public class DependsOnBase extends RefAssociationBase
 {
-    private static final String PROVIDER_END_NAME = "Provider";
-    private static final String DEPENDENT_END_NAME = "Dependent";
+    private static final String PROVIDER_END_NAME = "provider";
+    private static final String DEPENDENT_END_NAME = "dependent";
 
     public DependsOnBase(
         RefPackage container,
@@ -131,7 +131,7 @@ public class DependsOnBase extends RefAssociationBase
     {
         if (queryEndName.equals(DEPENDENT_END_NAME)) {
             return ((ModelElement)queryObject).findRequiredElements(
-                Collections.singleton(ModelElement.ALLDEP), false);
+                Collections.singleton(ModelElement.ALLDEP), true);
         } else if (queryEndName.equals(PROVIDER_END_NAME)) {
             ArrayList<RefObject> result = new ArrayList<RefObject>();
             for(RefAssociationLinkImpl link: allLinks()) {
