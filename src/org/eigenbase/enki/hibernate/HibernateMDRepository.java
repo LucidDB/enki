@@ -52,6 +52,35 @@ import org.netbeans.api.mdr.events.*;
  * addition, it acts as a {@link ListenerSource source} of 
  * {@link MDRChangeEvent} instances.
  * 
+ * <p>Storage properties.  Set the 
+ * <code>org.eigenbase.enki.implementationType</code> storage property to 
+ * {@link MdrProvider#ENKI_HIBERNATE} to enable the Hibernate 
+ * MDR implementation.  Additional storage properties of note are listed
+ * in the following table.
+ * 
+ * <table border="1">
+ *   <caption><b>Hibernate-specific Storage Properties</b></caption>
+ *   <tr>
+ *     <th align="left">Name</th>
+ *     <th align="left">Description</th>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">{@value #PROPERTY_STORAGE_ALLOW_IMPLICIT_SESSIONS}</td>
+ *     <td align="left">
+ *       Controls whether or not implicit sessions are allowed.  Defaults to
+ *       <code>false</code> (not allowed).
+ *     </td>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">hibernate.*</td>
+ *     <td align="left">
+ *       All properties whose name begins with 
+ *       {@value #HIBERNATE_STORAGE_PROPERTY_PREFIX} are passed to Hibernate's
+ *       {@link Configuration} without modification.
+ *     </td>
+ *   </tr>
+ * </table>
+ * 
  * <p>Logging Notes.  Session and transactions boundaries are logged at level
  * {@link Level#FINE}.  If level is set to {@link Level#FINEST}, stack traces
  * are logged for each session and transaction boundary. 
@@ -81,6 +110,12 @@ public class HibernateMDRepository
      */
     public static final String HIBERNATE_STORAGE_MAPPING_XML = 
         "/org/eigenbase/enki/hibernate/storage/hibernate-storage-mapping.xml";
+    
+    /**
+     * Prefix for properties that will be passed on to Hibernate's 
+     * configuration.
+     */
+    public final String HIBERNATE_STORAGE_PROPERTY_PREFIX = "hibernate.";
     
     /**
      * Configuration file property that contains the name of the 
@@ -1228,8 +1263,6 @@ public class HibernateMDRepository
             "org/eigenbase/enki/hibernate/hibernate-base-config.xml");
 
         // Override it with storage properties
-        final String keyPrefix = "hibernate.";
-        
         for(Map.Entry<Object, Object> entry: storageProperties.entrySet())
         {
             String key = entry.getKey().toString();
@@ -1238,7 +1271,7 @@ public class HibernateMDRepository
                     ? null 
                     : entry.getValue().toString();
             
-            if (key.startsWith(keyPrefix)) {
+            if (key.startsWith(HIBERNATE_STORAGE_PROPERTY_PREFIX)) {
                 config.setProperty(key, value);
             }
         }

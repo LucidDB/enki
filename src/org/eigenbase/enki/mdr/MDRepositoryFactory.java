@@ -35,6 +35,13 @@ import org.netbeans.mdr.persistence.btreeimpl.btreestorage.*;
 /**
  * MDRepositoryFactory is a factory class for {@link EnkiMDRepository}
  * instances.
+ * 
+ * <p>The storage properties given to the factory method are used to determine
+ * which provider to instantiate and to configure the provider itself.  The
+ * storage properties must contain the a property with the key
+ * {@value #ENKI_IMPL_TYPE} and the name of an Enki MDR Provider (as defined 
+ * in {@link MdrProvider}.  All other storage properties are specific to the 
+ * provider.
  *  
  * @author Stephan Zuercher
  */
@@ -64,10 +71,10 @@ public class MDRepositoryFactory
     private static final String SYS_PROPERTY_ENKI_IGNORE_EXTENT = 
         "enki.ignore.extent";
 
-    private static final String NETBEANS_MDR_CLASS_NAME_PROP = 
+    public static final String NETBEANS_MDR_CLASS_NAME_PROP = 
         "org.netbeans.mdr.storagemodel.StorageFactoryClassName";
     
-    private static final String NETBEANS_MDR_STORAGE_PROP_PREFIX = 
+    public static final String NETBEANS_MDR_STORAGE_PROP_PREFIX = 
         "MDRStorageProperty.";
 
     private static final Logger log = 
@@ -79,6 +86,16 @@ public class MDRepositoryFactory
     {
     }
     
+    /**
+     * Constructs a new {@link EnkiMDRepository} from the given storage
+     * properties.
+     * 
+     * @param storageProps storage properties (see {@link MDRepositoryFactory}.
+     * @return a new EnkiMDRepostiory
+     * @throws UnknownProviderException if the provider is not known
+     * @throws ProviderInstantiationException if the provider cannot be
+     *                                        instantiated
+     */
     public static EnkiMDRepository newMDRepository(Properties storageProps)
     {
         String providerName = storageProps.getProperty(ENKI_IMPL_TYPE);
@@ -123,6 +140,8 @@ public class MDRepositoryFactory
     private static EnkiMDRepository newNetbeansMDRepository(
         Properties storageProps)
     {
+        // TODO: move these brains to the netbeans package 
+        
         if (classLoaderProvider != null) {
             BaseObjectHandler.setClassLoaderProvider(classLoaderProvider);
         }

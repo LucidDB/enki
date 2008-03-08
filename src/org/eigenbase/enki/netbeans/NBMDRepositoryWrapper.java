@@ -26,21 +26,60 @@ import java.util.logging.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.mdr.*;
+import org.hibernate.cfg.*;
 import org.netbeans.api.mdr.*;
 import org.netbeans.api.mdr.events.*;
 import org.netbeans.mdr.*;
 import org.netbeans.mdr.handlers.*;
 import org.netbeans.mdr.persistence.*;
+import org.netbeans.mdr.persistence.btreeimpl.btreestorage.*;
 
 /**
  * NBMDRepositoryWrapper wraps the Netbeans MDR implementation of 
  * {@link MDRepository} to provide an implementation of 
  * {@link EnkiMDRepository}. 
  * 
+ * <p>Storage properties.  Set the 
+ * <code>org.eigenbase.enki.implementationType</code> storage property to 
+ * {@link MdrProvider#NETBEANS_MDR NETBEANS_MDR} to enable the Netbeans MDR 
+ * implementation. Additional storage properties of note are listed in the 
+ * following table.
+ * 
+ * <table border="1">
+ *   <caption><b>Netbeans-specific Storage Properties</b></caption>
+ *   <tr>
+ *     <th align="left">Name</th>
+ *     <th align="left">Description</th>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">{@value #NETBEANS_MDR_CLASS_NAME_PROP}</td>
+ *     <td align="left">
+ *       Sets the storage factory used internally by Netbeans MDR.  Defaults
+ *       to {@link BtreeFactory}.
+ *     </td>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">*</td>
+ *     <td align="left">
+ *       All other storage properties are passed through to Netbeans MDR.  If
+ *       the storage factory is <b>not</b> set to {@link BtreeFactory},
+ *       they are automatically prefixed with 
+ *       {@value #NETBEANS_MDR_STORAGE_PROP_PREFIX} (unless the prefix is 
+ *       already present on a property by property basis).
+ *     </td>
+ *   </tr>
+ * </table>
+ * 
  * @author Stephan Zuercher
  */
 public class NBMDRepositoryWrapper implements EnkiMDRepository
 {
+    public static final String NETBEANS_MDR_CLASS_NAME_PROP =
+        MDRepositoryFactory.NETBEANS_MDR_CLASS_NAME_PROP;
+    
+    public static final String NETBEANS_MDR_STORAGE_PROP_PREFIX =
+        MDRepositoryFactory.NETBEANS_MDR_STORAGE_PROP_PREFIX;
+    
     private final Logger log = 
         Logger.getLogger(NBMDRepositoryWrapper.class.getName());
 
