@@ -47,6 +47,30 @@ public class HibernateMappingHandler
     implements ClassInstanceHandler, AssociationHandler, PackageHandler, 
                EnumerationClassHandler, MofInitHandler.SubordinateHandler
 {
+    /** 
+     * Tag identifier for a custom Enki tag to override the default column 
+     * length for a particular string attribute.
+     */
+    public static final String MAX_LENGTH_TAG_NAME = 
+        "org.eigenbase.enki.maxLength";
+
+    public static final String MAX_LENGTH_UNLIMITED_VALUE = "unlimited";
+    
+    /**
+     * Default length for string attributes.  May be overridden via a tag
+     * on the given {@link Attribute} (see {@link #MAX_LENGTH_TAG_NAME}.)  
+     * The default (@{value}) can also be overridden on a per-metamodel basis 
+     * via {@link #setDefaultStringLength(int)}, which is configured via
+     * {@link HibernateGenerator}.
+     */
+    public static final int DEFAULT_STRING_LENGTH = 128;
+    
+    /**
+     * Maximum string length.  This is somewhat arbitrary.
+     */
+    public static final int MAX_STRING_LENGTH = 16384;
+    
+    /** Suffix for the cache region used by a particular metamodel. */ 
     private static final String CACHE_REGION_SUFFIX = "ENKI";
 
     /** Name of the column that stores an entity's MOF ID. */
@@ -164,6 +188,7 @@ public class HibernateMappingHandler
     private String extentName;
     
     private String tablePrefix;
+    private int defaultStringLength;
     
     private String initializerName;
 
@@ -191,6 +216,8 @@ public class HibernateMappingHandler
 
         this.componentAttribMap = 
             new HashMap<Classifier, List<ComponentInfo>>();
+        
+        this.defaultStringLength = DEFAULT_STRING_LENGTH;
     }
 
     public void setExtentName(String extentName)
@@ -203,6 +230,11 @@ public class HibernateMappingHandler
         this.tablePrefix = tablePrefix;
     }
 
+    public void setDefaultStringLength(int defaultStringLength)
+    {
+        this.defaultStringLength = defaultStringLength;
+    }
+    
     public void setInitializerClassName(String initializerName)
     {
         this.initializerName = initializerName;
@@ -838,19 +870,20 @@ public class HibernateMappingHandler
                     "access", BOOLEAN_PROPERTY_ACCESSOR_CLASS);
                 break;
 
-            case ENUMERATION: {
-                // Enumeration type; use a custom type definition
-                String typedefName = generator.getSimpleTypeName(
-                    attrib.getType(),
-                    TYPEDEF_SUFFIX);
-
-                writeEmptyElem(
-                    "property",
-                    "name", propertyName,
-                    "column", hibernateQuote(fieldName),
-                    "type", typedefName);
+            case ENUMERATION:
+                {
+                    // Enumeration type; use a custom type definition
+                    String typedefName = generator.getSimpleTypeName(
+                        attrib.getType(),
+                        TYPEDEF_SUFFIX);
+    
+                    writeEmptyElem(
+                        "property",
+                        "name", propertyName,
+                        "column", hibernateQuote(fieldName),
+                        "type", typedefName);
+                }
                 break;
-            }
             
             case CLASS:
                 componentInfos.add(
@@ -858,60 +891,57 @@ public class HibernateMappingHandler
                 break;
 
             case STRING:
-                // String types; use Hibernate text type to force CLOB/TEXT
-                // columns.
-                
-                // REVIEW: SWZ: 1/15/08: Consider using MOF tags to allow 
-                // specification of max field size. For type string, the
-                // Hibernate default is varchar(255).  For text/mysql it's
-                // 65K.  For text/mysql with length > 65K, it's ~2^31.
-                writeEmptyElem(
+                writeStringTypeElement(
+                    cls,
+                    attrib,
                     "property",
                     "name", propertyName,
-                    "column", hibernateQuote(fieldName),
-                    "type", "text");
+                    "column", hibernateQuote(fieldName));
                 break;
-                
+            
             case LIST:
             case COLLECTION:
-                MappingType baseMappingType = 
-                    getMappingType(attribType, new FakeMultiplicityType());
-                String type;
-                if (baseMappingType == MappingType.STRING) {
-                    // REVIEW: SWZ: 2/8/08: See STRING case above.
-                    // This case is split out from the method below because
-                    // we'll need to lookup the max string size.
-                    type = "text"; 
-                } else {
-                    type = 
-                        convertPrimitiveTypeToHibernateTypeName(
-                            (PrimitiveType)attribType);
-                }
-                
-                String collTableName =
-                    tableName + "$" + StringUtil.toInitialUpper(fieldName);
-                
-                startElem(
-                    mappingType == MappingType.LIST ? "list" : "set",
-                    "name", propertyName,
-                    "table", tableName(collTableName),
-                    "cascade", "all",
-                    "fetch", "join");
-                writeCacheElement();
-                writeEmptyElem(
-                    "key",
-                    "column", hibernateQuote(MOF_ID_COLUMN_NAME));
-                if (mappingType == MappingType.LIST) {
+                {
+                    MappingType baseMappingType = 
+                        getMappingType(attribType, new FakeMultiplicityType());
+                    
+                    String collTableName =
+                        tableName + "$" + StringUtil.toInitialUpper(fieldName);
+                    
+                    startElem(
+                        mappingType == MappingType.LIST ? "list" : "set",
+                        "name", propertyName,
+                        "table", tableName(collTableName),
+                        "cascade", "all",
+                        "fetch", "join");
+                    writeCacheElement();
                     writeEmptyElem(
-                        "list-index", 
-                        "column", hibernateQuote("order"));
+                        "key",
+                        "column", hibernateQuote(MOF_ID_COLUMN_NAME));
+                    if (mappingType == MappingType.LIST) {
+                        writeEmptyElem(
+                            "list-index", 
+                            "column", hibernateQuote("order"));
+                    }
+                    
+                    if (baseMappingType == MappingType.STRING) {
+                        writeStringTypeElement(
+                            cls,
+                            attrib, 
+                            "element", 
+                            "column", hibernateQuote(fieldName));
+                    } else {
+                        String type = 
+                            convertPrimitiveTypeToHibernateTypeName(
+                                (PrimitiveType)attribType);
+
+                        writeEmptyElem(
+                            "element",
+                            "column", hibernateQuote(fieldName),
+                            "type", type);
+                    }
+                    endElem("set");
                 }
-                writeEmptyElem(
-                    "element",
-                    "column", hibernateQuote(fieldName),
-                    "type", type);
-                
-                endElem("set");
                 break;
                     
 
@@ -986,7 +1016,131 @@ public class HibernateMappingHandler
         endElem("class");
         newLine();
     }
+    
+    private void writeStringTypeElement(
+        Classifier cls,
+        Attribute attribute, 
+        String elementName, 
+        Object... xmlAttribs)
+    throws GenerationException
+    {
+        StringBuilder type = new StringBuilder();
+        int length = getStringType(cls, attribute, type);
 
+        int additionalAttribCount = (length != Integer.MAX_VALUE) ? 2 : 1;        
+        
+        Object[] modifiedXmlAttribs = 
+            new Object[xmlAttribs.length + (additionalAttribCount * 2)]; 
+        for(int i = 0; i < xmlAttribs.length; i++) {
+            modifiedXmlAttribs[i] = xmlAttribs[i];
+        }
+        
+        int i = xmlAttribs.length;
+        modifiedXmlAttribs[i++] = "type";
+        modifiedXmlAttribs[i++] = type.toString();
+        
+        if (length != Integer.MAX_VALUE) {
+            modifiedXmlAttribs[i++] = "length";
+            modifiedXmlAttribs[i++] = String.valueOf(length);
+        }
+
+        writeEmptyElem(elementName, modifiedXmlAttribs);
+    }
+
+    private int getStringType(
+        Classifier cls, Attribute attrib, StringBuilder typeBuffer)
+    throws GenerationException
+    {
+        typeBuffer.setLength(0);
+        
+        int maxLen;
+        String maxLenStr = findMaxLengthTag(cls, attrib); 
+        if (maxLenStr == null) {
+            maxLen = defaultStringLength;
+        } else if (maxLenStr.equals(MAX_LENGTH_UNLIMITED_VALUE)) {
+            maxLen = Integer.MAX_VALUE;
+        } else {
+            try {
+                int length = Integer.parseInt(maxLenStr);
+                
+                if (length < 1) {
+                    log.warning(
+                        "Adjusted string length for attribute '" 
+                        + attrib.getName() + "' to 1");
+                    maxLen = 1;
+                } else if (length > MAX_STRING_LENGTH) {
+                    log.warning(
+                        "Adjusted string length for attribute '" 
+                        + attrib.getName() + "' to " + MAX_STRING_LENGTH);
+                    maxLen = MAX_STRING_LENGTH;
+                } else {
+                    maxLen = length;
+                }
+            }
+            catch(NumberFormatException ex) {
+                throw new GenerationException(
+                    "Invalid value for tag " + MAX_LENGTH_TAG_NAME + ": "
+                    + maxLenStr);
+            }
+        }
+        
+        if (maxLen <= MAX_STRING_LENGTH) {
+            typeBuffer.append("string");
+            return maxLen;
+        } else {
+            // unlimited
+            typeBuffer.append("text");
+            return Integer.MAX_VALUE;
+        }
+    }
+    
+    private String findMaxLengthTag(Classifier cls, Attribute attrib)
+    {
+        String maxLen = TagUtil.getTagValue(attrib, MAX_LENGTH_TAG_NAME);
+        if (maxLen != null) {
+            return maxLen;
+        }
+
+        // Check the attribute's container (Classifier) for a class-level 
+        // default.
+        maxLen = findMaxLength(cls); 
+
+        return maxLen;
+    }
+
+    /**
+     * Performs a breadth-first search of the given Classifier's super types
+     * looking for a Classifier that has the {@link #MAX_LENGTH_TAG_NAME} tag
+     * set.
+     * 
+     * @param startCls starting Classifier
+     * @return the value of the tag or null if not found
+     */
+    private String findMaxLength(Classifier startCls)
+    {
+        Queue<Classifier> queue = new LinkedList<Classifier>();
+        
+        queue.offer(startCls);
+        
+        while(!queue.isEmpty()) {
+            Classifier cls = queue.poll();
+            
+            String maxLen = TagUtil.getTagValue(cls, MAX_LENGTH_TAG_NAME);
+            if (maxLen != null) {
+                return maxLen;
+            }
+                    
+            List<Classifier> supertypes = 
+                GenericCollections.asTypedList(
+                    cls.getSupertypes(), Classifier.class);
+            for(Classifier supertype: supertypes) {
+                queue.offer(supertype);
+            }
+        }
+        
+        return null;
+    }
+    
     private void generateAssociationField(ReferenceInfo refInfo)
         throws GenerationException
     {

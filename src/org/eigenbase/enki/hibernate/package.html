@@ -6,6 +6,39 @@
   <body>
     Contains Hibernate-specific implementations of various Enki interfaces.
 
+    <p>This implementation supports custom MOF Tags for controlling some
+    aspects of code generation.
+
+    <table border="1" width="100%" cellpadding="3" cellspacing="0">
+       <caption><b>MOF Tags</b></caption>
+       <tr class="TableHeadingColor">
+        <th align="left">Name</th>
+        <th align="left">Description</th>
+      </tr>
+      <tr class="TableRowColor">
+        <td align="left">org.eigenbase.enki.maxLength</td>
+        <td align="left">
+          Controls the maximum length for a string attribute.  It may
+          be applied to a simple string attribute, a string collection
+          attribute, or to an entire class.  Values of the tag applied
+          to an attribute take precedence over the class's value even
+          if the attribute is inherited from a supertype.  Values of
+          the tag applied to a class apply to all to all untagged
+          string attributes in the class.  Subclasses inherit the
+          value.  The value must be an integer greater than 0 and less
+          than or equal to 16384 or the special value "unlimited."
+          Out of bound integer values are automatically adjusted to
+          the nearest boundary.  Unlimited uses the Hibernate "text"
+          type, which should produce variable-length text columns at
+          least 65535 characters in length for most RDBMS
+          implementations.
+        </td>
+      </tr>
+    </table>
+
+    <p>The sample model distributed with Enki contains examples of these tags.
+
+    <p>
     <table border="1" width="100%">
       <tr>
         <th>Revision</th>

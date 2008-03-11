@@ -26,8 +26,8 @@ import java.util.*;
 import org.eigenbase.enki.codegen.*;
 
 /**
- * Generator is the main entry point for Hibernate code generation.  It
- * loads an XMI representation of a UML model via Netbeans MDR and produces:
+ * HibernateGenerator is the main entry point for Hibernate code generation.  
+ * It loads an XMI representation of a UML model via Netbeans MDR and produces:
  * <ol>
  * <li>Interfaces for the UML model.</li>
  * <li>Implementations of the interfaces that represent concrete classes.</li>
@@ -35,14 +35,53 @@ import org.eigenbase.enki.codegen.*;
  *     A Hibernate mapping file to provide storage for those implementations.
  * </li>
  * </ol>
+ * 
+ * <p>Supported options:
+ * <table border="1">
+ * <tr>
+ *   <th align="left">Name</th>
+ *   <th align="left">Description</th>
+ * </tr>
+ * <tr>
+ *   <td align="left">tablePrefix</td>
+ *   <td align="left">
+ *     A prefix to be used for all metamodel-specific tables.  Use is optional,
+ *     but highly recommended.  Without this option only a single metamodel
+ *     can be stored in a particular database schema.
+ *   </td>
+ * </tr>
+ * <tr>
+ *   <td align="left">defaultStringLength</td>
+ *   <td align="left">
+ *     Controls the default length of string columns.  The default is 
+ *     defined in {@link HibernateMappingHandler#DEFAULT_STRING_LENGTH}.
+ *     Optional.
+ *   </td>
+ * </tr>
+ * </table>
+ * 
+ * @author Stephan Zuercher
  */
 public class HibernateGenerator extends MdrGenerator
 {
     /** The name of the generator option for setting the table prefix. */
     public static final String TABLE_PREFIX_OPTION = "tablePrefix";
     
+    /** 
+     * The name of the generator option for setting the default string 
+     * length. 
+     */
+    public static final String DEFAULT_STRING_LENGTH_OPTION = 
+        "defaultStringLength";
+
     /** Prefix for all table names in this metamodel. */
     private String tablePrefix;
+    
+    /** 
+     * Default string length. A value of -1 indicates that no value has
+     * been set.
+     */
+    private int defaultStringLength = -1;
     
     public HibernateGenerator()
     {
@@ -64,6 +103,18 @@ public class HibernateGenerator extends MdrGenerator
                 "WARNING: use of tablePrefix option is highly recommended");
             tablePrefix = null;
         }
+        
+        String lengthValue = options.get(DEFAULT_STRING_LENGTH_OPTION);
+        if (lengthValue != null) {
+            try {
+                defaultStringLength = Integer.parseInt(lengthValue);
+            }
+            catch(NumberFormatException e) {
+                System.err.println(
+                    "WARNING: Unable to parse default string length: " + 
+                    lengthValue);
+            }
+        }
     }
     
     
@@ -84,6 +135,9 @@ public class HibernateGenerator extends MdrGenerator
         HibernateMappingHandler mappingHandler = new HibernateMappingHandler();
         mappingHandler.setExtentName(getExtentName());
         mappingHandler.setTablePrefix(tablePrefix);
+        if (defaultStringLength != -1) {
+            mappingHandler.setDefaultStringLength(defaultStringLength);
+        }
         addHandler(mappingHandler);
         
         MofInitHandler metamodelInitHandler = 

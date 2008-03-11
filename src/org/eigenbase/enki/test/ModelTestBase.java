@@ -45,6 +45,8 @@ import org.junit.*;
  */
 public abstract class ModelTestBase
 {
+    public static final String TEST_STORAGE_PROPERTIES_PATH = 
+        "test/TestStorage.properties";
     private static final String PROPERTY_ENKI_TEST_EXTENT = "enki.test.extent";
     private static final String PROPERTY_ENKI_HOME = "enki.home";
     
@@ -179,7 +181,7 @@ public abstract class ModelTestBase
         Assert.assertTrue(testExtentName.length() > 0);
 
         RepositoryDetails result = 
-            loadRepository(testExtentName, "test/TestStorage.properties");
+            loadRepository(testExtentName, TEST_STORAGE_PROPERTIES_PATH);
         
         storageProps = result.storageProps;
         repos = result.repos;
