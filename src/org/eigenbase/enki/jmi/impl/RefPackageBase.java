@@ -21,7 +21,6 @@
 */
 package org.eigenbase.enki.jmi.impl;
 
-import java.lang.reflect.*;
 import java.util.*;
 
 import javax.jmi.model.*;
@@ -64,7 +63,7 @@ public abstract class RefPackageBase
         associationMap.put(name, refAssoc);
     }
 
-    protected void addPackage(String name, RefPackage refPackage)
+    public void addPackage(String name, RefPackage refPackage)
     {
         packageMap.put(name, refPackage);
     }
@@ -78,19 +77,19 @@ public abstract class RefPackageBase
     @SuppressWarnings("unchecked")
     public Collection refAllAssociations()
     {
-        return getAllOfTypeByReflection(RefAssociation.class);
+        return associationMap.values();
     }
 
     @SuppressWarnings("unchecked")
     public Collection refAllClasses()
     {
-        return getAllOfTypeByReflection(RefClass.class);
+        return classMap.values();
     }
 
     @SuppressWarnings("unchecked")
     public Collection refAllPackages()
     {
-        return getAllOfTypeByReflection(RefPackage.class);
+        return packageMap.values();
     }
 
     public RefAssociation refAssociation(RefObject association)
@@ -151,26 +150,6 @@ public abstract class RefPackageBase
         return get(RefPackage.class, pkgName, packageMap);
     }
 
-    private <E> Collection<E> getAllOfTypeByReflection(Class<E> cls)
-    {
-        Method[] methods = getClass().getMethods();
-        
-        ArrayList<E> types = new ArrayList<E>();
-        
-        for(Method method: methods) {
-            if (cls.isAssignableFrom(method.getReturnType()) &&
-                method.getParameterTypes().length == 0 &&
-                method.getName().startsWith("get"))
-            {
-                E type = invokeMethod(cls, method);
-
-                types.add(type);
-            }
-        }
-        
-        return Collections.unmodifiableCollection(types);
-    }
-    
     private <E> E get(
         Class<E> cls, String typeName, Map<String, E> accessorMap)
     {

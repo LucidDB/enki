@@ -60,6 +60,9 @@ public abstract class HandlerBase implements Handler
     /** Print stream for the current output file. */
     private PrintStream output;
     
+    /** List of included packages. */
+    private List<String> includedPackages;
+    
     /** Current output encoding. */
     protected String encoding;
     
@@ -79,6 +82,11 @@ public abstract class HandlerBase implements Handler
     private int passIndex;
     
     private final Logger log = Logger.getLogger(HandlerBase.class.getName());
+
+    /**
+     * Flag indicating if "plug-in mode" is enabled.
+     */
+    protected boolean pluginMode;
 
     public HandlerBase()
     {
@@ -103,6 +111,24 @@ public abstract class HandlerBase implements Handler
         this.outputDir = outputDir;
     }
 
+    /**
+     * Configures the set of packages explicitly included for generation.
+     * If un-called the Handler defaults to including all packages.  Packages
+     * are passed by name, in Java convention (e.g. "eem.sample.special").
+     * 
+     * @param includedPackages list of package to include 
+     *                         (null means include all)
+     */
+    public void setIncludes(List<String> includedPackages)
+    {
+        if (includedPackages == null) {
+            this.includedPackages = null;
+            return;
+        }
+        
+        this.includedPackages = new ArrayList<String>(includedPackages);
+    }
+    
     // Implement Handler
     public void beginGeneration() throws GenerationException
     {
@@ -151,6 +177,21 @@ public abstract class HandlerBase implements Handler
         }
         
         return passIndex;
+    }
+    
+    protected boolean isIncluded(ModelElement elem)
+    {
+        if (includedPackages == null) {
+            return true;
+        }
+        
+        String typeName = generator.getTypeName(elem);
+        int lastDot = typeName.lastIndexOf('.');
+        if (lastDot > 0) {
+            typeName = typeName.substring(0, lastDot);
+        }
+        
+        return includedPackages.contains(typeName);
     }
     
     protected void open(File file) throws GenerationException
@@ -708,6 +749,11 @@ public abstract class HandlerBase implements Handler
             cls.getName() + "): " + desc + ": " + value);
     }
     
+    public void setPluginMode(boolean pluginMode)
+    {
+        this.pluginMode = pluginMode;
+    }
+
     /**
      * HierarchySearchKindEnum is used as a flag to control methods that may
      * either search only a given entity or the entity and its super types.

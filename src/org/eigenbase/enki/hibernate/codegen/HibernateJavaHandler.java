@@ -136,6 +136,10 @@ public class HibernateJavaHandler
     public static final JavaClassReference ASSOCIATION_MANY_TO_MANY_BASE = 
         new JavaClassReference(HibernateManyToManyAssociation.class, false);
 
+    /** Name of the base class for the custom Hibernate type-mapper. */
+    public static final JavaClassReference ASSOCIATION_TYPE_MAPPER_BASE =
+        new JavaClassReference(HibernateAssociationTypeMapper.class, false);
+    
     /** Reference to {@link Multiplicity}. */
     public static final JavaClassReference MULTIPLICITY_ENUM =
         new JavaClassReference(Multiplicity.class, true);
@@ -267,6 +271,12 @@ public class HibernateJavaHandler
      */
     private JavaClassReference assocManyToManyClass;
     
+    /** 
+     * Reference to the model-specific, generated subclass of 
+     * {@link HibernateAssociationTypeMapper}.
+     */
+    private JavaClassReference assocTypeMapperClass;
+    
     public HibernateJavaHandler()
     {
         super();
@@ -374,19 +384,25 @@ public class HibernateJavaHandler
             new JavaClassReference(
                 packageName,
                 ASSOCIATION_MANY_TO_MANY_BASE.toSimple());
+        assocTypeMapperClass =
+            new JavaClassReference(
+                packageName,
+                ASSOCIATION_TYPE_MAPPER_BASE.toSimple());
     }
 
     @Override
     public void endGeneration(boolean throwing)
         throws GenerationException
     {
-        if (!throwing) {
+        if (!throwing && !pluginMode) {
             generateAssociationStorageSubclass(
                 assocOneToOneClass, ASSOCIATION_ONE_TO_ONE_BASE);
             generateAssociationStorageSubclass(
                 assocOneToManyClass, ASSOCIATION_ONE_TO_MANY_BASE);
             generateAssociationStorageSubclass(
                 assocManyToManyClass, ASSOCIATION_MANY_TO_MANY_BASE);
+            generateAssociationStorageSubclass(
+                assocTypeMapperClass, ASSOCIATION_TYPE_MAPPER_BASE);
         }
         
         super.endGeneration(throwing);
@@ -430,6 +446,12 @@ public class HibernateJavaHandler
     public void generateAssociation(Association assoc)
         throws GenerationException
     {
+        if (!isIncluded(assoc)) {
+            log.fine(
+                "Skipping Excluded Association '" + assoc.getName() + "'");
+            return;
+        }
+        
         if (HibernateCodeGenUtils.isTransient(assoc)) {
             if (getPassIndex() < numTransientPasses) {
                 log.fine("Delegating Transient Association Implementation");
@@ -730,6 +752,12 @@ public class HibernateJavaHandler
     public void generateClassInstance(MofClass cls)
         throws GenerationException
     {
+        if (!isIncluded(cls)) {
+            log.fine(
+                "Skipping Excluded Class Instance '" + cls.getName() + "'");
+            return;
+        }
+
         if (HibernateCodeGenUtils.isTransient(cls)) {
             if (getPassIndex() < numTransientPasses) {
                 log.fine("Delegating Transient Class Instance Implementation");
@@ -2185,6 +2213,7 @@ public class HibernateJavaHandler
                         writeln(
                             "return new ",
                             ATTRIB_LIST_WRAPPER_CLASS,
+                            "<", generator.getTypeName(attrib.getType()), ">",
                             "(this, ", 
                             QUOTE, attrib.getName(), QUOTE, ", ",
                             generator.getAccessorName(attrib), IMPL_SUFFIX, 
@@ -2193,6 +2222,7 @@ public class HibernateJavaHandler
                         writeln(
                             "return new ",
                             ATTRIB_COLLECTION_WRAPPER_CLASS,
+                            "<", generator.getTypeName(attrib.getType()), ">",
                             "(this, ", 
                             QUOTE, attrib.getName(), QUOTE, ", ",
                             generator.getAccessorName(attrib), IMPL_SUFFIX, 
@@ -2232,6 +2262,12 @@ public class HibernateJavaHandler
     public void generateClassProxy(MofClass cls)
         throws GenerationException
     {
+        if (!isIncluded(cls)) {
+            log.fine(
+                "Skipping Excluded Class Proxy '" + cls.getName() + "'");
+            return;
+        }
+        
         if (HibernateCodeGenUtils.isTransient(cls)) {
             if (getPassIndex() < numTransientPasses) {
                 log.fine("Delegating Transient Class Proxy Implementation");
@@ -2433,6 +2469,12 @@ public class HibernateJavaHandler
     public void generatePackage(MofPackage pkg)
         throws GenerationException
     {
+        if (!isIncluded(pkg)) {
+            log.fine(
+                "Skipping Excluded Package '" + pkg.getName() + "'");
+            return;
+        }
+
         if (HibernateCodeGenUtils.isTransient(pkg)) {
             if (getPassIndex() < numTransientPasses) {
                 log.fine("Delegating Transient Package Implementation");

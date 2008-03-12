@@ -45,10 +45,20 @@ import org.junit.*;
  */
 public abstract class ModelTestBase
 {
-    public static final String TEST_STORAGE_PROPERTIES_PATH = 
-        "test/TestStorage.properties";
+    // Model extent name
     private static final String PROPERTY_ENKI_TEST_EXTENT = "enki.test.extent";
+    
+    // Enki home directory (relative path for storage props file)
     private static final String PROPERTY_ENKI_HOME = "enki.home";
+    
+    // Location of storage props file (may be absolute or relative to 
+    // value of PROPERTY_ENKI_HOME.
+    private static final String PROPERTY_ENKI_STORAGE_PROPS = 
+        "enki.storageProps";
+    
+    // Default value for PROPERTY_ENKI_STORAGE_PROPS
+    private static final String TEST_STORAGE_PROPERTIES_PATH = 
+        "test/TestStorage.properties";
     
     private static EnkiMDRepository repos;
     private static RefPackage pkg;
@@ -174,6 +184,26 @@ public abstract class ModelTestBase
         return testExtentName;
     }
     
+    public static String getStoragePropertiesPath()
+    {
+        return System.getProperty(
+            PROPERTY_ENKI_STORAGE_PROPS, TEST_STORAGE_PROPERTIES_PATH);
+    }
+    
+    public static File makeStoragePropertiesPath(String path)
+    {
+        String enkiHome = System.getProperty(PROPERTY_ENKI_HOME);
+        Assert.assertNotNull(enkiHome);
+        Assert.assertTrue(enkiHome.length() > 0);
+
+        File f = new File(path);
+        if (f.isAbsolute()) {
+            return f;
+        }
+        
+        return new File(enkiHome, path);
+    }
+    
     private static void load()
     {
         testExtentName = System.getProperty(PROPERTY_ENKI_TEST_EXTENT);
@@ -181,7 +211,7 @@ public abstract class ModelTestBase
         Assert.assertTrue(testExtentName.length() > 0);
 
         RepositoryDetails result = 
-            loadRepository(testExtentName, TEST_STORAGE_PROPERTIES_PATH);
+            loadRepository(testExtentName, getStoragePropertiesPath());
         
         storageProps = result.storageProps;
         repos = result.repos;
@@ -191,16 +221,9 @@ public abstract class ModelTestBase
     protected static RepositoryDetails loadRepository(
         String extentName, String storagePropsPath)
     {
-        String enkiHome = System.getProperty(PROPERTY_ENKI_HOME);
-        Assert.assertNotNull(enkiHome);
-        Assert.assertTrue(enkiHome.length() > 0);
-        
         RepositoryDetails result = new RepositoryDetails();
 
-        File storagePropsFile = new File(storagePropsPath);
-        if (!storagePropsFile.isAbsolute()) {
-            storagePropsFile = new File(enkiHome, storagePropsPath);
-        }
+        File storagePropsFile = makeStoragePropertiesPath(storagePropsPath);
         
         result.storageProps = new Properties();
         try {

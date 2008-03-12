@@ -241,7 +241,14 @@ public class TagUtil
                 "." + 
                 basePkgName.toLowerCase(Locale.US);
         } else {
-            packageName = basePkgName.toLowerCase(Locale.US);
+            if (pkg.getContainer() != null) {
+                packageName = 
+                    getFullyQualifiedPackageName(
+                        (MofPackage)pkg.getContainer()) + "." + 
+                        basePkgName.toLowerCase(Locale.US);
+            } else {
+                packageName = basePkgName.toLowerCase(Locale.US);
+            }
         }
         
         return packageName;

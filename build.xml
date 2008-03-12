@@ -76,6 +76,21 @@
     <path refid="enki.run.classpath"/>
     <path refid="ant.classpath"/>
   </path>
+  <property name="sample.mdr.classpath" refid="sample.mdr.classpath"/>
+
+  <!-- Sample Plugin properties -->
+  <property 
+    name="sample.plugin.model.xmi" 
+    location="${sample.catalog.dir}/xmi/EnkiSamplePluginMetamodel.xmi"/>
+  <property name="sample.plugin.jar" location="${sample.dir}/sample-plugin.jar"/>
+  <property name="sample.plugin.dtd" location="${sample.catalog.dir}/xmi/sample-plugin.dtd"/>
+
+  <!-- classpath for Sample plugin model implementation JAR -->
+  <path id="sample.plugin.mdr.classpath">
+    <pathelement location="${sample.plugin.jar}"/>
+    <path refid="sample.mdr.classpath"/>
+  </path>
+  <property name="sample.plugin.mdr.classpath" refid="sample.plugin.mdr.classpath"/>
 
   <!-- 
     Implementation type.  One of hibernate, netbeans.  Defaults to
@@ -98,10 +113,11 @@
   <property name="file.classpath" location="${enki.dir}/classpath.gen"/>
 
   <target name="configureSampleRepository">
-    <copy 
-        file="${test.config.dir}/${enki.impl}/TestStorage.properties"
-        tofile="${test.dir}/TestStorage.properties"
-        overwrite="true">
+    <copy todir="${test.dir}" overwrite="true">
+      <fileset dir="${test.config.dir}/${enki.impl}">
+        <include name="TestStorage.properties"/>
+        <include name="TestPluginStorage.properties"/>
+      </fileset>
       <filterset begintoken="$${" endtoken="}">
         <filter token="ENKI_CATALOG_DIR" value="${sample.catalog.dir}"/>
       </filterset>
@@ -121,7 +137,9 @@
 
   <target 
       name="cleanSampleRepository"
-      depends="compile.dependencies,enki_mdr.taskdef,configureSampleRepository">
+      depends="compile.dependencies,enki_mdr.taskdef,configureSampleRepository,cleanDbStorage"/>
+
+  <target name="cleanDbStorage">
     <property 
       file="${test.dir}/TestStorage.properties" 
       prefix="cleanSampleRepos"/>
@@ -154,6 +172,8 @@
         </delete>
       </then>
     </if>
+
+    <delete dir="${sample.catalog.dir}/java" includes="**/*"/>
   </target>
 
   <target name="forked_cleanDbStorage">
@@ -173,6 +193,74 @@
         password="${cleanSampleRepos.hibernate.connection.password}">
       ${cleanSampleRepos.org.eigenbase.enki.dev.dropStorage}
       ${cleanSampleRepos.org.eigenbase.enki.dev.createStorage}
+    </sql>
+  </target>
+
+  <target 
+      name="cleanSamplePluginRepository"
+      depends="enki_mdr.taskdef,cleanPluginDbStorage">
+
+    <ant dir="${sample.dir}" target="cleanPlugin"/>
+
+    <delete>
+      <fileset dir="${enki.dir}" includes="mdr.bt?"/>
+    </delete>
+  </target>
+
+  <target name="cleanPluginDbStorage">
+    <property 
+      file="${test.dir}/TestPluginStorage.properties" 
+      prefix="cleanSamplePluginRepos"/>
+
+    <if>
+      <and>
+        <not>
+          <equals arg1="${enki.impl}" arg2="netbeans"/>
+        </not>
+        <length
+            string="${cleanSamplePluginRepos.hibernate.connection.driver_class}" 
+            trim="true"
+            when="greater"
+            length="0"/>
+      </and>
+      <then>
+        <enki.antFork
+          target="forked_cleanPluginDbStorage"
+          classpathref="enki.3p.ant.run.classpath"/>
+      </then>
+    </if>
+
+    <if>
+      <equals arg1="${enki.impl}" arg2="netbeans"/>
+      <then>
+        <delete>
+          <fileset dir="${sample.catalog.dir}">
+            <include name="EnkiPluginCatalog.*"/>
+          </fileset>
+        </delete>
+      </then>
+    </if>
+
+    <delete dir="${sample.catalog.dir}/plugin/java" includes="**/*"/>
+  </target>
+
+  <target name="forked_cleanPluginDbStorage">
+    <property 
+      file="${test.dir}/TestPluginStorage.properties" 
+      prefix="cleanSamplePluginRepos"/>
+
+    <echo>
+      Executing:
+        ${cleanSamplePluginRepos.org.eigenbase.enki.dev.dropStorage}
+        ${cleanSamplePluginRepos.org.eigenbase.enki.dev.createStorage}
+    </echo>
+    <sql
+        driver="${cleanSamplePluginRepos.hibernate.connection.driver_class}"
+        url="${cleanSamplePluginRepos.hibernate.connection.url}" 
+        userid="${cleanSamplePluginRepos.hibernate.connection.username}"
+        password="${cleanSamplePluginRepos.hibernate.connection.password}">
+      ${cleanSamplePluginRepos.org.eigenbase.enki.dev.dropStorage}
+      ${cleanSamplePluginRepos.org.eigenbase.enki.dev.createStorage}
     </sql>
   </target>
 
@@ -223,6 +311,54 @@
     <antcall target="compile.impl"/>
   </target>
 
+  <target
+      name="createSamplePluginRepository"
+      depends="cleanSamplePluginRepository">
+
+    <!-- Choose generator class -->
+    <enki.set-generator-property impl="${enki.impl}" property="gen.cls"/>
+
+    <!-- Convert metamodel to XMI -->
+    <ant dir="${sample.dir}" target="convertPluginMetamodel"/>
+
+    <mkdir dir="${sample.catalog.dir}/plugin/java"/>
+
+    <!-- Synthesize model into Java code -->
+    <enki.mdr>
+      <mdr-tasks>
+        <mapJava
+            file="${sample.plugin.model.xmi}"
+            dir="${sample.catalog.dir}/plugin/java"
+            extent="SampleMetamodel"
+            generatorClass="${gen.cls}"
+            generatorOptions="tablePrefix='SMPL_',plugin='true',include='eem.sample.plugin'"/>
+      </mdr-tasks>
+    </enki.mdr>
+
+    <enki.javac
+        srcdir="${sample.catalog.dir}/plugin/java"
+        destdir="${sample.catalog.dir}/plugin/java">
+      <classpath>
+        <pathelement path="${enki.sample.build.classpath}"/>
+        <pathelement path="${sample.jar}"/>
+      </classpath>
+      <include name="**/*.java"/>
+    </enki.javac>
+    <jar jarfile="${sample.plugin.jar}">
+      <fileset dir="${sample.catalog.dir}/plugin/java">
+        <include name="**/*.java"/>
+        <include name="**/*.class"/>
+        <include name="**/*.xml"/>
+        <include name="**/*.properties"/>
+      </fileset>
+    </jar>
+
+    <!-- create repository -->
+    <enki.antFork 
+      target="forked_importSamplePluginMetamodel"
+      classpathref="sample.plugin.mdr.classpath"/>
+  </target>
+
   <target name="forked_importSampleMetamodel" depends="enki_mdr.taskdef">
     <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
       <mdr-tasks>
@@ -240,6 +376,27 @@
     <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
       <mdr-tasks>
         <writeDtd extent="SampleRepository" file="${sample.dtd}"/>
+      </mdr-tasks>
+    </enki.mdr>
+  </target>
+
+  <target name="forked_importSamplePluginMetamodel" depends="enki_mdr.taskdef">
+    <enki.mdr propertiesFile="${test.dir}/TestPluginStorage.properties">
+      <mdr-tasks>
+        <createExtent name="SampleMetamodel"/>
+        <importXmi 
+            extent="SampleMetamodel"
+            file="${sample.plugin.model.xmi}" />
+        <createExtent 
+            name="SampleRepository"
+            extent="SampleMetamodel"
+            package="EEM"/>
+      </mdr-tasks>
+    </enki.mdr>
+
+    <enki.mdr propertiesFile="${test.dir}/TestPluginStorage.properties">
+      <mdr-tasks>
+        <writeDtd extent="SampleRepository" file="${sample.plugin.dtd}"/>
       </mdr-tasks>
     </enki.mdr>
   </target>
@@ -345,7 +502,7 @@
 
   <target name="test" depends="test-with-setup,checkJavadoc"/>
 
-  <target name="test-with-setup" depends="createSampleRepository,test-only"/>
+  <target name="test-with-setup" depends="createSampleRepository,createSamplePluginRepository,test-only"/>
 
   <target name="test-only">
     <echo message="**********************************************"/>
@@ -372,7 +529,37 @@
       <formatter type="plain"/>
       <batchtest todir="${test.results.dir}">
         <fileset dir="${classes.dir}">
-          <include name="**/*Test.class"/>
+          <include name="**/test/**/*Test.class"/>
+          <exclude name="**/test/plugin/*Test.class"/>
+        </fileset>
+      </batchtest>
+    </junit>
+
+    <antcall target="test-plugin-only"/>
+  </target>
+
+  <target name="test-plugin-only">
+    <junit
+      printsummary="on"
+      haltonerror="on"
+      haltonfailure="on"
+      fork="yes">
+
+      <classpath>
+        <path refid="enki.run.classpath"/>
+        <pathelement path="${sample.jar}"/>
+        <pathelement path="${sample.plugin.jar}"/>
+      </classpath>
+      <jvmarg line="${assertions.jvmarg}"/>
+      <sysproperty key="enki.home" value="${enki.dir}"/>
+      <sysproperty key="enki.test.extent" value="SampleRepository"/>
+      <sysproperty 
+          key="enki.storageProps"
+          value="${test.dir}/TestPluginStorage.properties"/>
+      <formatter type="plain"/>
+      <batchtest todir="${test.results.dir}">
+        <fileset dir="${classes.dir}">
+          <include name="**/test/plugin/*Test.class"/>
         </fileset>
       </batchtest>
     </junit>
@@ -400,6 +587,7 @@
     <ant dir="${sample.dir}" target="clean"/>
     <delete includeEmptyDirs="true">
       <fileset dir="${sample.catalog.dir}/java" includes="**/*"/>
+      <fileset dir="${sample.catalog.dir}/plugin/java" includes="**/*"/>
     </delete>
   </target>
 

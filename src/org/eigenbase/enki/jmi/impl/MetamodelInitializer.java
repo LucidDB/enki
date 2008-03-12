@@ -72,12 +72,25 @@ public abstract class MetamodelInitializer
         this.owningRepository = repos;
     }
     
-    public void init(ModelPackage metaModelPackage)
+    public final void init(ModelPackage metaModelPackage)
     {
         this.metaModelPackage = metaModelPackage;
         
         initializerTls.set(this);
         
+        initMetamodel();
+        
+        initializerTls.set(null);
+    }
+    
+    public final void initPlugin(
+        ModelPackage metaModelPackage, MetamodelInitializer parentInitializer)
+    {
+        this.metaModelPackage = metaModelPackage;
+        
+        initializerTls.set(parentInitializer);
+        
+        setModelPackage(parentInitializer.getModelPackage());
         initMetamodel();
         
         initializerTls.set(null);
@@ -259,7 +272,7 @@ public abstract class MetamodelInitializer
         }
     }
     
-    protected RefObject findMofClassByName(
+    protected MofClass findMofClassByName(
         String name, boolean searchMetaModel)
     {
         ModelPackage mp = getModelPackage();
@@ -279,7 +292,7 @@ public abstract class MetamodelInitializer
         throw new NoSuchElementException(name);
     }
 
-    protected RefObject findMofClassByName(String name)
+    protected MofClass findMofClassByName(String name)
     {
         return findMofClassByName(name, false);
     }
@@ -289,12 +302,12 @@ public abstract class MetamodelInitializer
         ((RefBaseObjectBase)base).setRefMetaObject(meta);
     }
     
-    protected RefObject findMofPackageByName(String name)
+    protected MofPackage findMofPackageByName(String name)
     {
         return findMofPackageByName(name, false);
     }
 
-    protected RefObject findMofPackageByName(
+    protected MofPackage findMofPackageByName(
         String name, boolean searchMetaModel)
     {
         ModelPackage mp = getModelPackage();
@@ -305,7 +318,7 @@ public abstract class MetamodelInitializer
         return findMofPackageByName(mp, name);
     }
 
-    private RefObject findMofPackageByName(ModelPackage mp, String name)
+    private MofPackage findMofPackageByName(ModelPackage mp, String name)
     {
         for(MofPackage mofPackage:         
             GenericCollections.asTypedCollection(
@@ -338,12 +351,12 @@ public abstract class MetamodelInitializer
         cls.setRefMetaObject(metaObj);
     }
 
-    protected RefObject findAssociationByName(String name)
+    protected Association findAssociationByName(String name)
     {
         return findAssociationByName(name, false);
     }
 
-    protected RefObject findAssociationByName(
+    protected Association findAssociationByName(
         String name, boolean searchMetaModel)
     {
         ModelPackage mp = getModelPackage();
@@ -354,7 +367,7 @@ public abstract class MetamodelInitializer
         return findAssociationByName(mp, name);
     }
 
-    private RefObject findAssociationByName(ModelPackage mp, String name)
+    private Association findAssociationByName(ModelPackage mp, String name)
     {
         for(Association association:         
             GenericCollections.asTypedCollection(
@@ -366,6 +379,27 @@ public abstract class MetamodelInitializer
         }
         
         throw new NoSuchElementException(name);
+    }
+    
+    protected RefObject findGeneric(String type, String name)
+    {
+        ModelPackage mp = getModelPackage();
+
+        RefClass cls = mp.refClass(type);
+        for(RefObject obj: 
+                GenericCollections.asTypedCollection(
+                    cls.refAllOfClass(), RefObject.class))
+        {
+            if (obj.refGetValue("name").equals(name)) {
+                return obj;
+            }
+        }
+        
+        throw new NoSuchElementException(name);
+    }
+    
+    public void stitchPackages(RefPackage topLevelPkg)
+    {
     }
     
     public void setRefMetaObject(RefAssociationBase assoc, String assocName)

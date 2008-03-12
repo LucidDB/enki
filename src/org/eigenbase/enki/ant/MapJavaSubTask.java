@@ -195,9 +195,7 @@ public class MapJavaSubTask extends EnkiTask.SubTask
                         pos = valueEnd + 1;
                     }
                     
-                    checkOptionName(optionName, pos);
-                    
-                    options.put(optionName, value);
+                    setOption(options, optionName, pos, value);
                     state = ParseState.FIND_OPTION_NAME;
                     break;
 
@@ -208,8 +206,11 @@ public class MapJavaSubTask extends EnkiTask.SubTask
                             state = ParseState.RESOLVE_QUOTE;
                         } else {
                             // end of value
-                            checkOptionName(optionName, pos);
-                            options.put(optionName, quotedValue.toString());
+                            setOption(
+                                options, 
+                                optionName,
+                                pos, 
+                                quotedValue.toString());
                             state = ParseState.FIND_OPTION_NAME;
                         }
                     } else {
@@ -224,12 +225,11 @@ public class MapJavaSubTask extends EnkiTask.SubTask
                         quotedValue.append(QUOTE);
                         pos++;
                     } else if (rch == COMMA) {
-                        // found end of value                        
-                        checkOptionName(optionName, pos);
-                        
-                        options.put(optionName, quotedValue.toString());
+                        // found end of value
+                        setOption(
+                            options, optionName, pos, quotedValue.toString());
                         state = ParseState.FIND_OPTION_NAME;
-                        pos += 2; // skip quote and comma
+                        pos ++; // skip comma
                     }
                     break;
                 }
@@ -245,6 +245,19 @@ public class MapJavaSubTask extends EnkiTask.SubTask
         }
         
         return options;
+    }
+
+    private void setOption(
+        Map<String, String> options,
+        String optionName,
+        int pos,
+        String value)
+    {
+        checkOptionName(optionName, pos);
+     
+        verbose("  Option: " + optionName + ", Value: " + value);
+        
+        options.put(optionName, value);
     }
     
 

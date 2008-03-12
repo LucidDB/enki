@@ -26,7 +26,6 @@ import java.util.logging.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.mdr.*;
-import org.hibernate.cfg.*;
 import org.netbeans.api.mdr.*;
 import org.netbeans.api.mdr.events.*;
 import org.netbeans.mdr.*;

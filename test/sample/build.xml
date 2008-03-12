@@ -13,6 +13,10 @@
     name="EnkiSampleMetamodel.uml"
     location="${enki.xmi.dir}/Sample.uml"/>
     
+  <property 
+    name="EnkiSamplePluginMetamodel.uml"
+    location="${enki.xmi.dir}/SamplePlugin.uml"/>
+    
   <!-- Macro for converting metamodel from UML to MOF -->
   <macrodef name="enki.uml2mof">
     <attribute name="umlmodelname" default="unspecified" />
@@ -69,6 +73,14 @@
       xmiDir="${enki.xmi.dir}"/>
   </target>
 
+  <target name="convertPluginMetamodel">
+    <enki.extractArgoModel
+      umlFile="${EnkiSamplePluginMetamodel.uml}"
+      umlBasename="EnkiSamplePluginMetamodel"
+      mofBasename="EnkiSamplePluginMetamodel"
+      xmiDir="${enki.xmi.dir}"/>
+  </target>
+
   <target name="clean">
     <delete quiet="true">
       <fileset dir="${enki.xmi.dir}">
@@ -77,4 +89,11 @@
     </delete>
   </target>
 
+  <target name="cleanPlugin">
+    <delete quiet="true">
+      <fileset dir="${enki.xmi.dir}">
+        <include name="*SamplePlugin*.xmi"/>
+      </fileset>
+    </delete>
+  </target>
 </project>

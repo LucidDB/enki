@@ -513,6 +513,8 @@ public abstract class JavaHandlerBase
         int start = className.lastIndexOf('.') + 1;
         String simpleClassName = className.substring(start);
         
+        assert(simpleClassName != null && simpleClassName.length() > 0);
+        
         // One super class, unless we're generating an interface
         assert(superClassNames.length <= 1 || isInterface);
         

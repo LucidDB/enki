@@ -65,6 +65,11 @@ public class JmiTemplateHandler
         throws GenerationException
     {
         String typeName = generator.getTypeName(assoc);
+
+        if (!isIncluded(assoc)) {
+            log.fine("Skipping Excluded Association '" + typeName + "'");
+            return;
+        }
         
         log.fine("Generating Association '" + typeName + "'");
         
@@ -202,6 +207,11 @@ public class JmiTemplateHandler
     {
         String typeName = generator.getTypeName(cls);
 
+        if (!isIncluded(cls)) {
+            log.fine("Skipping Excluded Class Instance '" + typeName + "'");
+            return;
+        }
+        
         log.fine("Generating Class Instance '" + typeName + "'");
         
         open(typeName);
@@ -311,6 +321,11 @@ public class JmiTemplateHandler
     {
         String typeName = generator.getTypeName(cls, CLASS_PROXY_SUFFIX);
 
+        if (!isIncluded(cls)) {
+            log.fine("Skipping Excluded Class Proxy '" + typeName + "'");
+            return;
+        }
+        
         log.fine("Generating Class Proxy '" + typeName + "'");
         
         open(typeName);
@@ -404,6 +419,12 @@ public class JmiTemplateHandler
     {
         String typeName = generator.getTypeName(enumType);
         
+        if (!isIncluded(enumType)) {
+            log.fine(
+                "Skipping Excluded Enumeration Interface '" + typeName + "'");
+            return;
+        }
+        
         log.fine("Generating Enumeration Interface '" + typeName + "'");
         
         open(typeName);
@@ -429,6 +450,11 @@ public class JmiTemplateHandler
         
         String typeName = generator.getTypeName(enumType, ENUM_CLASS_SUFFIX);
 
+        if (!isIncluded(enumType)) {
+            log.fine("Skipping Excluded Enumeration Class '" + typeName + "'");
+            return;
+        }
+        
         String simpleTypeName = 
             generator.getSimpleTypeName(enumType, ENUM_CLASS_SUFFIX);
         
@@ -650,6 +676,11 @@ public class JmiTemplateHandler
                     ? ""
                     : EXCEPTION_SUFFIX);
         
+        if (!isIncluded(ex)) {
+            log.fine("Skipping Excluded Association '" + typeName + "'");
+            return;
+        }
+        
         log.fine("Generating Exception '" + typeName + "'");
 
         throw new UnsupportedOperationException(
@@ -661,6 +692,11 @@ public class JmiTemplateHandler
     {
         String typeName = generator.getTypeName(pkg, PACKAGE_SUFFIX);
 
+        if (!isIncluded(pkg)) {
+            log.fine("Skipping Excluded Package '" + typeName + "'");
+            return;
+        }
+        
         log.fine("Generating Package '" + typeName + "'");
 
         open(typeName);
@@ -752,6 +788,11 @@ public class JmiTemplateHandler
     {
         String typeName = generator.getTypeName(struct);
 
+        if (!isIncluded(struct)) {
+            log.fine("Skipping Excluded Structure '" + typeName + "'");
+            return;
+        }
+        
         log.fine("Generating Structure '" + typeName + "'");
         
         throw new UnsupportedOperationException(

@@ -96,6 +96,7 @@ public class CreateExtentSubTask extends EnkiTask.SubTask
         
         repos.beginSession();
         repos.beginTrans(true);
+        boolean rollback = true;
         try {
             if (modelExtentName == null && packageName == null) {
                 repos.createExtent(extentName);
@@ -135,11 +136,11 @@ public class CreateExtentSubTask extends EnkiTask.SubTask
                 repos.createExtent(extentName, extentPackage);
             }
             
-            repos.endTrans(false);
+            rollback = false;
         } catch(CreationFailedException ex) {
-            repos.endTrans(true);
             throw new BuildException(ex);
         } finally {
+            repos.endTrans(rollback);
             repos.endSession();
         }
     }

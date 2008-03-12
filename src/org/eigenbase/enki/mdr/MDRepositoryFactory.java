@@ -66,7 +66,7 @@ public class MDRepositoryFactory
     public static final String PROPERTY_ENKI_EXTENT = "enki.extent";
 
     public static final String PROPERTY_ENKI_TOP_LEVEL_PKG = 
-        "enki.top-level-pkg";
+        "enki.topLevelPkg";
     
     private static final String SYS_PROPERTY_ENKI_IGNORE_EXTENT = 
         "enki.ignore.extent";

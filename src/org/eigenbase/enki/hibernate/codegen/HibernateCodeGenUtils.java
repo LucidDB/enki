@@ -1,9 +1,9 @@
 /*
 // $Id$
 // Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-// Copyright (C) 2007-2007 The Eigenbase Project
-// Copyright (C) 2007-2007 Disruptive Tech
-// Copyright (C) 2007-2007 LucidEra, Inc.
+// Copyright (C) 2007-2008 The Eigenbase Project
+// Copyright (C) 2007-2008 Disruptive Tech
+// Copyright (C) 2007-2008 LucidEra, Inc.
 //
 // This library is free software; you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License as published by
@@ -22,10 +22,12 @@
 package org.eigenbase.enki.hibernate.codegen;
 
 import java.util.*;
+import java.util.logging.*;
 
 import javax.jmi.model.*;
 
 import org.eigenbase.enki.codegen.*;
+import org.eigenbase.enki.util.*;
 
 /**
  * HibernateCodeGenUtils contains utilities for generating Hibernate model
@@ -35,21 +37,61 @@ import org.eigenbase.enki.codegen.*;
  */
 public class HibernateCodeGenUtils
 {
+    /** 
+     * Tag identifier for a custom Enki tag to override the default column 
+     * length for a particular string attribute.  The tag identifier is
+     * {@value}.
+     */
+    public static final String MAX_LENGTH_TAG_NAME = 
+        "org.eigenbase.enki.maxLength";
+
+    /**
+     * Tag value for {@link #MAX_LENGTH_TAG_NAME} that indicates no limit.
+     * The tag value is {@value}.
+     */
+    public static final String MAX_LENGTH_UNLIMITED_VALUE = "unlimited";
+    
+    /**
+     * Default length for string attributes.  Should be passed as the
+     * <code>defaultMaxLength</code> parameter to 
+     * {@link #findMaxLengthTag(Classifier, Attribute, int, Logger)} unless
+     * the user has specified an alternative.  The default is {@value}.
+     */
+    public static final int DEFAULT_STRING_LENGTH = 128;
+    
+    /**
+     * Maximum string length.  The maximum is {@value}.  
+     * This is somewhat arbitrary.
+     */
+    public static final int MAX_STRING_LENGTH = 16384;
+    
+    /**
+     * Tag identifier for a custom Enki tag to control whether a package is
+     * considered transient.  The tag identifier is {@value}.
+     */
+    public static final String TRANSIENT_PKG_TAG_NAME = 
+        "org.eigenbase.enki.transientPackage";
+    
     private HibernateCodeGenUtils()
     {
     }
 
     /**
-     * Determine whether the given {@link ModelElement} is transient.
+     * Determine whether the given {@link ModelElement} is transient.  Only
+     * {@link MofPackage} instances may be transient.  A MofPackage is 
+     * considered transient if it (or one of its containers) contains a 
+     * {@link Tag} identified by {@value #TRANSIENT_PKG_TAG_NAME}.  The Tag's
+     * value is ignored.
      * 
      * @param modelElement any model element 
      * @return true if the model element is a member of a transient package
      */
-    static boolean isTransient(ModelElement modelElement)
+    public static boolean isTransient(ModelElement modelElement)
     {
         if (modelElement instanceof MofPackage) {
-            // TODO: switch to using an Enki-specific MOF tag
-            if (((MofPackage)modelElement).getName().equals("Fennel")) {
+            String value = 
+                TagUtil.getTagValue(modelElement, TRANSIENT_PKG_TAG_NAME);
+            if (value != null) {
                 return true;
             }
         }
@@ -75,11 +117,11 @@ public class HibernateCodeGenUtils
      *                   with <code>cls</code>
      * @param unrefAssocRefInfoMap empty, modifiable map which is populated 
      *                             with pseudo-{@link ReferenceInfo} objects
-     *                             to facilitate code gen for the unreferenced
-     *                             associations
+     *                             to facilitate code generation for the
+     *                             unreferenced associations
      * @return collection of unreferenced {@link Association} instances
      */
-    static Collection<Association> findUnreferencedAssociations(
+    public static Collection<Association> findUnreferencedAssociations(
         Generator generator,
         Map<Association, AssociationInfo> assocInfoMap,
         MofClass cls, 
@@ -170,6 +212,148 @@ public class HibernateCodeGenUtils
         }
         
         return result;
+    }
+    
+    /**
+     * Determines the maximum length, in characters, for the given Attribute, 
+     * appearing in the given Classifier.  The Classifier may be a subtype of
+     * the Attribute's container.
+     * 
+     * <p>The value is obtained as follows:
+     * <ol>
+     *   <li>
+     *     If the {@link Attribute} contains a {@link Tag} identified by
+     *     {@value #MAX_LENGTH_TAG_NAME}, the tag's value is used.
+     *   </li>
+     *   <li>
+     *     Otherwise, if the {@link Classifier} or one of it's supertypes
+     *     contains a Tag identified by {@value #MAX_LENGTH_TAG_NAME}, the
+     *     tag's value is used.  Supertypes are searched breadth-first, and
+     *     the first value found is used.  This is primarily useful if an
+     *     attribute in a common subclass requires a different maximum length
+     *     in some special case.
+     *   </li>
+     * </ol>
+     * 
+     * <p>The returned value is automatically constrained to the inclusive 
+     * range [1, {@value #MAX_STRING_LENGTH}].  The special tag value 
+     * {@value #MAX_LENGTH_UNLIMITED_VALUE} specifies that the maximum storage
+     * size for the underlying database should be used and causes the value
+     * {@link Integer#MAX_VALUE} to be returned.
+     * 
+     * @param cls Classifier in which the Attribute appears (perhaps via
+     *            inheritance)
+     * @param attrib Attribute to get a maximum length
+     * @param defaultMaxLength the default to return if no other value is found
+     * @param log Logger to use if an out-of-range value is truncated 
+     * @return the maximum length for the Classifier and Attribute given,
+     *         Integer.MAX_VALUE for unlimited.
+     * @throws GenerationException if a tag value cannot be converted to an 
+     *                             integer
+     */
+    public static int findMaxLengthTag(
+        Classifier cls, 
+        Attribute attrib, 
+        int defaultMaxLength,
+        Logger log)
+    throws GenerationException
+    {
+        String maxLen = TagUtil.getTagValue(attrib, MAX_LENGTH_TAG_NAME);
+        if (maxLen != null) {
+            return convertMaxLengthToInt(maxLen, log, attrib.getName());
+        }
+
+        // Check the attribute's container (Classifier) for a class-level 
+        // default.
+        maxLen = findMaxLength(cls); 
+        if (maxLen != null) {
+            return convertMaxLengthToInt(maxLen, log, attrib.getName());
+        }
+        
+        return defaultMaxLength;
+    }
+
+    /**
+     * Converts a maximum length string into an integer.  Performs truncation 
+     * for out-of bounds values and supports
+     * {@value #MAX_LENGTH_UNLIMITED_VALUE} as specified in
+     * {@link #findMaxLengthTag(Classifier, Attribute, int, Logger)}.
+     * 
+     * @param maxLen maximum length string
+     * @param log logger for out-of-bounds logging
+     * @param attribName attribute name for out-of-bounds logging
+     * @return int representation of maxLen
+     * @throws GenerationException if maxLen cannot be converted to an 
+     *                             integer
+     */
+    private static int convertMaxLengthToInt(
+        String maxLen, Logger log, String attribName)
+    throws GenerationException
+    {
+        if (MAX_LENGTH_UNLIMITED_VALUE.equals(maxLen)) {
+            return Integer.MAX_VALUE;
+        }
+        
+        int max;
+        try {
+            max = Integer.parseInt(maxLen);
+        }
+        catch(NumberFormatException e) {
+            throw new GenerationException(
+                "Cannot parse " + MAX_LENGTH_TAG_NAME 
+                + " value '" + maxLen + "'", 
+                e);
+        }
+        
+        if (max < 1) {
+            log.warning(
+                "Adjusted string length for attribute '"
+                + attribName
+                + "' to 1");
+            max = 1;
+        } else  if (max > MAX_STRING_LENGTH) {
+            log.warning(
+                "Adjusted string length for attribute '" 
+                + attribName
+                + "' to "
+                + MAX_STRING_LENGTH);
+            max = MAX_STRING_LENGTH;
+        }
+        
+        return max;
+    }
+
+    /**
+     * Performs a breadth-first search of the given Classifier's super types
+     * looking for a Classifier that has the {@link #MAX_LENGTH_TAG_NAME} tag
+     * set.
+     * 
+     * @param startCls starting Classifier
+     * @return the value of the tag or null if not found
+     */
+    private static String findMaxLength(Classifier startCls)
+    {
+        Queue<Classifier> queue = new LinkedList<Classifier>();
+        
+        queue.offer(startCls);
+        
+        while(!queue.isEmpty()) {
+            Classifier cls = queue.poll();
+            
+            String maxLen = TagUtil.getTagValue(cls, MAX_LENGTH_TAG_NAME);
+            if (maxLen != null) {
+                return maxLen;
+            }
+                    
+            List<Classifier> supertypes = 
+                GenericCollections.asTypedList(
+                    cls.getSupertypes(), Classifier.class);
+            for(Classifier supertype: supertypes) {
+                queue.offer(supertype);
+            }
+        }
+        
+        return null;
     }
 }
 

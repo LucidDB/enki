@@ -182,8 +182,10 @@ public class MofInitHandler
                 {
                     String clsName = mofClass.getName();
                     
-                    Collection<?> instances =
-                        modelPkg.refClass(clsName).refAllOfType();
+                    Collection<RefObject> instances =
+                        GenericCollections.asTypedCollection(
+                            modelPkg.refClass(clsName).refAllOfType(),
+                            RefObject.class);
                     
                     generateClassInstanceImpl(mofClass, instances);
                 }
@@ -205,56 +207,67 @@ public class MofInitHandler
             emitSuppressWarningsAnnotation();
             startBlock("public void initMetamodel()");
             
-            writeln("// Initialize Model Package");
-            writeln(
-                MODEL_PACKAGE_IMPL_CLASS, 
-                " modelPackage = new " +
-                "", MODEL_PACKAGE_IMPL_CLASS, 
-                "();");
-            writeln("setModelPackage(modelPackage);");
-            if (!isMetaMetamodel) {
+            if (!pluginMode) {
+                writeln("// Initialize Model Package");
                 writeln(
-                    "setRefMetaObject(modelPackage, ", 
-                    QUOTE, "Model", QUOTE, ");");
+                    MODEL_PACKAGE_IMPL_CLASS, 
+                    " modelPackage = new " +
+                    "", MODEL_PACKAGE_IMPL_CLASS, 
+                    "();");
+                writeln("setModelPackage(modelPackage);");
+                if (!isMetaMetamodel) {
+                    writeln(
+                        "setRefMetaObject(modelPackage, ", 
+                        QUOTE, "Model", QUOTE, ");");
+                }
             }
-    
+            
             newLine();
-            writeln("// Pass 1: Instances and attributes");
+            writeln("// Initialize MOF Instances");
             for(MofClass cls: classes) {
                 initElement(cls);
             }
     
             newLine();
-            writeln("// Pass 2: References (associations)");
+            writeln("// Initialize MOF Associations");
             for(Association assoc: associations) {
                 initAssociations(assoc);
             }
             
-            newLine();
-            writeln("// Pass 3: Meta Objects");
-            for(Map.Entry<String, String> entry: 
-                classMetaObjInitMap.entrySet())
-            {
-                writeln(
-                    "setRefMetaObject(getModelPackage().get", entry.getKey(),
-                    "(), findMofClassByName(", 
-                    QUOTE, entry.getValue(), QUOTE, ", true));");
-            }
-            for(Map.Entry<String, String> entry: 
-                associationMetaObjInitMap.entrySet())
-            {
-                writeln(
-                    "setRefMetaObject(getModelPackage().get", entry.getKey(),
-                    "(), findAssociationByName(", 
-                    QUOTE, entry.getValue(), QUOTE, ", true));");
-            }
-            if (isMetaMetamodel) {
-                writeln(
-                    "setRefMetaObject(getModelPackage(), findMofPackageByName(",
-                    QUOTE, "Model", QUOTE, ", true));");
+            if (!pluginMode) {
+                newLine();
+                writeln("// Initialize M3 meta objects");
+                for(Map.Entry<String, String> entry: 
+                    classMetaObjInitMap.entrySet())
+                {
+                    writeln(
+                        "setRefMetaObject(getModelPackage().get", entry.getKey(),
+                        "(), findMofClassByName(", 
+                        QUOTE, entry.getValue(), QUOTE, ", true));");
+                }
+                for(Map.Entry<String, String> entry: 
+                    associationMetaObjInitMap.entrySet())
+                {
+                    writeln(
+                        "setRefMetaObject(getModelPackage().get", entry.getKey(),
+                        "(), findAssociationByName(", 
+                        QUOTE, entry.getValue(), QUOTE, ", true));");
+                }
+                if (isMetaMetamodel) {
+                    writeln(
+                        "setRefMetaObject(getModelPackage(), findMofPackageByName(",
+                        QUOTE, "Model", QUOTE, ", true));");
+                }
             }
             
+            customInitialization();
+            
             endBlock();
+            
+            if (pluginMode) {
+                customStitchPackages();
+            }
+            
             writeEntityFooter();
             close();
         }
@@ -262,6 +275,16 @@ public class MofInitHandler
         super.endGeneration(throwing);
     }
 
+    protected void customInitialization() throws GenerationException
+    {
+        // Default does nothing.
+    }
+    
+    protected void customStitchPackages() throws GenerationException
+    {
+        // Default does nothing.
+    }
+    
     public void generateClassInstance(MofClass cls)
         throws GenerationException
     {
@@ -270,13 +293,15 @@ public class MofInitHandler
         }
 
         RefClass refClass = cls.refImmediatePackage().refClass(cls.getName());
-        Collection<?> instances = refClass.refAllOfClass();
+        Collection<RefObject> instances = 
+            GenericCollections.asTypedCollection(
+                refClass.refAllOfClass(), RefObject.class);
 
         generateClassInstanceImpl(cls, instances);
     }
     
     private void generateClassInstanceImpl(
-        MofClass cls, Collection<?> instances)
+        MofClass cls, Collection<RefObject> instances)
     throws GenerationException
     {
         String clsName = TagUtil.getSubstName(cls);
@@ -288,15 +313,11 @@ public class MofInitHandler
         }
         
         log.fine("Generating class initializer for " + cls.getName());
-        
-        log.finest(
-            "MofClass " + cls.getName() + " is a " + cls.getClass().getName());
-        
         classes.add(cls);
 
         String var = makeVarName(cls);
         String func = makeVarName(cls, INIT_SUFFIX);
-        
+
         boolean requiresWarningSupression = false;
         Collection<Attribute> attribs = 
             contentsOfType(
@@ -326,47 +347,109 @@ public class MofInitHandler
         }
         startBlock("private void ", func, "()");
         
-        classMetaObjInitMap.put(clsName, cls.getName());
-        
         if (!instances.isEmpty()) {
             writeln(var, " = new ", clsName, "[", instances.size(), "];");
     
             int index = 0;
-            for(RefObject refObj: 
-                    GenericCollections.asTypedCollection(
-                        instances, RefObject.class))
-            {
+            for(RefObject refObj: instances) {
                 indexMap.put(refObj, index);
                 
-                newLine();
-                writeln(
-                    var, "[", index, "] = getModelPackage().get", clsName, 
-                    "().create", clsName, "(");
-                increaseIndent();
-                
-                boolean first = true;
-                for(Attribute attrib: attribs) {
-                    if (attrib.isDerived()) {
-                        continue;
+                ModelElement owner = (ModelElement)refObj;
+                if (owner instanceof Tag) {
+                    // Tags are special cases.
+                    Tag tag = (Tag)owner;
+                    for(ModelElement tagged: 
+                            GenericCollections.asTypedCollection(
+                                tag.getElements(), ModelElement.class))
+                    {
+                        while(!isFirstClass(tagged)) {
+                            tagged = tagged.getContainer();
+                        }
+
+                        // Cause isIncluded(owner) to evaluate properly.
+                        owner = tagged;
+                        
+                        if (!isIncluded(tagged)) {
+                            break;
+                        }
                     }
-                    
-                    if (first) {
-                        first = false;
-                    } else {
-                        writeln(",");
+                } else {
+                    while(!isFirstClass(owner)) {
+                        owner = owner.getContainer();
                     }
+                }                
+                if (isIncluded(owner)) {
+                    newLine();
+                    writeln(
+                        var, "[", index, "] = getModelPackage().get", clsName, 
+                        "().create", clsName, "(");
+                    increaseIndent();
                     
-                    Object value = refObj.refGetValue(attrib.getName());
-                    
-                    writeValue(attrib, value);
+                    boolean first = true;
+                    for(Attribute attrib: attribs) {
+                        if (attrib.isDerived()) {
+                            continue;
+                        }
+                        
+                        if (first) {
+                            first = false;
+                        } else {
+                            writeln(",");
+                        }
+                        
+                        Object value = refObj.refGetValue(attrib.getName());
+                        
+                        writeValue(attrib, value);
+                    }
+                    writeln(");");
+                    decreaseIndent();
+                } else if (pluginMode && refObj instanceof MofClass) {
+                    newLine();
+                    writeln(
+                        var, "[", index, "] = findMofClassByName(", 
+                        QUOTE, refObj.refGetValue("name"), QUOTE, 
+                        ", false);");
+                } else if (pluginMode && refObj instanceof MofPackage) {
+                    newLine();
+                    writeln(
+                        var, "[", index, "] = findMofPackageByName(", 
+                        QUOTE, refObj.refGetValue("name"), QUOTE, 
+                        ", false);");
+                } else if (pluginMode && refObj instanceof Association) {
+                    newLine();
+                    writeln(
+                        var, "[", index, "] = findAssociationByName(", 
+                        QUOTE, refObj.refGetValue("name"), QUOTE, 
+                        ", false);");
+                } else if (pluginMode && refObj instanceof Tag) {
+                    // Tag shared across plugin/base.  Hard to handle since
+                    // tags are not uniquely identified by any attribute.
+                } else {
+                    newLine();
+                    ModelElement refMetaObject = 
+                        (ModelElement)refObj.refMetaObject();
+                    String typeName = generator.getTypeName(refMetaObject);
+                    String className = 
+                        refMetaObject.refGetValue("name").toString();
+                    String instanceName = 
+                        refObj.refGetValue("name").toString();
+                    writeln(
+                        var, "[", index, "] = (", typeName, ")findGeneric(",
+                        QUOTE, className, QUOTE, ", ",
+                        QUOTE, instanceName, QUOTE, ");");
                 }
-                writeln(");");
-                decreaseIndent();
                 index++;
             }
         }
         
         endBlock();
+    }
+
+    private boolean isFirstClass(ModelElement owner)
+    {
+        return owner instanceof MofClass || 
+              owner instanceof MofPackage || 
+              owner instanceof Association;
     }
 
     public void generateAssociation(Association assoc)
@@ -434,7 +517,7 @@ public class MofInitHandler
         boolean queryBySecondEnd = assocEnds[0].getMultiplicity().isOrdered();
         
         // REVIEW: SWZ: 12/19/07: How would we handle the following case?  Not trying for now.        
-        // One or both must be false.  If both are true, the assertion fails.
+        // One or both must be false.  If both are true, the exception is thrown.
         if (queryByFirstEnd && queryBySecondEnd) {
             throw new GenerationException(
                 "Internal error: Cannot handle many-to-many ordered associations");
@@ -473,13 +556,27 @@ public class MofInitHandler
                 (Classifier)queryEnd.refClass().refMetaObject();
             String queryEndFieldName = makeVarName(queryEndCls);
             int queryEndIndex = indexMap.get(queryEnd);
+            boolean queryEndIncluded = isIncluded((ModelElement)queryEnd);
             
             for(RefObject otherEnd: multiple) {
                 Classifier otherEndCls = 
                     (Classifier)otherEnd.refClass().refMetaObject();            
                 String otherEndFieldName= makeVarName(otherEndCls);
                 int otherEndIndex = indexMap.get(otherEnd);
-            
+                boolean otherEndIncluded = isIncluded((ModelElement)otherEnd);
+
+                if (!pluginMode && (!queryEndIncluded || !otherEndIncluded)) {
+                    // Normal mode, but one end or the other is not included,
+                    // so don't generate the association add.
+                    continue;
+                } else if (pluginMode && 
+                           (!queryEndIncluded && !otherEndIncluded))
+                {
+                    // Plugin mode, neither end is included, so don't generate
+                    // the association add: it's already been done elsewhere.
+                    continue;
+                }
+                
                 if (queryBySecondEnd) {
                     writeln(
                         var, 
@@ -497,7 +594,7 @@ public class MofInitHandler
         endBlock();
     }
     
-    private String computeInitializerPackage() throws GenerationException
+    protected String computeInitializerPackage() throws GenerationException
     {
         RefBaseObject refBaseObject = generator.getRefBaseObject();
         if (!(refBaseObject instanceof ModelPackage)) {
@@ -508,7 +605,8 @@ public class MofInitHandler
         
         ModelPackage modelPackage = (ModelPackage)refBaseObject;
         
-        String packageName = TagUtil.getFullyQualifiedPackageName(modelPackage);
+        String packageName = 
+            TagUtil.getFullyQualifiedPackageName(modelPackage);
         packageName += ".init";
         
         if (!packageName.startsWith(

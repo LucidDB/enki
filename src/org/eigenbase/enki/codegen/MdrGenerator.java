@@ -22,6 +22,8 @@
 package org.eigenbase.enki.codegen;
 
 import java.io.*;
+import java.util.*;
+import java.util.regex.*;
 
 import javax.jmi.reflect.*;
 import javax.jmi.xmi.*;
@@ -95,6 +97,8 @@ public abstract class MdrGenerator
             throw e;
         } catch(Throwable t) {
             throw new GenerationException(t);
+        } finally {
+            mdr.shutdown();
         }
     }
 
@@ -107,16 +111,48 @@ public abstract class MdrGenerator
      */
     protected void doMain(String[] args, boolean useGenerics)
     {
-    
         try {
             String xmiFileName = args[0];
             String outputDirName = args[1];
     
+            Pattern optPattern = Pattern.compile("([^=]+)=(.+)");
+            Map<String, String> options = new HashMap<String, String>();
+            for(int i = 2; i < args.length; i++) {
+                Matcher m = optPattern.matcher(args[i]);
+                if (!m.matches()) {
+                    System.err.println(
+                        "Argument [" 
+                        + args[i] 
+                        + "] does not match the option regex");
+                    return;
+                }
+                
+                String option = m.group(1);
+                String value = m.group(2);
+
+                if (value.startsWith("'")) {
+                    if (!value.endsWith("'")) {
+                        System.err.println(
+                            "Missing quote in [" + args[i] + "]");
+                        return;
+                    }
+                    
+                    value = value.substring(1, value.length() - 1);
+                    value = value.replaceAll("''", "'");
+                }
+                
+                options.put(option, value);
+            }
+            
             setXmiFile(new File(xmiFileName));
             setOutputDirectory(new File(outputDirName));
             setExtentName(DEFAULT_ENKI_MODEL_EXTENT_NAME);
             setUseGenerics(useGenerics);
+            if (!options.isEmpty()) {
+                setOptions(options);
+            }
             execute();
+            System.out.println("Done");
         }
         catch(Exception e) {
             System.err.println(

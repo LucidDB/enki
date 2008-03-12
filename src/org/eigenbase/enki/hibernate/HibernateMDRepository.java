@@ -125,6 +125,13 @@ public class HibernateMDRepository
         "enki.model.initializer";
     
     /**
+     * Configuration file property indicates whether this model is a plug-in
+     * or a base model.  Valid values are true or false.
+     */
+    public static final String PROPERTY_MODEL_PLUGIN = 
+        "enki.model.plugin";
+
+    /**
      * Storage property that configures the behavior of implicit sessions.
      * Values are converted to boolean via {@link Boolean#valueOf(String)}.
      * If the value evaluates to true, implicit sessions are allowed (and are
@@ -1113,6 +1120,12 @@ public class HibernateMDRepository
                     extentDesc.extent =
                         modelDesc.topLevelPkgCons.newInstance(
                             (Object)null);
+                    
+                    for(MetamodelInitializer init: 
+                            modelExtentDesc.pluginInitializers)
+                    {
+                        init.stitchPackages(extentDesc.extent);
+                    }
                 } catch (Exception e) {
                     throw new ProviderInstantiationException(
                         "Cannot load extent '" + extentName + "'", e);
@@ -1180,6 +1193,10 @@ public class HibernateMDRepository
             } else {
                 extentDesc.extent = modelDesc.topLevelPkgCls.newInstance();
             }
+            
+            for(MetamodelInitializer init: extentDesc.pluginInitializers) {
+                init.stitchPackages(extentDesc.extent);
+            }
         } catch (Exception e) {
             throw new ProviderInstantiationException(
                 "Cannot load extent '" + name + "'", e);
@@ -1218,10 +1235,7 @@ public class HibernateMDRepository
                     continue;
                 }
 
-                // Load mappings.
-                URL mappingUrl = getModelMappingUrl(modelDesc);
-                
-                config.addURL(mappingUrl);
+                configureMappings(config, modelDesc);
             }
             
             sessionFactory = config.buildSessionFactory();
@@ -1313,8 +1327,11 @@ public class HibernateMDRepository
             session.getNamedQuery("AllExtents").list();
             exists = true;
         } catch(HibernateException e) {
-            // Presume that table doesn't exist (if it's a connection error,
-            // we can't cause any damage).
+            // Presume that table doesn't exist.
+            
+            // REVIEW: SWZ: 3/12/08: If it's a connection error, and suddenly
+            // starts working (startup race?) we could conceivably destroy the
+            // tables, which would be bad.
             log.log(Level.FINE, "Extent Query Error", e);
         } finally {
             trans.commit();
@@ -1365,9 +1382,9 @@ public class HibernateMDRepository
     {
         Configuration config = newConfiguration();
         
-        URL mappingUrl = getModelMappingUrl(modelDesc);
-        
-        config.addURL(mappingUrl);
+        configureMappings(config, modelDesc);
+
+        log.info("Validating schema for model '" + modelDesc.name + "'");
 
         SchemaValidator validator = new SchemaValidator(config);
         try {
@@ -1401,9 +1418,7 @@ public class HibernateMDRepository
     {
         Configuration config = newConfiguration(false);
         
-        URL mappingUrl = getModelMappingUrl(modelDesc);
-        
-        config.addURL(mappingUrl);
+        configureMappings(config, modelDesc);
 
         log.info("Dropping schema for model '" + modelDesc.name + "'");
         
@@ -1418,15 +1433,35 @@ public class HibernateMDRepository
         }
     }
     
-    private URL getModelMappingUrl(ModelDescriptor modelDesc)
+    private void configureMappings(
+        Configuration config, ModelDescriptor modelDesc)
     {
+        URL mappingUrl = getModelMappingUrl(modelDesc);        
+        config.addURL(mappingUrl);
+
+        for(ModelPluginDescriptor pluginDesc: modelDesc.plugins) {
+            URL pluginMappingUrl = getModelMappingUrl(pluginDesc);
+            config.addURL(pluginMappingUrl);
+        }
+    }
+    
+    private URL getModelMappingUrl(AbstractModelDescriptor modelDesc)
+    {
+        if (modelDesc.mappingUrl != null) {
+            return modelDesc.mappingUrl;
+        }
+        
         String configUrlStr = 
             modelDesc.properties.getProperty(
                 MDRepositoryFactory.PROPERTY_ENKI_RUNTIME_CONFIG_URL);
         
         log.config(
-            "Model: " + modelDesc.name + 
-            ", Config URL: " + configUrlStr);
+            "Model" 
+            + (modelDesc.isPlugin() ? " Plugin" : "")
+            + ": "
+            + modelDesc.name
+            + ", Mapping URL: "
+            + configUrlStr);
         
         URL mappingUrl;
         try {
@@ -1436,6 +1471,9 @@ public class HibernateMDRepository
             throw new ProviderInstantiationException(
                 "Cannot compute mapping.xml location", e);
         }
+        
+        modelDesc.mappingUrl = mappingUrl;
+        
         return mappingUrl;
     }
     
@@ -1451,40 +1489,12 @@ public class HibernateMDRepository
         
         log.info("Initializing Model Descriptor: " + MOF_EXTENT);
         
-        for(Properties modelProperties: modelPropertiesList) {
-            String topLevelPkg = 
-                modelProperties.getProperty(
-                    MDRepositoryFactory.PROPERTY_ENKI_TOP_LEVEL_PKG);
-            if (topLevelPkg == null) {
-                throw new ProviderInstantiationException(
-                    "Top-level package name missing from model properties");
-            }
-
-            Class<?> cls;
-            try {
-                cls = 
-                    Class.forName(
-                        topLevelPkg,
-                        true, 
-                        Thread.currentThread().getContextClassLoader());
-            } catch (ClassNotFoundException e) {
-                throw new ProviderInstantiationException(
-                    "Top-level package '" + topLevelPkg + "' not found", e);
-            }
-
-            Class<? extends RefPackage> topLevelPkgCls =
-                cls.asSubclass(RefPackage.class);
-                
-            Constructor<? extends RefPackage> topLevelPkgCons;
-            try {
-                topLevelPkgCons = 
-                    topLevelPkgCls.getConstructor(RefPackage.class);
-            } catch (NoSuchMethodException e) {
-                throw new ProviderInstantiationException(
-                    "Cannot find constructor for top-level package class '" + 
-                    topLevelPkgCls.getName() + "'", e);
-            }
-            
+        List<Properties> sortedModelPropertiesList = 
+            new ArrayList<Properties>(modelPropertiesList);
+        Collections.sort(
+            sortedModelPropertiesList, new ModelPropertiesComparator());
+        
+        for(Properties modelProperties: sortedModelPropertiesList) {
             String name = 
                 modelProperties.getProperty(
                     MDRepositoryFactory.PROPERTY_ENKI_EXTENT);
@@ -1492,14 +1502,64 @@ public class HibernateMDRepository
                 throw new ProviderInstantiationException(
                     "Extent name missing from model properties");
             }
+            
+            if (isPlugin(modelProperties)) {
+                ModelPluginDescriptor modelPluginDesc =
+                    new ModelPluginDescriptor(name, modelProperties);
 
-            ModelDescriptor modelDesc =
-                new ModelDescriptor(
-                    name, topLevelPkgCls, topLevelPkgCons, modelProperties);
-            
-            modelMap.put(name, modelDesc);
-            
-            log.fine("Initialized Model Descriptor: " + name);
+                ModelDescriptor modelDesc = modelMap.get(name);
+                
+                modelDesc.plugins.add(modelPluginDesc);
+                
+                log.fine("Initialized Model Plugin Descriptor: " + name);
+                
+            } else {
+                String topLevelPkg = 
+                    modelProperties.getProperty(
+                        MDRepositoryFactory.PROPERTY_ENKI_TOP_LEVEL_PKG);
+                if (topLevelPkg == null) {
+                    throw new ProviderInstantiationException(
+                        "Top-level package name missing from model properties");
+                }
+
+                Class<?> cls;
+                try {
+                    cls = 
+                        Class.forName(
+                            topLevelPkg,
+                            true, 
+                            Thread.currentThread().getContextClassLoader());
+                } catch (ClassNotFoundException e) {
+                    throw new ProviderInstantiationException(
+                        "Top-level package '" + topLevelPkg + "' not found",
+                        e);
+                }
+
+                Class<? extends RefPackage> topLevelPkgCls =
+                    cls.asSubclass(RefPackage.class);
+                    
+                Constructor<? extends RefPackage> topLevelPkgCons;
+                try {
+                    topLevelPkgCons = 
+                        topLevelPkgCls.getConstructor(RefPackage.class);
+                } catch (NoSuchMethodException e) {
+                    throw new ProviderInstantiationException(
+                        "Cannot find constructor for top-level package class '"
+                        + topLevelPkgCls.getName() + "'",
+                        e);
+                }
+                
+                ModelDescriptor modelDesc =
+                    new ModelDescriptor(
+                        name, 
+                        topLevelPkgCls,
+                        topLevelPkgCons, 
+                        modelProperties);
+                
+                modelMap.put(name, modelDesc);
+                
+                log.fine("Initialized Model Descriptor: " + name);
+            }
         }
     }
     
@@ -1522,45 +1582,27 @@ public class HibernateMDRepository
         extentDesc.modelDescriptor = mofDesc;
         
         MetamodelInitializer init;
+        ModelPackage metaModelPackage = null;
         if (isMof) {
             init = new Initializer(MOF_EXTENT);
         } else {
-            String initializerName = 
-                modelDesc.properties.getProperty(PROPERTY_MODEL_INITIALIZER);
-            if (initializerName == null) {
-                throw new ProviderInstantiationException(
-                    "Initializer name missing from '" + name + 
-                    "' model properties");
-            }
-         
-            try {
-                Class<? extends MetamodelInitializer> initCls =
-                    Class.forName(
-                        initializerName,
-                        true,
-                        Thread.currentThread().getContextClassLoader())
-                    .asSubclass(MetamodelInitializer.class);
-                
-                Constructor<? extends MetamodelInitializer> cons =
-                    initCls.getConstructor(String.class);
-                
-                init = cons.newInstance(name);
-            } catch (Exception e) {
-                throw new ProviderInstantiationException(
-                    "Initializer class '" + initializerName + 
-                    "' from '" + name +
-                    "' model JAR could not be instantiated", e);                    
-            }
-        }
-        
-        ModelPackage metaModelPackage = null;
-        if (mofDesc != null) {
+            init = getInitializer(modelDesc);
+
             ExtentDescriptor mofExtentDesc = extentMap.get(MOF_EXTENT);
             
             metaModelPackage = mofExtentDesc.initializer.getModelPackage();
         }
+        
         init.setOwningRepository(this);
         init.init(metaModelPackage);
+        for(ModelPluginDescriptor pluginDesc: modelDesc.plugins) {
+            MetamodelInitializer pluginInit = getInitializer(pluginDesc);
+            
+            pluginInit.setOwningRepository(this);
+            pluginInit.initPlugin(metaModelPackage, init);
+            
+            extentDesc.pluginInitializers.add(pluginInit);
+        }
         
         extentDesc.extent = init.getModelPackage();
         extentDesc.initializer = init;
@@ -1573,6 +1615,37 @@ public class HibernateMDRepository
         extentMap.put(name, extentDesc);
         
         log.fine("Initialized Extent Descriptor: " + name);
+    }
+
+    private MetamodelInitializer getInitializer(
+        AbstractModelDescriptor modelDesc)
+    {
+        String initializerName = 
+            modelDesc.properties.getProperty(PROPERTY_MODEL_INITIALIZER);
+        if (initializerName == null) {
+            throw new ProviderInstantiationException(
+                "Initializer name missing from '" + modelDesc.name + 
+                "' model properties");
+        }
+       
+        try {
+            Class<? extends MetamodelInitializer> initCls =
+                Class.forName(
+                    initializerName,
+                    true,
+                    Thread.currentThread().getContextClassLoader())
+                .asSubclass(MetamodelInitializer.class);
+            
+            Constructor<? extends MetamodelInitializer> cons =
+                initCls.getConstructor(String.class);
+            
+            return cons.newInstance(modelDesc.name);
+        } catch (Exception e) {
+            throw new ProviderInstantiationException(
+                "Initializer class '" + initializerName + 
+                "' from '" + modelDesc.name +
+                "' model JAR could not be instantiated", e);                    
+        }
     }
         
     public void onFlush(FlushEvent flushEvent) throws HibernateException
@@ -1615,28 +1688,69 @@ public class HibernateMDRepository
         log.log(level, msg, t);
     }
     
+    private static boolean isPlugin(Properties modelProps)
+    {
+        return Boolean.parseBoolean(
+            modelProps.getProperty(PROPERTY_MODEL_PLUGIN, "false"));
+    }
+    
+    protected static abstract class AbstractModelDescriptor
+    {
+        protected final String name;
+        protected final Properties properties;        
+        protected URL mappingUrl;
+        
+        protected AbstractModelDescriptor(String name, Properties properties)
+        {
+            this.name = name;
+            this.properties = properties;
+        }
+        
+        protected abstract boolean isPlugin();
+    }
+    
     /**
      * ModelDescriptor describes a meta-model.
      */
-    private static class ModelDescriptor
+    protected static class ModelDescriptor extends AbstractModelDescriptor
     {
-        private final String name;
-        private final Class<? extends RefPackage> topLevelPkgCls;
-        private final Constructor<? extends RefPackage> topLevelPkgCons;
-        private final Properties properties;
+        protected final Class<? extends RefPackage> topLevelPkgCls;
+        protected final Constructor<? extends RefPackage> topLevelPkgCons;
+        protected final List<ModelPluginDescriptor> plugins;
         
-        private ModelDescriptor(
+        protected ModelDescriptor(
             String name,
             Class<? extends RefPackage> topLevelPkgCls,
             Constructor<? extends RefPackage> topLevelPkgCons,
             Properties properties)
         {
-            this.name = name;
+            super(name, properties);
             this.topLevelPkgCls = topLevelPkgCls;
             this.topLevelPkgCons = topLevelPkgCons;
-            this.properties = properties;
+            this.plugins = new ArrayList<ModelPluginDescriptor>();
+        }
+        
+        protected boolean isPlugin()
+        {
+            return false;
         }
     }    
+    
+    /**
+     * ModelPluginDescriptor describes a meta-model plug-in
+     */
+    protected static class ModelPluginDescriptor extends AbstractModelDescriptor
+    {
+        protected ModelPluginDescriptor(String name, Properties properties)
+        {
+            super(name, properties);
+        }
+        
+        protected boolean isPlugin()
+        {
+            return true;
+        }
+    }
     
     /**
      * ExtentDescriptor describes an instantiated model extent.
@@ -1647,11 +1761,13 @@ public class HibernateMDRepository
         private ModelDescriptor modelDescriptor;
         private RefPackage extent;
         private MetamodelInitializer initializer;
+        private List<MetamodelInitializer> pluginInitializers;
         private boolean builtIn;
         
         private ExtentDescriptor(String name)
         {
             this.name = name;
+            this.pluginInitializers = new ArrayList<MetamodelInitializer>();
         }
     }
     
@@ -1735,6 +1851,32 @@ public class HibernateMDRepository
             throws HibernateException
         {
             HibernateMDRepository.this.onAutoFlush(autoFlushEvent);
+        }
+    }
+    
+    /**
+     * ModelPropertiesComparator sorts model {@link Properties} objects by
+     * their plug-in flag.  All non-plug-in model property sets come first, 
+     * followed by those for plug-in models.  The relative ordering of the
+     * two groups remains stable if the sorting algorithm is stable.
+     */
+    private static class ModelPropertiesComparator
+        implements Comparator<Properties>
+    {
+        public int compare(Properties modelProps1, Properties modelProps2)
+        {
+            boolean isPlugin1 = isPlugin(modelProps1);
+            boolean isPlugin2 = isPlugin(modelProps2);
+            
+            if (isPlugin1 == isPlugin2) {
+                return 0;
+            }
+            
+            if (isPlugin1) {
+                return 1;
+            }
+            
+            return -1;
         }
     }
 }

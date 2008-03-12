@@ -64,7 +64,7 @@ public class HibernateOnlyTestRunner
         try {
             FileInputStream in = 
                 new FileInputStream(
-                    ModelTestBase.TEST_STORAGE_PROPERTIES_PATH);
+                    ModelTestBase.getStoragePropertiesPath());
             props.load(in);
             in.close();
         }

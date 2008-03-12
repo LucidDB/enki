@@ -43,7 +43,7 @@ import org.eigenbase.enki.codegen.*;
  *   <th align="left">Description</th>
  * </tr>
  * <tr>
- *   <td align="left">tablePrefix</td>
+ *   <td align="left">{@value #TABLE_PREFIX_OPTION}</td>
  *   <td align="left">
  *     A prefix to be used for all metamodel-specific tables.  Use is optional,
  *     but highly recommended.  Without this option only a single metamodel
@@ -51,10 +51,26 @@ import org.eigenbase.enki.codegen.*;
  *   </td>
  * </tr>
  * <tr>
- *   <td align="left">defaultStringLength</td>
+ *   <td align="left">{@value #DEFAULT_STRING_LENGTH_OPTION}</td>
  *   <td align="left">
- *     Controls the default length of string columns.  The default is 
- *     defined in {@link HibernateMappingHandler#DEFAULT_STRING_LENGTH}.
+ *     Controls the default length of string columns.  If unspecified, 
+ *     the default is defined in 
+ *     {@link HibernateCodeGenUtils#DEFAULT_STRING_LENGTH}. Optional.
+ *   </td>
+ * </tr>
+ * <tr>
+ *   <td align="left">{@value #INCLUDE_PACKAGE_OPTION}</td>
+ *   <td align="left">
+ *     List of packages (by fully-qualified Java name) to include.  All
+ *     other packages are excluded.  If unspecified, all packages are 
+ *     included.  Optional.
+ *   </td>
+ * </tr>
+ * <tr>
+ *   <td align="left">{@value #PLUGIN_OPTION}</td>
+ *   <td align="left">
+ *     Boolean flag to control whether the generated code is a plugin 
+ *     (requiring a base model generated separately).  Defaults to false.
  *     Optional.
  *   </td>
  * </tr>
@@ -73,7 +89,15 @@ public class HibernateGenerator extends MdrGenerator
      */
     public static final String DEFAULT_STRING_LENGTH_OPTION = 
         "defaultStringLength";
+    
+    /**
+     * The name of the generator option for including specific packages.
+     */
+    public static final String INCLUDE_PACKAGE_OPTION = "include";
 
+    /** The name of the plug-in mode option. */
+    public static final String PLUGIN_OPTION = "plugin";
+    
     /** Prefix for all table names in this metamodel. */
     private String tablePrefix;
     
@@ -83,13 +107,22 @@ public class HibernateGenerator extends MdrGenerator
      */
     private int defaultStringLength = -1;
     
+    /**
+     * Included package list.
+     */
+    private List<String> includedPackageList;
+    
+    /** Plug-in flag. */
+    private boolean pluginMode;
+    
     public HibernateGenerator()
     {
         super();
     }
     
     /**
-     * Accepts the {@link #TABLE_PREFIX_OPTION} option and ignores all others.
+     * Accepts the options described in {@link HibernateGenerator} and ignores 
+     * all others.
      * 
      * @param options map of option name to option value
      */
@@ -106,17 +139,25 @@ public class HibernateGenerator extends MdrGenerator
         
         String lengthValue = options.get(DEFAULT_STRING_LENGTH_OPTION);
         if (lengthValue != null) {
-            try {
-                defaultStringLength = Integer.parseInt(lengthValue);
+            defaultStringLength = Integer.parseInt(lengthValue);
+        }
+        
+        String includedPackages = options.get(INCLUDE_PACKAGE_OPTION);
+        if (includedPackages != null) {
+            String[] names = includedPackages.split(",");
+            includedPackageList = new ArrayList<String>();
+            for(String name: names) {
+                includedPackageList.add(name.trim());
             }
-            catch(NumberFormatException e) {
-                System.err.println(
-                    "WARNING: Unable to parse default string length: " + 
-                    lengthValue);
-            }
+            includedPackageList = 
+                Collections.unmodifiableList(includedPackageList);
+        }
+        
+        String pluginModeValue = options.get(PLUGIN_OPTION);
+        if (pluginModeValue != null) {
+            pluginMode = Boolean.parseBoolean(pluginModeValue);
         }
     }
-    
     
     /**
      * Configures a {@link JmiTemplateHandler} for UML interfaces, a
@@ -127,21 +168,28 @@ public class HibernateGenerator extends MdrGenerator
     protected void configureHandlers()
     {
         JmiTemplateHandler jmiTemplateHandler = new JmiTemplateHandler();
+        jmiTemplateHandler.setIncludes(includedPackageList);
         addHandler(jmiTemplateHandler);
         
         HibernateJavaHandler javaHandler = new HibernateJavaHandler();
+        javaHandler.setIncludes(includedPackageList);
+        javaHandler.setPluginMode(pluginMode);
         addHandler(javaHandler);
         
         HibernateMappingHandler mappingHandler = new HibernateMappingHandler();
         mappingHandler.setExtentName(getExtentName());
         mappingHandler.setTablePrefix(tablePrefix);
+        mappingHandler.setIncludes(includedPackageList);
+        mappingHandler.setPluginMode(pluginMode);
         if (defaultStringLength != -1) {
             mappingHandler.setDefaultStringLength(defaultStringLength);
         }
         addHandler(mappingHandler);
         
-        MofInitHandler metamodelInitHandler = 
-            new MofInitHandler(mappingHandler);
+        HibernateMofInitHandler metamodelInitHandler = 
+            new HibernateMofInitHandler(mappingHandler);
+        metamodelInitHandler.setIncludes(includedPackageList);
+        metamodelInitHandler.setPluginMode(pluginMode);
         addHandler(metamodelInitHandler);
     }
 

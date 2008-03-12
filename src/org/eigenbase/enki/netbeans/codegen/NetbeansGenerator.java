@@ -21,6 +21,8 @@
 */
 package org.eigenbase.enki.netbeans.codegen;
 
+import java.util.*;
+
 import org.eigenbase.enki.codegen.*;
 
 /**
@@ -44,15 +46,46 @@ import org.eigenbase.enki.codegen.*;
 public class NetbeansGenerator
     extends MdrGenerator
 {
+    /**
+     * The name of the generator option for including specific packages.
+     */
+    public static final String INCLUDE_PACKAGE_OPTION = "include";
+
+    /**
+     * Included package list.
+     */
+    private List<String> includedPackageList;
+    
     public NetbeansGenerator()
     {
         super();
     }
 
+    /**
+     * Accepts the {@link #INCLUDE_PACKAGE_OPTION} option and ignores all others.
+     * 
+     * @param options map of option name to option value
+     */
+    @Override
+    public void setOptions(Map<String, String> options)
+    {
+        String includedPackages = options.get(INCLUDE_PACKAGE_OPTION);
+        if (includedPackages != null) {
+            String[] names = includedPackages.split(",");
+            includedPackageList = new ArrayList<String>();
+            for(String name: names) {
+                includedPackageList.add(name.trim());
+            }
+            includedPackageList = 
+                Collections.unmodifiableList(includedPackageList);
+        }
+    }
+    
     @Override
     protected void configureHandlers()
     {
         JmiTemplateHandler jmiTemplateHandler = new JmiTemplateHandler();
+        jmiTemplateHandler.setIncludes(includedPackageList);
         addHandler(jmiTemplateHandler);
     }
 

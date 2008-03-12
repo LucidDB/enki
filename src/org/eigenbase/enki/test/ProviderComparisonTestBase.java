@@ -30,8 +30,8 @@ import org.junit.*;
 import org.netbeans.api.mdr.*;
 
 /**
- * ProviderComparisonTestBase allows an Enki-specific provider (e.g. the Hibernate
- * provider) to be compared with Netbeans MDR.  
+ * ProviderComparisonTestBase allows an Enki-specific provider (e.g. 
+ * the Hibernate provider) to be compared with Netbeans MDR.  
  * 
  * REVIEW: SWZ: 2008-02-21: Without additional build support, the Netbeans
  * repository doesn't contain the sample model, so only the MOF model can

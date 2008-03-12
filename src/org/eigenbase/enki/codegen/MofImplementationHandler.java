@@ -21,6 +21,8 @@
 */
 package org.eigenbase.enki.codegen;
 
+import java.util.*;
+
 /**
  * MofImplementationHandler is used to generate classes in the
  * {@link org.eigenbase.enki.jmi.impl} package.  This generator is typically 
@@ -36,6 +38,13 @@ public class MofImplementationHandler
         super();
     }
     
+    @Override
+    public void setIncludes(List<String> includedPackages)
+    {
+        throw new UnsupportedOperationException(
+            "MofImplementatinHandler does not support explicit package inclusion");
+    }
+
 
     protected String convertToTypeName(String entityName) 
         throws GenerationException

@@ -47,29 +47,6 @@ public class HibernateMappingHandler
     implements ClassInstanceHandler, AssociationHandler, PackageHandler, 
                EnumerationClassHandler, MofInitHandler.SubordinateHandler
 {
-    /** 
-     * Tag identifier for a custom Enki tag to override the default column 
-     * length for a particular string attribute.
-     */
-    public static final String MAX_LENGTH_TAG_NAME = 
-        "org.eigenbase.enki.maxLength";
-
-    public static final String MAX_LENGTH_UNLIMITED_VALUE = "unlimited";
-    
-    /**
-     * Default length for string attributes.  May be overridden via a tag
-     * on the given {@link Attribute} (see {@link #MAX_LENGTH_TAG_NAME}.)  
-     * The default (@{value}) can also be overridden on a per-metamodel basis 
-     * via {@link #setDefaultStringLength(int)}, which is configured via
-     * {@link HibernateGenerator}.
-     */
-    public static final int DEFAULT_STRING_LENGTH = 128;
-    
-    /**
-     * Maximum string length.  This is somewhat arbitrary.
-     */
-    public static final int MAX_STRING_LENGTH = 16384;
-    
     /** Suffix for the cache region used by a particular metamodel. */ 
     private static final String CACHE_REGION_SUFFIX = "ENKI";
 
@@ -163,16 +140,6 @@ public class HibernateMappingHandler
     private static final JavaClassReference ENUM_USER_TYPE_CLASS =
         new JavaClassReference(EnumUserType.class, false);
     
-    private Set<Classifier> oneToOneParentTypeSet;
-    private Set<Classifier> oneToOneChildTypeSet;
-
-    private Set<Classifier> oneToManyParentTypeSet;
-    private Set<Classifier> oneToManyChildTypeSet;
-    
-    private Set<Classifier> manyToManySourceTypeSet;
-    private Set<Classifier> manyToManyTargetTypeSet;
-
-    private Map<Classifier, Set<Classifier>> subTypeMap;
     private Set<Classifier> allTypes;
     
     /** Maps a component type to a list of references to it. */
@@ -198,18 +165,10 @@ public class HibernateMappingHandler
     private JavaClassReference assocOneToManyClass;
     private JavaClassReference assocManyToManyClass;
     
+    private JavaClassReference assocTypeMapperClass;
+
     public HibernateMappingHandler()
     {
-        this.oneToOneParentTypeSet = new LinkedHashSet<Classifier>();
-        this.oneToOneChildTypeSet = new LinkedHashSet<Classifier>();
-        
-        this.oneToManyParentTypeSet = new LinkedHashSet<Classifier>();
-        this.oneToManyChildTypeSet = new LinkedHashSet<Classifier>();
-        
-        this.manyToManySourceTypeSet = new LinkedHashSet<Classifier>();
-        this.manyToManyTargetTypeSet = new LinkedHashSet<Classifier>();
-        
-        this.subTypeMap = new LinkedHashMap<Classifier, Set<Classifier>>();
         this.allTypes = new LinkedHashSet<Classifier>();
         
         this.assocInfoMap = new LinkedHashMap<Association, AssociationInfo>();
@@ -217,7 +176,7 @@ public class HibernateMappingHandler
         this.componentAttribMap = 
             new HashMap<Classifier, List<ComponentInfo>>();
         
-        this.defaultStringLength = DEFAULT_STRING_LENGTH;
+        this.defaultStringLength = HibernateCodeGenUtils.DEFAULT_STRING_LENGTH;
     }
 
     public void setExtentName(String extentName)
@@ -230,6 +189,17 @@ public class HibernateMappingHandler
         this.tablePrefix = tablePrefix;
     }
 
+    /**
+    * Configures a default string column length, measured in characters.  
+    * If left unspecified, the value of
+    * {@link HibernateCodeGenUtils#DEFAULT_STRING_LENGTH} is used.  The 
+    * default string length may be overridden via a tag on the given 
+    * {@link Attribute} or its {@link Classifier} (see 
+    * {@link HibernateCodeGenUtils#findMaxLengthTag(
+    *            Classifier, Attribute, int, Logger)}.)
+    * 
+    * @param defaultStringLength the new default string length 
+    */
     public void setDefaultStringLength(int defaultStringLength)
     {
         this.defaultStringLength = defaultStringLength;
@@ -245,7 +215,7 @@ public class HibernateMappingHandler
     {
         return 2;
     }
-    
+
     // Implement Handler
     public void beginGeneration() throws GenerationException
     {        
@@ -268,7 +238,11 @@ public class HibernateMappingHandler
             new JavaClassReference(
                 packageName,
                 HibernateJavaHandler.ASSOCIATION_MANY_TO_MANY_BASE.toSimple());
-
+        assocTypeMapperClass =
+            new JavaClassReference(
+                packageName,
+                HibernateJavaHandler.ASSOCIATION_TYPE_MAPPER_BASE.toSimple());
+        
         File metaInfDir = 
             new File(outputDir, MDRepositoryFactory.META_INF_DIR_NAME);
         if (!metaInfDir.exists()) {
@@ -300,42 +274,13 @@ public class HibernateMappingHandler
     public void endGeneration(boolean throwing) throws GenerationException
     {
         if (!throwing) {
-            for(Map.Entry<Classifier, List<ComponentInfo>> entry:
-                    componentAttribMap.entrySet())
-            {
-                Classifier referencedType = entry.getKey();
-                for(ComponentInfo componentInfo: entry.getValue()) {
-                    MofClass ownerType = componentInfo.getOwnerType();
-                    switch(componentInfo.getKind()) {
-                    case ONE_TO_ONE:
-                        oneToOneParentTypeSet.add(ownerType);
-                        oneToOneChildTypeSet.add(referencedType);
-                        break;
-                    
-                    case ONE_TO_MANY:
-                        oneToManyParentTypeSet.add(ownerType);
-                        oneToManyChildTypeSet.add(referencedType);
-                        break;
-                        
-                    case MANY_TO_MANY:
-                        manyToManySourceTypeSet.add(ownerType);
-                        manyToManyTargetTypeSet.add(referencedType);
-                        break;
-                    }
-                }
-            }
-            
-            if (!oneToOneParentTypeSet.isEmpty()) {
+            if (!pluginMode) {
                 writeOneToOneMapping();
                 newLine();
-            }
-            
-            if (!oneToManyParentTypeSet.isEmpty()) {
+    
                 writeOneToManyMapping();
                 newLine();
-            }
-            
-            if (!manyToManySourceTypeSet.isEmpty()) {
+    
                 writeManyToManyMapping();
             }
             
@@ -362,14 +307,19 @@ public class HibernateMappingHandler
             writeln(
                 MDRepositoryFactory.PROPERTY_ENKI_IMPLEMENTATION, "=", 
                 MdrProvider.ENKI_HIBERNATE.name());
-            writeln(
-                MDRepositoryFactory.PROPERTY_ENKI_TOP_LEVEL_PKG, "=", 
-                topLevelPackage);
+            if (!pluginMode) {
+                writeln(
+                    MDRepositoryFactory.PROPERTY_ENKI_TOP_LEVEL_PKG, "=", 
+                    topLevelPackage);
+            }
             writeln(
                 MDRepositoryFactory.PROPERTY_ENKI_EXTENT, "=", extentName);
             writeln(
                 HibernateMDRepository.PROPERTY_MODEL_INITIALIZER, "=", 
                 initializerName);
+            writeln(
+                HibernateMDRepository.PROPERTY_MODEL_PLUGIN, "=",
+                pluginMode);
             close();
         }
         
@@ -378,20 +328,6 @@ public class HibernateMappingHandler
 
     private void writeOneToOneMapping() throws GenerationException
     {
-        Map<String, String> oneToOneParentTypeMap =
-            buildTypeMap(oneToOneParentTypeSet);
-        Map<String, String> oneToOneChildTypeMap = 
-            buildTypeMap(oneToOneChildTypeSet);
-        
-        int parentLength = 64;
-        for(String key: oneToOneParentTypeMap.keySet()) {
-            parentLength = Math.max(parentLength, key.length());
-        }
-        int childLength = 64;
-        for(String key: oneToOneChildTypeMap.keySet()) {
-            childLength = Math.max(childLength, key.length());
-        }
-
         startElem(
             "class",
             "name", assocOneToOneClass,
@@ -405,22 +341,14 @@ public class HibernateMappingHandler
             "property",
             "name", ASSOC_TYPE_PROPERTY,
             "not-null", "true",
-            "length", String.valueOf(parentLength));
+            "length", HibernateCodeGenUtils.DEFAULT_STRING_LENGTH);
         
         startElem(
             "any",
             "name", ASSOC_ONE_TO_ONE_PARENT_PROPERTY,
             "id-type", "long",
-            "meta-type", "string",
+            "meta-type", assocTypeMapperClass,
             "cascade", "save-update");
-        for(Map.Entry<String, String> entry: oneToOneParentTypeMap.entrySet())
-        {
-            writeEmptyElem(
-                "meta-value",
-                "value", entry.getKey(),
-                "class", entry.getValue());
-        }
-        
         writeEmptyElem(
             "column", "name", ASSOC_ONE_TO_ONE_PARENT_TYPE_COLUMN);
         writeEmptyElem(
@@ -432,16 +360,8 @@ public class HibernateMappingHandler
             "any",
             "name", ASSOC_ONE_TO_ONE_CHILD_PROPERTY,
             "id-type", "long",
-            "meta-type", "string",
+            "meta-type", assocTypeMapperClass,
             "cascade", "save-update");
-        for(Map.Entry<String, String> entry: oneToOneChildTypeMap.entrySet())
-        {
-            writeEmptyElem(
-                "meta-value",
-                "value", entry.getKey(),
-                "class", entry.getValue());
-        }
-        
         writeEmptyElem(
             "column", "name", ASSOC_ONE_TO_ONE_CHILD_TYPE_COLUMN);
         writeEmptyElem(
@@ -465,20 +385,6 @@ public class HibernateMappingHandler
 
     private void writeOneToManyMapping() throws GenerationException
     {
-        Map<String, String> oneToManyParentTypeMap = 
-            buildTypeMap(oneToManyParentTypeSet);
-        Map<String, String> oneToManyChildTypeMap = 
-            buildTypeMap(oneToManyChildTypeSet);
-
-        int parentLength = 64;
-        for(String key: oneToManyParentTypeMap.keySet()) {
-            parentLength = Math.max(parentLength, key.length());
-        }
-        int childLength = 64;
-        for(String key: oneToManyChildTypeMap.keySet()) {
-            childLength = Math.max(childLength, key.length());
-        }
-        
         startElem(
             "class",
             "name", assocOneToManyClass,
@@ -492,7 +398,7 @@ public class HibernateMappingHandler
             "property",
             "name", ASSOC_TYPE_PROPERTY,
             "not-null", "true",
-            "length", String.valueOf(parentLength));
+            "length", HibernateCodeGenUtils.DEFAULT_STRING_LENGTH);
         
         writeEmptyElem(
             "property",
@@ -509,15 +415,7 @@ public class HibernateMappingHandler
             "any",
             "name", ASSOC_ONE_TO_MANY_PARENT_PROPERTY,
             "id-type", "long",
-            "meta-type", "string");
-        for(Map.Entry<String, String> entry: oneToManyParentTypeMap.entrySet())
-        {
-            writeEmptyElem(
-                "meta-value",
-                "value", entry.getKey(),
-                "class", entry.getValue());
-        }
-        
+            "meta-type", assocTypeMapperClass);
         writeEmptyElem(
             "column", "name", ASSOC_ONE_TO_MANY_PARENT_TYPE_COLUMN);
         writeEmptyElem(
@@ -538,18 +436,11 @@ public class HibernateMappingHandler
         startElem(
             "many-to-any",
             "id-type", "long", 
-            "meta-type", "string");
-        for(Map.Entry<String, String> entry: oneToManyChildTypeMap.entrySet())
-        {
-            writeEmptyElem(
-                "meta-value",
-                "value", entry.getKey(),
-                "class", entry.getValue());
-        }
+            "meta-type", assocTypeMapperClass);
         writeEmptyElem(
             "column",
             "name", ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN,
-            "length", String.valueOf(childLength));
+            "length", HibernateCodeGenUtils.DEFAULT_STRING_LENGTH);
         writeEmptyElem("column", "name", ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN);
         endElem("many-to-any");
         endElem("list");
@@ -570,21 +461,6 @@ public class HibernateMappingHandler
     
     private void writeManyToManyMapping() throws GenerationException
     {
-        Map<String, String> manyToManySourceTypeMap = 
-            buildTypeMap(manyToManySourceTypeSet);
-        Map<String, String> manyToManyTargetTypeMap = 
-            buildTypeMap(manyToManyTargetTypeSet);
-
-        int sourceLength = 64;
-        for(String key: manyToManySourceTypeMap.keySet()) {
-            sourceLength = Math.max(sourceLength, key.length());
-        }
-        int targetLength = 64;
-        for(String key: manyToManyTargetTypeMap.keySet()) {
-            targetLength = Math.max(targetLength, key.length());
-        }
-        int length = Math.max(sourceLength, targetLength);
-
         startElem(
             "class",
             "name", assocManyToManyClass,
@@ -598,7 +474,7 @@ public class HibernateMappingHandler
             "property",
             "name", ASSOC_TYPE_PROPERTY,
             "not-null", "true",
-            "length", String.valueOf(length));
+            "length", HibernateCodeGenUtils.DEFAULT_STRING_LENGTH);
 
         writeEmptyElem(
             "property",
@@ -615,22 +491,7 @@ public class HibernateMappingHandler
             "any",
             "name", ASSOC_MANY_TO_MANY_SOURCE_PROPERTY,
             "id-type", "long",
-            "meta-type", "string");
-        for(Map.Entry<String, String> entry: manyToManySourceTypeMap.entrySet())
-        {
-            writeEmptyElem(
-                "meta-value",
-                "value", entry.getKey(),
-                "class", entry.getValue());
-        }
-        for(Map.Entry<String, String> entry: manyToManyTargetTypeMap.entrySet())
-        {
-            writeEmptyElem(
-                "meta-value",
-                "value", entry.getKey(),
-                "class", entry.getValue());
-        }
-        
+            "meta-type", assocTypeMapperClass);        
         writeEmptyElem(
             "column", "name", ASSOC_MANY_TO_MANY_SOURCE_TYPE_COLUMN);
         writeEmptyElem(
@@ -651,25 +512,11 @@ public class HibernateMappingHandler
         startElem(
             "many-to-any",
             "id-type", "long", 
-            "meta-type", "string");
-        for(Map.Entry<String, String> entry: manyToManySourceTypeMap.entrySet())
-        {
-            writeEmptyElem(
-                "meta-value",
-                "value", entry.getKey(),
-                "class", entry.getValue());
-        }
-        for(Map.Entry<String, String> entry: manyToManyTargetTypeMap.entrySet())
-        {
-            writeEmptyElem(
-                "meta-value",
-                "value", entry.getKey(),
-                "class", entry.getValue());
-        }
+            "meta-type", assocTypeMapperClass);
         writeEmptyElem(
             "column",
             "name", ASSOC_MANY_TO_MANY_TARGET_TYPE_COLUMN,
-            "length", String.valueOf(length));
+            "length", HibernateCodeGenUtils.DEFAULT_STRING_LENGTH);
         writeEmptyElem("column", "name", ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN);
         endElem("many-to-any");
         endElem("list");
@@ -713,48 +560,16 @@ public class HibernateMappingHandler
         }
     }
     
-    /**
-     * Build a map of simple type name to fully qualified type name.  Uses
-     * the {@link #subTypeMap} to include all sub types of the Classifiers
-     * found in typeSet.  Abstract sub types are not included in the map, 
-     * but they are traversed to find additional concrete sub types.
-     * 
-     * @param typeSet Set of Classifiers representing types to place into the
-     *                map (including all sub types)
-     * @return map of simple type name to fully qualified type name for the
-     *         given classifiers and their sub types.
-     */
-    private Map<String, String> buildTypeMap(
-        Set<Classifier> typeSet)
-    {
-        Map <String, String> typeMap = new LinkedHashMap<String, String>();
-        
-        buildTypeMapRecursive(typeSet, typeMap);
-        
-        return typeMap;
-    }
-
-    private void buildTypeMapRecursive(
-        Set<Classifier> typeSet,
-        Map<String, String> typeMap)
-    {
-        for(Classifier cls: typeSet) {
-            String simpleTypeName = generator.getSimpleTypeName(cls);
-            String typeName = 
-                generator.getTypeName(cls, HibernateJavaHandler.IMPL_SUFFIX);
-            
-            typeMap.put(simpleTypeName, typeName);
-            
-            Set<Classifier> subTypeSet = subTypeMap.get(cls);
-            if (subTypeSet != null) {
-                buildTypeMapRecursive(subTypeSet, typeMap);
-            }
-        }
-    }
-
     public void generateClassInstance(MofClass cls)
         throws GenerationException
     {
+        if (!isIncluded(cls)) {
+            log.fine(
+                "Skipping Excluded Class Instance Mapping for '" 
+                + cls.getName() + "'");
+            return;
+        }
+        
         if (HibernateCodeGenUtils.isTransient(cls)) {
             log.fine(
                 "Skipping Transient Class Instance Mapping for '" 
@@ -795,20 +610,6 @@ public class HibernateMappingHandler
         String tableName = generator.getSimpleTypeName(cls);
         
         allTypes.add(cls);
-        
-        // Build map of Classifiers to their sub types.
-        for(Classifier superType: 
-                GenericCollections.asTypedList(
-                    cls.getSupertypes(), Classifier.class))
-        {
-            Set<Classifier> subTypes = subTypeMap.get(superType);
-            if (subTypes == null) {
-                subTypes = new LinkedHashSet<Classifier>();
-                subTypeMap.put(superType, subTypes);
-            }
-            
-            subTypes.add(cls);
-        }
         
         if (cls.isAbstract()) {
             log.fine(
@@ -1053,38 +854,13 @@ public class HibernateMappingHandler
     {
         typeBuffer.setLength(0);
         
-        int maxLen;
-        String maxLenStr = findMaxLengthTag(cls, attrib); 
-        if (maxLenStr == null) {
-            maxLen = defaultStringLength;
-        } else if (maxLenStr.equals(MAX_LENGTH_UNLIMITED_VALUE)) {
-            maxLen = Integer.MAX_VALUE;
-        } else {
-            try {
-                int length = Integer.parseInt(maxLenStr);
-                
-                if (length < 1) {
-                    log.warning(
-                        "Adjusted string length for attribute '" 
-                        + attrib.getName() + "' to 1");
-                    maxLen = 1;
-                } else if (length > MAX_STRING_LENGTH) {
-                    log.warning(
-                        "Adjusted string length for attribute '" 
-                        + attrib.getName() + "' to " + MAX_STRING_LENGTH);
-                    maxLen = MAX_STRING_LENGTH;
-                } else {
-                    maxLen = length;
-                }
-            }
-            catch(NumberFormatException ex) {
-                throw new GenerationException(
-                    "Invalid value for tag " + MAX_LENGTH_TAG_NAME + ": "
-                    + maxLenStr);
-            }
-        }
+        int maxLen = 
+            HibernateCodeGenUtils.findMaxLengthTag(
+                cls, attrib, defaultStringLength, log);
         
-        if (maxLen <= MAX_STRING_LENGTH) {
+        if (maxLen != Integer.MAX_VALUE) {
+            assert(maxLen <= HibernateCodeGenUtils.MAX_STRING_LENGTH);
+            
             typeBuffer.append("string");
             return maxLen;
         } else {
@@ -1092,53 +868,6 @@ public class HibernateMappingHandler
             typeBuffer.append("text");
             return Integer.MAX_VALUE;
         }
-    }
-    
-    private String findMaxLengthTag(Classifier cls, Attribute attrib)
-    {
-        String maxLen = TagUtil.getTagValue(attrib, MAX_LENGTH_TAG_NAME);
-        if (maxLen != null) {
-            return maxLen;
-        }
-
-        // Check the attribute's container (Classifier) for a class-level 
-        // default.
-        maxLen = findMaxLength(cls); 
-
-        return maxLen;
-    }
-
-    /**
-     * Performs a breadth-first search of the given Classifier's super types
-     * looking for a Classifier that has the {@link #MAX_LENGTH_TAG_NAME} tag
-     * set.
-     * 
-     * @param startCls starting Classifier
-     * @return the value of the tag or null if not found
-     */
-    private String findMaxLength(Classifier startCls)
-    {
-        Queue<Classifier> queue = new LinkedList<Classifier>();
-        
-        queue.offer(startCls);
-        
-        while(!queue.isEmpty()) {
-            Classifier cls = queue.poll();
-            
-            String maxLen = TagUtil.getTagValue(cls, MAX_LENGTH_TAG_NAME);
-            if (maxLen != null) {
-                return maxLen;
-            }
-                    
-            List<Classifier> supertypes = 
-                GenericCollections.asTypedList(
-                    cls.getSupertypes(), Classifier.class);
-            for(Classifier supertype: supertypes) {
-                queue.offer(supertype);
-            }
-        }
-        
-        return null;
     }
     
     private void generateAssociationField(ReferenceInfo refInfo)
@@ -1210,8 +939,7 @@ public class HibernateMappingHandler
             "id",
             "name", MOF_ID_PROPERTY_NAME,
             "column", hibernateQuote(MOF_ID_COLUMN_NAME));
-        startElem("generator", "class", "assigned");
-        endElem("generator");
+        writeEmptyElem("generator", "class", "assigned");
         endElem("id");
     }
     
@@ -1251,6 +979,13 @@ public class HibernateMappingHandler
     public void generateAssociation(Association assoc) 
         throws GenerationException
     {
+        if (!isIncluded(assoc)) {
+            log.fine(
+                "Skipping Excluded Association Mapping for '" 
+                + assoc.getName() + "'");
+            return;
+        }
+
         if (getPassIndex() == 0) {
             AssociationInfo assocInfo = 
                 new AssociationInfoImpl(generator, assoc);
@@ -1269,34 +1004,18 @@ public class HibernateMappingHandler
         String interfaceName = generator.getTypeName(assoc);
         
         log.fine("Analyzing Association Mapping '" + interfaceName + "'");
-
-        AssociationEnd[] ends = generator.getAssociationEnds(assoc);
-        
-        int end0Upper = ends[0].getMultiplicity().getUpper();
-        int end1Upper = ends[1].getMultiplicity().getUpper();
-        
-        if (end0Upper != 1 && end1Upper != 1) {
-            // Many-to-many
-            manyToManySourceTypeSet.add(ends[0].getType());
-            manyToManyTargetTypeSet.add(ends[1].getType());
-        } else if (end0Upper == 1 && end1Upper == 1) {
-            // One-to-one
-            oneToOneParentTypeSet.add(ends[0].getType());
-            oneToOneChildTypeSet.add(ends[1].getType());
-        } else if (end0Upper == 1) {
-            // One-to-many, end 0 is parent
-            oneToManyParentTypeSet.add(ends[0].getType());
-            oneToManyChildTypeSet.add(ends[1].getType());
-        } else {
-            // One-to-many, end 1 is parent
-            oneToManyChildTypeSet.add(ends[0].getType());
-            oneToManyParentTypeSet.add(ends[1].getType());
-        }
     }
 
     public void generateEnumerationClass(EnumerationType enumType)
         throws GenerationException
     {
+        if (!isIncluded(enumType)) {
+            log.fine(
+                "Skipping Excluded Enumeration Mapping for '" 
+                + enumType.getName() + "'");
+            return;
+        }
+        
         if (getPassIndex() != 0) {
             return;
         }

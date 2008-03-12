@@ -172,6 +172,13 @@ public abstract class TransientImplementationHandler
         
         String typeName = convertToTypeName(interfaceName);
 
+        if (!isIncluded(assoc)) {
+            log.fine(
+                "Skipping Excluded Association Implementation '" 
+                + typeName + "'");
+            return;
+        }
+        
         log.fine("Generating Association Implementation '" + typeName + "'");
 
         AssociationInfo assocInfo = new AssociationInfoImpl(generator, assoc);
@@ -352,6 +359,13 @@ public abstract class TransientImplementationHandler
         
         String typeName = convertToTypeName(interfaceName);
 
+        if (!isIncluded(cls)) {
+            log.fine(
+                "Skipping Excluded Class Instance Implementation '" 
+                + typeName + "'");
+            return;
+        }
+        
         if (cls.isAbstract()) {
             log.fine(
                 "Skipping Class Instance Implementation '" + typeName + "'");
@@ -772,6 +786,13 @@ public abstract class TransientImplementationHandler
         
         String typeName = convertToTypeName(interfaceName);
 
+        if (!isIncluded(cls)) {
+            log.fine(
+                "Skipping Excluded Class Proxy Implementation '" 
+                + typeName + "'");
+            return;
+        }
+        
         String instImplTypeName = 
             convertToTypeName(generator.getTypeName(cls));
         
@@ -879,6 +900,12 @@ public abstract class TransientImplementationHandler
         
         String typeName = convertToTypeName(interfaceName);
 
+        if (!isIncluded(pkg)) {
+            log.fine(
+                "Skipping Excluded Package Implementation '" + typeName + "'");
+            return;
+        }
+        
         log.fine("Generating Package Implementation '" + typeName + "'");
 
         open(typeName);
@@ -1174,6 +1201,13 @@ public abstract class TransientImplementationHandler
         
         String typeName = convertToTypeName(interfaceName);
 
+        if (!isIncluded(struct)) {
+            log.fine(
+                "Skipping Excluded Structure Implementation '" 
+                + typeName + "'");
+            return;
+        }
+        
         log.fine(
             "Generating Structure Implementation '" + typeName + "'");
 

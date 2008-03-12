@@ -443,6 +443,11 @@ public class EnkiTask
         {
             return task.getMDRepository(create);
         }
+        
+        protected void verbose(String msg)
+        {
+            task.log(msg, Project.MSG_VERBOSE);
+        }
     }
 }
 
