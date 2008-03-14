@@ -40,9 +40,9 @@ public class Constrains
         super(
             container,
             "constraint",
-            Multiplicity.UNIQUE_COLLECTION,
+            new Multiplicity(0, -1, false, true),
             "constrainedElement",
-            Multiplicity.UNIQUE_COLLECTION);
+            new Multiplicity(1, -1, false, true));
 
     }
 

@@ -218,6 +218,30 @@ public class MofException
         return super.nameIsValid(
             proposedName);
     }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+        if (name == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("name");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getQualifiedName().size() < 1) {
+            javax.jmi.model.Attribute attrib = findAttribute("qualifiedName");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (annotation == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("annotation");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (scope == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("scope");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (visibility == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("visibility");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+    }
 }
 
 // End MofException.java

@@ -40,9 +40,9 @@ public class RefersTo
         super(
             container,
             "referent",
-            Multiplicity.UNIQUE_COLLECTION,
+            new Multiplicity(0, -1, false, true),
             "referencedEnd",
-            Multiplicity.SINGLE);
+            new Multiplicity(1, 1, false, false));
 
     }
 

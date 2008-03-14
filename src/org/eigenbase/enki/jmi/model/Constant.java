@@ -175,6 +175,31 @@ public class Constant
         return super.isVisible(
             otherElement);
     }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+        if (name == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("name");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getQualifiedName().size() < 1) {
+            javax.jmi.model.Attribute attrib = findAttribute("qualifiedName");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (annotation == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("annotation");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (value == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("value");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getType() == null) {
+            javax.jmi.model.AssociationEnd exposedEnd = findAssociationEnd("IsOfType", "typedElements");
+            javax.jmi.model.AssociationEnd referencedEnd = findAssociationEnd("IsOfType", "type");
+            errors.add(org.eigenbase.enki.jmi.impl.RefAssociationBase.makeWrongSizeException(exposedEnd, referencedEnd, this));
+        }
+    }
 }
 
 // End Constant.java

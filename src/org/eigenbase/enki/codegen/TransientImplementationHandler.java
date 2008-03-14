@@ -122,7 +122,7 @@ public abstract class TransientImplementationHandler
     
     private static final JavaClassReference MULTIPLICITY_CLASS =
         new JavaClassReference(Multiplicity.class, true);
-    
+
     private static final JavaClassReference[] CLASS_INSTANCE_REFS = {
         REF_OBJECT_IMPL_CLASS,
         REF_CLASS_CLASS.asImport(),
@@ -224,9 +224,9 @@ public abstract class TransientImplementationHandler
             increaseIndent();
             writeln("container,");
             writeln(QUOTE, assocInfo.getEndName(0), QUOTE, ",");
-            writeln(MULTIPLICITY_CLASS, ".", end1Multiplicity, ",");
+            writeln(end1Multiplicity.toInstantiationString(true), ",");
             writeln(QUOTE, assocInfo.getEndName(1), QUOTE, ",");
-            writeln(MULTIPLICITY_CLASS, ".", end2Multiplicity, ");");
+            writeln(end2Multiplicity.toInstantiationString(true), ");");
             newLine();
             generateCustomAssociationInit(assoc);
             decreaseIndent();
@@ -772,6 +772,8 @@ public abstract class TransientImplementationHandler
                 endBlock();                
             }
             
+            newLine();
+            writeCheckConstraints(instanceAttributes, instanceReferences);
             writeEntityFooter();
         }
         finally {
@@ -779,6 +781,94 @@ public abstract class TransientImplementationHandler
         }
     }
 
+    protected void writeCheckConstraints(
+        Collection<Attribute> attribs, Collection<Reference> refs)
+    {
+        startBlock(
+            "protected void checkConstraints(",
+            JAVA_UTIL_LIST_CLASS, 
+            "<", JavaHandlerBase.JMI_EXCEPTION_CLASS, "> errors, ",
+            "boolean deepVerify)");
+        
+        // NOTE: These checks are equivalent to Netbeans implementation.
+        // More could be tested.
+        
+        for(Attribute attrib: attribs) {
+            int lower = attrib.getMultiplicity().getLower(); 
+            int upper = attrib.getMultiplicity().getUpper();
+            if (lower == 1 && upper == 1) {
+                startConditionalBlock(
+                    CondType.IF,
+                    generator.getClassFieldName(attrib.getName()),
+                    " == null");
+            } else if (upper != 1 && lower > 0) {
+                // Check that lower-bounded multi-value attribute meets lower
+                // bound
+                startConditionalBlock(
+                    CondType.IF, 
+                    generator.getAccessorName(attrib, false), "().size() < ",
+                    lower);
+            } else {
+                continue;
+            }
+            
+            // Find attribute.
+            JavaClassReference ATTRIBUTE_CLASS = 
+                new JavaClassReference(Attribute.class, false);
+            writeln(
+                ATTRIBUTE_CLASS, " attrib = findAttribute(",
+                QUOTE, attrib.getName(), QUOTE, ");");
+            writeln(
+                "errors.add(new ", 
+                JavaHandlerBase.WRONG_SIZE_EXCEPTION_CLASS, "(attrib));");
+            endBlock();
+        }
+        
+        for(Reference ref: refs) {
+            int lower = ref.getMultiplicity().getLower(); 
+            int upper = ref.getMultiplicity().getUpper();
+            
+            if (lower == 1 && upper == 1) {
+                // Check that required single-value attribute has a value.
+                startConditionalBlock(
+                    CondType.IF, 
+                    generator.getAccessorName(ref), "() == null");
+            } else if (upper != 1 && lower > 0) {
+                // Check that lower-bounded multi-value attribute meets lower
+                // bound
+                startConditionalBlock(
+                    CondType.IF, 
+                    generator.getAccessorName(ref), "().size() < ", lower);
+            } else {
+                continue;
+            }
+
+            AssociationEnd exposedEnd = ref.getExposedEnd();
+            String assocName = exposedEnd.getContainer().getName();
+            String exposedEndName = exposedEnd.getName();
+            String referencedEndName = ref.getReferencedEnd().getName();
+            JavaClassReference ASSOCIATION_END_CLASS = 
+                new JavaClassReference(AssociationEnd.class, false);
+            JavaClassReference REF_ASSOCIATION_BASE_CLASS = 
+                new JavaClassReference(RefAssociationBase.class, false);
+            writeln(
+                ASSOCIATION_END_CLASS, " exposedEnd = findAssociationEnd(", 
+                QUOTE, assocName, QUOTE, ", ", 
+                QUOTE, exposedEndName, QUOTE, ");");
+            writeln(
+                ASSOCIATION_END_CLASS, " referencedEnd = findAssociationEnd(", 
+                QUOTE, assocName, QUOTE, ", ", 
+                QUOTE, referencedEndName, QUOTE, ");");
+            writeln(
+                "errors.add(", 
+                REF_ASSOCIATION_BASE_CLASS,
+                ".makeWrongSizeException(exposedEnd, referencedEnd, this));");
+            endBlock();
+        }
+        
+        endBlock();
+    }
+    
     public void generateClassProxy(MofClass cls)
         throws GenerationException
     {
@@ -880,7 +970,9 @@ public abstract class TransientImplementationHandler
                     endBlock();
                 }
             }
-
+            
+            newLine();
+            writeCheckConstraints();
             writeEntityFooter();
         }
         finally {
@@ -1183,6 +1275,8 @@ public abstract class TransientImplementationHandler
 
             // TODO: MOF exceptions?
             
+            newLine();
+            writeCheckConstraints();
             writeEntityFooter();
         }
         finally {
@@ -1294,6 +1388,8 @@ public abstract class TransientImplementationHandler
             writeln(
                 "private static final long serialVersionUID = ", uid, "L;");
             
+            newLine();
+            writeCheckConstraints();
             writeEntityFooter();
         }
         finally {

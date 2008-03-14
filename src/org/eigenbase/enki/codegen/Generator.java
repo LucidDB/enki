@@ -230,12 +230,40 @@ public interface Generator
     /**
      * Converts a {@link StructuralFeature} into the name of an accessor
      * method.  Delegates to 
-     * {@link #getAccessorName(TypedElement, MultiplicityType)}.
+     * {@link #getAccessorName(TypedElement, MultiplicityType, boolean)}
+     * with special case for booleans enabled.
      * 
      * @param feature StructuralFeature that requires an accessor
      * @return accessor name
+     * @see #getAccessorName(TypedElement, MultiplicityType, boolean)
      */
     public String getAccessorName(StructuralFeature feature);
+
+    /**
+     * Converts a {@link TypedElement} and {@link MultiplicityType} into the 
+     * name of an accessor method.    Delegates to 
+     * {@link #getAccessorName(TypedElement, MultiplicityType, boolean)}
+     * with special case for booleans enabled.
+     *
+     * @param elem TypedElement that requires an accessor
+     * @param mult the element's multiplicity
+     * @return accessor name
+     */
+    public String getAccessorName(TypedElement elem, MultiplicityType mult);
+
+    /**
+     * Converts a {@link StructuralFeature} into the name of an accessor
+     * method.  Delegates to 
+     * {@link #getAccessorName(TypedElement, MultiplicityType, boolean)}.
+     * 
+     * @param feature StructuralFeature that requires an accessor
+     * @param specialCaseBooleans whether to manipulate boolean attribute
+     *                            accessor names
+     * @return accessor name
+     * @see #getAccessorName(TypedElement, MultiplicityType, boolean)
+     */
+    public String getAccessorName(
+        StructuralFeature feature, boolean specialCaseBooleans);
 
     /**
      * Converts a {@link TypedElement} and {@link MultiplicityType} into the 
@@ -244,9 +272,12 @@ public interface Generator
      * prefix "get", <b>unless</b> the following conditions are met:
      * 
      * <ul>
+     * <li>The <code>specialCaseBooleans</code> parameter is set to
+     *     <code>true</code>.
+     * </li>
      * <li>The multiplicity is unspecified (null) or the multiplicity's upper
      *     bound is 1.</li>
-     * <li>The type is boolean</li>
+     * <li>The type is boolean.</li>
      * </ul>
      * 
      * If the conditions are met, the prefix "is" is prepended, unless the 
@@ -257,20 +288,38 @@ public interface Generator
      * 
      * @param elem TypedElement that requires an accessor
      * @param mult the element's multiplicity
+     * @param specialCaseBooleans if true
      * @return accessor name
      */
-    public String getAccessorName(TypedElement elem, MultiplicityType mult);
+    public String getAccessorName(
+        TypedElement elem, MultiplicityType mult, boolean specialCaseBooleans);
 
     /**
      * Converts a {@link StructuralFeature} into a mutator method name.
-     * If the StructuralFeature's multiplicity's upper bound is not 1, this
-     * method returns null.  Otherwise, it capitalizes the feature's underlying
-     * type name (via {@link TypedElement#getType()}) and prepends "set".
+     * Delegates to the method
+     * {@link #getMutatorName(StructuralFeature, boolean)} with the special
+     * base for booleans enabled. 
      * 
      * @param feature StructuralFeature that requires a mutator
      * @return mutator name
      */
     public String getMutatorName(StructuralFeature feature);
+
+    /**
+     * Converts a {@link StructuralFeature} into a mutator method name.
+     * This method capitalizes the feature's underlying type name 
+     * (via {@link TypedElement#getType()}) and prepends "set", unless the 
+     * type is a boolean and the special case is enabled, in which
+     * case the prefix "Is", if any, is stripped from the attribute name
+     * first.
+     * 
+     * @param feature StructuralFeature that requires a mutator
+     * @param specialCaseBooleans control special case for boolean attributes
+     * @return mutator name
+     * @see #getAccessorName(TypedElement, MultiplicityType, boolean)
+     */
+    public String getMutatorName(
+        StructuralFeature feature, boolean specialCaseBooleans);
 
     /**
      * Converts a literal into an enumeration field name.  Splits the literal

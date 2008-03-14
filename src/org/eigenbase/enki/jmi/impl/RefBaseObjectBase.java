@@ -102,12 +102,28 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         return refImmediatePackage().refOutermostPackage();
     }
 
-    @SuppressWarnings("unchecked")
-    public Collection refVerifyConstraints(boolean arg0)
+
+    public final Collection<?> refVerifyConstraints(boolean deepVerify)
     {
-        // TODO: implement refVerifyConstraints
-        return null;
+        List<JmiException> errors = new ArrayList<JmiException>();
+        
+        checkConstraints(errors, deepVerify);
+        
+        if (errors.isEmpty()) {
+            return null;
+        }
+        
+        return errors;
     }
+    
+    /**
+     * Implements {@link #refVerifyConstraints(boolean)}.
+     * 
+     * @param errors exceptions are added to this collection
+     * @param deepVerify if objects should verify their components
+     */
+    protected abstract void checkConstraints(
+        List<JmiException> errors, boolean deepVerify);
 
     public long getMofId()
     {

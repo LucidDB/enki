@@ -2802,32 +2802,6 @@ public final class Initializer
     {
         AttachesTo attachesToAssoc = getModelPackage().getAttachesTo();
 
-        attachesToAssoc.add(class_[25], tag[46]);
-        attachesToAssoc.add(class_[24], tag[45]);
-        attachesToAssoc.add(class_[23], tag[44]);
-        attachesToAssoc.add(class_[22], tag[43]);
-        attachesToAssoc.add(class_[22], tag[42]);
-        attachesToAssoc.add(class_[21], tag[41]);
-        attachesToAssoc.add(class_[20], tag[40]);
-        attachesToAssoc.add(class_[19], tag[39]);
-        attachesToAssoc.add(class_[18], tag[38]);
-        attachesToAssoc.add(class_[17], tag[37]);
-        attachesToAssoc.add(class_[16], tag[36]);
-        attachesToAssoc.add(class_[15], tag[35]);
-        attachesToAssoc.add(class_[14], tag[34]);
-        attachesToAssoc.add(class_[13], tag[33]);
-        attachesToAssoc.add(class_[12], tag[32]);
-        attachesToAssoc.add(class_[12], tag[31]);
-        attachesToAssoc.add(class_[11], tag[30]);
-        attachesToAssoc.add(class_[10], tag[29]);
-        attachesToAssoc.add(class_[9], tag[28]);
-        attachesToAssoc.add(class_[8], tag[27]);
-        attachesToAssoc.add(class_[8], tag[26]);
-        attachesToAssoc.add(class_[8], tag[25]);
-        attachesToAssoc.add(class_[7], tag[24]);
-        attachesToAssoc.add(class_[6], tag[23]);
-        attachesToAssoc.add(class_[5], tag[22]);
-        attachesToAssoc.add(class_[5], tag[21]);
         attachesToAssoc.add(package_[2], tag[63]);
         attachesToAssoc.add(attribute[30], tag[57]);
         attachesToAssoc.add(attribute[29], tag[56]);
@@ -2866,116 +2840,38 @@ public final class Initializer
         attachesToAssoc.add(package_[1], tag[60]);
         attachesToAssoc.add(package_[1], tag[59]);
         attachesToAssoc.add(package_[0], tag[0]);
+        attachesToAssoc.add(class_[25], tag[46]);
+        attachesToAssoc.add(class_[24], tag[45]);
+        attachesToAssoc.add(class_[23], tag[44]);
+        attachesToAssoc.add(class_[22], tag[43]);
+        attachesToAssoc.add(class_[22], tag[42]);
+        attachesToAssoc.add(class_[21], tag[41]);
+        attachesToAssoc.add(class_[20], tag[40]);
+        attachesToAssoc.add(class_[19], tag[39]);
+        attachesToAssoc.add(class_[18], tag[38]);
+        attachesToAssoc.add(class_[17], tag[37]);
+        attachesToAssoc.add(class_[16], tag[36]);
+        attachesToAssoc.add(class_[15], tag[35]);
+        attachesToAssoc.add(class_[14], tag[34]);
+        attachesToAssoc.add(class_[13], tag[33]);
+        attachesToAssoc.add(class_[12], tag[32]);
+        attachesToAssoc.add(class_[12], tag[31]);
+        attachesToAssoc.add(class_[11], tag[30]);
+        attachesToAssoc.add(class_[10], tag[29]);
+        attachesToAssoc.add(class_[9], tag[28]);
+        attachesToAssoc.add(class_[8], tag[27]);
+        attachesToAssoc.add(class_[8], tag[26]);
+        attachesToAssoc.add(class_[8], tag[25]);
+        attachesToAssoc.add(class_[7], tag[24]);
+        attachesToAssoc.add(class_[6], tag[23]);
+        attachesToAssoc.add(class_[5], tag[22]);
+        attachesToAssoc.add(class_[5], tag[21]);
     }
 
     private void containsAssocInit()
     {
         Contains containsAssoc = getModelPackage().getContains();
 
-        containsAssoc.add(operation[3], parameter[6]);
-        containsAssoc.add(operation[2], parameter[5]);
-        containsAssoc.add(operation[2], parameter[4]);
-        containsAssoc.add(operation[1], parameter[3]);
-        containsAssoc.add(operation[1], parameter[2]);
-        containsAssoc.add(operation[1], parameter[1]);
-        containsAssoc.add(class_[25], tag[46]);
-        containsAssoc.add(class_[25], constraint[52]);
-        containsAssoc.add(class_[25], constraint[51]);
-        containsAssoc.add(class_[25], constraint[50]);
-        containsAssoc.add(class_[25], constraint[49]);
-        containsAssoc.add(class_[25], constraint[48]);
-        containsAssoc.add(class_[25], constraint[47]);
-        containsAssoc.add(class_[25], constraint[46]);
-        containsAssoc.add(class_[25], attribute[27]);
-        containsAssoc.add(class_[25], attribute[26]);
-        containsAssoc.add(class_[25], attribute[25]);
-        containsAssoc.add(class_[25], attribute[24]);
-        containsAssoc.add(class_[25], reference[7]);
-        containsAssoc.add(class_[25], operation[3]);
-        containsAssoc.add(class_[25], operation[2]);
-        containsAssoc.add(class_[25], operation[1]);
-        containsAssoc.add(class_[24], tag[45]);
-        containsAssoc.add(class_[24], constraint[45]);
-        containsAssoc.add(class_[24], constraint[44]);
-        containsAssoc.add(class_[24], reference[6]);
-        containsAssoc.add(class_[23], tag[44]);
-        containsAssoc.add(class_[22], tag[43]);
-        containsAssoc.add(class_[22], tag[42]);
-        containsAssoc.add(class_[22], constraint[43]);
-        containsAssoc.add(class_[22], constraint[42]);
-        containsAssoc.add(class_[22], attribute[23]);
-        containsAssoc.add(structureType[0], structureField[3]);
-        containsAssoc.add(structureType[0], structureField[2]);
-        containsAssoc.add(structureType[0], structureField[1]);
-        containsAssoc.add(structureType[0], structureField[0]);
-        containsAssoc.add(class_[21], tag[41]);
-        containsAssoc.add(class_[21], constraint[37]);
-        containsAssoc.add(class_[21], constraint[36]);
-        containsAssoc.add(class_[21], constraint[35]);
-        containsAssoc.add(class_[20], tag[40]);
-        containsAssoc.add(class_[19], tag[39]);
-        containsAssoc.add(class_[19], attribute[22]);
-        containsAssoc.add(class_[18], tag[38]);
-        containsAssoc.add(class_[18], attribute[21]);
-        containsAssoc.add(class_[17], tag[37]);
-        containsAssoc.add(class_[17], constraint[34]);
-        containsAssoc.add(class_[16], tag[36]);
-        containsAssoc.add(class_[16], constraint[33]);
-        containsAssoc.add(class_[15], tag[35]);
-        containsAssoc.add(class_[14], tag[34]);
-        containsAssoc.add(class_[14], attribute[20]);
-        containsAssoc.add(class_[14], attribute[19]);
-        containsAssoc.add(class_[13], tag[33]);
-        containsAssoc.add(class_[13], attribute[18]);
-        containsAssoc.add(class_[13], attribute[17]);
-        containsAssoc.add(class_[12], tag[32]);
-        containsAssoc.add(class_[12], tag[31]);
-        containsAssoc.add(class_[12], attribute[16]);
-        containsAssoc.add(class_[11], tag[30]);
-        containsAssoc.add(class_[11], constraint[32]);
-        containsAssoc.add(class_[11], constraint[31]);
-        containsAssoc.add(class_[11], constraint[30]);
-        containsAssoc.add(class_[11], constraint[29]);
-        containsAssoc.add(class_[11], constraint[28]);
-        containsAssoc.add(class_[11], constraint[27]);
-        containsAssoc.add(class_[11], constraint[26]);
-        containsAssoc.add(class_[11], reference[5]);
-        containsAssoc.add(class_[11], reference[4]);
-        containsAssoc.add(class_[10], tag[29]);
-        containsAssoc.add(class_[9], tag[28]);
-        containsAssoc.add(class_[9], constraint[25]);
-        containsAssoc.add(class_[9], constraint[24]);
-        containsAssoc.add(class_[9], constraint[23]);
-        containsAssoc.add(class_[9], attribute[15]);
-        containsAssoc.add(class_[9], reference[3]);
-        containsAssoc.add(class_[8], tag[27]);
-        containsAssoc.add(class_[8], tag[26]);
-        containsAssoc.add(class_[8], tag[25]);
-        containsAssoc.add(class_[8], constraint[22]);
-        containsAssoc.add(class_[8], constraint[21]);
-        containsAssoc.add(class_[7], tag[24]);
-        containsAssoc.add(class_[7], constraint[20]);
-        containsAssoc.add(class_[7], constraint[19]);
-        containsAssoc.add(class_[7], constraint[18]);
-        containsAssoc.add(class_[7], constraint[17]);
-        containsAssoc.add(class_[7], constraint[16]);
-        containsAssoc.add(class_[7], constraint[15]);
-        containsAssoc.add(class_[7], attribute[14]);
-        containsAssoc.add(operation[0], parameter[0]);
-        containsAssoc.add(class_[6], tag[23]);
-        containsAssoc.add(class_[6], constraint[14]);
-        containsAssoc.add(class_[6], constraint[13]);
-        containsAssoc.add(class_[6], constraint[12]);
-        containsAssoc.add(class_[6], constraint[11]);
-        containsAssoc.add(class_[6], attribute[13]);
-        containsAssoc.add(class_[6], attribute[12]);
-        containsAssoc.add(class_[6], attribute[11]);
-        containsAssoc.add(class_[6], attribute[10]);
-        containsAssoc.add(class_[6], operation[0]);
-        containsAssoc.add(class_[5], tag[22]);
-        containsAssoc.add(class_[5], tag[21]);
-        containsAssoc.add(class_[5], constraint[10]);
-        containsAssoc.add(class_[5], constraint[9]);
         containsAssoc.add(package_[2], tag[63]);
         containsAssoc.add(package_[2], primitiveType[14]);
         containsAssoc.add(package_[2], primitiveType[13]);
@@ -3176,12 +3072,125 @@ public final class Initializer
         containsAssoc.add(package_[0], primitiveType[2]);
         containsAssoc.add(package_[0], primitiveType[1]);
         containsAssoc.add(package_[0], primitiveType[0]);
+        containsAssoc.add(operation[3], parameter[6]);
+        containsAssoc.add(operation[2], parameter[5]);
+        containsAssoc.add(operation[2], parameter[4]);
+        containsAssoc.add(operation[1], parameter[3]);
+        containsAssoc.add(operation[1], parameter[2]);
+        containsAssoc.add(operation[1], parameter[1]);
+        containsAssoc.add(class_[25], tag[46]);
+        containsAssoc.add(class_[25], constraint[52]);
+        containsAssoc.add(class_[25], constraint[51]);
+        containsAssoc.add(class_[25], constraint[50]);
+        containsAssoc.add(class_[25], constraint[49]);
+        containsAssoc.add(class_[25], constraint[48]);
+        containsAssoc.add(class_[25], constraint[47]);
+        containsAssoc.add(class_[25], constraint[46]);
+        containsAssoc.add(class_[25], attribute[27]);
+        containsAssoc.add(class_[25], attribute[26]);
+        containsAssoc.add(class_[25], attribute[25]);
+        containsAssoc.add(class_[25], attribute[24]);
+        containsAssoc.add(class_[25], reference[7]);
+        containsAssoc.add(class_[25], operation[3]);
+        containsAssoc.add(class_[25], operation[2]);
+        containsAssoc.add(class_[25], operation[1]);
+        containsAssoc.add(class_[24], tag[45]);
+        containsAssoc.add(class_[24], constraint[45]);
+        containsAssoc.add(class_[24], constraint[44]);
+        containsAssoc.add(class_[24], reference[6]);
+        containsAssoc.add(class_[23], tag[44]);
+        containsAssoc.add(class_[22], tag[43]);
+        containsAssoc.add(class_[22], tag[42]);
+        containsAssoc.add(class_[22], constraint[43]);
+        containsAssoc.add(class_[22], constraint[42]);
+        containsAssoc.add(class_[22], attribute[23]);
+        containsAssoc.add(structureType[0], structureField[3]);
+        containsAssoc.add(structureType[0], structureField[2]);
+        containsAssoc.add(structureType[0], structureField[1]);
+        containsAssoc.add(structureType[0], structureField[0]);
+        containsAssoc.add(class_[21], tag[41]);
+        containsAssoc.add(class_[21], constraint[37]);
+        containsAssoc.add(class_[21], constraint[36]);
+        containsAssoc.add(class_[21], constraint[35]);
+        containsAssoc.add(class_[20], tag[40]);
+        containsAssoc.add(class_[19], tag[39]);
+        containsAssoc.add(class_[19], attribute[22]);
+        containsAssoc.add(class_[18], tag[38]);
+        containsAssoc.add(class_[18], attribute[21]);
+        containsAssoc.add(class_[17], tag[37]);
+        containsAssoc.add(class_[17], constraint[34]);
+        containsAssoc.add(class_[16], tag[36]);
+        containsAssoc.add(class_[16], constraint[33]);
+        containsAssoc.add(class_[15], tag[35]);
+        containsAssoc.add(class_[14], tag[34]);
+        containsAssoc.add(class_[14], attribute[20]);
+        containsAssoc.add(class_[14], attribute[19]);
+        containsAssoc.add(class_[13], tag[33]);
+        containsAssoc.add(class_[13], attribute[18]);
+        containsAssoc.add(class_[13], attribute[17]);
+        containsAssoc.add(class_[12], tag[32]);
+        containsAssoc.add(class_[12], tag[31]);
+        containsAssoc.add(class_[12], attribute[16]);
+        containsAssoc.add(class_[11], tag[30]);
+        containsAssoc.add(class_[11], constraint[32]);
+        containsAssoc.add(class_[11], constraint[31]);
+        containsAssoc.add(class_[11], constraint[30]);
+        containsAssoc.add(class_[11], constraint[29]);
+        containsAssoc.add(class_[11], constraint[28]);
+        containsAssoc.add(class_[11], constraint[27]);
+        containsAssoc.add(class_[11], constraint[26]);
+        containsAssoc.add(class_[11], reference[5]);
+        containsAssoc.add(class_[11], reference[4]);
+        containsAssoc.add(class_[10], tag[29]);
+        containsAssoc.add(class_[9], tag[28]);
+        containsAssoc.add(class_[9], constraint[25]);
+        containsAssoc.add(class_[9], constraint[24]);
+        containsAssoc.add(class_[9], constraint[23]);
+        containsAssoc.add(class_[9], attribute[15]);
+        containsAssoc.add(class_[9], reference[3]);
+        containsAssoc.add(class_[8], tag[27]);
+        containsAssoc.add(class_[8], tag[26]);
+        containsAssoc.add(class_[8], tag[25]);
+        containsAssoc.add(class_[8], constraint[22]);
+        containsAssoc.add(class_[8], constraint[21]);
+        containsAssoc.add(class_[7], tag[24]);
+        containsAssoc.add(class_[7], constraint[20]);
+        containsAssoc.add(class_[7], constraint[19]);
+        containsAssoc.add(class_[7], constraint[18]);
+        containsAssoc.add(class_[7], constraint[17]);
+        containsAssoc.add(class_[7], constraint[16]);
+        containsAssoc.add(class_[7], constraint[15]);
+        containsAssoc.add(class_[7], attribute[14]);
+        containsAssoc.add(operation[0], parameter[0]);
+        containsAssoc.add(class_[6], tag[23]);
+        containsAssoc.add(class_[6], constraint[14]);
+        containsAssoc.add(class_[6], constraint[13]);
+        containsAssoc.add(class_[6], constraint[12]);
+        containsAssoc.add(class_[6], constraint[11]);
+        containsAssoc.add(class_[6], attribute[13]);
+        containsAssoc.add(class_[6], attribute[12]);
+        containsAssoc.add(class_[6], attribute[11]);
+        containsAssoc.add(class_[6], attribute[10]);
+        containsAssoc.add(class_[6], operation[0]);
+        containsAssoc.add(class_[5], tag[22]);
+        containsAssoc.add(class_[5], tag[21]);
+        containsAssoc.add(class_[5], constraint[10]);
+        containsAssoc.add(class_[5], constraint[9]);
     }
 
     private void generalizesAssocInit()
     {
         Generalizes generalizesAssoc = getModelPackage().getGeneralizes();
 
+        generalizesAssoc.add(class_[27], class_[0]);
+        generalizesAssoc.add(class_[27], class_[2]);
+        generalizesAssoc.add(class_[27], class_[4]);
+        generalizesAssoc.add(class_[27], class_[14]);
+        generalizesAssoc.add(class_[27], class_[24]);
+        generalizesAssoc.add(class_[27], class_[26]);
+        generalizesAssoc.add(class_[14], class_[10]);
+        generalizesAssoc.add(class_[26], class_[10]);
+        generalizesAssoc.add(class_[26], class_[25]);
         generalizesAssoc.add(class_[25], class_[5]);
         generalizesAssoc.add(class_[25], class_[23]);
         generalizesAssoc.add(class_[24], class_[1]);
@@ -3200,19 +3209,10 @@ public final class Initializer
         generalizesAssoc.add(class_[21], class_[17]);
         generalizesAssoc.add(class_[21], class_[19]);
         generalizesAssoc.add(class_[21], class_[20]);
-        generalizesAssoc.add(class_[14], class_[10]);
-        generalizesAssoc.add(class_[26], class_[10]);
         generalizesAssoc.add(class_[13], class_[11]);
         generalizesAssoc.add(class_[13], class_[12]);
         generalizesAssoc.add(class_[10], class_[8]);
         generalizesAssoc.add(class_[10], class_[9]);
-        generalizesAssoc.add(class_[27], class_[0]);
-        generalizesAssoc.add(class_[27], class_[2]);
-        generalizesAssoc.add(class_[27], class_[4]);
-        generalizesAssoc.add(class_[27], class_[14]);
-        generalizesAssoc.add(class_[27], class_[24]);
-        generalizesAssoc.add(class_[27], class_[26]);
-        generalizesAssoc.add(class_[26], class_[25]);
     }
 
     private void aliasesAssocInit()
@@ -3226,6 +3226,23 @@ public final class Initializer
     {
         Constrains constrainsAssoc = getModelPackage().getConstrains();
 
+        constrainsAssoc.add(constraint[57], class_[27]);
+        constrainsAssoc.add(constraint[56], class_[27]);
+        constrainsAssoc.add(constraint[55], class_[27]);
+        constrainsAssoc.add(constraint[54], class_[27]);
+        constrainsAssoc.add(constraint[53], class_[26]);
+        constrainsAssoc.add(constraint[52], class_[25]);
+        constrainsAssoc.add(constraint[51], class_[25]);
+        constrainsAssoc.add(constraint[50], class_[25]);
+        constrainsAssoc.add(constraint[49], class_[25]);
+        constrainsAssoc.add(constraint[48], class_[25]);
+        constrainsAssoc.add(constraint[47], class_[25]);
+        constrainsAssoc.add(constraint[46], class_[25]);
+        constrainsAssoc.add(constraint[4], class_[4]);
+        constrainsAssoc.add(constraint[3], class_[2]);
+        constrainsAssoc.add(constraint[2], class_[2]);
+        constrainsAssoc.add(constraint[1], class_[1]);
+        constrainsAssoc.add(constraint[0], class_[1]);
         constrainsAssoc.add(constraint[45], class_[24]);
         constrainsAssoc.add(constraint[44], class_[24]);
         constrainsAssoc.add(constraint[43], class_[22]);
@@ -3267,43 +3284,21 @@ public final class Initializer
         constrainsAssoc.add(constraint[7], class_[4]);
         constrainsAssoc.add(constraint[6], class_[4]);
         constrainsAssoc.add(constraint[5], class_[4]);
-        constrainsAssoc.add(constraint[57], class_[27]);
-        constrainsAssoc.add(constraint[56], class_[27]);
-        constrainsAssoc.add(constraint[55], class_[27]);
-        constrainsAssoc.add(constraint[54], class_[27]);
-        constrainsAssoc.add(constraint[53], class_[26]);
-        constrainsAssoc.add(constraint[52], class_[25]);
-        constrainsAssoc.add(constraint[51], class_[25]);
-        constrainsAssoc.add(constraint[50], class_[25]);
-        constrainsAssoc.add(constraint[49], class_[25]);
-        constrainsAssoc.add(constraint[48], class_[25]);
-        constrainsAssoc.add(constraint[47], class_[25]);
-        constrainsAssoc.add(constraint[46], class_[25]);
-        constrainsAssoc.add(constraint[4], class_[4]);
-        constrainsAssoc.add(constraint[3], class_[2]);
-        constrainsAssoc.add(constraint[2], class_[2]);
-        constrainsAssoc.add(constraint[1], class_[1]);
-        constrainsAssoc.add(constraint[0], class_[1]);
     }
 
     private void canRaiseAssocInit()
     {
         CanRaise canRaiseAssoc = getModelPackage().getCanRaise();
 
-        canRaiseAssoc.add(operation[2], exception[1]);
         canRaiseAssoc.add(operation[7], exception[1]);
         canRaiseAssoc.add(operation[6], exception[0]);
+        canRaiseAssoc.add(operation[2], exception[1]);
     }
 
     private void exposesAssocInit()
     {
         Exposes exposesAssoc = getModelPackage().getExposes();
 
-        exposesAssoc.add(reference[7], associationEnd[12]);
-        exposesAssoc.add(reference[6], associationEnd[0]);
-        exposesAssoc.add(reference[5], associationEnd[5]);
-        exposesAssoc.add(reference[4], associationEnd[3]);
-        exposesAssoc.add(reference[3], associationEnd[7]);
         exposesAssoc.add(reference[11], associationEnd[17]);
         exposesAssoc.add(reference[10], associationEnd[14]);
         exposesAssoc.add(reference[9], associationEnd[8]);
@@ -3311,17 +3306,17 @@ public final class Initializer
         exposesAssoc.add(reference[2], associationEnd[11]);
         exposesAssoc.add(reference[1], associationEnd[9]);
         exposesAssoc.add(reference[0], associationEnd[18]);
+        exposesAssoc.add(reference[7], associationEnd[12]);
+        exposesAssoc.add(reference[6], associationEnd[0]);
+        exposesAssoc.add(reference[5], associationEnd[5]);
+        exposesAssoc.add(reference[4], associationEnd[3]);
+        exposesAssoc.add(reference[3], associationEnd[7]);
     }
 
     private void refersToAssocInit()
     {
         RefersTo refersToAssoc = getModelPackage().getRefersTo();
 
-        refersToAssoc.add(reference[7], associationEnd[13]);
-        refersToAssoc.add(reference[6], associationEnd[1]);
-        refersToAssoc.add(reference[5], associationEnd[4]);
-        refersToAssoc.add(reference[4], associationEnd[2]);
-        refersToAssoc.add(reference[3], associationEnd[6]);
         refersToAssoc.add(reference[11], associationEnd[16]);
         refersToAssoc.add(reference[10], associationEnd[15]);
         refersToAssoc.add(reference[9], associationEnd[9]);
@@ -3329,37 +3324,17 @@ public final class Initializer
         refersToAssoc.add(reference[2], associationEnd[10]);
         refersToAssoc.add(reference[1], associationEnd[8]);
         refersToAssoc.add(reference[0], associationEnd[19]);
+        refersToAssoc.add(reference[7], associationEnd[13]);
+        refersToAssoc.add(reference[6], associationEnd[1]);
+        refersToAssoc.add(reference[5], associationEnd[4]);
+        refersToAssoc.add(reference[4], associationEnd[2]);
+        refersToAssoc.add(reference[3], associationEnd[6]);
     }
 
     private void isOfTypeAssocInit()
     {
         IsOfType isOfTypeAssoc = getModelPackage().getIsOfType();
 
-        isOfTypeAssoc.add(class_[25], associationEnd[12]);
-        isOfTypeAssoc.add(class_[25], associationEnd[13]);
-        isOfTypeAssoc.add(class_[25], parameter[6]);
-        isOfTypeAssoc.add(class_[25], reference[7]);
-        isOfTypeAssoc.add(class_[24], associationEnd[0]);
-        isOfTypeAssoc.add(class_[23], associationEnd[1]);
-        isOfTypeAssoc.add(class_[23], reference[6]);
-        isOfTypeAssoc.add(class_[22], parameter[2]);
-        isOfTypeAssoc.add(class_[22], parameter[10]);
-        isOfTypeAssoc.add(structureType[0], attribute[6]);
-        isOfTypeAssoc.add(structureType[0], attribute[11]);
-        isOfTypeAssoc.add(structureType[0], attribute[18]);
-        isOfTypeAssoc.add(structureType[0], attribute[21]);
-        isOfTypeAssoc.add(enumerationType[3], attribute[20]);
-        isOfTypeAssoc.add(class_[11], associationEnd[3]);
-        isOfTypeAssoc.add(class_[11], associationEnd[5]);
-        isOfTypeAssoc.add(class_[9], associationEnd[7]);
-        isOfTypeAssoc.add(class_[8], associationEnd[6]);
-        isOfTypeAssoc.add(class_[8], reference[3]);
-        isOfTypeAssoc.add(enumerationType[2], attribute[12]);
-        isOfTypeAssoc.add(class_[6], associationEnd[2]);
-        isOfTypeAssoc.add(class_[6], associationEnd[4]);
-        isOfTypeAssoc.add(class_[6], parameter[0]);
-        isOfTypeAssoc.add(class_[6], reference[4]);
-        isOfTypeAssoc.add(class_[6], reference[5]);
         isOfTypeAssoc.add(primitiveType[14], attribute[8]);
         isOfTypeAssoc.add(primitiveType[14], attribute[10]);
         isOfTypeAssoc.add(primitiveType[14], attribute[13]);
@@ -3443,6 +3418,31 @@ public final class Initializer
         isOfTypeAssoc.add(class_[2], associationEnd[9]);
         isOfTypeAssoc.add(class_[2], reference[9]);
         isOfTypeAssoc.add(class_[0], associationEnd[18]);
+        isOfTypeAssoc.add(class_[25], associationEnd[12]);
+        isOfTypeAssoc.add(class_[25], associationEnd[13]);
+        isOfTypeAssoc.add(class_[25], parameter[6]);
+        isOfTypeAssoc.add(class_[25], reference[7]);
+        isOfTypeAssoc.add(class_[24], associationEnd[0]);
+        isOfTypeAssoc.add(class_[23], associationEnd[1]);
+        isOfTypeAssoc.add(class_[23], reference[6]);
+        isOfTypeAssoc.add(class_[22], parameter[2]);
+        isOfTypeAssoc.add(class_[22], parameter[10]);
+        isOfTypeAssoc.add(structureType[0], attribute[6]);
+        isOfTypeAssoc.add(structureType[0], attribute[11]);
+        isOfTypeAssoc.add(structureType[0], attribute[18]);
+        isOfTypeAssoc.add(structureType[0], attribute[21]);
+        isOfTypeAssoc.add(enumerationType[3], attribute[20]);
+        isOfTypeAssoc.add(class_[11], associationEnd[3]);
+        isOfTypeAssoc.add(class_[11], associationEnd[5]);
+        isOfTypeAssoc.add(class_[9], associationEnd[7]);
+        isOfTypeAssoc.add(class_[8], associationEnd[6]);
+        isOfTypeAssoc.add(class_[8], reference[3]);
+        isOfTypeAssoc.add(enumerationType[2], attribute[12]);
+        isOfTypeAssoc.add(class_[6], associationEnd[2]);
+        isOfTypeAssoc.add(class_[6], associationEnd[4]);
+        isOfTypeAssoc.add(class_[6], parameter[0]);
+        isOfTypeAssoc.add(class_[6], reference[4]);
+        isOfTypeAssoc.add(class_[6], reference[5]);
     }
 
     @SuppressWarnings("unchecked")
@@ -3452,7 +3452,7 @@ public final class Initializer
         org.eigenbase.enki.jmi.model.ModelPackage modelPackage = new org.eigenbase.enki.jmi.model.ModelPackage();
         setModelPackage(modelPackage);
 
-        // Pass 1: Instances and attributes
+        // Initialize MOF Instances
         classInit();
         primitiveTypeInit();
         enumerationTypeInit();
@@ -3473,7 +3473,7 @@ public final class Initializer
         constantInit();
         tagInit();
 
-        // Pass 2: References (associations)
+        // Initialize MOF Associations
         attachesToAssocInit();
         containsAssocInit();
         generalizesAssocInit();
@@ -3484,7 +3484,7 @@ public final class Initializer
         refersToAssocInit();
         isOfTypeAssocInit();
 
-        // Pass 3: Meta Objects
+        // Initialize M3 meta objects
         setRefMetaObject(getModelPackage().getMofClass(), findMofClassByName("Class", true));
         setRefMetaObject(getModelPackage().getTypedElement(), findMofClassByName("TypedElement", true));
         setRefMetaObject(getModelPackage().getDataType(), findMofClassByName("DataType", true));

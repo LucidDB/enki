@@ -40,7 +40,7 @@ public class Import
     private String name;
     private String annotation;
     private javax.jmi.model.VisibilityKind visibility;
-    private boolean isClustered;
+    private Boolean isClustered;
 
     // Reference Fields
     private javax.jmi.model.DependsOn provider;
@@ -187,6 +187,35 @@ public class Import
     {
         return super.isVisible(
             otherElement);
+    }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+        if (name == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("name");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getQualifiedName().size() < 1) {
+            javax.jmi.model.Attribute attrib = findAttribute("qualifiedName");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (annotation == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("annotation");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (visibility == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("visibility");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (isClustered == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("isClustered");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getImportedNamespace() == null) {
+            javax.jmi.model.AssociationEnd exposedEnd = findAssociationEnd("Aliases", "importer");
+            javax.jmi.model.AssociationEnd referencedEnd = findAssociationEnd("Aliases", "imported");
+            errors.add(org.eigenbase.enki.jmi.impl.RefAssociationBase.makeWrongSizeException(exposedEnd, referencedEnd, this));
+        }
     }
 }
 

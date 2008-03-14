@@ -61,6 +61,10 @@ public class TagClass
             tagId,
             values);
     }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+    }
 }
 
 // End TagClass.java

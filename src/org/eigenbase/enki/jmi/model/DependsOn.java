@@ -40,9 +40,9 @@ public class DependsOn
         super(
             container,
             "dependent",
-            Multiplicity.UNIQUE_COLLECTION,
+            new Multiplicity(0, -1, false, true),
             "provider",
-            Multiplicity.UNIQUE_COLLECTION);
+            new Multiplicity(0, -1, false, true));
 
     }
 

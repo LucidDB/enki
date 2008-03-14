@@ -21,6 +21,7 @@
 */
 package org.eigenbase.enki.util;
 
+import java.lang.reflect.*;
 import java.util.*;
 
 /**
@@ -47,12 +48,29 @@ public class Primitives
     // conversion table between object type names and primitive type names
     private static final Map<String, String> primitiveTypeNameMap;
 
+    // conversion table between primitive type names and fully qualified
+    // object type names
+    private static final Map<String, String> wrapperTypeNameMap;
+
+    // conversion table between primitive type names and simple object type 
+    // names
+    private static final Map<String, String> wrapperSimpleTypeNameMap;
+
+    // Default value for an uninitialized primitive literal
+    private static final Map<String, String> primitiveDefaultLiteral;
+    
     static {
         HashMap<Class<?>, Class<?>> toPrimitiveMap = 
             new HashMap<Class<?>, Class<?>>();
         HashMap<Class<?>, Class<?>> toWrapperMap = 
             new HashMap<Class<?>, Class<?>>();
-        HashMap<String, String> typeNameMap = new HashMap<String, String>();
+        HashMap<String, String> primTypeNameMap = 
+            new HashMap<String, String>();
+        HashMap<String, String> wrapTypeNameMap = 
+            new HashMap<String, String>();
+        HashMap<String, String> wrapSimpleTypeNameMap = 
+            new HashMap<String, String>();
+        HashMap<String, String> defaultMap = new HashMap<String, String>();
         
         for(Class<?>[] entry: classes) {
             Class<?> wrapper = entry[0];
@@ -63,14 +81,41 @@ public class Primitives
             
             // REVIEW: SWZ: 11/7/2007: See review comment in 
             // GeneratorBase.getTypeName(ModelElement, String).
-            typeNameMap.put(wrapper.getName(), primitive.getName());
-            typeNameMap.put(wrapper.getSimpleName(), primitive.getName());
+            primTypeNameMap.put(wrapper.getName(), primitive.getName());
+            primTypeNameMap.put(wrapper.getSimpleName(), primitive.getName());
+            
+            wrapTypeNameMap.put(primitive.getName(), wrapper.getName());
+            wrapSimpleTypeNameMap.put(
+                primitive.getName(), wrapper.getSimpleName());
+            
+            if (Number.class.isAssignableFrom(wrapper)) {
+                String literal = "0";
+                
+                try {
+                    Integer zero = new Integer(0);
+                    Method m = 
+                        Integer.class.getMethod(primitive.getName() + "Value");
+                    literal = m.invoke(zero).toString();
+                } catch (Exception e) {
+                    // Ignored -- the literal "0" should work okay.
+                }
+                
+                defaultMap.put(primitive.getName(), literal);
+            } else if (wrapper == Character.class) {
+                defaultMap.put(primitive.getName(), "0");
+            } else if (wrapper == Boolean.class) {
+                defaultMap.put(primitive.getName(), "false");
+            }
         }
 
         primitiveToWrapperMap = Collections.unmodifiableMap(toWrapperMap);
         wrapperToPrimitiveMap = Collections.unmodifiableMap(toPrimitiveMap);
         
-        primitiveTypeNameMap = Collections.unmodifiableMap(typeNameMap);
+        primitiveTypeNameMap = Collections.unmodifiableMap(primTypeNameMap);
+        wrapperTypeNameMap = Collections.unmodifiableMap(wrapTypeNameMap);
+        wrapperSimpleTypeNameMap = 
+            Collections.unmodifiableMap(wrapSimpleTypeNameMap);
+        primitiveDefaultLiteral = Collections.unmodifiableMap(defaultMap);
     }
     
     private Primitives()
@@ -114,6 +159,48 @@ public class Primitives
     public static String convertTypeNameToPrimitive(String wrapperTypeName)
     {
         return primitiveTypeNameMap.get(wrapperTypeName);
+    }
+    
+    /**
+     * Gets the Java wrapper type name identifying the wrapper type associated
+     * with the given primitive type name.
+     * 
+     * @param primitiveTypeName primitive type name (e.g. "short")
+     * @return the name of the wrapper type associated with the given primitive
+     *         type.
+     */
+    public static String convertPrimitiveToTypeName(
+        String primitiveTypeName, boolean returnSimple)
+    {
+        if (returnSimple) {
+            return wrapperSimpleTypeNameMap.get(primitiveTypeName);
+        } else {
+            return wrapperTypeNameMap.get(primitiveTypeName);
+        }
+    }
+    
+    /**
+     * Tests whether the given type name is a primitive type name.
+     * 
+     * @param typeName some type name
+     * @return true if primitive, false otherwise
+     */
+    public static boolean isPrimitiveType(String typeName)
+    {
+        return primitiveTypeNameMap.values().contains(typeName);
+    }
+    
+    /**
+     * Returns the literal describing the default value for an initialized
+     * variable of the given primitive type.
+     *
+     * @param typeName primitive type name (e.g., "short")
+     * @return the literal describing the default value for an initialized
+     *         variable of the given primitive type.
+     */
+    public static String getPrimitiveDefaultLiteral(String typeName)
+    {
+        return primitiveDefaultLiteral.get(typeName);
     }
 }
 

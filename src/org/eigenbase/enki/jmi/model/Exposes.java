@@ -40,9 +40,9 @@ public class Exposes
         super(
             container,
             "referrer",
-            Multiplicity.UNIQUE_COLLECTION,
+            new Multiplicity(0, -1, false, true),
             "exposedEnd",
-            Multiplicity.SINGLE);
+            new Multiplicity(1, 1, false, false));
 
     }
 

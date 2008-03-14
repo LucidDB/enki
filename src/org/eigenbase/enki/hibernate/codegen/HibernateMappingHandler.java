@@ -134,9 +134,6 @@ public class HibernateMappingHandler
     public static final String QUERY_NAME_ALLOFTYPE = "allOfType";
     public static final String QUERY_NAME_BYMOFID = "byMofId";
     
-    private static final JavaClassReference BOOLEAN_PROPERTY_ACCESSOR_CLASS =
-        new JavaClassReference(BooleanPropertyAccessor.class, false);
-    
     private static final JavaClassReference ENUM_USER_TYPE_CLASS =
         new JavaClassReference(EnumUserType.class, false);
     
@@ -661,16 +658,6 @@ public class HibernateMappingHandler
             MappingType mappingType = 
                 getMappingType(attribType, attrib.getMultiplicity());
             switch (mappingType) {
-            case BOOLEAN:
-                // Boolean type; use a custom accessor since the method names
-                // used by JMI don't match Hibernate's default accessor
-                writeEmptyElem(
-                    "property",
-                    "name", propertyName,
-                    "column", hibernateQuote(fieldName),
-                    "access", BOOLEAN_PROPERTY_ACCESSOR_CLASS);
-                break;
-
             case ENUMERATION:
                 {
                     // Enumeration type; use a custom type definition
@@ -746,8 +733,8 @@ public class HibernateMappingHandler
                 break;
                     
 
+            case BOOLEAN:
             case OTHER_DATA_TYPE:
-                // Generic type
                 writeEmptyElem(
                     "property",
                     "name", propertyName,
@@ -1096,7 +1083,7 @@ public class HibernateMappingHandler
      */
     private enum MappingType
     {
-        /** Boolean value.  Mapped using {@link BooleanPropertyAccessor}. */
+        /** Boolean value. */
         BOOLEAN,
         
         /** String value.  Maybe mapped as varchar or text. */

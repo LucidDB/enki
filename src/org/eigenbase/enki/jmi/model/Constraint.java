@@ -197,6 +197,39 @@ public class Constraint
         return super.isVisible(
             otherElement);
     }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+        if (name == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("name");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getQualifiedName().size() < 1) {
+            javax.jmi.model.Attribute attrib = findAttribute("qualifiedName");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (annotation == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("annotation");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (expression == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("expression");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (language == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("language");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (evaluationPolicy == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("evaluationPolicy");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getConstrainedElements().size() < 1) {
+            javax.jmi.model.AssociationEnd exposedEnd = findAssociationEnd("Constrains", "constraint");
+            javax.jmi.model.AssociationEnd referencedEnd = findAssociationEnd("Constrains", "constrainedElement");
+            errors.add(org.eigenbase.enki.jmi.impl.RefAssociationBase.makeWrongSizeException(exposedEnd, referencedEnd, this));
+        }
+    }
 }
 
 // End Constraint.java

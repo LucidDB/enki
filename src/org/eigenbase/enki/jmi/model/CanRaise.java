@@ -40,9 +40,9 @@ public class CanRaise
         super(
             container,
             "operation",
-            Multiplicity.UNIQUE_COLLECTION,
+            new Multiplicity(0, -1, false, true),
             "except",
-            Multiplicity.UNIQUE_ORDERED_COLLECTION);
+            new Multiplicity(0, -1, true, true));
 
     }
 

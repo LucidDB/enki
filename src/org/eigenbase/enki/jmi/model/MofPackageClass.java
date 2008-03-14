@@ -64,6 +64,10 @@ public class MofPackageClass
             isAbstract,
             visibility);
     }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+    }
 }
 
 // End MofPackageClass.java

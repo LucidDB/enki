@@ -39,10 +39,10 @@ public class AssociationEnd
     // Attribute Fields
     private String name;
     private String annotation;
-    private boolean isNavigable;
+    private Boolean isNavigable;
     private javax.jmi.model.AggregationKind aggregation;
     private javax.jmi.model.MultiplicityType multiplicity;
-    private boolean isChangeable;
+    private Boolean isChangeable;
 
     // Reference Fields
     private javax.jmi.model.DependsOn provider;
@@ -218,6 +218,43 @@ public class AssociationEnd
     public javax.jmi.model.AssociationEnd otherEnd()
     {
         return super.otherEnd();
+    }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+        if (name == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("name");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getQualifiedName().size() < 1) {
+            javax.jmi.model.Attribute attrib = findAttribute("qualifiedName");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (annotation == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("annotation");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (isNavigable == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("isNavigable");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (aggregation == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("aggregation");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (multiplicity == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("multiplicity");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (isChangeable == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("isChangeable");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getType() == null) {
+            javax.jmi.model.AssociationEnd exposedEnd = findAssociationEnd("IsOfType", "typedElements");
+            javax.jmi.model.AssociationEnd referencedEnd = findAssociationEnd("IsOfType", "type");
+            errors.add(org.eigenbase.enki.jmi.impl.RefAssociationBase.makeWrongSizeException(exposedEnd, referencedEnd, this));
+        }
     }
 }
 

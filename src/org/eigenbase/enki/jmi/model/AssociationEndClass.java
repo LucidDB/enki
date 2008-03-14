@@ -64,6 +64,10 @@ public class AssociationEndClass
             multiplicity,
             isChangeable);
     }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+    }
 }
 
 // End AssociationEndClass.java

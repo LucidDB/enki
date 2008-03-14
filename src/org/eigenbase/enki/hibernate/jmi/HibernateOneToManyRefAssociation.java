@@ -65,17 +65,13 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
             end2Name,
             end2Multiplicity);
 
-        assert(
-            end1Multiplicity == Multiplicity.SINGLE ||
-            end2Multiplicity == Multiplicity.SINGLE);
-        assert(
-            end1Multiplicity != Multiplicity.SINGLE ||
-            end2Multiplicity != Multiplicity.SINGLE);
+        assert(end1Multiplicity.isSingle() || end2Multiplicity.isSingle());
+        assert(!end1Multiplicity.isSingle() || !end2Multiplicity.isSingle());
         
         this.end1Class = end1Class;
         this.end2Class = end2Class;
         
-        this.end1IsParent = (end1Multiplicity == Multiplicity.SINGLE);
+        this.end1IsParent = end1Multiplicity.isSingle();
     }
 
     /**

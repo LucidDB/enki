@@ -23,9 +23,12 @@ package org.eigenbase.enki.codegen;
 
 import java.io.*;
 import java.text.*;
+import java.util.*;
 
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
+
+import org.eigenbase.enki.util.*;
 
 /**
  * JavaHandlerBase extends {@link HandlerBase} to provide convenience functions
@@ -191,6 +194,15 @@ public abstract class JavaHandlerBase
     private static final String METHOD_MUTATOR_PARAM_NAME = "newValue";
     private static final String METHOD_MUTATOR_PARAM_COMMENT = 
         "New value to be set.";
+
+    private static final JavaClassReference JAVA_UTIL_LIST =
+        new JavaClassReference(List.class, false);
+    
+    public static final JavaClassReference JMI_EXCEPTION_CLASS =
+        new JavaClassReference(JmiException.class, false);
+    
+    public static final JavaClassReference WRONG_SIZE_EXCEPTION_CLASS =
+        new JavaClassReference(WrongSizeException.class, false);
 
     private boolean displayHeaderWarning = true;
     
@@ -1212,7 +1224,8 @@ public abstract class JavaHandlerBase
             fieldName, 
             isFinal,
             isStatic,
-            null);
+            null,
+            false);
         
         return fieldName;
     }
@@ -1245,7 +1258,8 @@ public abstract class JavaHandlerBase
             fieldName, 
             isFinal,
             isStatic,
-            null);
+            null,
+            false);
         
         return fieldName;
     }
@@ -1304,7 +1318,8 @@ public abstract class JavaHandlerBase
             fieldName, 
             isFinal,
             isStatic,
-            typeSuffix);
+            typeSuffix,
+            true);
         
         return fieldName;
     }
@@ -1317,13 +1332,15 @@ public abstract class JavaHandlerBase
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
      * @param typeSuffix suffix for the type name
+     * @param usePrimitiveTypes use primitive types
      */
     private void writePrivateField(
         ModelElement type, 
         String name, 
         boolean isFinal, 
         boolean isStatic, 
-        String typeSuffix)
+        String typeSuffix,
+        boolean usePrimitiveTypes)
     {
         String fieldType;
         if (type instanceof StructuralFeature) {
@@ -1331,6 +1348,10 @@ public abstract class JavaHandlerBase
                 generator.getTypeName((StructuralFeature)type, typeSuffix);
         } else {
             fieldType = generator.getTypeName(type, typeSuffix);
+        }
+        
+        if (!usePrimitiveTypes && Primitives.isPrimitiveType(fieldType)) {
+            fieldType = Primitives.convertPrimitiveToTypeName(fieldType, true);
         }
 
         writePrivateField(fieldType, name, isFinal, isStatic);
@@ -1384,6 +1405,17 @@ public abstract class JavaHandlerBase
             value,
             ";");
     }
+    
+    protected void writeCheckConstraints()
+    {
+        startBlock(
+            "protected void checkConstraints(",
+            JAVA_UTIL_LIST, "<", JMI_EXCEPTION_CLASS, "> errors, ",
+            "boolean deepVerify)");
+        endBlock();
+    }
+    
+    
     protected void writeEntityFooter()
     {
         endBlock();

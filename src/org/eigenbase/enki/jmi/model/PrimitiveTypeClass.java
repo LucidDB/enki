@@ -64,6 +64,10 @@ public class PrimitiveTypeClass
             isAbstract,
             visibility);
     }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+    }
 }
 
 // End PrimitiveTypeClass.java

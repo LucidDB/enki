@@ -76,6 +76,10 @@ public class MultiplicityType
     }
 
     private static final long serialVersionUID = -1630324975055117959L;
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+    }
 }
 
 // End MultiplicityType.java

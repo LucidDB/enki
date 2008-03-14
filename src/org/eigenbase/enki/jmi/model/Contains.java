@@ -40,9 +40,9 @@ public class Contains
         super(
             container,
             "container",
-            Multiplicity.SINGLE,
+            new Multiplicity(0, 1, false, false),
             "containedElement",
-            Multiplicity.UNIQUE_ORDERED_COLLECTION);
+            new Multiplicity(0, -1, true, true));
 
     }
 

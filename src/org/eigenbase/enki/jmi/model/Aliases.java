@@ -40,9 +40,9 @@ public class Aliases
         super(
             container,
             "importer",
-            Multiplicity.UNIQUE_COLLECTION,
+            new Multiplicity(0, -1, false, true),
             "imported",
-            Multiplicity.SINGLE);
+            new Multiplicity(1, 1, false, false));
 
     }
 

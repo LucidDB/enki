@@ -27,6 +27,7 @@ import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.mdr.*;
+import org.eigenbase.enki.util.*;
 
 /**
  * RefObjectBase is a base class for {@link RefObject} implementations.
@@ -553,6 +554,84 @@ public abstract class RefObjectBase
     protected EnkiMDRepository getRepository()
     {
         return ((RefClassBase)refClass()).getRepository();
+    }
+    
+    /**
+     * Helper method for {@link #checkConstraints(List, boolean)} 
+     * implementations.  Finds the given Attribute in this object's 
+     * inheritance hierarchy.
+     * 
+     * @param name name of the attribute
+     * @return the Attribute representing the attribute or null if not found
+     */
+    protected Attribute findAttribute(String name)
+    {
+        Classifier startCls = (Classifier)refClass().refMetaObject();
+        
+        Queue<Classifier> queue = new LinkedList<Classifier>();
+     
+        queue.offer(startCls);
+        
+        while(!queue.isEmpty()) {
+            Classifier cls = queue.poll();
+            
+            Collection<ModelElement> elements = 
+                GenericCollections.asTypedCollection(
+                    cls.getContents(), ModelElement.class);
+            for(ModelElement elem: elements) {
+                if (elem instanceof Attribute) {
+                    if (elem.getName().equals(name)) {
+                        return (Attribute)elem;
+                    }
+                }
+            }
+                    
+            List<Classifier> supertypes = 
+                GenericCollections.asTypedList(
+                    cls.getSupertypes(), Classifier.class);
+            for(Classifier supertype: supertypes) {
+                queue.offer(supertype);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Helper method for {@link #checkConstraints(List, boolean)} 
+     * implementations.  Finds the named AssociationEnd in the named
+     * Association.
+     * 
+     * @param name the association's name
+     * @param endName the association end's name
+     * @return the AssociationEnd representing the association end or null if 
+     *         not found
+     */
+    protected AssociationEnd findAssociationEnd(String name, String endName)
+    {
+        RefPackage refPkg = refClass().refImmediatePackage();
+        
+        do {
+            RefAssociation refAssoc = refPkg.refAssociation(name);
+            if (refAssoc != null) {
+                Association assoc = (Association)refAssoc.refMetaObject();
+                
+                Collection<ModelElement> contents = 
+                    GenericCollections.asTypedCollection(
+                        assoc.getContents(), ModelElement.class);
+                for(ModelElement elem: contents) {
+                    if (elem instanceof AssociationEnd) {
+                        if (elem.getName().equals(endName)) {
+                            return (AssociationEnd)elem;
+                        }
+                    }
+                }
+            }
+            
+            refPkg = refPkg.refImmediatePackage();
+        } while(refPkg != null);
+        
+        return null;
     }
 }
 

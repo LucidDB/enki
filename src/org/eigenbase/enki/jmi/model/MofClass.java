@@ -39,11 +39,11 @@ public class MofClass
     // Attribute Fields
     private String name;
     private String annotation;
-    private boolean isRoot;
-    private boolean isLeaf;
-    private boolean isAbstract;
+    private Boolean isRoot;
+    private Boolean isLeaf;
+    private Boolean isAbstract;
     private javax.jmi.model.VisibilityKind visibility;
-    private boolean isSingleton;
+    private Boolean isSingleton;
 
     // Reference Fields
     private javax.jmi.model.DependsOn provider;
@@ -288,6 +288,42 @@ public class MofClass
         return super.findElementsByTypeExtended(
             ofType,
             includeSubtypes);
+    }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+        if (name == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("name");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getQualifiedName().size() < 1) {
+            javax.jmi.model.Attribute attrib = findAttribute("qualifiedName");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (annotation == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("annotation");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (isRoot == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("isRoot");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (isLeaf == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("isLeaf");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (isAbstract == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("isAbstract");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (visibility == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("visibility");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (isSingleton == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("isSingleton");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
     }
 }
 

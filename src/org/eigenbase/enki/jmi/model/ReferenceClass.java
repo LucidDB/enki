@@ -64,6 +64,10 @@ public class ReferenceClass
             multiplicity,
             isChangeable);
     }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+    }
 }
 
 // End ReferenceClass.java

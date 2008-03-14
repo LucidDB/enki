@@ -21,7 +21,6 @@
 */
 package org.eigenbase.enki.hibernate.storage;
 
-import java.util.*;
 import java.util.logging.*;
 
 import org.eigenbase.enki.hibernate.*;
@@ -126,15 +125,6 @@ public abstract class HibernateObject extends RefObjectBase
         
         deleted = true;        
     }
-    
-    /**
-     * Test if the constraints on this object have been met.  Called just
-     * before the object is persisted to the database.
-     * 
-     * @param errors list of errors that the object may add to
-     * @return true if constraints are met, false otherwise
-     */
-    public abstract boolean checkConstraints(List<String> errors);
     
     /**
      * Returns the {@link HibernateMDRepository} that stores this object.

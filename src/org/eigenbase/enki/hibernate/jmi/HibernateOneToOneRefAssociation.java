@@ -47,19 +47,24 @@ public abstract class HibernateOneToOneRefAssociation<E1 extends RefObject, E2 e
         String type,
         String end1Name,
         Class<E1> end1Class,
+        Multiplicity end1Multiplicity,
         String end2Name,
-        Class<E2> end2Class)
+        Class<E2> end2Class,
+        Multiplicity end2Multiplicity)
     {
         super(
             container,
             type,
             end1Name, 
-            Multiplicity.SINGLE,
+            end1Multiplicity,
             end2Name, 
-            Multiplicity.SINGLE);
+            end2Multiplicity);
         
         this.end1Class = end1Class;
         this.end2Class = end2Class;
+        
+        assert(end1Multiplicity.isSingle());
+        assert(end2Multiplicity.isSingle());
     }
 
     /**

@@ -40,9 +40,9 @@ public class Generalizes
         super(
             container,
             "supertype",
-            Multiplicity.UNIQUE_ORDERED_COLLECTION,
+            new Multiplicity(0, -1, true, true),
             "subtype",
-            Multiplicity.UNIQUE_COLLECTION);
+            new Multiplicity(0, -1, false, true));
 
     }
 

@@ -62,8 +62,8 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
             end2Name, 
             end2Multiplicity);
      
-        assert(end1Multiplicity != Multiplicity.SINGLE);
-        assert(end2Multiplicity != Multiplicity.SINGLE);
+        assert(!end1Multiplicity.isSingle());
+        assert(!end2Multiplicity.isSingle());
         
         this.end1Class = end1Class;
         this.end2Class = end2Class;

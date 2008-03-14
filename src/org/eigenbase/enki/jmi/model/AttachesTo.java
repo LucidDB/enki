@@ -40,9 +40,9 @@ public class AttachesTo
         super(
             container,
             "modelElement",
-            Multiplicity.UNIQUE_COLLECTION,
+            new Multiplicity(1, -1, false, true),
             "tag",
-            Multiplicity.UNIQUE_ORDERED_COLLECTION);
+            new Multiplicity(0, -1, true, true));
 
     }
 

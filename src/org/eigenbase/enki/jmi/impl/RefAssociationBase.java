@@ -23,9 +23,11 @@ package org.eigenbase.enki.jmi.impl;
 
 import java.util.*;
 
+import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.mdr.*;
+import org.eigenbase.enki.util.*;
 
 /**
  * RefAssociationBase implements {@link RefAssociation}.  
@@ -248,6 +250,74 @@ public abstract class RefAssociationBase
                 isFirstEnd,
                 links);
         }
+    }
+    
+    @Override
+    protected void checkConstraints(
+        List<JmiException> errors, boolean deepVerify)
+    {
+        Collection<RefAssociationLink> links = 
+            GenericCollections.asTypedCollection(
+                refAllLinks(), RefAssociationLink.class);
+        
+        // check first ends
+        for(RefAssociationLink link: links) {
+            Collection<? extends RefObject> secondEnds = 
+                query(true, link.refFirstEnd());
+
+            if ((secondEnds.isEmpty() && end2Multiplicity.getLower() > 0) ||
+                secondEnds.size() < end2Multiplicity.getLower())
+            {
+                errors.add(
+                    makeWrongSizeException(
+                        findAssociationEnd(end1Name),
+                        findAssociationEnd(end2Name), 
+                        link.refFirstEnd()));
+            }
+        }
+        
+        // check second ends
+        for(RefAssociationLink link: links) {
+            Collection<? extends RefObject> firstEnds = 
+                query(false, link.refSecondEnd());
+            
+            if ((firstEnds.isEmpty() && end1Multiplicity.getLower() > 0) ||
+                firstEnds.size() < end1Multiplicity.getLower())
+            {
+                errors.add(
+                    makeWrongSizeException(
+                        findAssociationEnd(end2Name), 
+                        findAssociationEnd(end1Name),
+                        link.refSecondEnd()));
+            }
+        }
+    }
+    
+    private AssociationEnd findAssociationEnd(String endName)
+    {
+        Association assoc = (Association)refMetaObject();
+        
+        Collection<ModelElement> contents = 
+            GenericCollections.asTypedCollection(
+                assoc.getContents(), ModelElement.class);
+        for(ModelElement elem: contents) {
+            if (elem instanceof AssociationEnd) {
+                if (elem.getName().equals(endName)) {
+                    return (AssociationEnd)elem;
+                }
+            }
+        }
+
+        return null;
+    }
+    
+    public static WrongSizeException makeWrongSizeException(
+        AssociationEnd exposedEnd, AssociationEnd referencedEnd, RefObject obj)
+    {
+        return new WrongSizeException(
+            referencedEnd, 
+            "Not enough objects linked to " + obj.refMofId()
+            + " at end '" + exposedEnd.getName() + "'");
     }
     
     @Override

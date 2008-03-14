@@ -66,6 +66,10 @@ public class CollectionTypeClass
             visibility,
             multiplicity);
     }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+    }
 }
 
 // End CollectionTypeClass.java

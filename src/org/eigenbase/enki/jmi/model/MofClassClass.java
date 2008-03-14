@@ -66,6 +66,10 @@ public class MofClassClass
             visibility,
             isSingleton);
     }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+    }
 }
 
 // End MofClassClass.java

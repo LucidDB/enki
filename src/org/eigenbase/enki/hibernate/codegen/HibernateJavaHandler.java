@@ -140,10 +140,6 @@ public class HibernateJavaHandler
     public static final JavaClassReference ASSOCIATION_TYPE_MAPPER_BASE =
         new JavaClassReference(HibernateAssociationTypeMapper.class, false);
     
-    /** Reference to {@link Multiplicity}. */
-    public static final JavaClassReference MULTIPLICITY_ENUM =
-        new JavaClassReference(Multiplicity.class, true);
-    
     /** Reference to {@link ListProxy}. */
     private static final JavaClassReference LIST_PROXY_CLASS = 
         new JavaClassReference(ListProxy.class, true);
@@ -488,7 +484,7 @@ public class HibernateJavaHandler
                 typeName, 
                 superClass,
                 new String[] { interfaceName }, 
-                JavaClassReference.computeImports(MULTIPLICITY_ENUM),
+                JavaClassReference.computeImports(METAMODEL_INITIALIZER_CLASS),
                 false,
                 ASSOC_IMPL_COMMENT);
         
@@ -528,35 +524,20 @@ public class HibernateJavaHandler
                 new String[] { "container" },
                 true,
                 IMPL_SUFFIX);
-            switch(assocInfo.getKind()) {
-            case ONE_TO_ONE:
-                writeln(
-                    "super(container, ", 
-                    QUOTE, assocInfo.getBaseName(), QUOTE, ", ",
-                    QUOTE, assocInfo.getEndName(0), QUOTE, ", ",
-                    assocInfo.getEndType(0), ".class, ",
-                    QUOTE, assocInfo.getEndName(1), QUOTE, ", ",
-                    assocInfo.getEndType(1), ".class);");
-                break;
-                
-            case ONE_TO_MANY:
-            case MANY_TO_MANY:
-                writeln(
-                    "super(container, ", 
-                    QUOTE, assocInfo.getBaseName(), QUOTE, ", ",
-                    QUOTE, assocInfo.getEndName(0), QUOTE, ", ",
-                    assocInfo.getEndType(0), ".class, ",
-                    MULTIPLICITY_ENUM, ".", 
-                    Multiplicity.fromMultiplicityType(
-                        assocInfo.getEnd(0).getMultiplicity()), ", ",
-                    QUOTE, assocInfo.getEndName(1), QUOTE, ", ",
-                    assocInfo.getEndType(1), ".class, ",
-                    MULTIPLICITY_ENUM, ".", 
-                    Multiplicity.fromMultiplicityType(
-                        assocInfo.getEnd(1).getMultiplicity()),
-                    ");");
-                break;
-            }
+            writeln(
+                "super(container, ", 
+                QUOTE, assocInfo.getBaseName(), QUOTE, ", ",
+                QUOTE, assocInfo.getEndName(0), QUOTE, ", ",
+                assocInfo.getEndType(0), ".class, ",
+                Multiplicity.fromMultiplicityType(
+                    assocInfo.getEnd(0).getMultiplicity())
+                    .toInstantiationString(), ", ",
+                QUOTE, assocInfo.getEndName(1), QUOTE, ", ",
+                assocInfo.getEndType(1), ".class, ",
+                Multiplicity.fromMultiplicityType(
+                    assocInfo.getEnd(1).getMultiplicity())
+                    .toInstantiationString(),
+                ");");
             newLine();
             writeln(
                 METAMODEL_INITIALIZER_CLASS,
@@ -1007,22 +988,12 @@ public class HibernateJavaHandler
                 generateRemoveAssociationMethod(cls, null);
             }
 
-            // TODO: generate constraint checks for association multiplicity
-            // bounds.  E.g., either end of a 1-to-1 may be optional, but
-            // currently they all are because Hibernate won't let us specify
-            // them as not null (inserts with null, then updates).  Check
-            // for not-null here.  Similarly for 1-to-many and many-to-many.            
-            newLine();
-            startBlock(
-                "public boolean checkConstraints(",
-                JAVA_UTIL_LIST_CLASS, 
-                "<String> messages)");
-            writeln("// TODO: implement constraint checking");
-            writeln("return true;");
-            endBlock();
-            
             generateRefImmediateComposite(
                 cls, refInfoMap, unrefAssocRefInfoMap, componentInfoMap);
+            
+            newLine();
+            generateClassInstanceCheckConstraints(
+                instanceAttributes, instanceReferences, nonDataTypeAttribs);
             
             newLine();
             startBlock("protected String getClassIdentifier()");
@@ -2139,6 +2110,7 @@ public class HibernateJavaHandler
         Collection<Attribute> instanceAttributes,
         Map<Attribute, String> nonDerivedAttribNames,
         Set<Attribute> entityTypeAttribs)
+    throws GenerationException
     {
         for(Attribute attrib: instanceAttributes) {
             if (entityTypeAttribs.contains(attrib)) {
@@ -2152,61 +2124,94 @@ public class HibernateJavaHandler
                     "derived attributes not supported");
             }
 
-            // REVIEW: SWZ: 2008-02-06: Since we have two pairs of methods
-            // (one for Hibernate and one for the API), we should:
-            // 1) Make the Hibernate method for boolean types be 
-            //    "getIsFoo$Impl()" instead of "isFoo$Impl()"
-            // 2) Ditch BooleanPropertyAccessor
+            boolean primitiveConversionRequired = false;
+            String internalTypeName = generator.getTypeName(attrib);
+            if (Primitives.isPrimitiveType(internalTypeName)) {
+                internalTypeName = 
+                    Primitives.convertPrimitiveToTypeName(
+                        internalTypeName, true);
+                primitiveConversionRequired = true;
+            }
+            
+            // Hibernate accessor
+            newLine();
+            writeln("// Internal use only");
+            startBlock(
+                "public ",
+                internalTypeName,
+                " ",
+                generator.getAccessorName(attrib, false),
+                IMPL_SUFFIX,
+                "()");
+            writeln("return ", fieldName, ";");
+            endBlock();
+            
+            // Hibernate mutator. Some attributes are not 
+            // changeable, but Hibernate will use this method to
+            // set the value at load time.  This method isn't in the
+            // class instance interface.
+            newLine();
+            writeln("// Internal use only");
+            startBlock(
+                "public void ",
+                generator.getMutatorName(attrib, false), IMPL_SUFFIX,
+                "(", internalTypeName, " newValue)");
+            writeln("this.", fieldName, " = newValue;");
+            endBlock();
             
             int upper = attrib.getMultiplicity().getUpper();
             if (upper == 1) {
-                // Hibernate accessor
-                newLine();
-                writeln("// Internal use only");
-                startAccessorBlock(attrib, IMPL_SUFFIX);
-                writeln("return ", fieldName, ";");
-                endBlock();
-                
                 // Public API accessor
                 newLine();
                 startAccessorBlock(attrib);
-                writeln(
-                    "return ", 
-                    generator.getAccessorName(attrib), IMPL_SUFFIX, "();");
-                endBlock();
                 
-                // Hibernate mutator. Some attributes are not 
-                // changeable, but Hibernate will use this method to
-                // set the value at load time.  This method isn't in the
-                // class instance interface.
-                newLine();
-                writeln("// Internal use only");
-                startMutatorBlock(attrib, IMPL_SUFFIX);
-                writeln("this.", fieldName, " = newValue;");
+                if (primitiveConversionRequired) {
+                    writeln(
+                        internalTypeName, " value = ", 
+                        generator.getAccessorName(attrib, false), 
+                        IMPL_SUFFIX, 
+                        "();");
+                    startConditionalBlock(CondType.IF, "value == null");
+                    String primTypeName = 
+                        Primitives.convertTypeNameToPrimitive(
+                            internalTypeName);
+                    writeln(
+                        "return ", 
+                        Primitives.getPrimitiveDefaultLiteral(primTypeName),
+                        ";");
+                    endBlock();
+                    // let the JVM unbox it
+                    writeln("return value;");
+                } else {
+                    writeln(
+                        "return ", 
+                        generator.getAccessorName(attrib, false), 
+                        IMPL_SUFFIX,
+                        "();");
+                }
                 endBlock();
                 
                 // Public API mutator (if any).
                 if (attrib.isChangeable()) {
                     newLine();
                     startMutatorBlock(attrib);
+                    // Fire event using the value from the API method so that
+                    // un-set primitives are converted to numbers. 
                     writeln(
                         "super.fireAttributeSetEvent(",
                         QUOTE, attrib.getName(), QUOTE, ", ",
-                        generator.getAccessorName(attrib), 
-                        IMPL_SUFFIX, "(), newValue);");
+                        generator.getAccessorName(attrib, true), 
+                        "(), newValue);");
                     writeln(
-                        generator.getMutatorName(attrib), 
+                        generator.getMutatorName(attrib, false), 
                         IMPL_SUFFIX,
                         "(newValue);");
                     endBlock();
                 }
-            } else if (upper != 0) {
-                // Hibernate accessor
-                newLine();
-                writeln("// Internal use only");
-                startAccessorBlock(attrib, IMPL_SUFFIX);
-                writeln("return ", fieldName, ";");
-                endBlock();
+            } else {
+                if (upper == 0 || upper < -1) {
+                    throw new GenerationException("bad upper value: " + upper);
+                }
 
                 // Public API accessor
                 boolean isOrdered = attrib.getMultiplicity().isOrdered();
@@ -2222,7 +2227,8 @@ public class HibernateJavaHandler
                             "<", generator.getTypeName(attrib.getType()), ">",
                             "(this, ", 
                             QUOTE, attrib.getName(), QUOTE, ", ",
-                            generator.getAccessorName(attrib), IMPL_SUFFIX, 
+                            generator.getAccessorName(attrib, false), 
+                            IMPL_SUFFIX, 
                             "());");
                     } else {
                         writeln(
@@ -2231,7 +2237,8 @@ public class HibernateJavaHandler
                             "<", generator.getTypeName(attrib.getType()), ">",
                             "(this, ", 
                             QUOTE, attrib.getName(), QUOTE, ", ",
-                            generator.getAccessorName(attrib), IMPL_SUFFIX, 
+                            generator.getAccessorName(attrib, false), 
+                            IMPL_SUFFIX, 
                             "());");
                     }
                 } else {
@@ -2240,29 +2247,121 @@ public class HibernateJavaHandler
                             "return ", 
                             JAVA_UTIL_COLLECTIONS_CLASS, 
                             ".unmodifiableList(", 
-                            generator.getAccessorName(attrib), IMPL_SUFFIX,
+                            generator.getAccessorName(attrib, false),
+                            IMPL_SUFFIX,
                             "());");
                     } else {
                         writeln(
                             "return ",
                             JAVA_UTIL_COLLECTIONS_CLASS, 
                             ".unmodifiableSet(",
-                            generator.getAccessorName(attrib), IMPL_SUFFIX,
+                            generator.getAccessorName(attrib, false),
+                            IMPL_SUFFIX,
                             "());");                            
                     }
                 }
                 endBlock();
-                
-                // Hibernate mutator. Hibernate will use this method to
-                // set the value at load time.  This method isn't in the
-                // class instance interface.
-                newLine();
-                writeln("// Internal use only");
-                startMutatorBlock(attrib, IMPL_SUFFIX);
-                writeln("this.", fieldName, " = newValue;");
-                endBlock();
             }
         }
+    }
+
+    private void generateClassInstanceCheckConstraints(
+        Collection<Attribute> attribs, 
+        Collection<Reference> refs,
+        Set<Attribute> componentAttribs)
+    {
+        startBlock(
+            "protected void checkConstraints(",
+            JAVA_UTIL_LIST_CLASS, 
+            "<", JavaHandlerBase.JMI_EXCEPTION_CLASS, "> errors, ",
+            "boolean deepVerify)");
+        
+        // NOTE: These checks are equivalent to Netbeans implementation.
+        // More could be tested.
+        
+        for(Attribute attrib: attribs) {
+            int lower = attrib.getMultiplicity().getLower(); 
+            int upper = attrib.getMultiplicity().getUpper();
+            if (lower == 1 && upper == 1) {
+                // Check component attributes via public API (let it handle the
+                // magic of lookup), otherwise do it via the internal accessor.
+                String suffix = "";
+                if (!componentAttribs.contains(attrib)) {
+                    suffix = IMPL_SUFFIX;
+                }
+                
+                startConditionalBlock(
+                    CondType.IF, 
+                    generator.getAccessorName(attrib, false), 
+                    suffix, 
+                    "() == null");
+            } else if (upper != 1 && lower > 0) {
+                // Check that lower-bounded multi-value attribute meets lower
+                // bound
+                startConditionalBlock(
+                    CondType.IF, 
+                    generator.getAccessorName(attrib, false), "().size() < ",
+                    lower);
+            } else {
+                continue;
+            }
+            
+            // Find attribute.
+            JavaClassReference ATTRIBUTE_CLASS = 
+                new JavaClassReference(Attribute.class, false);
+            writeln(
+                ATTRIBUTE_CLASS, " attrib = findAttribute(",
+                QUOTE, attrib.getName(), QUOTE, ");");
+            writeln(
+                "errors.add(new ", 
+                JavaHandlerBase.WRONG_SIZE_EXCEPTION_CLASS,
+                "(attrib));");
+            endBlock();
+        }
+        
+        for(Reference ref: refs) {
+            int lower = ref.getMultiplicity().getLower(); 
+            int upper = ref.getMultiplicity().getUpper();
+            
+            if (lower == 1 && upper == 1) {
+                // Check that required single-value attribute has a value.
+                startConditionalBlock(
+                    CondType.IF, 
+                    generator.getAccessorName(ref), "() == null");
+            } else if (upper != 1 && lower > 0) {
+                // Check that lower-bounded multi-value attribute meets lower
+                // bound
+                startConditionalBlock(
+                    CondType.IF, 
+                    generator.getAccessorName(ref), "().size() < ", lower);
+            } else {
+                continue;
+            }
+
+            AssociationEnd exposedEnd = ref.getExposedEnd();
+            String assocName = exposedEnd.getContainer().getName();
+            String exposedEndName = exposedEnd.getName();
+            String referencedEndName = ref.getReferencedEnd().getName();
+            JavaClassReference ASSOCIATION_END_CLASS = 
+                new JavaClassReference(AssociationEnd.class, false);
+            JavaClassReference REF_ASSOCIATION_BASE_CLASS = 
+                new JavaClassReference(RefAssociationBase.class, false);
+            writeln(
+                ASSOCIATION_END_CLASS, " exposedEnd = findAssociationEnd(", 
+                QUOTE, assocName, QUOTE, ", ", 
+                QUOTE, exposedEndName, QUOTE, ");");
+            writeln(
+                ASSOCIATION_END_CLASS, " referencedEnd = findAssociationEnd(", 
+                QUOTE, assocName, QUOTE, ", ", 
+                QUOTE, referencedEndName, QUOTE, ");");
+            writeln(
+                "errors.add(", 
+                REF_ASSOCIATION_BASE_CLASS,
+                ".makeWrongSizeException(exposedEnd, referencedEnd, this));");
+            endBlock();
+        }
+        
+        endBlock();
     }
 
     public void generateClassProxy(MofClass cls)
@@ -2414,6 +2513,9 @@ public class HibernateJavaHandler
                 }
             }
 
+            newLine();
+            writeCheckConstraints();
+            
             newLine();
             startBlock("protected String getClassIdentifier()");
             writeln("return _id;");
@@ -2718,6 +2820,9 @@ public class HibernateJavaHandler
                 endBlock();
                 newLine();
             }
+            
+            newLine();
+            writeCheckConstraints();
             
             writeEntityFooter();
         }

@@ -662,11 +662,25 @@ public abstract class GeneratorBase implements Generator
     // implements Generator
     public String getAccessorName(StructuralFeature feature)
     {
-        return getAccessorName(feature, feature.getMultiplicity());
+        return getAccessorName(feature, feature.getMultiplicity(), true);
     }
     
     // implements Generator
     public String getAccessorName(TypedElement elem, MultiplicityType mult)
+    {
+        return getAccessorName(elem, mult, true);
+    }
+    
+    // implements Generator
+    public String getAccessorName(
+        StructuralFeature feature, boolean specialCaseBooleans)
+    {
+        return getAccessorName(
+            feature, feature.getMultiplicity(), specialCaseBooleans);
+    }
+    // implements Generator
+    public String getAccessorName(
+        TypedElement elem, MultiplicityType mult, boolean specialCaseBooleans)
     {
         Classifier attribType = elem.getType();
         if (attribType instanceof AliasType) {
@@ -685,7 +699,8 @@ public abstract class GeneratorBase implements Generator
         // Upper bound -1 means infinity.
         if (mult == null || mult.getUpper() == 1) {
                 
-            if (attribType instanceof PrimitiveType && 
+            if (specialCaseBooleans &&
+                attribType instanceof PrimitiveType && 
                 attribType.getName().equals("Boolean"))
             {
                 
@@ -708,6 +723,13 @@ public abstract class GeneratorBase implements Generator
     // implements Generator
     public String getMutatorName(StructuralFeature feature)
     {
+        return getMutatorName(feature, true);
+    }
+    
+    // implements Generator
+    public String getMutatorName(
+        StructuralFeature feature, boolean specialCaseBooleans)
+    {
         Classifier attribType = feature.getType();
         if (attribType instanceof AliasType) {
             attribType = ((AliasType)attribType).getType();
@@ -723,6 +745,7 @@ public abstract class GeneratorBase implements Generator
         String mutatorName = null;
 
         if (feature.getMultiplicity().getUpper() == 1 &&
+            specialCaseBooleans &&
             attribType instanceof PrimitiveType &&
             attribType.getName().equals("Boolean") &&
             baseName.startsWith("Is"))

@@ -51,8 +51,8 @@ public class DependsOnBase extends RefAssociationBase
         super(
             container, end1Name, end1Multiplicity, end2Name, end2Multiplicity);
 
-        assert(end1Multiplicity == Multiplicity.UNIQUE_COLLECTION);
-        assert(end2Multiplicity == Multiplicity.UNIQUE_COLLECTION);
+        assert(!end1Multiplicity.isSingle() && end1Multiplicity.isUnique());
+        assert(!end2Multiplicity.isSingle() && end2Multiplicity.isUnique());
         assert(end1Name.equals(DEPENDENT_END_NAME));
         assert(end2Name.equals(PROVIDER_END_NAME));
     }

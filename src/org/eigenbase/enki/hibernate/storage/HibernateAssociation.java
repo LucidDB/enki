@@ -122,11 +122,6 @@ public abstract class HibernateAssociation extends HibernateObject
      */
     protected abstract List<HibernateAssociable> get(HibernateAssociable item);
     
-    public boolean checkConstraints(List<String> errors)
-    {
-        return true;
-    }
-    
     /**
      * Test two HibernateAssociable objects for equality.  Equality is based
      * on {@link Object#equals(Object)}.  Null references are handled without
@@ -241,6 +236,15 @@ public abstract class HibernateAssociation extends HibernateObject
         HibernateAssociable end)
     {
         return ((HibernateObject)end).getHibernateRepository();
+    }
+    
+    @Override
+    protected final void checkConstraints(
+        List<JmiException> errors, boolean deepVerify)
+    {
+        // HibernateAssociation is a HibernateObject, but really isn't meant
+        // to be a HibernateObject, and so this method should not be called.
+        throw new IllegalStateException();
     }
 }
 

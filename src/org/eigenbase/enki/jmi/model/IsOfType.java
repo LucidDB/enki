@@ -40,9 +40,9 @@ public class IsOfType
         super(
             container,
             "type",
-            Multiplicity.SINGLE,
+            new Multiplicity(1, 1, false, false),
             "typedElements",
-            Multiplicity.UNIQUE_COLLECTION);
+            new Multiplicity(0, -1, false, true));
 
     }
 

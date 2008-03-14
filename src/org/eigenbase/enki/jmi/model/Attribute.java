@@ -42,8 +42,8 @@ public class Attribute
     private javax.jmi.model.ScopeKind scope;
     private javax.jmi.model.VisibilityKind visibility;
     private javax.jmi.model.MultiplicityType multiplicity;
-    private boolean isChangeable;
-    private boolean isDerived;
+    private Boolean isChangeable;
+    private Boolean isDerived;
 
     // Reference Fields
     private javax.jmi.model.DependsOn provider;
@@ -226,6 +226,47 @@ public class Attribute
     {
         return super.isVisible(
             otherElement);
+    }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+        if (name == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("name");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getQualifiedName().size() < 1) {
+            javax.jmi.model.Attribute attrib = findAttribute("qualifiedName");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (annotation == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("annotation");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (scope == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("scope");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (visibility == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("visibility");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (multiplicity == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("multiplicity");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (isChangeable == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("isChangeable");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (isDerived == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("isDerived");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getType() == null) {
+            javax.jmi.model.AssociationEnd exposedEnd = findAssociationEnd("IsOfType", "typedElements");
+            javax.jmi.model.AssociationEnd referencedEnd = findAssociationEnd("IsOfType", "type");
+            errors.add(org.eigenbase.enki.jmi.impl.RefAssociationBase.makeWrongSizeException(exposedEnd, referencedEnd, this));
+        }
     }
 }
 

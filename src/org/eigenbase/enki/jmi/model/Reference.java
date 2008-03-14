@@ -42,7 +42,7 @@ public class Reference
     private javax.jmi.model.ScopeKind scope;
     private javax.jmi.model.VisibilityKind visibility;
     private javax.jmi.model.MultiplicityType multiplicity;
-    private boolean isChangeable;
+    private Boolean isChangeable;
 
     // Reference Fields
     private javax.jmi.model.DependsOn provider;
@@ -237,6 +237,53 @@ public class Reference
     {
         return super.isVisible(
             otherElement);
+    }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+        if (name == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("name");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getQualifiedName().size() < 1) {
+            javax.jmi.model.Attribute attrib = findAttribute("qualifiedName");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (annotation == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("annotation");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (scope == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("scope");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (visibility == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("visibility");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (multiplicity == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("multiplicity");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (isChangeable == null) {
+            javax.jmi.model.Attribute attrib = findAttribute("isChangeable");
+            errors.add(new javax.jmi.reflect.WrongSizeException(attrib));
+        }
+        if (getType() == null) {
+            javax.jmi.model.AssociationEnd exposedEnd = findAssociationEnd("IsOfType", "typedElements");
+            javax.jmi.model.AssociationEnd referencedEnd = findAssociationEnd("IsOfType", "type");
+            errors.add(org.eigenbase.enki.jmi.impl.RefAssociationBase.makeWrongSizeException(exposedEnd, referencedEnd, this));
+        }
+        if (getExposedEnd() == null) {
+            javax.jmi.model.AssociationEnd exposedEnd = findAssociationEnd("Exposes", "referrer");
+            javax.jmi.model.AssociationEnd referencedEnd = findAssociationEnd("Exposes", "exposedEnd");
+            errors.add(org.eigenbase.enki.jmi.impl.RefAssociationBase.makeWrongSizeException(exposedEnd, referencedEnd, this));
+        }
+        if (getReferencedEnd() == null) {
+            javax.jmi.model.AssociationEnd exposedEnd = findAssociationEnd("RefersTo", "referent");
+            javax.jmi.model.AssociationEnd referencedEnd = findAssociationEnd("RefersTo", "referencedEnd");
+            errors.add(org.eigenbase.enki.jmi.impl.RefAssociationBase.makeWrongSizeException(exposedEnd, referencedEnd, this));
+        }
     }
 }
 

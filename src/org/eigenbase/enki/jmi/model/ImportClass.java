@@ -60,6 +60,10 @@ public class ImportClass
             visibility,
             isClustered);
     }
+
+    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    {
+    }
 }
 
 // End ImportClass.java
