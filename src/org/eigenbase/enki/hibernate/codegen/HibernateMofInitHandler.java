@@ -123,6 +123,12 @@ public class HibernateMofInitHandler extends MofInitHandler
             }
         }
         
+        if (initializerPackage == null) {
+            throw new GenerationException(
+                "Unable to find initializer package name; included packages: " 
+                + getIncludedPackages());
+        }
+        
         super.beginGeneration();
         
         generalizes = modelPackage.getGeneralizes();
@@ -172,12 +178,7 @@ public class HibernateMofInitHandler extends MofInitHandler
         }
         
         if (foundComponentAttrib) {
-            String simpleTypeName = generator.getSimpleTypeName(cls);
-            String implTypeName = 
-                generator.getTypeName(cls) + 
-                HibernateJavaHandler.IMPL_SUFFIX;
-            
-            typeMap.put(implTypeName, simpleTypeName);
+            mapAllSubtypes(cls);
         }
     }
 

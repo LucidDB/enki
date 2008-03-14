@@ -61,7 +61,7 @@ public abstract class HandlerBase implements Handler
     private PrintStream output;
     
     /** List of included packages. */
-    private List<String> includedPackages;
+    private Set<String> includedPackages;
     
     /** Current output encoding. */
     protected String encoding;
@@ -91,6 +91,7 @@ public abstract class HandlerBase implements Handler
     public HandlerBase()
     {
         this.passIndex = -1;
+        this.includedPackages = Collections.emptySet();
     }
 
     public void setGenerator(Generator generator)
@@ -116,19 +117,23 @@ public abstract class HandlerBase implements Handler
      * If un-called the Handler defaults to including all packages.  Packages
      * are passed by name, in Java convention (e.g. "eem.sample.special").
      * 
-     * @param includedPackages list of package to include 
-     *                         (null means include all)
+     * @param includedPackagesInit collection of packages to include 
+     *                             (null means include all)
      */
-    public void setIncludes(List<String> includedPackages)
+    public void setIncludes(Collection<String> includedPackagesInit)
     {
-        if (includedPackages == null) {
-            this.includedPackages = null;
-            return;
+        if (includedPackagesInit != null && !includedPackagesInit.isEmpty()) {
+            this.includedPackages = new TreeSet<String>(includedPackagesInit);
+        } else {
+            this.includedPackages = Collections.emptySet();
         }
-        
-        this.includedPackages = new ArrayList<String>(includedPackages);
     }
     
+    public void setPluginMode(boolean pluginMode)
+    {
+        this.pluginMode = pluginMode;
+    }
+
     // Implement Handler
     public void beginGeneration() throws GenerationException
     {
@@ -181,17 +186,27 @@ public abstract class HandlerBase implements Handler
     
     protected boolean isIncluded(ModelElement elem)
     {
-        if (includedPackages == null) {
+        if (includedPackages.isEmpty()) {
             return true;
         }
         
         String typeName = generator.getTypeName(elem);
-        int lastDot = typeName.lastIndexOf('.');
-        if (lastDot > 0) {
+        
+        int lastDot;
+        while((lastDot = typeName.lastIndexOf('.')) > 0) {
             typeName = typeName.substring(0, lastDot);
+            
+            if (includedPackages.contains(typeName)) {
+                return true;
+            }
         }
         
-        return includedPackages.contains(typeName);
+        return false;
+    }
+    
+    protected Collection<String> getIncludedPackages()
+    {
+        return Collections.unmodifiableCollection(includedPackages);
     }
     
     protected void open(File file) throws GenerationException
@@ -749,11 +764,6 @@ public abstract class HandlerBase implements Handler
             cls.getName() + "): " + desc + ": " + value);
     }
     
-    public void setPluginMode(boolean pluginMode)
-    {
-        this.pluginMode = pluginMode;
-    }
-
     /**
      * HierarchySearchKindEnum is used as a flag to control methods that may
      * either search only a given entity or the entity and its super types.

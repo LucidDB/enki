@@ -563,7 +563,12 @@ public class MofInitHandler
                     (Classifier)otherEnd.refClass().refMetaObject();            
                 String otherEndFieldName= makeVarName(otherEndCls);
                 int otherEndIndex = indexMap.get(otherEnd);
-                boolean otherEndIncluded = isIncluded((ModelElement)otherEnd);
+                boolean otherEndIncluded;
+                if (otherEnd instanceof Tag) {
+                    otherEndIncluded = queryEndIncluded;
+                } else {
+                    otherEndIncluded = isIncluded((ModelElement)otherEnd);
+                }
 
                 if (!pluginMode && (!queryEndIncluded || !otherEndIncluded)) {
                     // Normal mode, but one end or the other is not included,

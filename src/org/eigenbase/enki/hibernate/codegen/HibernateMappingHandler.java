@@ -979,31 +979,11 @@ public class HibernateMappingHandler
     public void generateAssociation(Association assoc) 
         throws GenerationException
     {
-        if (!isIncluded(assoc)) {
-            log.fine(
-                "Skipping Excluded Association Mapping for '" 
-                + assoc.getName() + "'");
-            return;
-        }
-
         if (getPassIndex() == 0) {
             AssociationInfo assocInfo = 
                 new AssociationInfoImpl(generator, assoc);
             assocInfoMap.put(assoc, assocInfo);
-
-            return;
         }
-        
-        if (HibernateCodeGenUtils.isTransient(assoc)) {
-            log.fine(
-                "Skipping Transient Association Mapping for '" 
-                + assoc.getName() + "'");
-            return;
-        }
-        
-        String interfaceName = generator.getTypeName(assoc);
-        
-        log.fine("Analyzing Association Mapping '" + interfaceName + "'");
     }
 
     public void generateEnumerationClass(EnumerationType enumType)

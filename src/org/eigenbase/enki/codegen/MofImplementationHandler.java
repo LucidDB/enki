@@ -39,7 +39,7 @@ public class MofImplementationHandler
     }
     
     @Override
-    public void setIncludes(List<String> includedPackages)
+    public void setIncludes(Collection<String> includedPackages)
     {
         throw new UnsupportedOperationException(
             "MofImplementatinHandler does not support explicit package inclusion");

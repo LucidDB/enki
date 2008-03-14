@@ -1380,57 +1380,88 @@ public class HibernateMDRepository
     private void initModelStorage(ModelDescriptor modelDesc)
     throws EnkiCreationFailedException
     {
-        Configuration config = newConfiguration();
-        
-        configureMappings(config, modelDesc);
+        ClassLoader contextClassLoader = null;
+        if (classLoader != null) {
+            contextClassLoader = 
+                Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(classLoader);
+        }
 
-        log.info("Validating schema for model '" + modelDesc.name + "'");
-
-        SchemaValidator validator = new SchemaValidator(config);
         try {
-            validator.validate();
+            Configuration config = newConfiguration();
             
-            return;
-        } catch(HibernateException e) {
-            log.log(
-                Level.FINE,
-                "Schema validation error for model '" + modelDesc.name + "'",
-                e);
+            configureMappings(config, modelDesc);
+    
+            log.info("Validating schema for model '" + modelDesc.name + "'");
+    
+            SchemaValidator validator = new SchemaValidator(config);
+            try {
+                validator.validate();
+                
+                return;
+            } catch(HibernateException e) {
+                log.log(
+                    Level.FINE,
+                    "Schema validation error for model '" 
+                    + modelDesc.name + "'",
+                    e);
+            }
+            
+            log.info("Updating schema for model '" + modelDesc.name + "'");
+            
+            SchemaUpdate update = new SchemaUpdate(config);
+            update.execute(false, true);
+            
+            List<?> exceptions = update.getExceptions();
+            if (exceptions != null && !exceptions.isEmpty()) {
+                throw new EnkiCreationFailedException(
+                    "Schema update for model '" + modelDesc.name + 
+                    "' failed (cause is first exception)",
+                    (Throwable)exceptions.get(0));
+    
+            }
         }
-        
-        log.info("Updating schema for model '" + modelDesc.name + "'");
-        
-        SchemaUpdate update = new SchemaUpdate(config);
-        update.execute(false, true);
-        
-        List<?> exceptions = update.getExceptions();
-        if (exceptions != null && !exceptions.isEmpty()) {
-            throw new EnkiCreationFailedException(
-                "Schema update for model '" + modelDesc.name + 
-                "' failed (cause is first exception)",
-                (Throwable)exceptions.get(0));
-
-        }
+        finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(
+                    contextClassLoader);                
+            }
+        }            
     }
     
     private void dropModelStorage(ModelDescriptor modelDesc)
         throws EnkiDropFailedException
     {
-        Configuration config = newConfiguration(false);
-        
-        configureMappings(config, modelDesc);
-
-        log.info("Dropping schema for model '" + modelDesc.name + "'");
-        
-        SchemaExport export = new SchemaExport(config);
-        export.drop(false, true);        
-        List<?> exceptions = export.getExceptions();
-        if (exceptions != null && !exceptions.isEmpty()) {
-            throw new EnkiDropFailedException(
-                "Schema drop for model '" + modelDesc.name + 
-                "' failed (cause is first exception)",
-                (Throwable)exceptions.get(0));
+        ClassLoader contextClassLoader = null;
+        if (classLoader != null) {
+            contextClassLoader = 
+                Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(classLoader);
         }
+
+        try {
+            Configuration config = newConfiguration(false);
+            
+            configureMappings(config, modelDesc);
+    
+            log.info("Dropping schema for model '" + modelDesc.name + "'");
+            
+            SchemaExport export = new SchemaExport(config);
+            export.drop(false, true);        
+            List<?> exceptions = export.getExceptions();
+            if (exceptions != null && !exceptions.isEmpty()) {
+                throw new EnkiDropFailedException(
+                    "Schema drop for model '" + modelDesc.name + 
+                    "' failed (cause is first exception)",
+                    (Throwable)exceptions.get(0));
+            }
+        }
+        finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(
+                    contextClassLoader);                
+            }
+        }            
     }
     
     private void configureMappings(

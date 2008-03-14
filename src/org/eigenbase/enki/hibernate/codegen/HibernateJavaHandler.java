@@ -449,6 +449,12 @@ public class HibernateJavaHandler
         if (!isIncluded(assoc)) {
             log.fine(
                 "Skipping Excluded Association '" + assoc.getName() + "'");
+            
+            if (getPassIndex() == 0) {
+                AssociationInfo assocInfo = 
+                    new AssociationInfoImpl(generator, assoc);
+                assocInfoMap.put(assoc, assocInfo);
+            }
             return;
         }
         

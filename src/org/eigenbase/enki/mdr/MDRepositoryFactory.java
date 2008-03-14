@@ -22,6 +22,7 @@
 package org.eigenbase.enki.mdr;
 
 import java.io.*;
+import java.lang.reflect.*;
 import java.net.*;
 import java.util.*;
 import java.util.logging.*;
@@ -206,8 +207,23 @@ public class MDRepositoryFactory
         List<Properties> modelProperties,
         ClassLoader classLoader)
     {
-        return new HibernateMDRepository(
-            modelProperties, storageProps, classLoader);
+        ClassLoader contextClassLoader = null;
+        if (classLoader != null) {
+            contextClassLoader = 
+                Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(classLoader);
+        }
+
+        try {
+            return new HibernateMDRepository(
+                modelProperties, storageProps, classLoader);
+        }
+        finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(
+                    contextClassLoader);                
+            }
+        }
     }
 
     private static List<Properties> loadRepositoryProperties(
