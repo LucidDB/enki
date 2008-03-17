@@ -488,7 +488,7 @@ public abstract class RefBaseObjectBase implements RefBaseObject
      * 
      * @return the EnkiMDRepository that stores this object
      */
-    protected abstract EnkiMDRepository getRepository();
+    public abstract EnkiMDRepository getRepository();
 }
 
 // End RefBaseObjectBase.java

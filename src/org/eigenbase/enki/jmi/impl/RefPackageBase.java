@@ -175,7 +175,7 @@ public abstract class RefPackageBase
     }
     
     @Override
-    protected EnkiMDRepository getRepository()
+    public EnkiMDRepository getRepository()
     {
         return repos;
     }

@@ -551,7 +551,7 @@ public abstract class RefObjectBase
     }
     
     @Override
-    protected EnkiMDRepository getRepository()
+    public EnkiMDRepository getRepository()
     {
         return ((RefClassBase)refClass()).getRepository();
     }
@@ -597,23 +597,18 @@ public abstract class RefObjectBase
         return null;
     }
 
-    /**
-     * Helper method for {@link #checkConstraints(List, boolean)} 
-     * implementations.  Finds the named AssociationEnd in the named
-     * Association.
-     * 
-     * @param name the association's name
-     * @param endName the association end's name
-     * @return the AssociationEnd representing the association end or null if 
-     *         not found
-     */
-    protected AssociationEnd findAssociationEnd(String name, String endName)
+    protected AssociationEnd findAssociationEnd(
+        String assocName, String endName)
     {
+        // REVIEW: SWZ: 3/17/08: This only works for the MOF model (where
+        // all the associations are in one package).  In general, an 
+        // association need not live in an immediate package of either end's
+        // class.
         RefPackage refPkg = refClass().refImmediatePackage();
         
         do {
-            RefAssociation refAssoc = refPkg.refAssociation(name);
-            if (refAssoc != null) {
+            try {
+                RefAssociation refAssoc = refPkg.refAssociation(assocName);
                 Association assoc = (Association)refAssoc.refMetaObject();
                 
                 Collection<ModelElement> contents = 
@@ -626,6 +621,8 @@ public abstract class RefObjectBase
                         }
                     }
                 }
+            } catch(InvalidNameException e) {
+                // Ignored -- we'll try the parent package.
             }
             
             refPkg = refPkg.refImmediatePackage();

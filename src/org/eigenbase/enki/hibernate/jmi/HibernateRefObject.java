@@ -23,10 +23,13 @@ package org.eigenbase.enki.hibernate.jmi;
 
 import java.util.*;
 
+import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.hibernate.storage.*;
+import org.eigenbase.enki.mdr.*;
+import org.eigenbase.enki.util.*;
 import org.netbeans.api.mdr.events.*;
 
 /**
@@ -39,11 +42,17 @@ public abstract class HibernateRefObject
     extends HibernateObject
     implements RefObject
 {
+    private final HibernateMDRepository repos;
+    
+    public HibernateRefObject()
+    {
+        this.repos = HibernateMDRepository.getCurrentRepository();
+    }
+    
     @Override
     public RefClass refClass()
     {
-        return HibernateRefClassRegistry.instance().findRefClass(
-            getClassIdentifier());
+        return getHibernateRepository().findRefClass(getClassIdentifier());
     }
     
     @Override
@@ -87,9 +96,7 @@ public abstract class HibernateRefObject
         
         HibernateRefAssociation refAssoc = null;
         if (refAssocId != null) {
-            refAssoc = 
-                HibernateRefAssociationRegistry.instance().findRefAssociation(
-                    refAssocId);
+            refAssoc = getHibernateRepository().findRefAssociation(refAssocId);
         }
 
         HibernateAssociable me = (HibernateAssociable)this;
@@ -195,9 +202,6 @@ public abstract class HibernateRefObject
                 fireAttributeSetEvent(attribName, end, null);
             }
             
-            // REVIEW: SWZ: 2008-02-07: Does setting a component attribute 
-            // to null (e.g., phoneNumber.setAreaCode(null) cause the AreaCode 
-            // to be deleted?  Here we assume no.
             assoc.removeAll(me, false);
         }
     }
@@ -225,8 +229,7 @@ public abstract class HibernateRefObject
         HibernateAssociation assoc)
     {
         HibernateRefAssociation refAssoc = 
-            HibernateRefAssociationRegistry.instance().findRefAssociation(
-                refAssocId);
+            getHibernateRepository().findRefAssociation(refAssocId);
         
         List<? extends RefObject> otherEnds = assoc.query(isExposedEndFirst);
         for(int i = 0; i < otherEnds.size(); i++) {
@@ -238,5 +241,50 @@ public abstract class HibernateRefObject
     private void enqueueEvent(MDRChangeEvent event)
     {
         ((HibernateMDRepository)getRepository()).enqueueEvent(event);
+    }
+    
+    /**
+     * Helper method for {@link #checkConstraints(List, boolean)} 
+     * implementations.  Finds the named AssociationEnd in the named
+     * Association.
+     * 
+     * @param refAssocId the association's identifier
+     * @param endName the association end's name
+     * @return the AssociationEnd representing the association end or null if 
+     *         not found
+     */
+    protected AssociationEnd findAssociationEnd(
+        String refAssocId, String endName)
+    {
+        RefAssociation refAssoc = 
+            getHibernateRepository().findRefAssociation(refAssocId);
+        assert(refAssoc != null);
+        
+        Association assoc = (Association)refAssoc.refMetaObject();
+                
+        Collection<ModelElement> contents = 
+            GenericCollections.asTypedCollection(
+                assoc.getContents(), ModelElement.class);
+        for(ModelElement elem: contents) {
+            if (elem instanceof AssociationEnd) {
+                if (elem.getName().equals(endName)) {
+                    return (AssociationEnd)elem;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    @Override
+    public final EnkiMDRepository getRepository()
+    {
+        return repos;
+    }
+    
+    @Override
+    public final HibernateMDRepository getHibernateRepository()
+    {
+        return repos;
     }
 }

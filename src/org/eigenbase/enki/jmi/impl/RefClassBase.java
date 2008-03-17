@@ -92,7 +92,7 @@ public abstract class RefClassBase extends RefFeaturedBase implements RefClass
     }
     
     @Override
-    protected EnkiMDRepository getRepository()
+    public EnkiMDRepository getRepository()
     {
         return repos;
     }

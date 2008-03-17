@@ -101,8 +101,7 @@ public abstract class HibernateRefPackage
             return;
         }
         
-        HibernateRefAssociationRegistry refAssocRegistry = 
-            HibernateRefAssociationRegistry.instance();
+        HibernateMDRepository repos = getHibernateRepository();
         for(RefAssociation refAssociation:
             GenericCollections.asTypedCollection(
                 refAllAssociations(), RefAssociation.class))
@@ -110,21 +109,18 @@ public abstract class HibernateRefPackage
             if (refAssociation instanceof HibernateRefAssociation) {
                 HibernateRefAssociation hibRefAssociation =
                     (HibernateRefAssociation)refAssociation;
-                refAssocRegistry.unregisterRefAssociation(
+                repos.unregisterRefAssociation(
                     hibRefAssociation.getAssociationIdentifier());
             }
         }
         
-        HibernateRefClassRegistry refClassRegistry =
-            HibernateRefClassRegistry.instance();
         for(RefClass refClass: 
             GenericCollections.asTypedCollection(
                 refAllClasses(), RefClass.class))
         {
             if (refClass instanceof HibernateRefClass) {
                 HibernateRefClass hibRefClass = (HibernateRefClass)refClass;
-                refClassRegistry.unregisterRefClass(
-                    hibRefClass.getClassIdentifier());
+                repos.unregisterRefClass(hibRefClass.getClassIdentifier());
             }
         }
     }

@@ -133,7 +133,7 @@ public abstract class HibernateObject extends RefObjectBase
      * 
      * @return the HibernateMDRepository that stores this object.
      */
-    protected HibernateMDRepository getHibernateRepository()
+    public HibernateMDRepository getHibernateRepository()
     {
         return (HibernateMDRepository)getRepository();
     }

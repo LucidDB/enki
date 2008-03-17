@@ -317,11 +317,11 @@ public abstract class RefAssociationBase
         return new WrongSizeException(
             referencedEnd, 
             "Not enough objects linked to " + obj.refMofId()
-            + " at end '" + exposedEnd.getName() + "'");
+            + " at end '" + exposedEnd.getName() + "'.");
     }
     
     @Override
-    protected EnkiMDRepository getRepository()
+    public EnkiMDRepository getRepository()
     {
         return repos;
     }

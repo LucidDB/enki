@@ -62,7 +62,7 @@ public abstract class HibernateRefClass
             classInterfaceName.getName() + "." + 
             HibernateMappingHandler.QUERY_NAME_ALLOFTYPE;
         
-        HibernateRefClassRegistry.instance().registerRefClass(
+        getHibernateRepository().registerRefClass(
             getClassIdentifier(),
             this);
     }

@@ -169,8 +169,7 @@ public class AttributeCollectionWrapper<E> implements Collection<E>
     
     protected void enqueueEvent(MDRChangeEvent event)
     {
-        HibernateMDRepository repos = 
-            ((HibernateObject)source).getHibernateRepository();
+        HibernateMDRepository repos = source.getHibernateRepository();
         repos.enqueueEvent(event);
     }
     

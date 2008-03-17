@@ -2218,8 +2218,6 @@ public class HibernateJavaHandler
                 newLine();
                 startAccessorBlock(attrib);
                 if (attrib.isChangeable()) {
-                    // TODO: add generic type specifier to ATTRIB_LIST_WRAPPER_CLASS
-                    // and ATTRIB_COLLECTION_WRAPPER_CLASS.
                     if (isOrdered) {
                         writeln(
                             "return new ",
@@ -2269,6 +2267,7 @@ public class HibernateJavaHandler
         Collection<Attribute> attribs, 
         Collection<Reference> refs,
         Set<Attribute> componentAttribs)
+    throws GenerationException
     {
         startBlock(
             "protected void checkConstraints(",
@@ -2339,7 +2338,7 @@ public class HibernateJavaHandler
             }
 
             AssociationEnd exposedEnd = ref.getExposedEnd();
-            String assocName = exposedEnd.getContainer().getName();
+            Association assoc = (Association)exposedEnd.getContainer();
             String exposedEndName = exposedEnd.getName();
             String referencedEndName = ref.getReferencedEnd().getName();
             JavaClassReference ASSOCIATION_END_CLASS = 
@@ -2348,11 +2347,11 @@ public class HibernateJavaHandler
                 new JavaClassReference(RefAssociationBase.class, false);
             writeln(
                 ASSOCIATION_END_CLASS, " exposedEnd = findAssociationEnd(", 
-                QUOTE, assocName, QUOTE, ", ", 
+                QUOTE, getAssociationIdentifier(assoc), QUOTE, ", ", 
                 QUOTE, exposedEndName, QUOTE, ");");
             writeln(
                 ASSOCIATION_END_CLASS, " referencedEnd = findAssociationEnd(", 
-                QUOTE, assocName, QUOTE, ", ", 
+                QUOTE, getAssociationIdentifier(assoc), QUOTE, ", ", 
                 QUOTE, referencedEndName, QUOTE, ");");
             writeln(
                 "errors.add(", 

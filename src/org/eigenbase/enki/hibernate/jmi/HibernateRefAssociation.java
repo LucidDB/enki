@@ -62,7 +62,7 @@ public abstract class HibernateRefAssociation
         
         this.type = type;
 
-        HibernateRefAssociationRegistry.instance().registerRefAssociation(
+        getHibernateRepository().registerRefAssociation(
             getAssociationIdentifier(),
             this);
     }

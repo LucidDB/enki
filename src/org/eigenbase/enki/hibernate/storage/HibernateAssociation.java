@@ -189,7 +189,7 @@ public abstract class HibernateAssociation extends HibernateObject
      * @return the HibernateMDRepository that stores this association
      */
     @Override
-    protected HibernateMDRepository getHibernateRepository()
+    public HibernateMDRepository getHibernateRepository()
     {
         // REVIEW: SWZ: 2008-02-12: Could be more efficient to use an abstract
         // method that returns any end from the association.  Here we query
@@ -219,7 +219,7 @@ public abstract class HibernateAssociation extends HibernateObject
      * @return the EnkiMDRepository that stores this association
      */
     @Override
-    protected EnkiMDRepository getRepository()
+    public EnkiMDRepository getRepository()
     {
         return getHibernateRepository();
     }

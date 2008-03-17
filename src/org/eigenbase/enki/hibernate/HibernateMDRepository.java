@@ -189,6 +189,12 @@ public class HibernateMDRepository
      */
     private Map<MDRChangeListener, EnkiMaskedMDRChangeListener> listeners;
     
+    /** Map of unique class identifier to HibernateRefClass. */
+    private final HashMap<String, HibernateRefClass> classRegistry;
+    
+    /** Map of unique association identifier to HibernateRefAssociation. */
+    private final HashMap<String, HibernateRefAssociation> assocRegistry;
+    
     private final Logger log = 
         Logger.getLogger(HibernateMDRepository.class.getName());
 
@@ -205,6 +211,8 @@ public class HibernateMDRepository
         this.thread = null;
         this.listeners = 
             new IdentityHashMap<MDRChangeListener, EnkiMaskedMDRChangeListener>();
+        this.classRegistry = new HashMap<String, HibernateRefClass>();
+        this.assocRegistry = new HashMap<String, HibernateRefAssociation>();
         
         this.allowImplicitSessions = 
             readStorageProperty(
@@ -675,6 +683,31 @@ public class HibernateMDRepository
         return result;
     }
 
+    private RefBaseObject lookupByMofId(MdrSession mdrSession, long mofId)
+    {
+        Map<Long, SoftReference<RefBaseObject>> cache = 
+            mdrSession.byMofIdCache;
+
+        SoftReference<RefBaseObject> ref = cache.get(mofId);
+        if (ref == null) {
+            return null;
+        }
+        
+        RefBaseObject obj = ref.get();
+        if (obj == null) {
+            cache.remove(mofId);
+        }
+        
+        return obj;
+    }
+
+    private void storeByMofId(
+        MdrSession mdrSession, long mofId, RefBaseObject obj)
+    {
+        mdrSession.byMofIdCache.put(
+            mofId, new SoftReference<RefBaseObject>(obj));
+    }
+    
     public void deleteExtentDescriptor(RefPackage refPackage)
     {
         synchronized(extentMap) {
@@ -748,8 +781,8 @@ public class HibernateMDRepository
                 sessionFactory.close();
                 sessionFactory = null;
                 
-                HibernateRefClassRegistry.instance().shutdown();
-                HibernateRefAssociationRegistry.instance().shutdown();
+                classRegistry.clear();
+                assocRegistry.clear();
             }
         }
     }
@@ -854,6 +887,17 @@ public class HibernateMDRepository
         return session.context.getLast();
     }
     
+    public static HibernateMDRepository getCurrentRepository()
+    {
+        MdrSession session = tls.get();
+        if (session == null) {
+            throw new EnkiHibernateException(
+                "No current session on this thread");
+        }
+        
+        return session.getRepos();
+    }
+    
     public Session getCurrentSession()
     {
         return getMdrSession().session;
@@ -897,31 +941,6 @@ public class HibernateMDRepository
         return getMdrSession().getMofIdGenerator();
     }
     
-    private RefBaseObject lookupByMofId(MdrSession mdrSession, long mofId)
-    {
-        Map<Long, SoftReference<RefBaseObject>> cache = 
-            mdrSession.byMofIdCache;
-
-        SoftReference<RefBaseObject> ref = cache.get(mofId);
-        if (ref == null) {
-            return null;
-        }
-        
-        RefBaseObject obj = ref.get();
-        if (obj == null) {
-            cache.remove(mofId);
-        }
-        
-        return obj;
-    }
-
-    private void storeByMofId(
-        MdrSession mdrSession, long mofId, RefBaseObject obj)
-    {
-        mdrSession.byMofIdCache.put(
-            mofId, new SoftReference<RefBaseObject>(obj));
-    }
-    
     public Collection<?> lookupAllOfTypeResult(HibernateRefClass cls)
     {
         return getMdrSession().allOfTypeCache.get(cls);
@@ -943,7 +962,142 @@ public class HibernateMDRepository
     {
         getMdrSession().allOfClassCache.put(cls, allOfClass);
     }
-
+    
+    /**
+     * Find the identified {@link HibernateRefClass}.
+     * 
+     * @param uid unique {@link HibernateRefClass} identifier
+     * @return {@link HibernateRefClass} associated with UID
+     * @throws InternalJmiError if the class is not found
+     */
+    public HibernateRefClass findRefClass(String uid)
+    {
+        HibernateRefClass refClass = classRegistry.get(uid);
+        if (refClass == null) {
+            throw new InternalJmiError(
+                "Cannot find HibernateRefClass identified by '" + uid + "'");
+        }
+        
+        return refClass;
+    }
+    
+    /**
+     * Register the given {@link HibernateRefClass}.
+     * @param uid unique identifier for the given {@link HibernateRefClass} 
+     * @param refClass a {@link HibernateRefClass} 
+     * @throws InternalJmiError on duplicate uid
+     * @throws NullPointerException if either parameter is null
+     */
+    public void registerRefClass(String uid, HibernateRefClass refClass)
+    {
+        if (uid == null) {
+            throw new NullPointerException("uid == null");
+        }
+        if (refClass == null) {
+            throw new NullPointerException("refClass == null");
+        }
+        
+        HibernateRefClass prev = classRegistry.put(uid, refClass);
+        if (prev != null) {
+            throw new InternalJmiError(
+                "HibernateRefClass (mofId " + prev.refMofId() + "; class " + 
+                prev.getClass().getName() + ") already identified by '" + uid +
+                "'; Cannot replace it with HibernateRefClass (mofId " + 
+                refClass.refMofId() + "; class " + 
+                refClass.getClass().getName() + ")"); 
+        }
+    }
+    
+    /**
+     * Unregister a previously 
+     * {@link #registerRefClass(String, HibernateRefClass) registered} 
+     * {@link HibernateRefClass}.
+     * 
+     * @param uid unique identifier for the HibernateRefClass
+     */
+    public void unregisterRefClass(String uid)
+    {
+        if (uid == null) {
+            throw new NullPointerException("uid == null");
+        }
+        
+        HibernateRefClass old = classRegistry.remove(uid);
+        if (old == null) {
+            throw new InternalJmiError(
+                "HibernateRefClass (uid " + uid + ") was never registered");
+        }
+    }
+    
+    /**
+     * Find the identified {@link HibernateRefAssociation}.
+     * 
+     * @param uid unique {@link HibernateRefAssociation} identifier
+     * @return {@link HibernateRefAssociation} associated with UID
+     * @throws InternalJmiError if the class is not found
+     */
+    public HibernateRefAssociation findRefAssociation(String uid)
+    {
+        HibernateRefAssociation refAssoc = assocRegistry.get(uid);
+        if (refAssoc == null) {
+            throw new InternalJmiError(
+                "Cannot find HibernateRefAssociation identified by '" 
+                + uid + "'");
+        }
+        
+        return refAssoc;
+    }
+    
+    /**
+     * Register the given {@link HibernateRefAssociation}.
+     * @param uid unique identifier for the given 
+     *            {@link HibernateRefAssociation} 
+     * @param refAssoc a {@link HibernateRefAssociation} 
+     * @throws InternalJmiError on duplicate uid
+     * @throws NullPointerException if either parameter is null
+     */
+    public void registerRefAssociation(
+        String uid, HibernateRefAssociation refAssoc)
+    {
+        if (uid == null) {
+            throw new NullPointerException("uid == null");
+        }
+        if (refAssoc == null) {
+            throw new NullPointerException("refAssoc == null");
+        }
+        
+        HibernateRefAssociation prev = assocRegistry.put(uid, refAssoc);
+        if (prev != null) {
+            throw new InternalJmiError(
+                "HibernateRefAssociation (mofId " + prev.refMofId() +
+                "; class " + prev.getClass().getName() +
+                ") already identified by '" + uid +
+                "'; Cannot replace it with HibernateRefAssociation (mofId " + 
+                refAssoc.refMofId() + "; class " + 
+                refAssoc.getClass().getName() + ")"); 
+        }
+    }
+    
+    /**
+     * Unregister a previously 
+     * {@link #registerRefAssociation(String, HibernateRefAssociation) registered} 
+     * {@link HibernateRefAssociation}.
+     * 
+     * @param uid unique identifier for the HibernateRefAssociation
+     */
+    public void unregisterRefAssociation(String uid)
+    {
+        if (uid == null) {
+            throw new NullPointerException("uid == null");
+        }
+        
+        HibernateRefAssociation old = assocRegistry.remove(uid);
+        if (old == null) {
+            throw new InternalJmiError(
+                "HibernateRefAssociation (uid " + uid + 
+                ") was never registered");
+        }
+    }
+    
     public void enqueueEvent(MDRChangeEvent event)
     {
         MdrSession mdrSession = getMdrSession();
@@ -1834,6 +1988,11 @@ public class HibernateMDRepository
         private MofIdGenerator getMofIdGenerator()
         {
             return HibernateMDRepository.this.mofIdGenerator;
+        }
+        
+        private HibernateMDRepository getRepos()
+        {
+            return HibernateMDRepository.this;
         }
     }
     

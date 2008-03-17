@@ -21,7 +21,6 @@
 */
 package org.eigenbase.enki.util;
 
-import java.lang.reflect.*;
 import java.util.*;
 
 /**
@@ -40,6 +39,16 @@ public class Primitives
         { Short.class,     short.class },
         { Character.class, char.class },
         { Boolean.class,   boolean.class },
+    };
+    
+    private static final String[][] literals = {
+        { "int",     "0"   },
+        { "long",    "0L" },
+        { "float",   "0.0f" },
+        { "double",  "0.0" },
+        { "short",   "0" },
+        { "char",    "0" },
+        { "boolean", "false" },
     };
     
     private static final Map<Class<?>, Class<?>> primitiveToWrapperMap;
@@ -87,27 +96,15 @@ public class Primitives
             wrapTypeNameMap.put(primitive.getName(), wrapper.getName());
             wrapSimpleTypeNameMap.put(
                 primitive.getName(), wrapper.getSimpleName());
-            
-            if (Number.class.isAssignableFrom(wrapper)) {
-                String literal = "0";
-                
-                try {
-                    Integer zero = new Integer(0);
-                    Method m = 
-                        Integer.class.getMethod(primitive.getName() + "Value");
-                    literal = m.invoke(zero).toString();
-                } catch (Exception e) {
-                    // Ignored -- the literal "0" should work okay.
-                }
-                
-                defaultMap.put(primitive.getName(), literal);
-            } else if (wrapper == Character.class) {
-                defaultMap.put(primitive.getName(), "0");
-            } else if (wrapper == Boolean.class) {
-                defaultMap.put(primitive.getName(), "false");
-            }
         }
 
+        for(String[] entry: literals) {
+            String primitiveName = entry[0];
+            String literal = entry[1];
+            
+            defaultMap.put(primitiveName, literal);
+        }
+        
         primitiveToWrapperMap = Collections.unmodifiableMap(toWrapperMap);
         wrapperToPrimitiveMap = Collections.unmodifiableMap(toPrimitiveMap);
         

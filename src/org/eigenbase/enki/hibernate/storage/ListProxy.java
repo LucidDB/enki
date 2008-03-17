@@ -60,8 +60,7 @@ public class ListProxy<E extends RefObject> implements List<E>
 
         if (refAssocId != null) {
             this.refAssoc = 
-                HibernateRefAssociationRegistry.instance().findRefAssociation(
-                    refAssocId);
+                assoc.getHibernateRepository().findRefAssociation(refAssocId);
         } else {
             this.refAssoc = null;
         }
@@ -85,7 +84,7 @@ public class ListProxy<E extends RefObject> implements List<E>
 
         if (refAssocId != null) {
             this.refAssoc = 
-                HibernateRefAssociationRegistry.instance().findRefAssociation(
+                ((HibernateRefObject)source).getHibernateRepository().findRefAssociation(
                     refAssocId);
         } else {
             this.refAssoc = null;

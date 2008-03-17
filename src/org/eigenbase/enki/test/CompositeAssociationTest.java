@@ -397,6 +397,38 @@ public class CompositeAssociationTest
             getRepository().endTrans();
         }
     }
+    
+    @Test
+    public void testNullifiedComposite()
+    {
+        String phoneNumberMofId = createCompositePhoneAssociations();
+
+        // Null the phone number's area code and see if it's deleted or not
+        String areaCodeMofId;
+        getRepository().beginTrans(true);
+        try {
+            PhoneNumber phoneNumber = 
+                (PhoneNumber)getRepository().getByMofId(phoneNumberMofId);
+            
+            areaCodeMofId = phoneNumber.getAreaCode().refMofId();
+            
+            phoneNumber.setAreaCode(null);
+        }
+        finally {
+            getRepository().endTrans(false);
+        }
+        
+        getRepository().beginTrans(false);
+        try {
+            Assert.assertNotNull(
+                getRepository().getByMofId(phoneNumberMofId));
+            Assert.assertNotNull(
+                getRepository().getByMofId(areaCodeMofId));
+        }
+        finally {
+            getRepository().endTrans();
+        }
+    }
 }
 
 // End CompositeAssociationTest.java
