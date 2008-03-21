@@ -25,6 +25,8 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.codegen.*;
+import org.eigenbase.enki.hibernate.codegen.*;
 import org.eigenbase.enki.test.*;
 import org.junit.*;
 import org.junit.runner.*;
@@ -127,7 +129,7 @@ public class HibernateStringLengthTest extends SampleModelTestBase
             makeString(128),
             makeString(192),
             makeString(256),
-            makeString(32768),
+            makeString(CodeGenUtils.MAX_STRING_LENGTH * 5 / 4),
         };
         
         verifySafeValues(

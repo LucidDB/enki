@@ -75,6 +75,29 @@ public interface EnkiMDRepository extends MDRepository
     public void endSession();
     
     /**
+     * Detach the current session, if any, from this repository.  If there is
+     * no currently active session or the repository implementation does not
+     * support sessions, null is returned.
+     * 
+     * @return detached repository session
+     */
+    public EnkiMDSession detachSession();
+
+    /**
+     * Re-attach a repository session previously 
+     * {@link #detachSession() detached} from this repository.  Sessions
+     * <b>are not</b> transferable across repositories.  This repository
+     * must not have any currently active repository sessions.  The session
+     * parameter may be null, which produces no operation.  This simplifies
+     * usage since callers of {@link #detachSession()} need not distinguish
+     * between the no current session and sessions not supported cases. 
+     * 
+     * @param session an {@link EnkiMDSession} previously detached via
+     *                {@link #detachSession()}
+     */
+    public void reattachSession(EnkiMDSession session);
+    
+    /**
      * Tests whether the named extent is built into this repository.  Built-in
      * extents cannot be imported or deleted.
      * 

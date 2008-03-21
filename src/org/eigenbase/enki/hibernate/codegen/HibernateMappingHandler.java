@@ -173,7 +173,7 @@ public class HibernateMappingHandler
         this.componentAttribMap = 
             new HashMap<Classifier, List<ComponentInfo>>();
         
-        this.defaultStringLength = HibernateCodeGenUtils.DEFAULT_STRING_LENGTH;
+        this.defaultStringLength = CodeGenUtils.DEFAULT_STRING_LENGTH;
     }
 
     public void setExtentName(String extentName)
@@ -189,10 +189,10 @@ public class HibernateMappingHandler
     /**
     * Configures a default string column length, measured in characters.  
     * If left unspecified, the value of
-    * {@link HibernateCodeGenUtils#DEFAULT_STRING_LENGTH} is used.  The 
+    * {@link CodeGenUtils#DEFAULT_STRING_LENGTH} is used.  The 
     * default string length may be overridden via a tag on the given 
     * {@link Attribute} or its {@link Classifier} (see 
-    * {@link HibernateCodeGenUtils#findMaxLengthTag(
+    * {@link CodeGenUtils#findMaxLengthTag(
     *            Classifier, Attribute, int, Logger)}.)
     * 
     * @param defaultStringLength the new default string length 
@@ -338,7 +338,7 @@ public class HibernateMappingHandler
             "property",
             "name", ASSOC_TYPE_PROPERTY,
             "not-null", "true",
-            "length", HibernateCodeGenUtils.DEFAULT_STRING_LENGTH);
+            "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
         
         startElem(
             "any",
@@ -395,7 +395,7 @@ public class HibernateMappingHandler
             "property",
             "name", ASSOC_TYPE_PROPERTY,
             "not-null", "true",
-            "length", HibernateCodeGenUtils.DEFAULT_STRING_LENGTH);
+            "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
         
         writeEmptyElem(
             "property",
@@ -437,7 +437,7 @@ public class HibernateMappingHandler
         writeEmptyElem(
             "column",
             "name", ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN,
-            "length", HibernateCodeGenUtils.DEFAULT_STRING_LENGTH);
+            "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
         writeEmptyElem("column", "name", ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN);
         endElem("many-to-any");
         endElem("list");
@@ -471,7 +471,7 @@ public class HibernateMappingHandler
             "property",
             "name", ASSOC_TYPE_PROPERTY,
             "not-null", "true",
-            "length", HibernateCodeGenUtils.DEFAULT_STRING_LENGTH);
+            "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
 
         writeEmptyElem(
             "property",
@@ -513,7 +513,7 @@ public class HibernateMappingHandler
         writeEmptyElem(
             "column",
             "name", ASSOC_MANY_TO_MANY_TARGET_TYPE_COLUMN,
-            "length", HibernateCodeGenUtils.DEFAULT_STRING_LENGTH);
+            "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
         writeEmptyElem("column", "name", ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN);
         endElem("many-to-any");
         endElem("list");
@@ -567,7 +567,7 @@ public class HibernateMappingHandler
             return;
         }
         
-        if (HibernateCodeGenUtils.isTransient(cls)) {
+        if (CodeGenUtils.isTransient(cls)) {
             log.fine(
                 "Skipping Transient Class Instance Mapping for '" 
                 + cls.getName() + "'");
@@ -765,7 +765,7 @@ public class HibernateMappingHandler
             new HashMap<Association, ReferenceInfo>();
         
         Collection<Association> unreferencedAssociations = 
-            HibernateCodeGenUtils.findUnreferencedAssociations(
+            CodeGenUtils.findUnreferencedAssociations(
                 generator,
                 assocInfoMap,
                 cls,
@@ -842,11 +842,11 @@ public class HibernateMappingHandler
         typeBuffer.setLength(0);
         
         int maxLen = 
-            HibernateCodeGenUtils.findMaxLengthTag(
+            CodeGenUtils.findMaxLengthTag(
                 cls, attrib, defaultStringLength, log);
         
         if (maxLen != Integer.MAX_VALUE) {
-            assert(maxLen <= HibernateCodeGenUtils.MAX_STRING_LENGTH);
+            assert(maxLen <= CodeGenUtils.MAX_STRING_LENGTH);
             
             typeBuffer.append("string");
             return maxLen;

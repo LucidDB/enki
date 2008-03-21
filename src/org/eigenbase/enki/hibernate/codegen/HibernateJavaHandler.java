@@ -454,7 +454,7 @@ public class HibernateJavaHandler
             return;
         }
         
-        if (HibernateCodeGenUtils.isTransient(assoc)) {
+        if (CodeGenUtils.isTransient(assoc)) {
             if (getPassIndex() < numTransientPasses) {
                 log.fine("Delegating Transient Association Implementation");
                 transientHandler.generateAssociation(assoc);
@@ -745,7 +745,7 @@ public class HibernateJavaHandler
             return;
         }
 
-        if (HibernateCodeGenUtils.isTransient(cls)) {
+        if (CodeGenUtils.isTransient(cls)) {
             if (getPassIndex() < numTransientPasses) {
                 log.fine("Delegating Transient Class Instance Implementation");
                 transientHandler.generateClassInstance(cls);
@@ -826,7 +826,7 @@ public class HibernateJavaHandler
             new HashMap<Association, ReferenceInfo>();
         
         Collection<Association> unreferencedAssociations = 
-            HibernateCodeGenUtils.findUnreferencedAssociations(
+            CodeGenUtils.findUnreferencedAssociations(
                 generator,
                 assocInfoMap,
                 cls,
@@ -2372,7 +2372,7 @@ public class HibernateJavaHandler
             return;
         }
         
-        if (HibernateCodeGenUtils.isTransient(cls)) {
+        if (CodeGenUtils.isTransient(cls)) {
             if (getPassIndex() < numTransientPasses) {
                 log.fine("Delegating Transient Class Proxy Implementation");
                 transientHandler.generateClassProxy(cls);
@@ -2582,7 +2582,7 @@ public class HibernateJavaHandler
             return;
         }
 
-        if (HibernateCodeGenUtils.isTransient(pkg)) {
+        if (CodeGenUtils.isTransient(pkg)) {
             if (getPassIndex() < numTransientPasses) {
                 log.fine("Delegating Transient Package Implementation");
                 transientHandler.generatePackage(pkg);

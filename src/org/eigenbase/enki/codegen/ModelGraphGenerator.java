@@ -31,6 +31,8 @@ import javax.jmi.model.*;
  * inheritance hierarchy and then emits a file containing a list of vertices
  * and edges in the graph.  The vertices represent MofClasses described by
  * the metamodel and the edges represent super-to-sub-class relationships.
+ * The file is in a format suitable for display with the graphing program
+ * dotty.
  * 
  * @author Stephan Zuercher
  */
@@ -53,7 +55,7 @@ public class ModelGraphGenerator
             ModelGraphGenerator g = new ModelGraphGenerator();
             g.setXmiFile(new File(xmiFileName));
             g.setOutputDirectory(new File(outputDir));
-            
+            g.setExtentName(DEFAULT_ENKI_MODEL_EXTENT_NAME);
             g.setUseGenerics(true);
             g.execute();
         }

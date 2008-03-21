@@ -187,6 +187,18 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
         return impl.createExtent(name);
     }
     
+    public void endTrans()
+    {
+        impl.endTrans();
+        checkEndImplicitSession();
+    }
+
+    public void endTrans(boolean rollback)
+    {
+        impl.endTrans(rollback);
+        checkEndImplicitSession();
+    }
+
     public void endSession()
     {
         SessionContext context = tls.get();
@@ -202,18 +214,38 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
         }
     }
 
-    public void endTrans()
+    public EnkiMDSession detachSession()
     {
-        impl.endTrans();
-        checkEndImplicitSession();
+        SessionContext session = tls.get();
+        if (session.refCount == 0) {
+            return null;
+        }
+        
+        tls.set(new SessionContext());
+        return session;
     }
-
-    public void endTrans(boolean rollback)
+    
+    public void reattachSession(EnkiMDSession session)
     {
-        impl.endTrans(rollback);
-        checkEndImplicitSession();
+        if (tls.get().refCount != 0) {
+            throw new NBMDRepositoryWrapperException(
+                "must end current session before re-attach");
+        }
+        
+        if (session == null) {
+            // nothing to do
+            return;
+        }
+        
+        if (!(session instanceof SessionContext)) {
+            throw new NBMDRepositoryWrapperException(
+                "invalid session object; wrong type");
+        }
+        
+        tls.set((SessionContext)session);
+        
     }
-
+    
     public RefBaseObject getByMofId(String mofId)
     {
         return impl.getByMofId(mofId);
@@ -269,7 +301,7 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
         }
     }
     
-    private static class SessionContext
+    private static class SessionContext implements EnkiMDSession
     {
         public int refCount = 0;
         public boolean implicit = false;

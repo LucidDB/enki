@@ -150,7 +150,7 @@ public class HibernateMofInitHandler extends MofInitHandler
     {
         super.generateClassInstance(cls);
 
-        if (cls.isAbstract() || HibernateCodeGenUtils.isTransient(cls)) {
+        if (cls.isAbstract() || CodeGenUtils.isTransient(cls)) {
             return;
         }
         
@@ -188,7 +188,7 @@ public class HibernateMofInitHandler extends MofInitHandler
     {
         super.generateAssociation(assoc);
         
-        if (HibernateCodeGenUtils.isTransient(assoc)) {
+        if (CodeGenUtils.isTransient(assoc)) {
             return;
         }
         

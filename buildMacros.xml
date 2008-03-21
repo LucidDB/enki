@@ -73,6 +73,7 @@
   <property name="hsqldb.dir" location="${thirdparty.dir}/hsqldb"/>
   <property name="mdrlibs.dir" location="${thirdparty.dir}/mdrlibs"/>
   <property name="ant.dir" location="${thirdparty.dir}/ant"/>
+  <property name="jgrapht.dir" location="${thirdparty.dir}/jgrapht"/>
 
   <property name="enki.javasrc.version" value="1.5"/>
 
@@ -122,6 +123,7 @@
   <path id="enki.3p.build.classpath">
     <fileset dir="${hibernate.dir}" includes="**/*.jar"/>
     <fileset dir="${mdrlibs.dir}" includes="**/*.jar"/>
+    <fileset dir="${jgrapht.dir}" includes="*-jdk1.5.jar"/>
   </path>
   <property name="enki.3p.build.classpath" refid="enki.3p.build.classpath"/>
 

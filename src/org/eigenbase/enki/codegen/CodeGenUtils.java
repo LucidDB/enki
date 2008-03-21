@@ -19,23 +19,22 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
-package org.eigenbase.enki.hibernate.codegen;
+package org.eigenbase.enki.codegen;
 
 import java.util.*;
 import java.util.logging.*;
 
 import javax.jmi.model.*;
 
-import org.eigenbase.enki.codegen.*;
 import org.eigenbase.enki.util.*;
 
 /**
- * HibernateCodeGenUtils contains utilities for generating Hibernate model
+ * CodeGenUtils contains utilities for generating Hibernate model
  * code.
  * 
  * @author Stephan Zuercher
  */
-public class HibernateCodeGenUtils
+public class CodeGenUtils
 {
     /** 
      * Tag identifier for a custom Enki tag to override the default column 
@@ -63,7 +62,7 @@ public class HibernateCodeGenUtils
      * Maximum string length.  The maximum is {@value}.  
      * This is somewhat arbitrary.
      */
-    public static final int MAX_STRING_LENGTH = 16384;
+    public static final int MAX_STRING_LENGTH = 32768;
     
     /**
      * Tag identifier for a custom Enki tag to control whether a package is
@@ -72,7 +71,7 @@ public class HibernateCodeGenUtils
     public static final String TRANSIENT_PKG_TAG_NAME = 
         "org.eigenbase.enki.transientPackage";
     
-    private HibernateCodeGenUtils()
+    private CodeGenUtils()
     {
     }
 
@@ -357,4 +356,4 @@ public class HibernateCodeGenUtils
     }
 }
 
-// End HibernateCodeGenUtils.java
+// End CodeGenUtils.java

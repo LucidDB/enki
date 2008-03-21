@@ -1,10 +1,11 @@
 # $Id$
 
-all: ant commons-collections commons-logging hibernate hsqldb mdrlibs junit
+all: ant commons-collections commons-logging hibernate hsqldb mdrlibs junit \
+	jgrapht
 
 clean:
 	-rm -rf ant commons-logging commons-collections hibnerate hsqldb \
-		mdrlibs junit/junit.jar
+		mdrlibs junit/junit.jar jgrapht
 
 ant: apache-ant-1.7.0-bin.tar.bz2 junit
 	-rm -rf $@ apache-ant-1.7.0
@@ -43,4 +44,10 @@ mdrlibs: mdrextras.tar.gz mdr-standalone.zip uml2mof.zip
 	tar xfz mdrextras.tar.gz
 	unzip mdr-standalone.zip -d mdrlibs
 	unzip -n uml2mof.zip -d mdrlibs
+	touch $@
+
+jgrapht: jgrapht-0.7.1.tar.gz
+	-rm -rf $@
+	tar xfz $<
+	mv jgrapht-0.7.1 $@
 	touch $@

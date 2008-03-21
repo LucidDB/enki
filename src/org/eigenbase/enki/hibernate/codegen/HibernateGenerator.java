@@ -55,7 +55,7 @@ import org.eigenbase.enki.codegen.*;
  *   <td align="left">
  *     Controls the default length of string columns.  If unspecified, 
  *     the default is defined in 
- *     {@link HibernateCodeGenUtils#DEFAULT_STRING_LENGTH}. Optional.
+ *     {@link CodeGenUtils#DEFAULT_STRING_LENGTH}. Optional.
  *   </td>
  * </tr>
  * <tr>

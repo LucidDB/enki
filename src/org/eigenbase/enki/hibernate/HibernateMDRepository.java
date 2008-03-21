@@ -25,6 +25,7 @@ import java.lang.ref.*;
 import java.lang.reflect.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.atomic.*;
 import java.util.logging.*;
 
 import javax.jmi.model.*;
@@ -157,6 +158,8 @@ public class HibernateMDRepository
     private static final ThreadLocal<MdrSession> tls =
         new ThreadLocal<MdrSession>();
     
+    private final AtomicInteger sessionCount;
+    
     /** List of all known model configuration properties files. */
     private final List<Properties> modelPropertiesList;
     
@@ -195,14 +198,14 @@ public class HibernateMDRepository
     /** Map of unique association identifier to HibernateRefAssociation. */
     private final HashMap<String, HibernateRefAssociation> assocRegistry;
     
-    private final Logger log = 
-        Logger.getLogger(HibernateMDRepository.class.getName());
+    private final Logger log;
 
     public HibernateMDRepository(
         List<Properties> modelProperties,
         Properties storageProperties,
         ClassLoader classLoader)
     {
+        this.log = Logger.getLogger(HibernateMDRepository.class.getName());
         this.modelPropertiesList = modelProperties;
         this.storageProperties = storageProperties;
         this.classLoader = classLoader;
@@ -223,6 +226,8 @@ public class HibernateMDRepository
         initModelMap();
         initModelExtent(MOF_EXTENT, false);
         initStorage();
+        
+        this.sessionCount = new AtomicInteger(0);  
     }
     
     private <T> T readStorageProperty(
@@ -247,10 +252,42 @@ public class HibernateMDRepository
         }
     }
     
+    public EnkiMDSession detachSession()
+    {
+        MdrSession mdrSession = tls.get();
+        tls.set(null);
+        return mdrSession;
+    }
+    
+    public void reattachSession(EnkiMDSession session)
+    {
+        if (tls.get() != null) {
+            throw new EnkiHibernateException(
+                "must end current session before re-attach");
+        }
+        
+        if (session == null) {
+            // nothing to do
+            return;
+        }
+        
+        if (!(session instanceof MdrSession)) {
+            throw new EnkiHibernateException(
+                "invalid session object; wrong type");
+        }
+        
+        tls.set((MdrSession)session);
+    }
+    
     public void beginSession()
     {
         MdrSession mdrSession = tls.get();
         if (mdrSession != null) {
+            if (mdrSession.getRepos() != this) {
+                throw new EnkiHibernateException(
+                    "session already open on another repository");
+            }
+            
             logStack(Level.FINE, "begin re-entrant repository session");
             mdrSession.refCount++;
             return;
@@ -278,6 +315,8 @@ public class HibernateMDRepository
         mdrSession.refCount++;
         
         tls.set(mdrSession);
+        int count = sessionCount.incrementAndGet();
+        assert(count > 0);
         
         return mdrSession;
     }
@@ -288,6 +327,11 @@ public class HibernateMDRepository
         if (mdrSession == null) {
             throw new EnkiHibernateException(
                 "session never opened/already closed");
+        }
+        
+        if (mdrSession.getRepos() != this) {
+            throw new EnkiHibernateException(
+                "ending session on wrong repository");
         }
         
         if (--mdrSession.refCount != 0) {
@@ -326,6 +370,8 @@ public class HibernateMDRepository
         
         mdrSession.session.close();
         tls.set(null);
+        int count = sessionCount.decrementAndGet();
+        assert(count >= 0);
     }
     
     public void beginTrans(boolean write)
@@ -758,6 +804,14 @@ public class HibernateMDRepository
 
     public void shutdown()
     {                
+        log.info("repository shut down");
+
+        int count = sessionCount.get();
+        if (count != 0) {
+            throw new EnkiHibernateException(
+                "cannot shutdown while " + count + " session(s) are open");
+        }
+        
         synchronized(listeners) {
             listeners.clear();
         }
@@ -1006,6 +1060,10 @@ public class HibernateMDRepository
                 refClass.refMofId() + "; class " + 
                 refClass.getClass().getName() + ")"); 
         }
+        
+        log.finer(
+            "Registered class " + refClass.getClass().getName() + 
+            ", identified by '" + uid + "'");
     }
     
     /**
@@ -1026,6 +1084,10 @@ public class HibernateMDRepository
             throw new InternalJmiError(
                 "HibernateRefClass (uid " + uid + ") was never registered");
         }
+        
+        log.finer(
+            "Unregistered class " + old.getClass().getName() + 
+            ", identified by '" + uid + "'");
     }
     
     /**
@@ -1075,6 +1137,10 @@ public class HibernateMDRepository
                 refAssoc.refMofId() + "; class " + 
                 refAssoc.getClass().getName() + ")"); 
         }
+
+        log.finer(
+            "Registered assoc " + refAssoc.getClass().getName() + 
+            ", identified by '" + uid + "'");
     }
     
     /**
@@ -1096,6 +1162,10 @@ public class HibernateMDRepository
                 "HibernateRefAssociation (uid " + uid + 
                 ") was never registered");
         }
+        
+        log.finer(
+            "Unregistered assoc " + old.getClass().getName() + 
+            ", identified by '" + uid + "'");
     }
     
     public void enqueueEvent(MDRChangeEvent event)
@@ -1956,7 +2026,7 @@ public class HibernateMDRepository
         }
     }
     
-    private class MdrSession
+    private class MdrSession implements EnkiMDSession
     {
         private Session session;
         private boolean containsWrites;
