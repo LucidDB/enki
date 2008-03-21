@@ -25,8 +25,6 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
-import org.eigenbase.enki.codegen.*;
-import org.eigenbase.enki.hibernate.codegen.*;
 import org.eigenbase.enki.test.*;
 import org.junit.*;
 import org.junit.runner.*;
@@ -84,14 +82,12 @@ public class HibernateStringLengthTest extends SampleModelTestBase
             makeString(1024),
         };
         
-        verifySafeValues(
-            safeValues, 
-            new CustomTagTargetCreator(),
-            new NameCallback());
-        verifyUnsafeValues(
-            unsafeValues, 
-            new CustomTagTargetCreator(),
-            new NameCallback());
+        CustomTagTargetCreator creatorCallback = new CustomTagTargetCreator();
+        AttribCallback<CustomTagTarget> nameCallback =
+            new AttribCallback<CustomTagTarget>("name");
+        
+        verifySafeValues(safeValues, creatorCallback, nameCallback);
+        verifyUnsafeValues(unsafeValues, creatorCallback, nameCallback);
     }
 
     @Test
@@ -110,32 +106,114 @@ public class HibernateStringLengthTest extends SampleModelTestBase
             makeString(1024),
         };
         
-        verifySafeValues(
-            safeValues, 
-            new CustomTagTargetCreator(),
-            new LongStringCallback());
-        verifyUnsafeValues(
-            unsafeValues,
-            new CustomTagTargetCreator(),
-            new LongStringCallback());
+        CustomTagTargetCreator creatorCallback = new CustomTagTargetCreator();
+        AttribCallback<CustomTagTarget> string192Callback = 
+            new AttribCallback<CustomTagTarget>("string192");
+        
+        verifySafeValues(safeValues, creatorCallback, string192Callback);
+        verifyUnsafeValues(unsafeValues, creatorCallback, string192Callback);
+    }
+    
+    @Test
+    public void testExtendedLength2()
+    {
+        // Model says 64k - 1 characters
+        final String[] safeValues = {
+            makeString(32),
+            makeString(128),
+            makeString(192),
+            makeString(65535),
+        };
+        
+        final String[] unsafeValues = {
+            makeString(65536),
+        };
+        
+        CustomTagTargetCreator creatorCallback = new CustomTagTargetCreator();
+        AttribCallback<CustomTagTarget> string64kCallback = 
+            new AttribCallback<CustomTagTarget>("string64k");
+        
+        verifySafeValues(safeValues, creatorCallback, string64kCallback);
+        verifyUnsafeValues(unsafeValues, creatorCallback, string64kCallback);
+    }
+    
+    @Test
+    public void testExtendedLength3()
+    {
+        try {
+            // Model says 2^24 - 1 characters
+            final String[] safeValues = {
+                makeString(32),
+                makeString(128),
+                makeString(192),
+                makeString((1 << 24) - 1),
+            };
+            
+            CustomTagTargetCreator creatorCallback = 
+                new CustomTagTargetCreator();
+            AttribCallback<CustomTagTarget> string16mCallback = 
+                new AttribCallback<CustomTagTarget>("string16m");
+            
+            verifySafeValues(safeValues, creatorCallback, string16mCallback);
+        }
+        catch(OutOfMemoryError e) {
+            System.gc();
+            
+            System.err.println(
+                "WARNING: skipped " + getClass().getName() + 
+                ".testExtendedLength3() due to memory constraints");
+        }
+    }
+    
+    @Test
+    public void testExtendedLength3Negative()
+    {
+        try {
+            // Model says 2^24 - 1 characters
+            final String[] unsafeValues = {
+                makeString(1 << 24),
+            };
+            
+            CustomTagTargetCreator creatorCallback = 
+                new CustomTagTargetCreator();
+            AttribCallback<CustomTagTarget> string16mCallback = 
+                new AttribCallback<CustomTagTarget>("string64k");
+            
+            verifyUnsafeValues(
+                unsafeValues, creatorCallback, string16mCallback);
+        }
+        catch(OutOfMemoryError e) {
+            System.gc();
+            
+            System.err.println(
+                "WARNING: skipped " + getClass().getName() + 
+                ".testExtendedLength3Negative() due to memory constraints");
+        }
     }
     
     @Test
     public void testUnlimitedLength()
     {
-        // How much RAM do you have?
-        final String[] safeValues = {
-            makeString(32),
-            makeString(128),
-            makeString(192),
-            makeString(256),
-            makeString(CodeGenUtils.MAX_STRING_LENGTH * 5 / 4),
-        };
-        
-        verifySafeValues(
-            safeValues, 
-            new CustomTagTargetCreator(),
-            new VeryLongStringCallback());
+        try {
+            final String[] safeValues = {
+                makeString(32),
+                makeString(128),
+                makeString(192),
+                makeString(1 << 24),
+            };
+            
+            verifySafeValues(
+                safeValues, 
+                new CustomTagTargetCreator(),
+                new AttribCallback<CustomTagTarget>("stringUnlimited"));
+        }
+        catch(OutOfMemoryError e) {
+            System.gc();
+            
+            System.err.println(
+                "WARNING: skipped " + getClass().getName() + 
+                ".testUnlimitedLength() due to memory constraints");
+        }
     }
     
     @Test
@@ -156,11 +234,11 @@ public class HibernateStringLengthTest extends SampleModelTestBase
         verifySafeValues(
             safeValues,
             new CustomClassifierTagTargetCreator(),
-            new NameCallback2());
+            new AttribCallback<CustomClassifierTagTarget>("name"));
         verifyUnsafeValues(
             unsafeValues, 
             new CustomClassifierTagTargetCreator(),
-            new NameCallback2());
+            new AttribCallback<CustomClassifierTagTarget>("name"));
     }
     
     @Test
@@ -180,19 +258,19 @@ public class HibernateStringLengthTest extends SampleModelTestBase
         verifySafeValues(
             safeValues,
             new CustomClassifierTagTargetSubCreator(),
-            new NameCallback3());
+            new AttribCallback<CustomClassifierTagTargetSub>("name"));
         verifySafeValues(
             safeValues,
             new CustomClassifierTagTargetSubCreator(),
-            new DescriptionCallback());
+            new AttribCallback<CustomClassifierTagTargetSub>("description"));
         verifyUnsafeValues(
             unsafeValues, 
             new CustomClassifierTagTargetSubCreator(),
-            new NameCallback3());
+            new AttribCallback<CustomClassifierTagTargetSub>("name"));
         verifyUnsafeValues(
             unsafeValues, 
             new CustomClassifierTagTargetSubCreator(),
-            new DescriptionCallback());
+            new AttribCallback<CustomClassifierTagTargetSub>("description"));
     }
 
     private <T extends RefObject> void verifySafeValues(
@@ -336,123 +414,28 @@ public class HibernateStringLengthTest extends SampleModelTestBase
     }
 
     /**
-     * AttribCallback is a simple interface for allowing a particular attribute
-     * on a <code>CustomTagTarget</code> to be written or read.
+     * AttribCallback is a simple interface for allowing a particular string
+     * attribute on a {@link RefObject} to be written or read.
      */
-    private interface AttribCallback<T>
+    private static class AttribCallback<T extends RefObject>
     {
-        public void set(T obj, String value);
-        public String get(T obj);
-    }
-    
-    /**
-     * NameCallback implements {@link AttribCallback} for the "name" attribute
-     * of the {@link CustomTagTarget} type.
-     */
-    private static class NameCallback 
-        implements AttribCallback<CustomTagTarget>
-    {
-        public void set(CustomTagTarget c, String value)
+        private final String attributeName;
+        
+        public AttribCallback(String attributeName)
         {
-            c.setName(value);
+            this.attributeName = attributeName;
         }
         
-        public String get(CustomTagTarget c)
+        public void set(T obj, String value)
         {
-            return c.getName();
-        }
-    }
-
-    /**
-     * NameCallback implements {@link AttribCallback} for the "longString"
-     * attribute of the {@link CustomTagTarget} type.
-     */
-    private static class LongStringCallback
-        implements AttribCallback<CustomTagTarget>
-    {
-        public void set(CustomTagTarget c, String value)
-        {
-            c.setLongString(value);
+            obj.refSetValue(attributeName, value);
         }
         
-        public String get(CustomTagTarget c)
+        public String get(T obj)
         {
-            return c.getLongString();
+            return (String)obj.refGetValue(attributeName);
         }
-    }
-
-    /**
-     * NameCallback implements {@link AttribCallback} for the "veryLongString"
-     * attribute of the {@link CustomTagTarget} type.
-     */
-    private static class VeryLongStringCallback 
-        implements AttribCallback<CustomTagTarget>
-    {
-        public void set(CustomTagTarget c, String value)
-        {
-            c.setVeryLongString(value);
-        }
-        
-        public String get(CustomTagTarget c)
-        {
-            return c.getVeryLongString();
-        }
-    }
-    
-    /**
-     * NameCallback2 implements {@link AttribCallback} for the "name" attribute
-     * of the {@link CustomClassifierTagTarget} type.
-     */
-    private static class NameCallback2
-        implements AttribCallback<CustomClassifierTagTarget>
-    {
-        public void set(CustomClassifierTagTarget c, String value)
-        {
-            c.setName(value);
-        }
-        
-        public String get(CustomClassifierTagTarget c)
-        {
-            return c.getName();
-        }
-    }
-
-    /**
-     * NameCallback3 implements {@link AttribCallback} for the "name" attribute
-     * of the {@link CustomClassifierTagTargetSub} type.
-     */
-    private static class NameCallback3
-        implements AttribCallback<CustomClassifierTagTargetSub>
-    {
-        public void set(CustomClassifierTagTargetSub c, String value)
-        {
-            c.setName(value);
-        }
-        
-        public String get(CustomClassifierTagTargetSub c)
-        {
-            return c.getName();
-        }
-    }
-
-    /**
-     * DescriptionCallback implements {@link AttribCallback} for the 
-     * "description" attribute of the {@link CustomClassifierTagTargetSub} 
-     * type.
-     */
-    private static class DescriptionCallback
-        implements AttribCallback<CustomClassifierTagTargetSub>
-    {
-        public void set(CustomClassifierTagTargetSub c, String value)
-        {
-            c.setDescription(value);
-        }
-        
-        public String get(CustomClassifierTagTargetSub c)
-        {
-            return c.getDescription();
-        }
-    }
+    }    
 }
 
 // End HibernateStringLengthTest.java

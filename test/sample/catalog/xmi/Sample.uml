@@ -53,7 +53,7 @@
             name="Sample.todo" />
     <historyfile name="" />
   </argo>
-<XMI xmi.version = '1.2' xmlns:UML = 'org.omg.xmi.namespace.UML' timestamp = 'Tue Mar 11 15:40:01 PDT 2008'>
+<XMI xmi.version = '1.2' xmlns:UML = 'org.omg.xmi.namespace.UML' timestamp = 'Fri Mar 21 10:53:29 PDT 2008'>
   <XMI.header>    <XMI.documentation>
       <XMI.exporter>ArgoUML (using Netbeans XMI Writer version 1.0)</XMI.exporter>
       <XMI.exporterVersion>0.24(5) revised on $Date: 2006-11-06 19:55:22 +0100 (Mon, 06 Nov 2006) $ </XMI.exporterVersion>
@@ -1695,9 +1695,9 @@
                           name = 'name' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
                           changeability = 'changeable' targetScope = 'instance'>
                           <UML:StructuralFeature.multiplicity>
-                            <UML:Multiplicity xmi.id = '127-0-0-1-62a20cea:1188b181abf:-8000:0000000000000961'>
+                            <UML:Multiplicity xmi.id = '127-0-0-1-c55f8f3:118d257234e:-8000:00000000000009B6'>
                               <UML:Multiplicity.range>
-                                <UML:MultiplicityRange xmi.id = '127-0-0-1-62a20cea:1188b181abf:-8000:0000000000000960'
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1-c55f8f3:118d257234e:-8000:00000000000009B5'
                                   lower = '1' upper = '1'/>
                               </UML:Multiplicity.range>
                             </UML:Multiplicity>
@@ -1707,12 +1707,12 @@
                           </UML:StructuralFeature.type>
                         </UML:Attribute>
                         <UML:Attribute xmi.id = '127-0-0-1--287ebba1:1188b6ce1e5:-8000:000000000000096F'
-                          name = 'longString' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
+                          name = 'string192' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
                           changeability = 'changeable' targetScope = 'instance'>
                           <UML:StructuralFeature.multiplicity>
-                            <UML:Multiplicity xmi.id = '127-0-0-1--287ebba1:1188b6ce1e5:-8000:0000000000000973'>
+                            <UML:Multiplicity xmi.id = '127-0-0-1-c55f8f3:118d257234e:-8000:00000000000009BA'>
                               <UML:Multiplicity.range>
-                                <UML:MultiplicityRange xmi.id = '127-0-0-1--287ebba1:1188b6ce1e5:-8000:0000000000000972'
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1-c55f8f3:118d257234e:-8000:00000000000009B9'
                                   lower = '1' upper = '1'/>
                               </UML:Multiplicity.range>
                             </UML:Multiplicity>
@@ -1730,13 +1730,61 @@
                             <UML:DataType xmi.idref = '127-0-0-1-59bd95bc:1163621754d:-8000:000000000000082A'/>
                           </UML:StructuralFeature.type>
                         </UML:Attribute>
+                        <UML:Attribute xmi.id = '127-0-0-1-c55f8f3:118d257234e:-8000:00000000000009A0'
+                          name = 'string64k' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
+                          changeability = 'changeable' targetScope = 'instance'>
+                          <UML:StructuralFeature.multiplicity>
+                            <UML:Multiplicity xmi.id = '127-0-0-1--2a7a464:118d2771dad:-8000:000000000000099B'>
+                              <UML:Multiplicity.range>
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1--2a7a464:118d2771dad:-8000:000000000000099A'
+                                  lower = '1' upper = '1'/>
+                              </UML:Multiplicity.range>
+                            </UML:Multiplicity>
+                          </UML:StructuralFeature.multiplicity>
+                          <UML:ModelElement.taggedValue>
+                            <UML:TaggedValue xmi.id = '127-0-0-1-c55f8f3:118d257234e:-8000:00000000000009AC'
+                              isSpecification = 'false'>
+                              <UML:TaggedValue.dataValue>65535</UML:TaggedValue.dataValue>
+                              <UML:TaggedValue.type>
+                                <UML:TagDefinition xmi.idref = '127-0-0-1-62a20cea:1188b181abf:-8000:0000000000000967'/>
+                              </UML:TaggedValue.type>
+                            </UML:TaggedValue>
+                          </UML:ModelElement.taggedValue>
+                          <UML:StructuralFeature.type>
+                            <UML:DataType xmi.idref = '127-0-0-1-59bd95bc:1163621754d:-8000:000000000000082A'/>
+                          </UML:StructuralFeature.type>
+                        </UML:Attribute>
+                        <UML:Attribute xmi.id = '127-0-0-1--2a7a464:118d2771dad:-8000:000000000000099C'
+                          name = 'string16m' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
+                          changeability = 'changeable' targetScope = 'instance'>
+                          <UML:StructuralFeature.multiplicity>
+                            <UML:Multiplicity xmi.id = '127-0-0-1--2a7a464:118d2771dad:-8000:00000000000009A5'>
+                              <UML:Multiplicity.range>
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1--2a7a464:118d2771dad:-8000:00000000000009A4'
+                                  lower = '1' upper = '1'/>
+                              </UML:Multiplicity.range>
+                            </UML:Multiplicity>
+                          </UML:StructuralFeature.multiplicity>
+                          <UML:ModelElement.taggedValue>
+                            <UML:TaggedValue xmi.id = '127-0-0-1--2a7a464:118d2771dad:-8000:00000000000009A3'
+                              isSpecification = 'false'>
+                              <UML:TaggedValue.dataValue>16777215</UML:TaggedValue.dataValue>
+                              <UML:TaggedValue.type>
+                                <UML:TagDefinition xmi.idref = '127-0-0-1-62a20cea:1188b181abf:-8000:0000000000000967'/>
+                              </UML:TaggedValue.type>
+                            </UML:TaggedValue>
+                          </UML:ModelElement.taggedValue>
+                          <UML:StructuralFeature.type>
+                            <UML:DataType xmi.idref = '127-0-0-1-59bd95bc:1163621754d:-8000:000000000000082A'/>
+                          </UML:StructuralFeature.type>
+                        </UML:Attribute>
                         <UML:Attribute xmi.id = '127-0-0-1-62a20cea:1188b181abf:-8000:0000000000000962'
-                          name = 'veryLongString' visibility = 'public' isSpecification = 'false'
+                          name = 'stringUnlimited' visibility = 'public' isSpecification = 'false'
                           ownerScope = 'instance' changeability = 'changeable' targetScope = 'instance'>
                           <UML:StructuralFeature.multiplicity>
-                            <UML:Multiplicity xmi.id = '127-0-0-1--287ebba1:1188b6ce1e5:-8000:0000000000000978'>
+                            <UML:Multiplicity xmi.id = '127-0-0-1--2a7a464:118d2771dad:-8000:0000000000000999'>
                               <UML:Multiplicity.range>
-                                <UML:MultiplicityRange xmi.id = '127-0-0-1--287ebba1:1188b6ce1e5:-8000:0000000000000977'
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1--2a7a464:118d2771dad:-8000:0000000000000998'
                                   lower = '1' upper = '1'/>
                               </UML:Multiplicity.range>
                             </UML:Multiplicity>
@@ -9425,7 +9473,7 @@
     </path>
   </group>
   <group name="Fig32"
-       description="org.argouml.uml.diagram.static_structure.ui.FigClass[880, 544, 131, 91]pathVisible=false;operationsVisible=true;attributesVisible=true"
+       description="org.argouml.uml.diagram.static_structure.ui.FigClass[880, 504, 146, 117]pathVisible=false;operationsVisible=true;attributesVisible=true"
        href="127-0-0-1-62a20cea:1188b181abf:-8000:0000000000000957"
        fill="1"
        fillcolor="white"
@@ -9437,16 +9485,16 @@
     
     <rectangle name="Fig32.0"
       x="880"
-      y="544"
-      width="131"
-      height="91"
+      y="504"
+      width="146"
+      height="117"
       fill="1"
       fillcolor="white"
       stroke="0"
       strokecolor="black"
     />
     <group name="Fig32.1"
-         description="org.argouml.uml.diagram.ui.FigStereotypesCompartment[880, 544, 131, 2]"
+         description="org.argouml.uml.diagram.ui.FigStereotypesCompartment[880, 504, 146, 2]"
          href="127-0-0-1-62a20cea:1188b181abf:-8000:0000000000000957"
          fill="1"
          fillcolor="white"
@@ -9458,8 +9506,8 @@
       
       <rectangle name="Fig32.1.0"
         x="880"
-        y="544"
-        width="131"
+        y="504"
+        width="146"
         height="2"
         fill="1"
         fillcolor="white"
@@ -9469,7 +9517,7 @@
     </group>
     <text name="Fig32.2"
       x="880"
-      y="546"
+      y="506"
       fill="1"
       fillcolor="white"
       stroke="0"
@@ -9478,7 +9526,7 @@
       textsize="10"
     >CustomTagTarget</text>
     <group name="Fig32.3"
-         description="org.argouml.uml.diagram.ui.FigOperationsCompartment[881, 615, 130, 20]"
+         description="org.argouml.uml.diagram.ui.FigOperationsCompartment[881, 601, 145, 20]"
          fill="1"
          fillcolor="white"
          stroke="0"
@@ -9489,8 +9537,8 @@
       
       <rectangle name="Fig32.3.0"
         x="881"
-        y="615"
-        width="130"
+        y="601"
+        width="145"
         height="20"
         fill="1"
         fillcolor="white"
@@ -9505,13 +9553,13 @@
         strokecolor="black"
       >
         <moveto x="881"
-                y="615" />
-        <lineto x="1011"
-                y="615" />
+                y="601" />
+        <lineto x="1026"
+                y="601" />
       </path>
     </group>
     <group name="Fig32.4"
-         description="org.argouml.uml.diagram.ui.FigAttributesCompartment[881, 567, 130, 47]"
+         description="org.argouml.uml.diagram.ui.FigAttributesCompartment[881, 527, 145, 73]"
          fill="1"
          fillcolor="white"
          stroke="0"
@@ -9522,9 +9570,9 @@
       
       <rectangle name="Fig32.4.0"
         x="881"
-        y="567"
-        width="130"
-        height="47"
+        y="527"
+        width="145"
+        height="73"
         fill="1"
         fillcolor="white"
         stroke="0"
@@ -9538,13 +9586,13 @@
         strokecolor="black"
       >
         <moveto x="881"
-                y="567" />
-        <lineto x="1011"
-                y="567" />
+                y="527" />
+        <lineto x="1026"
+                y="527" />
       </path>
       <text name="Fig32.4.2"
         x="881"
-        y="568"
+        y="528"
         fill="0"
         fillcolor="white"
         stroke="0"
@@ -9554,30 +9602,50 @@
       >name : String</text>
       <text name="Fig32.4.3"
         x="881"
-        y="581"
+        y="541"
         fill="0"
         fillcolor="white"
         stroke="0"
         strokecolor="black"
         font="Dialog"
         textsize="10"
-      >longString : String</text>
+      >string192 : String</text>
       <text name="Fig32.4.4"
         x="881"
-        y="594"
+        y="554"
         fill="0"
         fillcolor="white"
         stroke="0"
         strokecolor="black"
         font="Dialog"
         textsize="10"
-      >veryLongString : String</text>
+      >string64k : String</text>
+      <text name="Fig32.4.5"
+        x="881"
+        y="567"
+        fill="0"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+        font="Dialog"
+        textsize="10"
+      >string16m : String</text>
+      <text name="Fig32.4.6"
+        x="881"
+        y="580"
+        fill="0"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+        font="Dialog"
+        textsize="10"
+      >stringUnlimited : String</text>
     </group>
     <rectangle name="Fig32.5"
       x="880"
-      y="544"
-      width="131"
-      height="91"
+      y="504"
+      width="146"
+      height="117"
       fill="0"
       fillcolor="white"
       stroke="1"

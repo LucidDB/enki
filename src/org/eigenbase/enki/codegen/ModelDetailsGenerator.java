@@ -269,6 +269,7 @@ public class ModelDetailsGenerator extends ModelGraphGenerator
                     BreadthFirstIterator<MofClass, DefaultEdge> iter =
                         new BreadthFirstIterator<MofClass, DefaultEdge>(
                             graph, cls);
+                    iter.next();  // skip cls itself
                     while(iter.hasNext()) {
                         MofClass subType = iter.next();
                         

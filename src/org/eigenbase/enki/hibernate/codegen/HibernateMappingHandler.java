@@ -136,7 +136,16 @@ public class HibernateMappingHandler
     
     private static final JavaClassReference ENUM_USER_TYPE_CLASS =
         new JavaClassReference(EnumUserType.class, false);
-    
+
+    /**
+     * Controls when the mapping switches from Hibernate's "string" type to
+     * the "text" type.  The distinction is that the "text" type uses 
+     * {@link java.sql.PreparedStatement#setCharacterStream(int, Reader, int)}
+     * to write values.  This value, {@value}, is somewhat arbitrary, although
+     * some databases (e.g., MySQL) will balk if it's set too high.
+     */
+    private static final int STRING_TEXT_CROSSOVER = 32768;
+
     private Set<Classifier> allTypes;
     
     /** Maps a component type to a list of references to it. */
@@ -815,10 +824,7 @@ public class HibernateMappingHandler
         StringBuilder type = new StringBuilder();
         int length = getStringType(cls, attribute, type);
 
-        int additionalAttribCount = (length != Integer.MAX_VALUE) ? 2 : 1;        
-        
-        Object[] modifiedXmlAttribs = 
-            new Object[xmlAttribs.length + (additionalAttribCount * 2)]; 
+        Object[] modifiedXmlAttribs = new Object[xmlAttribs.length + 4]; 
         for(int i = 0; i < xmlAttribs.length; i++) {
             modifiedXmlAttribs[i] = xmlAttribs[i];
         }
@@ -827,10 +833,8 @@ public class HibernateMappingHandler
         modifiedXmlAttribs[i++] = "type";
         modifiedXmlAttribs[i++] = type.toString();
         
-        if (length != Integer.MAX_VALUE) {
-            modifiedXmlAttribs[i++] = "length";
-            modifiedXmlAttribs[i++] = String.valueOf(length);
-        }
+        modifiedXmlAttribs[i++] = "length";
+        modifiedXmlAttribs[i++] = String.valueOf(length);
 
         writeEmptyElem(elementName, modifiedXmlAttribs);
     }
@@ -845,16 +849,14 @@ public class HibernateMappingHandler
             CodeGenUtils.findMaxLengthTag(
                 cls, attrib, defaultStringLength, log);
         
-        if (maxLen != Integer.MAX_VALUE) {
-            assert(maxLen <= CodeGenUtils.MAX_STRING_LENGTH);
-            
+        if (maxLen <= STRING_TEXT_CROSSOVER) {
             typeBuffer.append("string");
-            return maxLen;
         } else {
-            // unlimited
+            // very large -- make sure we use stream semantics or mysql will
+            // choke
             typeBuffer.append("text");
-            return Integer.MAX_VALUE;
         }
+        return maxLen;
     }
     
     private void generateAssociationField(ReferenceInfo refInfo)

@@ -7,17 +7,8 @@ plugin model and main model are stitched together to form a single,
 complete UML file, which is then converted into Java classes,
 excluding the main model's classes.
 
-SamplePlugin.uml is a simplified test case for this procedure.  It
-started as a complete copy of Sample.uml, but they may have diverged
-since then.  To keep tests functioning properly, the pluginbase
-package in both files must match and the plugin package specified in
-SamplePlugin.uml must only reference element described in pluginbase.
+SamplePlugin.uml is a simplified test case for this procedure.  Keep
+all plugin classes in the Plugin package.  You may add references to
+PluginBaseRef package classes as necessary.  Don't try to extend other
+classes in the EEM model unless you want to debug the XSL transforms.
 
-Therefore, if you modify elements in pluginbase, you must modify them
-in both files.  Elements in other packages are always taken from
-Sample.uml and need only be modified in that file.
-
-Ultimately, the intention is to move Farrago's model manipulation code
-entirely into Enki, at which time it should be possible to modify
-SamplePlugin.uml to contain only the plugin package and remove the
-double-modification rules.

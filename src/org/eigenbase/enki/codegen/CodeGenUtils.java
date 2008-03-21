@@ -59,12 +59,6 @@ public class CodeGenUtils
     public static final int DEFAULT_STRING_LENGTH = 128;
     
     /**
-     * Maximum string length.  The maximum is {@value}.  
-     * This is somewhat arbitrary.
-     */
-    public static final int MAX_STRING_LENGTH = 32768;
-    
-    /**
      * Tag identifier for a custom Enki tag to control whether a package is
      * considered transient.  The tag identifier is {@value}.
      */
@@ -234,11 +228,9 @@ public class CodeGenUtils
      *   </li>
      * </ol>
      * 
-     * <p>The returned value is automatically constrained to the inclusive 
-     * range [1, {@value #MAX_STRING_LENGTH}].  The special tag value 
-     * {@value #MAX_LENGTH_UNLIMITED_VALUE} specifies that the maximum storage
-     * size for the underlying database should be used and causes the value
-     * {@link Integer#MAX_VALUE} to be returned.
+     * <p>The special tag value {@value #MAX_LENGTH_UNLIMITED_VALUE} specifies 
+     * that the maximum storage size for the underlying database should be used
+     * and causes the value {@link Integer#MAX_VALUE} to be returned.
      * 
      * @param cls Classifier in which the Attribute appears (perhaps via
      *            inheritance)
@@ -310,13 +302,6 @@ public class CodeGenUtils
                 + attribName
                 + "' to 1");
             max = 1;
-        } else  if (max > MAX_STRING_LENGTH) {
-            log.warning(
-                "Adjusted string length for attribute '" 
-                + attribName
-                + "' to "
-                + MAX_STRING_LENGTH);
-            max = MAX_STRING_LENGTH;
         }
         
         return max;

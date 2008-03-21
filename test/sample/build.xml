@@ -4,9 +4,6 @@
   <property name="enki.dir" location="../.."/>
   <property name="enki.xmi.dir" location="./catalog/xmi"/>
 
-  <property name="farrago.dir" location="${enki.dir}/../dev/farrago"/>
-  <property name="farrago.xmi.dir" location="${farrago.dir}/catalog/xmi"/>
-
   <property name="mdrlibs.dir" location="${enki.dir}/thirdparty/mdrlibs"/>
 
   <property 
@@ -23,7 +20,7 @@
     <attribute name="outputfilename" default="unspecified" />
     <attribute name="umlsansdiagrams" default="unspecified" />
     <sequential>
-      <xslt style="${farrago.xmi.dir}/deleteUmlDiagrams.xsl"
+      <xslt style="${enki.xmi.dir}/deleteUmlDiagrams.xsl"
         in="@{umlmodelname}"
         out="@{umlsansdiagrams}">
       </xslt>
@@ -54,7 +51,7 @@
     <attribute name="mofBasename" default="unspecified" />
     <attribute name="xmiDir" default="unspecified" />
     <sequential>
-      <xslt style="${farrago.xmi.dir}/extractArgoModel.xsl"
+      <xslt style="${enki.xmi.dir}/extractArgoModel.xsl"
         in="@{umlFile}"
         out="@{xmiDir}/@{umlBasename}.xmi">
       </xslt>
@@ -76,9 +73,25 @@
   <target name="convertPluginMetamodel">
     <enki.extractArgoModel
       umlFile="${EnkiSamplePluginMetamodel.uml}"
-      umlBasename="EnkiSamplePluginMetamodel"
-      mofBasename="EnkiSamplePluginMetamodel"
+      umlBasename="EnkiSamplePluginMetamodelBase"
+      mofBasename="EnkiSamplePluginMetamodelBase"
       xmiDir="${enki.xmi.dir}"/>
+
+    <xslt style="${enki.xmi.dir}/transformPlugin.xsl"
+      in="${enki.xmi.dir}/EnkiSamplePluginMetamodelBase.xmi"
+      out="${enki.xmi.dir}/EnkiSamplePluginMetamodelTransformed.xmi"/>
+
+    <xslt style="${enki.xmi.dir}/mergePlugin.xsl"
+        in="${enki.xmi.dir}/EnkiSampleMetamodel.xmi"
+        out="${enki.xmi.dir}/EnkiSamplePluginMetamodelUnresolved.xmi"
+        force="true">
+      <param name="pluginXmiFilename"
+        expression="${enki.xmi.dir}/EnkiSamplePluginMetamodelTransformed.xmi"/>
+    </xslt>
+
+    <xslt style="${enki.xmi.dir}/resolveRefs.xsl"
+        in="${enki.xmi.dir}/EnkiSamplePluginMetamodelUnresolved.xmi"
+        out="${enki.xmi.dir}/EnkiSamplePluginMetamodel.xmi"/>
   </target>
 
   <target name="clean">
