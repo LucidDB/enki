@@ -144,6 +144,8 @@ public class HibernateGenerator extends MdrGenerator
         
         String includedPackages = options.get(INCLUDE_PACKAGE_OPTION);
         if (includedPackages != null) {
+            // Accept package name with slashes
+            includedPackages = includedPackages.replace("/", ".");
             String[] names = includedPackages.split(",");
             includedPackageList = new ArrayList<String>();
             for(String name: names) {

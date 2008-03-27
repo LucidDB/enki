@@ -286,6 +286,17 @@ public class MDRepositoryFactory
     {
         classLoaderProvider = provider;
     }
+    
+    // Use EnkiMDRepository.getDefaultClassLoader() instead
+    @Deprecated
+    public static ClassLoader getDefaultClassLoader()
+    {
+        if (classLoaderProvider == null) {
+            return Thread.currentThread().getContextClassLoader();
+        } else {
+            return classLoaderProvider.getClassLoader();
+        }
+    }
 }
 
 // End MDRepositoryFactory.java

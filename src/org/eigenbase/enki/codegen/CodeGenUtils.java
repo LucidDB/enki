@@ -232,22 +232,24 @@ public class CodeGenUtils
      * that the maximum storage size for the underlying database should be used
      * and causes the value {@link Integer#MAX_VALUE} to be returned.
      * 
+     * <p><b>NOTE:</b> 
+     * {@link TagUtil#findMaxLengthTag(Classifier, Attribute, int)}</p>
+     * 
      * @param cls Classifier in which the Attribute appears (perhaps via
      *            inheritance)
      * @param attrib Attribute to get a maximum length
      * @param defaultMaxLength the default to return if no other value is found
-     * @param log Logger to use if an out-of-range value is truncated 
+     * @param log optional Logger to use if an out-of-range value is truncated 
      * @return the maximum length for the Classifier and Attribute given,
      *         Integer.MAX_VALUE for unlimited.
-     * @throws GenerationException if a tag value cannot be converted to an 
-     *                             integer
+     * @throws NumberFormatException if a tag value cannot be converted to an 
+     *                               integer
      */
     public static int findMaxLengthTag(
         Classifier cls, 
         Attribute attrib, 
         int defaultMaxLength,
         Logger log)
-    throws GenerationException
     {
         String maxLen = TagUtil.getTagValue(attrib, MAX_LENGTH_TAG_NAME);
         if (maxLen != null) {
@@ -274,33 +276,26 @@ public class CodeGenUtils
      * @param log logger for out-of-bounds logging
      * @param attribName attribute name for out-of-bounds logging
      * @return int representation of maxLen
-     * @throws GenerationException if maxLen cannot be converted to an 
-     *                             integer
+     * @throws NumberFormatException if maxLen cannot be converted to an 
+     *                               integer
      */
     private static int convertMaxLengthToInt(
         String maxLen, Logger log, String attribName)
-    throws GenerationException
+    throws NumberFormatException
     {
         if (MAX_LENGTH_UNLIMITED_VALUE.equals(maxLen)) {
             return Integer.MAX_VALUE;
         }
         
-        int max;
-        try {
-            max = Integer.parseInt(maxLen);
-        }
-        catch(NumberFormatException e) {
-            throw new GenerationException(
-                "Cannot parse " + MAX_LENGTH_TAG_NAME 
-                + " value '" + maxLen + "'", 
-                e);
-        }
+        int max = Integer.parseInt(maxLen);
         
         if (max < 1) {
-            log.warning(
-                "Adjusted string length for attribute '"
-                + attribName
-                + "' to 1");
+            if (log != null) {
+                log.warning(
+                    "Adjusted string length for attribute '"
+                    + attribName
+                    + "' to 1");
+            }
             max = 1;
         }
         

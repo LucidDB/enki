@@ -75,6 +75,15 @@ import org.netbeans.api.mdr.*;
 public class EnkiTask
     extends Task
 {
+    private static final String ENKI_COMPAT_STORAGE_PROPS_FILE =
+        "enki.compatibility.storagePropertiesFile";
+    
+    private static final String ENKI_COMPAT_SUBST_PROP_NAME = 
+        "enki.compatibility.substPropertyName";
+    
+    private static final String ENKI_COMPAT_SUBST_PROP_VALUE = 
+        "enki.compatibility.substPropertyValue";
+
     private String propertiesFile;
     
     private String logConfigFile;
@@ -258,12 +267,28 @@ public class EnkiTask
         return importXmiSubTask;
     }
     
+    // REVIEW: SWZ: 2008-03-26: Compatibility of old-style red-zone scripts.
+    // Remove when no longer needed.
+    @Deprecated
+    public ImportXmiSubTask createReadXMI()
+    {
+        return createImportXmi();
+    }
+    
     public ExportXmiSubTask createExportXmi()
     {
         ExportXmiSubTask exportXmiSubTask = new ExportXmiSubTask("exportXmi");
         subTasks.add(exportXmiSubTask);
         exportXmiSubTask.setTask(this);
         return exportXmiSubTask;
+    }
+
+    // REVIEW: SWZ: 2008-03-26: Compatibility of old-style red-zone scripts.
+    // Remove when no longer needed.
+    @Deprecated
+    public ExportXmiSubTask createWriteXMI()
+    {
+        return createExportXmi();
     }
     
     public PrintExtentNames createPrintExtentNames()
@@ -311,19 +336,22 @@ public class EnkiTask
             throw new BuildException("MDR repository not instantiated");
         }
         
-        loadProperties();
+        Properties props = getStorageProperties();
         
-        mdr = MDRepositoryFactory.newMDRepository(storageProperties);
+        mdr = MDRepositoryFactory.newMDRepository(props);
         
         return mdr;
     }
     
-    MdrProvider getMdrProvider()
+    MdrProvider getMdrProvider() throws BuildException
     {
-        loadProperties();
+        Properties props = getStorageProperties(false);
+        if (props == null) {
+            return null;
+        }
         
         String enkiImplType = 
-            storageProperties.getProperty(MDRepositoryFactory.ENKI_IMPL_TYPE);
+            props.getProperty(MDRepositoryFactory.ENKI_IMPL_TYPE);
         if (enkiImplType == null) {
             return null;
         }
@@ -332,12 +360,54 @@ public class EnkiTask
         return implType;
     }
     
-    void loadProperties() throws BuildException
+    Properties getStorageProperties() throws BuildException
     {
-        if (storageProperties != null) {
-            return;
+        return getStorageProperties(true);
+    }
+    
+    Properties getStorageProperties(boolean failOnNotFound) 
+        throws BuildException
+    {
+        if (storageProperties == null) {
+            storageProperties = 
+                loadProperties(
+                    propertiesFile,
+                    propertySet,
+                    storagePropertyElements);
+            
+            if (storageProperties == null && failOnNotFound) {
+                throw new BuildException("Unable to find storage properties");
+            }
         }
         
+        return storageProperties;
+    }
+    
+    private static Properties loadProperties(
+        String propertiesFile,
+        PropertySet substPropertySet,
+        List<StorageProperty> storagePropertyElements) 
+    throws BuildException
+    {
+        Properties substituionProperties = null;
+        if (substPropertySet != null) {
+            substituionProperties = substPropertySet.getProperties();
+        }
+        
+        return loadProperties(
+            propertiesFile,
+            substituionProperties, 
+            storagePropertyElements,
+            true);
+    }
+    
+    private static Properties loadProperties(
+        String propertiesFile,
+        Properties substProps,
+        List<StorageProperty> storagePropertyElements,
+        boolean recurse) 
+    throws BuildException
+    {
         Properties props = new Properties();
 
         if (propertiesFile != null && propertiesFile.length() > 0) {
@@ -360,12 +430,11 @@ public class EnkiTask
             }
         }
 
-        if (propertySet != null) {
+        // Use substProps to do substitution on values in props.
+        if (substProps != null) {
             Pattern propRegex = 
                 Pattern.compile("\\$(\\{([^$}]+)\\}|\\$)");
             
-            // Use propertySet to do substitution into props.
-            Properties substProps = propertySet.getProperties();
             for(Map.Entry<Object, Object> entry: props.entrySet()) {
                 String value = entry.getValue().toString();
                 
@@ -395,7 +464,58 @@ public class EnkiTask
             }
         }
         
-        storageProperties = props;
+        // REVIEW: SWZ: 2008-03-26: Remove this block when no longer needed.
+        // You can also collapse this method in to the no-argument version
+        // of loadProperties().
+
+        // Provide backwards compatibility to pre-Enki scripts, which assume
+        // that Netbeans MDR storage properties are provided as system
+        // properties by Ant scripts.  This is normally accomplished in some
+        // shared custom Ant task/macro -- assume the macro is modified to
+        // pass the storage properties file via a system property.
+        if (propertiesFile == null && props.isEmpty()) {
+            if (recurse) {
+                String compatPropsFile = 
+                    System.getProperty(ENKI_COMPAT_STORAGE_PROPS_FILE);
+
+                // Provide the one substitution most storage properties need.
+                Properties compatSubstProps = new Properties();
+                
+                String substPropName = 
+                    System.getProperty(ENKI_COMPAT_SUBST_PROP_NAME);
+                if (substPropName != null) {
+                    String substPropValue = 
+                        System.getProperty(ENKI_COMPAT_SUBST_PROP_VALUE);
+                    
+                    compatSubstProps.put(substPropName, substPropValue);
+                }
+                
+                // Try again.
+                props = 
+                    loadProperties(
+                        compatPropsFile,
+                        compatSubstProps,
+                        storagePropertyElements, 
+                        false);
+            } else {
+                // Failed on recursion, perhaps the compatibility properties
+                // file wasn't set.
+                return null;
+            }
+
+            if (props != null &&
+                !props.containsKey(MDRepositoryFactory.ENKI_IMPL_TYPE))
+            {
+                final MdrProvider defaultProvider = MdrProvider.NETBEANS_MDR;
+                props.put(
+                    MDRepositoryFactory.ENKI_IMPL_TYPE,
+                    defaultProvider.toString());
+                System.out.println(
+                    "Forcing MDR provider '" + defaultProvider + "'");
+            }
+        }
+        
+        return props;
     }
     
     /**

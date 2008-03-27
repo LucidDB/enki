@@ -28,6 +28,7 @@ import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.util.*;
+import org.eigenbase.enki.util.StringUtil.*;
 
 /**
  * GeneratorBase is an abstract base class for Enki code generators.
@@ -689,10 +690,8 @@ public abstract class GeneratorBase implements Generator
         
         String attribName = elem.getName();
         String baseName = 
-            attribName.length() <= 1
-            ? attribName.toUpperCase(Locale.US)
-            : attribName.substring(0, 1).toUpperCase(Locale.US) + 
-                attribName.substring(1);
+            StringUtil.mangleIdentifier(
+                attribName, IdentifierType.CAMELCASE_INIT_UPPER);
             
         String accessorName = null;
 
@@ -737,10 +736,8 @@ public abstract class GeneratorBase implements Generator
 
         String attribName = feature.getName();
         String baseName = 
-            attribName.length() <= 1
-            ? attribName.toUpperCase(Locale.US)
-            : attribName.substring(0, 1).toUpperCase(Locale.US) + 
-                attribName.substring(1);
+            StringUtil.mangleIdentifier(
+                attribName, IdentifierType.CAMELCASE_INIT_UPPER);
             
         String mutatorName = null;
 

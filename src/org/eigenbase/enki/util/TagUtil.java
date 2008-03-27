@@ -26,6 +26,7 @@ import java.util.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.codegen.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.netbeans.lib.jmi.util.*;
 
@@ -252,6 +253,31 @@ public class TagUtil
         }
         
         return packageName;
+    }
+    
+    // REVIEW: SWZ: 2008-03-25: Decide whether this code belongs here or in
+    // CodeGenUtils and refactor as necessary.
+    
+    /**
+     * Returns the maximum length for a given attribute in a given class.
+     * If no tag specifies an alternative maximum length, returns the
+     * given default.
+     * 
+     * See {@link CodeGenUtils#findMaxLengthTag(
+     *          Classifier, Attribute, int, java.util.logging.Logger)}
+     * 
+     * @param cls object's class
+     * @param attrib object's attribute
+     * @param defaultMaxLength default maximum length
+     * @return max length for the class/attribute combination
+     */
+    public static int findMaxLengthTag(
+        Classifier cls, 
+        Attribute attrib, 
+        int defaultMaxLength)
+    {
+        return CodeGenUtils.findMaxLengthTag(
+            cls, attrib, defaultMaxLength, null);
     }
 }
 

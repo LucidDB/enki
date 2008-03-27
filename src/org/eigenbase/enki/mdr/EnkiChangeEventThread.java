@@ -38,6 +38,8 @@ public class EnkiChangeEventThread
 {
     private static final long POLLING_TIMEOUT = 5000L;
     private static final int MAX_CONSECUTIVE = 1000;
+    private static final int MAX_CAPACITY = 10000;
+    
     private static final CheckShutdownEvent CHECK_SHUTDOWN_EVENT = 
         new CheckShutdownEvent();
     
@@ -52,7 +54,8 @@ public class EnkiChangeEventThread
     public EnkiChangeEventThread(ListenerSource listenerSource)
     {
         this.listenerSource = listenerSource;
-        this.eventQueue = new LinkedBlockingQueue<MDRChangeEvent>();
+        this.eventQueue = 
+            new LinkedBlockingQueue<MDRChangeEvent>(MAX_CAPACITY);
         this.shutdown = false;
         
         setName("Enki MDR Change Event Thread");
@@ -129,6 +132,12 @@ public class EnkiChangeEventThread
             }
             catch(InterruptedException e) {
                 log.log(Level.SEVERE, "EnkiChangeEventThread interrupted", e);
+            }
+            catch(Throwable t) {
+                log.log(
+                    Level.SEVERE, 
+                    "EnkiChangeEventThread ending unexpectedly",
+                    t);
             }
         }
     }
