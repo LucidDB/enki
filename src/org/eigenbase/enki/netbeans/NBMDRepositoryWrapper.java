@@ -79,17 +79,22 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     public static final String NETBEANS_MDR_STORAGE_PROP_PREFIX =
         MDRepositoryFactory.NETBEANS_MDR_STORAGE_PROP_PREFIX;
     
+    private static int NEXT_ID = 1;
+    
     private final Logger log = 
         Logger.getLogger(NBMDRepositoryWrapper.class.getName());
 
-    private static final ThreadLocalSessionContext tls = 
+    private final ThreadLocalSessionContext tls = 
         new ThreadLocalSessionContext();
 
+    public final int id;
+    
     private final NBMDRepositoryImpl impl;
     
     public NBMDRepositoryWrapper(NBMDRepositoryImpl impl)
     {
         this.impl = impl;
+        this.id = NEXT_ID++;
     }
 
     // implement EnkiMDRepository

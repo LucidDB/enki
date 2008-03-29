@@ -154,9 +154,7 @@ public class HibernateMDRepository
      */
     private static final String MOF_EXTENT = "MOF";
     
-    /** Thread-local storage for MDR session contexts. */
-    private static final ThreadLocal<MdrSession> tls =
-        new ThreadLocal<MdrSession>();
+    private static final MdrSessionStack sessionStack = new MdrSessionStack();
     
     private final AtomicInteger sessionCount;
     
@@ -254,14 +252,14 @@ public class HibernateMDRepository
     
     public EnkiMDSession detachSession()
     {
-        MdrSession mdrSession = tls.get();
-        tls.set(null);
+        MdrSession mdrSession = sessionStack.pop();
         return mdrSession;
     }
     
     public void reattachSession(EnkiMDSession session)
     {
-        if (tls.get() != null) {
+        MdrSession existingSession = sessionStack.peek(this);
+        if (existingSession != null) {
             throw new EnkiHibernateException(
                 "must end current session before re-attach");
         }
@@ -276,18 +274,13 @@ public class HibernateMDRepository
                 "invalid session object; wrong type");
         }
         
-        tls.set((MdrSession)session);
+        sessionStack.push((MdrSession)session);
     }
     
     public void beginSession()
     {
-        MdrSession mdrSession = tls.get();
+        MdrSession mdrSession = sessionStack.peek(this);
         if (mdrSession != null) {
-            if (mdrSession.getRepos() != this) {
-                throw new EnkiHibernateException(
-                    "session already open on another repository");
-            }
-            
             logStack(Level.FINE, "begin re-entrant repository session");
             mdrSession.refCount++;
             return;
@@ -314,7 +307,7 @@ public class HibernateMDRepository
         MdrSession mdrSession = new MdrSession(session, implicit);
         mdrSession.refCount++;
         
-        tls.set(mdrSession);
+        sessionStack.push(mdrSession);
         int count = sessionCount.incrementAndGet();
         assert(count > 0);
         
@@ -323,15 +316,10 @@ public class HibernateMDRepository
     
     public void endSession()
     {
-        MdrSession mdrSession = tls.get();
+        MdrSession mdrSession = sessionStack.peek(this);
         if (mdrSession == null) {
             throw new EnkiHibernateException(
                 "session never opened/already closed");
-        }
-        
-        if (mdrSession.getRepos() != this) {
-            throw new EnkiHibernateException(
-                "ending session on wrong repository");
         }
         
         if (--mdrSession.refCount != 0) {
@@ -369,7 +357,7 @@ public class HibernateMDRepository
         }
         
         mdrSession.session.close();
-        tls.set(null);
+        sessionStack.pop();
         int count = sessionCount.decrementAndGet();
         assert(count >= 0);
     }
@@ -391,7 +379,7 @@ public class HibernateMDRepository
                 + (implicit ? "implicit" : "explicit"));
         }
         
-        MdrSession mdrSession = tls.get();
+        MdrSession mdrSession = sessionStack.peek(this);
         if (mdrSession == null) {
             mdrSession = beginSessionImpl(true);
         }
@@ -474,7 +462,7 @@ public class HibernateMDRepository
                 + (rollback ? "rollback" : "commit"));
         }
 
-        MdrSession mdrSession = tls.get();
+        MdrSession mdrSession = sessionStack.peek(this);
         if (mdrSession == null) {
             throw new EnkiHibernateException(
                 "No repository session associated with this thread");
@@ -922,7 +910,7 @@ public class HibernateMDRepository
     
     private MdrSession getMdrSession()
     {
-        MdrSession session = tls.get();
+        MdrSession session = sessionStack.peek(this);
         if (session != null) {
             return session;
         }
@@ -943,7 +931,7 @@ public class HibernateMDRepository
     
     public static HibernateMDRepository getCurrentRepository()
     {
-        MdrSession session = tls.get();
+        MdrSession session = sessionStack.peek();
         if (session == null) {
             throw new EnkiHibernateException(
                 "No current session on this thread");
@@ -1905,7 +1893,7 @@ public class HibernateMDRepository
         
     public void onFlush(FlushEvent flushEvent) throws HibernateException
     {
-        MdrSession mdrSession = tls.get();
+        MdrSession mdrSession = sessionStack.peek(this);
         if (mdrSession == null) {
             // Not in a transaction (e.g. startup, shutdown)
             return;
@@ -1918,8 +1906,8 @@ public class HibernateMDRepository
     public void onAutoFlush(AutoFlushEvent autoFlushEvent) 
         throws HibernateException
     {
-        MdrSession mdrSession = tls.get();
-        if (mdrSession== null) {
+        MdrSession mdrSession = sessionStack.peek(this);
+        if (mdrSession == null) {
             // Not in a transaction (e.g. startup, shutdown)
             return;
         }
@@ -2063,6 +2051,57 @@ public class HibernateMDRepository
         private HibernateMDRepository getRepos()
         {
             return HibernateMDRepository.this;
+        }
+    }
+    
+    /**
+     * MdrSessionStack maintains a thread-local stack of {@link MdrSession}
+     * instances.
+     */
+    private static class MdrSessionStack
+    {
+        /** Thread-local storage for MDR session contexts. */
+        private final ThreadLocal<LinkedList<MdrSession>> tls =
+            new ThreadLocal<LinkedList<MdrSession>>() {
+                @Override
+                protected LinkedList<MdrSession> initialValue()
+                {
+                    return new LinkedList<MdrSession>();
+                }
+            };
+        
+        public MdrSession peek()
+        {
+            LinkedList<MdrSession> stack = tls.get();
+            if (stack.isEmpty()) {
+                return null;
+            }
+
+            return stack.getFirst();
+        }
+        
+        public MdrSession peek(HibernateMDRepository repos)
+        {
+            LinkedList<MdrSession> stack = tls.get();
+            if (stack.isEmpty()) {
+                return null;
+            }
+
+            MdrSession session = stack.getFirst();
+            if (session.getRepos() != repos) {
+                return null;
+            }
+            return session;
+        }
+        
+        public MdrSession pop()
+        {
+            return tls.get().removeFirst();
+        }
+        
+        public void push(MdrSession session)
+        {
+            tls.get().addFirst(session);
         }
     }
     
