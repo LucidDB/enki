@@ -65,11 +65,15 @@
   <property 
       name="enki.dist.tarball" 
       location="${dist.dir}/${enki.dist.prefix}.tar.gz"/>
+  <property 
+      name="enki.lib.dist.tarball" 
+      location="${dist.dir}/${enki.dist.prefix}-libs.tar.gz"/>
 
   <!-- properties for thirdparty libraries -->
   <property name="commons-collections.dir" location="${thirdparty.dir}/commons-collections"/>
   <property name="commons-logging.dir" location="${thirdparty.dir}/commons-logging"/>
   <property name="hibernate.dir" location="${thirdparty.dir}/hibernate-3.1"/>
+  <property name="ehcache.dir" location="${thirdparty.dir}/ehcache"/>
   <property name="hsqldb.dir" location="${thirdparty.dir}/hsqldb"/>
   <property name="mdrlibs.dir" location="${thirdparty.dir}/mdrlibs"/>
   <property name="ant.dir" location="${thirdparty.dir}/ant"/>
@@ -122,6 +126,7 @@
 
   <path id="enki.3p.build.classpath">
     <fileset dir="${hibernate.dir}" includes="**/*.jar"/>
+    <fileset dir="${ehcache.dir}" includes="**/*.jar"/>
     <fileset dir="${mdrlibs.dir}" includes="**/*.jar"/>
     <fileset dir="${jgrapht.dir}" includes="*-jdk1.5.jar"/>
   </path>

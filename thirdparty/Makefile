@@ -1,11 +1,11 @@
 # $Id$
 
 all: ant commons-collections commons-logging hibernate hsqldb mdrlibs junit \
-	jgrapht
+	jgrapht ehcache
 
 clean:
-	-rm -rf ant commons-logging commons-collections hibnerate hsqldb \
-		mdrlibs junit/junit.jar jgrapht
+	-rm -rf ant commons-logging commons-collections hsqldb \
+		mdrlibs junit/junit.jar jgrapht ehcache
 
 ant: apache-ant-1.7.0-bin.tar.bz2 junit
 	-rm -rf $@ apache-ant-1.7.0
@@ -26,7 +26,7 @@ commons-collections: commons-collections-3.1.tar.gz
 	mv commons-collections-3.1 $@
 	touch $@
 
-# TODO use an official hibernate tarball package
+# TODO use an official hibernate tarball package (and add hibernate to clean)
 hibernate:
 
 hsqldb: hsqldb_1_8_0_2.zip
@@ -50,4 +50,10 @@ jgrapht: jgrapht-0.7.1.tar.gz
 	-rm -rf $@
 	tar xfz $<
 	mv jgrapht-0.7.1 $@
+	touch $@
+
+ehcache: ehcache-1.2.0_03.tgz
+	-rm -rf $@
+	tar xfz $<
+	mv ehcache-1.2.0_03 ehcache
 	touch $@

@@ -441,11 +441,17 @@
       <tarfileset dir="${dist.dir}" prefix="${enki.dist.prefix}">
         <include name="*.jar"/>
       </tarfileset>
+    </tar>
+
+    <tar destfile="${enki.lib.dist.tarball}" compression="gzip">
       <tarfileset dir="${hibernate.dir}" prefix="${enki.dist.prefix}">
         <include name="*.jar"/>
       </tarfileset>
       <tarfileset dir="${hibernate.dir}/lib" prefix="${enki.dist.prefix}">
         <include name="*"/>
+      </tarfileset>
+      <tarfileset dir="${ehcache.dir}" prefix="${enki.dist.prefix}">
+        <include name="*.jar"/>
       </tarfileset>
       <tarfileset dir="${commons-logging.dir}" prefix="${enki.dist.prefix}">
         <include name="*.jar"/>
