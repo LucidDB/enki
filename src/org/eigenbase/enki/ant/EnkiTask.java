@@ -453,6 +453,10 @@ public class EnkiTask
                         if (replacement == null) {
                             // leave the unresolved property reference
                             replacement = "$0";
+                        } else {
+                            // Escape backslashes so the propMatcher doesn't
+                            // remove them.
+                            replacement = replacement.replace("\\", "\\\\");
                         }
                     }
                     
