@@ -103,6 +103,11 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     {
         RefPackage pkg = impl.getExtent(extentName);
         
+        if (pkg == null) {
+            // Doesn't exist, do nothing.
+            return;
+        }
+        
         dropExtentStorage(pkg);
     }
     

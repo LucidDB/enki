@@ -48,15 +48,23 @@ public class DropExtentSubTask
     extends SubTask
 {
     private String extentName;
+    private boolean failOnError;
     
     protected DropExtentSubTask(String name)
     {
         super(name);
+        
+        this.failOnError = true;
     }
 
     public void setExtent(String extentName)
     {
         this.extentName = extentName;
+    }
+    
+    public void setFailOnError(boolean failOnError)
+    {
+        this.failOnError = failOnError;
     }
     
     @Override
@@ -67,15 +75,15 @@ public class DropExtentSubTask
         }
         
         EnkiMDRepository repos = getMDRepository(true);
-        repos.beginSession();
-        repos.beginTrans(true);
+
         try {
             repos.dropExtentStorage(extentName);
         } catch (EnkiDropFailedException e) {
-            throw new BuildException(e);
-        } finally {
-            repos.endTrans();
-            repos.endSession();
+            if (failOnError) {
+                throw new BuildException(e);
+            } else {
+                e.printStackTrace(System.out);
+            }
         }
     }
 }
