@@ -1,0 +1,5 @@
+<FindBugsFilter>
+  <Match>
+    <Bug pattern="ENKI_REFOBJECT_EQUALITY"/>
+  </Match>
+</FindBugsFilter>

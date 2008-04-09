@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MessageCollection 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="messagecollection.xsd">
+
+  <Plugin>
+    <ShortDescription>Enki MDR FindBugs plugin</ShortDescription>
+    <Details>
+<![CDATA[
+<p>
+This plugin contains bug detectors related to Enki MDR repository usage.
+</p>
+]]>
+    </Details>
+  </Plugin>
+  
+  <Detector 
+    class="org.eigenbase.enki.tools.findbugs.RefObjectEqualityDetector">
+    <Details>
+      <![CDATA[
+        <p> This detector looks for <code>javax.jmi.RefObject</code>
+        implementations that are being compared using the Java
+        equality operator (==).  This could result in incorrect
+        behavior as Enki/Hibernate does not guarantee that repository
+        objects are equal by identity.
+      ]]>
+    </Details>
+  </Detector>
+
+  <BugPattern type="ENKI_REFOBJECT_EQUALITY">
+    <ShortDescription>RefObject comparison using equality operator</ShortDescription>
+
+    <LongDescription>{1} compares two RefObject instances using the equality operator</LongDescription>
+
+    <Details>
+      <![CDATA[
+        <p> Enki/Hibernate does not guarantee that repository objects
+        are equal by identity.  Use the Object.equals(Object) method
+        to compare RefObject instances.
+      ]]>
+    </Details>
+  </BugPattern>
+
+  <BugCode abbrev="ERE">RefObject equality operator</BugCode>
+
+</MessageCollection>

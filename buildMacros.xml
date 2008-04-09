@@ -63,6 +63,9 @@
       name="enki.dist.doc.jar" 
       location="${dist.dir}/${enki.dist.prefix}-doc.jar"/>
   <property 
+      name="enki.dist.findbugs.jar" 
+      location="${dist.dir}/${enki.dist.prefix}-findbugs.jar"/>
+  <property 
       name="enki.dist.tarball" 
       location="${dist.dir}/${enki.dist.prefix}.tar.gz"/>
   <property 
@@ -78,6 +81,7 @@
   <property name="mdrlibs.dir" location="${thirdparty.dir}/mdrlibs"/>
   <property name="ant.dir" location="${thirdparty.dir}/ant"/>
   <property name="jgrapht.dir" location="${thirdparty.dir}/jgrapht"/>
+  <property name="findbugs.dir" location="${thirdparty.dir}/findbugs"/>
 
   <property name="enki.javasrc.version" value="1.5"/>
 
@@ -129,6 +133,10 @@
     <fileset dir="${ehcache.dir}" includes="**/*.jar"/>
     <fileset dir="${mdrlibs.dir}" includes="**/*.jar"/>
     <fileset dir="${jgrapht.dir}" includes="*-jdk1.5.jar"/>
+    <fileset dir="${findbugs.dir}/lib">
+      <include name="findbugs.jar"/>
+      <include name="bcel.jar"/>
+    </fileset>
   </path>
   <property name="enki.3p.build.classpath" refid="enki.3p.build.classpath"/>
 

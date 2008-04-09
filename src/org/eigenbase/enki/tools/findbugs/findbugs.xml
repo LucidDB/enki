@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindbugsPlugin 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="findbugsplugin.xsd"
+    pluginid="org.eigenbase.enki.tools.findbugs"
+    defaultenabled="true"
+    provider="Enki project" 
+    website="http://www.eigenbase.org">
+    
+  <Detector
+      class="org.eigenbase.enki.tools.findbugs.RefObjectEqualityDetector"
+      speed="fast"
+      reports="ENKI_REFOBJECT_EQUALITY" />
+
+  <BugPattern
+      abbrev="ERE"
+      type="ENKI_REFOBJECT_EQUALITY"
+      category="CORRECTNESS" />
+
+</FindbugsPlugin>
+

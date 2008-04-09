@@ -437,6 +437,15 @@
       </fileset>
     </jar>
 
+    <jar jarfile="${enki.dist.findbugs.jar}" compress="true">
+      <fileset dir="${src.dir}/org/eigenbase/enki/tools/findbugs">
+        <include name="*.xml"/>
+      </fileset>
+      <fileset dir="${classes.dir}">
+        <include name="org/eigenbase/enki/tools/findbugs/**.class"/>
+      </fileset>
+    </jar>
+
     <tar destfile="${enki.dist.tarball}" compression="gzip">
       <tarfileset dir="${dist.dir}" prefix="${enki.dist.prefix}">
         <include name="*.jar"/>

@@ -1,11 +1,11 @@
 # $Id$
 
 all: ant commons-collections commons-logging hibernate hsqldb mdrlibs junit \
-	jgrapht ehcache
+	jgrapht ehcache findbugs
 
 clean:
 	-rm -rf ant commons-logging commons-collections hsqldb \
-		mdrlibs junit/junit.jar jgrapht ehcache
+		mdrlibs junit/junit.jar jgrapht ehcache findbugs
 
 ant: apache-ant-1.7.0-bin.tar.bz2 junit
 	-rm -rf $@ apache-ant-1.7.0
@@ -56,4 +56,10 @@ ehcache: ehcache-1.2.0_03.tgz
 	-rm -rf $@
 	tar xfz $<
 	mv ehcache-1.2.0_03 ehcache
+	touch $@
+
+findbugs: findbugs-1.3.2.tar.gz
+	-rm -rf $@
+	tar xfz $<
+	mv findbugs-1.3.2 findbugs
 	touch $@
