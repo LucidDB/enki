@@ -650,12 +650,10 @@
       <packageset dir="${src.dir}">
         <include name="**"/>
       </packageset>
-<!-- TODO: re-enable if this comes back or else make a local version
-      <link href="http://www.netbeans.org/download/dev/javadoc/org-netbeans-api-mdr"/>
--->
       <link href="http://java.sun.com/products/jmi/jmi-1_0-fr-doc"/>
       <link href="http://java.sun.com/j2se/1.5.0/docs/api"/>
       <link href="http://junit.sourceforge.net/javadoc_40"/>
+      <link href="http://www.eigenbase.org/mdr/javadoc"/>
     </javadoc>
   </target>
 
