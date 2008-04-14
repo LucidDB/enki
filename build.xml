@@ -476,7 +476,7 @@
     <antcall target="compile.impl" inheritAll="true" inheritRefs="true"/>
   </target>
 
-  <target name="compile.impl">
+  <target name="compile.impl" depends="init">
     <enki.javac
       srcdir="${src.dir}"
       destdir="${classes.dir}"
@@ -582,12 +582,36 @@
 
   <target name="init">
     <mkdir dir="${classes.dir}"/>
+    <mkdir dir="${trace.dir}"/>
     <mkdir dir="${test.results.dir}"/>
     <mkdir dir="${test.catalog.dir}"/>
+
+    <if>
+      <not>
+        <available file="${enki.mdr.log.config}"/>
+      </not>
+      <then>
+        <propertyfile 
+            file="${enki.mdr.log.config}"
+            comment="Developer tracing configuration">
+          <entry key="handlers" default="java.util.logging.FileHandler"/>
+          <entry key="java.util.logging.FileHandler.append" default="true"/>
+          <entry 
+              key="java.util.logging.FileHandler.formatter"
+              default="java.util.logging.SimpleFormatter"/>
+          <entry
+              key="java.util.logging.FileHandler.pattern"
+              default="${trace.dir}/EnkiTrace.log"/>
+          <entry
+              key="org.hibernate.tool.hbm2ddl.level" default="FINEST"/>
+          <entry key=".level" default="CONFIG"/>
+        </propertyfile>
+      </then>
+    </if>
   </target>
 
   <target name="clean">
-    <delete>
+    <delete quiet="true">
       <fileset dir="${classes.dir}" includes="**/*"/>
       <fileset dir="${enki.dir}" includes="mdr.bt?"/>
       <fileset dir="${trace.dir}">
@@ -600,7 +624,7 @@
 
     <!-- Clean up sample -->
     <ant dir="${sample.dir}" target="clean"/>
-    <delete includeEmptyDirs="true">
+    <delete includeEmptyDirs="true" quiet="true">
       <fileset dir="${sample.catalog.dir}/java" includes="**/*"/>
       <fileset dir="${sample.catalog.dir}/plugin/java" includes="**/*"/>
     </delete>
