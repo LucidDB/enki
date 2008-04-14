@@ -312,12 +312,16 @@ public class CodeGenUtils
      */
     private static String findMaxLength(Classifier startCls)
     {
-        Queue<Classifier> queue = new LinkedList<Classifier>();
+        // REVIEW: SWZ: 2008-04-14: This originally used Queue<Classifier>
+        // with calls to offer() and poll(), but the poll() operation throws 
+        // NoSuchElementException on JRockit 27.4  even though that should not 
+        // be possible. (JVM bug reported.)
+        LinkedList<Classifier> queue = new LinkedList<Classifier>();
         
-        queue.offer(startCls);
+        queue.add(startCls);
         
         while(!queue.isEmpty()) {
-            Classifier cls = queue.poll();
+            Classifier cls = queue.removeFirst();
             
             String maxLen = TagUtil.getTagValue(cls, MAX_LENGTH_TAG_NAME);
             if (maxLen != null) {
@@ -328,7 +332,7 @@ public class CodeGenUtils
                 GenericCollections.asTypedList(
                     cls.getSupertypes(), Classifier.class);
             for(Classifier supertype: supertypes) {
-                queue.offer(supertype);
+                queue.add(supertype);
             }
         }
         

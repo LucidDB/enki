@@ -566,14 +566,19 @@ public abstract class RefObjectBase
      */
     protected Attribute findAttribute(String name)
     {
+        // REVIEW: SWZ: 2008-04-14. This originally used Queue<Classifier>
+        // with calls to offer() and poll(), but the same pattern in another
+        // class (CodeGenUtils) was shown to throw spurious exceptions on
+        // JRockit 27.4 (JVM bug reported).  Pre-emptively modified this code
+        // to use add/removeFirst, which seems to work.
         Classifier startCls = (Classifier)refClass().refMetaObject();
         
-        Queue<Classifier> queue = new LinkedList<Classifier>();
+        LinkedList<Classifier> queue = new LinkedList<Classifier>();
      
-        queue.offer(startCls);
+        queue.add(startCls);
         
         while(!queue.isEmpty()) {
-            Classifier cls = queue.poll();
+            Classifier cls = queue.removeFirst();
             
             Collection<ModelElement> elements = 
                 GenericCollections.asTypedCollection(
@@ -590,7 +595,7 @@ public abstract class RefObjectBase
                 GenericCollections.asTypedList(
                     cls.getSupertypes(), Classifier.class);
             for(Classifier supertype: supertypes) {
-                queue.offer(supertype);
+                queue.add(supertype);
             }
         }
 
