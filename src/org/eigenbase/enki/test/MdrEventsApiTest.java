@@ -50,8 +50,11 @@ public class MdrEventsApiTest extends SampleModelTestBase
     private EventValidatingChangeListener listener;
     
     @BeforeClass
-    public static void createTestObjects()
+    public static void createTestObjects() throws Exception
     {
+        TxnEndEventListener listener = new TxnEndEventListener();
+        
+        getRepository().addListener(listener);
         getRepository().beginTrans(true);
         try {
             Car mustang =
@@ -66,6 +69,10 @@ public class MdrEventsApiTest extends SampleModelTestBase
         finally {
             getRepository().endTrans();
         }
+        
+        listener.waitForEvent();
+        
+        getRepository().removeListener(listener);
     }
 
     private void configureListener(int mask, EventValidator eventValidator)
@@ -1697,6 +1704,32 @@ public class MdrEventsApiTest extends SampleModelTestBase
         REFLECTIVE_API;
     }
 
+    private static class TxnEndEventListener implements MDRChangeListener
+    {
+        private volatile boolean gotEvent = false;
+        
+        public void change(MDRChangeEvent event)
+        {
+            int type = event.getType();
+            if ((type & TransactionEvent.EVENT_TRANSACTION_END) != 0)
+            {
+                synchronized(this) {
+                    gotEvent = true;
+                    notifyAll();
+                }
+            }
+        }
+        
+        public void waitForEvent() throws InterruptedException
+        {
+            synchronized(this) {
+                while(!gotEvent) {
+                    wait();
+                }
+            }
+        }
+        
+    }
 }
 
 // End MdrEventsApiTest.java

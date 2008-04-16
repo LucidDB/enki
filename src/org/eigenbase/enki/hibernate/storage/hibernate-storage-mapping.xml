@@ -10,15 +10,30 @@
         <id name="id" type="long" column="id" unsaved-value="0">
             <generator class="identity"/>
         </id>
-        <property name="extentName" precision="256" unique="true"/>
-        <property name="modelExtentName" precision="256" unique="true"/>
+        <property 
+          name="extentName"
+          type="string"
+          length="255"
+          not-null="true"
+          unique="true"/>
+        <property
+          name="modelExtentName" 
+          type="string"
+          length="255"
+          not-null="true"
+          unique="true"/>
     </class>
     
     <class 
       name="org.eigenbase.enki.hibernate.storage.MofIdTypeMapping"
       table="ENKI_TYPE_LOOKUP">
         <id name="mofId" type="long" column="`mofId`"/>
-        <property name="typeName" precision="256" column="`typeName`"/>
+        <property
+          name="typeName"
+          type="string"
+          length="255"
+          not-null="true"
+          column="`typeName`"/>
     </class>
     
     <query name="AllExtents" cacheable="true">

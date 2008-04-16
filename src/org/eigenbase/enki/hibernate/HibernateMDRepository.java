@@ -75,9 +75,8 @@ import org.netbeans.api.mdr.events.*;
  *   <tr>
  *     <td align="left">hibernate.*</td>
  *     <td align="left">
- *       All properties whose name begins with 
- *       {@value #HIBERNATE_STORAGE_PROPERTY_PREFIX} are passed to Hibernate's
- *       {@link Configuration} without modification.
+ *       All properties are passed to Hibernate's {@link Configuration}
+ *       without modification.
  *     </td>
  *   </tr>
  * </table>
@@ -111,12 +110,6 @@ public class HibernateMDRepository
      */
     public static final String HIBERNATE_STORAGE_MAPPING_XML = 
         "/org/eigenbase/enki/hibernate/storage/hibernate-storage-mapping.xml";
-    
-    /**
-     * Prefix for properties that will be passed on to Hibernate's 
-     * configuration.
-     */
-    public final String HIBERNATE_STORAGE_PROPERTY_PREFIX = "hibernate.";
     
     /**
      * Configuration file property that contains the name of the 
@@ -1434,45 +1427,42 @@ public class HibernateMDRepository
         session.save(extentDbObj);
     }
     
-    // Must be externally synchronized
     private void initStorage()
     {
-        if (sessionFactory == null) {
-            Configuration config = newConfiguration();
+        Configuration config = newConfiguration();
 
-            initProviderStorage(config);
-            
-            for(ModelDescriptor modelDesc: modelMap.values()) {
-                if (MOF_EXTENT.equals(modelDesc.name)) {
-                    continue;
-                }
+        initProviderStorage(config);
+        
+        for(ModelDescriptor modelDesc: modelMap.values()) {
+            if (MOF_EXTENT.equals(modelDesc.name)) {
+                continue;
+            }
 
-                configureMappings(config, modelDesc);
-            }
-            
-            sessionFactory = config.buildSessionFactory();
-            
-            mofIdGenerator = 
-                new MofIdGenerator(sessionFactory, config, storageProperties);
-            mofIdGenerator.configureTable();
-            
-            List<Extent> extents = null;
-            Session session = sessionFactory.getCurrentSession();
-                
-            Transaction trans = session.beginTransaction();
-            try {
-                Query query = session.getNamedQuery("AllExtents");
-                extents = 
-                    GenericCollections.asTypedList(query.list(), Extent.class);
-            } finally {
-                trans.commit();
-            }
-            
-            loadExistingExtents(extents);
-            
-            thread = new EnkiChangeEventThread(this);
-            thread.start();
+            configureMappings(config, modelDesc);
         }
+        
+        sessionFactory = config.buildSessionFactory();
+        
+        mofIdGenerator = 
+            new MofIdGenerator(sessionFactory, config, storageProperties);
+        mofIdGenerator.configureTable();
+
+        List<Extent> extents = null;
+        Session session = sessionFactory.getCurrentSession();
+                         
+        Transaction trans = session.beginTransaction();
+        try {
+            Query query = session.getNamedQuery("AllExtents");
+            extents = 
+                GenericCollections.asTypedList(query.list(), Extent.class);
+        } finally {
+            trans.commit();
+        }
+
+        loadExistingExtents(extents);
+        
+        thread = new EnkiChangeEventThread(this);
+        thread.start();
     }
 
     private Configuration newConfiguration()
@@ -1497,9 +1487,7 @@ public class HibernateMDRepository
                     ? null 
                     : entry.getValue().toString();
             
-            if (key.startsWith(HIBERNATE_STORAGE_PROPERTY_PREFIX)) {
-                config.setProperty(key, value);
-            }
+            config.setProperty(key, value);
         }
     
         if (includeProviderMapping) {
@@ -1556,25 +1544,28 @@ public class HibernateMDRepository
             
             SchemaValidator validator = new SchemaValidator(config);
             
+            boolean requiresUpdate = false;
             try {
                 validator.validate();
-                return;
             } catch(HibernateException e) {
                 log.log(
                     Level.WARNING, 
                     "Enki Hibernate provider schema validation failed", 
                     e);
+                requiresUpdate = true;
             }
-            
-            log.info("Updating Enki Hibernate provider schema");
-            
-            SchemaUpdate update = new SchemaUpdate(config);
-            
-            try {
-                update.execute(false, true);
-            } catch(HibernateException e) {
-                throw new ProviderInstantiationException(
-                    "Unable to update Enki Hibernate provider schema", e);
+        
+            if (requiresUpdate) {
+                log.info("Updating Enki Hibernate provider schema");
+                
+                SchemaUpdate update = new SchemaUpdate(config);
+                
+                try {
+                    update.execute(false, true);
+                } catch(HibernateException e) {
+                    throw new ProviderInstantiationException(
+                        "Unable to update Enki Hibernate provider schema", e);
+                }
             }
         } else {
             log.info("Creating Enki Hibernate Provider schema");
@@ -1586,7 +1577,7 @@ public class HibernateMDRepository
                 throw new ProviderInstantiationException(
                     "Unable to create Enki Hibernate provider schema", e);
             }
-        }        
+        }
     }
     
     private void initModelStorage(ModelDescriptor modelDesc)
@@ -1747,14 +1738,26 @@ public class HibernateMDRepository
             }
             
             if (isPlugin(modelProperties)) {
+                String pluginName = 
+                    modelProperties.getProperty(PROPERTY_MODEL_INITIALIZER);
+                if (pluginName != null) {
+                    int pos = pluginName.indexOf(".init");
+                    if (pos > 0) {
+                        pluginName = pluginName.substring(0, pos);
+                    }
+                } else {
+                    pluginName = name;
+                }
                 ModelPluginDescriptor modelPluginDesc =
-                    new ModelPluginDescriptor(name, modelProperties);
+                    new ModelPluginDescriptor(pluginName, modelProperties);
 
                 ModelDescriptor modelDesc = modelMap.get(name);
                 
                 modelDesc.plugins.add(modelPluginDesc);
                 
-                log.fine("Initialized Model Plugin Descriptor: " + name);
+                log.info(
+                    "Initialized Model Plugin Descriptor: " + pluginName + 
+                    " (" + name + ")");
                 
             } else {
                 String topLevelPkg = 

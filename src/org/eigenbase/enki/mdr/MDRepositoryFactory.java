@@ -99,6 +99,12 @@ public class MDRepositoryFactory
     public static EnkiMDRepository newMDRepository(Properties storageProps)
     {
         String providerName = storageProps.getProperty(ENKI_IMPL_TYPE);
+        if (providerName == null) {
+            throw new UnknownProviderException(
+                "repository storage properties is missing key '" +
+                ENKI_IMPL_TYPE + "'");
+        }
+
         MdrProvider provider = 
             MdrProvider.valueOf(providerName.toUpperCase(Locale.US));
         if (provider == null) {
