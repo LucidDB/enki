@@ -269,7 +269,13 @@ public class HibernateMDRepository
         
         sessionStack.push((MdrSession)session);
     }
-    
+
+    public void endDetachedSession(EnkiMDSession session)
+    {
+        reattachSession(session);
+        endSession();
+    }
+
     public void beginSession()
     {
         MdrSession mdrSession = sessionStack.peek(this);

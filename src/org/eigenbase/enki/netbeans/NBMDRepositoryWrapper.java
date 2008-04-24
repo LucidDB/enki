@@ -237,7 +237,8 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     
     public void reattachSession(EnkiMDSession session)
     {
-        if (tls.get().refCount != 0) {
+        SessionContext threadSession = tls.get();
+        if (threadSession.refCount != 0) {
             throw new NBMDRepositoryWrapperException(
                 "must end current session before re-attach");
         }
@@ -255,7 +256,22 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
         tls.set((SessionContext)session);
         
     }
-    
+
+    public void endDetachedSession(EnkiMDSession session)
+    {
+        // Unlike reattachSession, it is not an error if the current thread's
+        // session has refCount > 0. In this case, we keep the current thread's
+        // session. Otherwise behavior is equivalent to calling reattachSession
+        // followed by endSession.
+        SessionContext save = tls.get();
+        if (session == null || save == session || save.refCount == 0) {
+            reattachSession(session);
+            endSession();
+        } else {
+            endSessionImpl((SessionContext) session);
+        }
+    }
+
     public RefBaseObject getByMofId(String mofId)
     {
         return impl.getByMofId(mofId);
