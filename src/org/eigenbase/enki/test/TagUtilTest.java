@@ -28,6 +28,7 @@ import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.util.*;
 import org.junit.*;
+import org.junit.runner.*;
 
 import eem.*;
 
@@ -36,6 +37,7 @@ import eem.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class TagUtilTest extends SampleModelTestBase
 {
     @Test

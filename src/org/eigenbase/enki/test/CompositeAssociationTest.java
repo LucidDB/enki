@@ -27,6 +27,7 @@ import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.util.*;
 import org.junit.*;
+import org.junit.runner.*;
 
 import eem.sample.special.*;
 
@@ -41,6 +42,7 @@ import eem.sample.special.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class CompositeAssociationTest
     extends SampleModelTestBase
 {

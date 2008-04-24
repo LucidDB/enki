@@ -38,7 +38,7 @@ import org.junit.runner.notification.*;
  * @author Stephan Zuercher
  */
 public class HibernateOnlyTestRunner
-    extends TestClassRunner
+    extends LoggingTestRunner
 {
     private final boolean runTests;
     
@@ -85,6 +85,8 @@ public class HibernateOnlyTestRunner
     {
         if (runTests) {
             super.run(notifier);
+        } else {
+            getLogger().info("Skipping " + getTestClass());
         }
     }
 

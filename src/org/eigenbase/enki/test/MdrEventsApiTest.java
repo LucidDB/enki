@@ -28,6 +28,7 @@ import javax.jmi.reflect.*;
 import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.test.events.*;
 import org.junit.*;
+import org.junit.runner.*;
 import org.netbeans.api.mdr.events.*;
 
 import eem.sample.*;
@@ -41,6 +42,7 @@ import eem.sample.special.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class MdrEventsApiTest extends SampleModelTestBase
 {
     private static final boolean PRINT_EVENTS = true;
@@ -87,16 +89,6 @@ public class MdrEventsApiTest extends SampleModelTestBase
         getRepository().addListener(listener, mask);
     }
 
-    private void printTestName()
-    {
-        if (PRINT_EVENTS) {
-            StackTraceElement[] stackTrace = 
-                Thread.currentThread().getStackTrace();
-            
-            System.out.println(stackTrace[3].getMethodName());
-        }
-    }
-
     @After
     public void destroyListener()
     {
@@ -111,14 +103,12 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testTransactionRollbackEvents()
     {
-        printTestName();
         testTransactionEvents(true);
     }
     
     @Test
     public void testTransactionCommitEvents()
     {
-        printTestName();
         testTransactionEvents(false);
     }
     
@@ -169,28 +159,24 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testCreateInstanceEventsWithRollback()
     {
-        printTestName();
         testCreateInstanceEvents(true, CreateMethod.CLASS_PROXY);
     }
     
     @Test
     public void testRefCreateInstanceEventsWithRollback()
     {
-        printTestName();
         testCreateInstanceEvents(true, CreateMethod.REFLECTIVE_API);
     }
     
     @Test
     public void testCreateInstanceEventsWithCommit()
     {
-        printTestName();
         testCreateInstanceEvents(false, CreateMethod.CLASS_PROXY);
     }
 
     @Test
     public void testRefCreateInstanceEventsWithCommit()
     {
-        printTestName();
         testCreateInstanceEvents(false, CreateMethod.CLASS_PROXY);
     }
 
@@ -264,14 +250,12 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testDeleteInstanceEventsWithRollback()
     {
-        printTestName();
         testDeleteInstanceEvents(true);
     }
     
     @Test
     public void testDeleteInstanceEventsWithCommit()
     {
-        printTestName();
         testDeleteInstanceEvents(false);
     }
     
@@ -328,14 +312,12 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testDeleteInstanceEventCascadeWithRollback()
     {
-        printTestName();
         testDeleteInstanceEventCascade(true);
     }
     
     @Test
     public void testDeleteInstanceEventCascadeWithCommit()
     {
-        printTestName();
         testDeleteInstanceEventCascade(false);
     }
     
@@ -426,42 +408,36 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testAssociationAddEventsWithRollback()
     {
-        printTestName();
         testAssociationAddEvents(true, AssocMethod.REFERENCE);
     }
     
     @Test
     public void testAssociationProxyAddEventsWithRollback()
     {
-        printTestName();
         testAssociationAddEvents(true, AssocMethod.ASSOCIATION_PROXY);
     }
     
     @Test
     public void testAssociationRefAddEventsWithRollback()
     {
-        printTestName();
         testAssociationAddEvents(true, AssocMethod.REFLECTIVE_API);
     }
     
     @Test
     public void testAssociationAddEventsWithCommit()
     {
-        printTestName();
         testAssociationAddEvents(false, AssocMethod.REFERENCE);
     }
     
     @Test
     public void testAssociationProxyAddEventsWithCommit()
     {
-        printTestName();
         testAssociationAddEvents(false, AssocMethod.ASSOCIATION_PROXY);
     }
     
     @Test
     public void testAssociationRefAddEventsWithCommit()
     {
-        printTestName();
         testAssociationAddEvents(false, AssocMethod.REFLECTIVE_API);
     }
     
@@ -528,14 +504,12 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testOrderedAssociationAddEventsWithRollback()
     {
-        printTestName();
         testOrderedAssociationAddEvents(true);
     }
     
     @Test
     public void testOrderedAssociationAddEventsWithCommit()
     {
-        printTestName();
         testOrderedAssociationAddEvents(false);
     }
     
@@ -609,42 +583,36 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testAssociationRemoveEventsWithRollback()
     {
-        printTestName();
         testAssociationRemoveEvents(true, AssocMethod.REFERENCE);
     }
     
     @Test
     public void testAssociationProxyRemoveEventsWithRollback()
     {
-        printTestName();
         testAssociationRemoveEvents(true, AssocMethod.ASSOCIATION_PROXY);
     }
     
     @Test
     public void testAssociationRefRemoveEventsWithRollback()
     {
-        printTestName();
         testAssociationRemoveEvents(true, AssocMethod.REFLECTIVE_API);
     }
     
     @Test
     public void testAssociationRemoveEventsWithCommit()
     {
-        printTestName();
         testAssociationRemoveEvents(false, AssocMethod.REFERENCE);
     }
     
     @Test
     public void testAssociationProxyRemoveEventsWithCommit()
     {
-        printTestName();
         testAssociationRemoveEvents(false, AssocMethod.ASSOCIATION_PROXY);
     }
     
     @Test
     public void testAssociationRefRemoveEventsWithCommit()
     {
-        printTestName();
         testAssociationRemoveEvents(false, AssocMethod.REFLECTIVE_API);
     }
     
@@ -778,14 +746,12 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testOrderedAssociationRemoveEventsWithRollback()
     {
-        printTestName();
         testOrderedAssociationRemoveEvents(true);
     }
     
     @Test
     public void testOrderedAssociationRemoveEventsWithCommit()
     {
-        printTestName();
         testOrderedAssociationRemoveEvents(false);
     }
     
@@ -910,14 +876,12 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testOrderedAssociationSetEventsWithRollback()
     {
-        printTestName();
         testOrderedAssociationSetEvents(true);
     }
 
     @Test
     public void testOrderedAssociationSetEventsWithCommit()
     {
-        printTestName();
         testOrderedAssociationSetEvents(false);
     }
 
@@ -927,7 +891,7 @@ public class MdrEventsApiTest extends SampleModelTestBase
         // set(int, Object) on List instances returned by association
         // accessors.  So, skip the test.
         if (getMdrProvider() == MdrProvider.NETBEANS_MDR) {
-            System.out.println(
+            getTestLogger().info(
                 "Skipping testOrderedAssociationSetEvents for Netbeans");
             return;
         }
@@ -1197,14 +1161,12 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testCompositeAssociationRemoveEventsWithRollback()
     {
-        printTestName();
         testCompositeAssociationRemoveEvents(true);
     }
     
     @Test
     public void testCompositeAssociationRemoveEventsWithCommit()
     {
-        printTestName();
         testCompositeAssociationRemoveEvents(false);
     }
     
@@ -1298,28 +1260,24 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testAttributeSetEventsWithRollback()
     {
-        printTestName();
         testAttributeSetEvents(true, AttributeMethod.METHOD);
     }
     
     @Test
     public void testAttributeRefSetEventsWithRollback()
     {
-        printTestName();
         testAttributeSetEvents(true, AttributeMethod.REFLECTIVE_API);
     }
     
     @Test
     public void testAttributeSetEventsWithCommit()
     {
-        printTestName();
         testAttributeSetEvents(false, AttributeMethod.METHOD);
     }
     
     @Test
     public void testAttributeRefSetEventsWithCommit()
     {
-        printTestName();
         testAttributeSetEvents(false, AttributeMethod.REFLECTIVE_API);
     }
     
@@ -1435,14 +1393,12 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testAttributeResetEventsWithRollback()
     {
-        printTestName();
         testAttributeResetEvents(true);
     }
     
     @Test
     public void testAttributeResetEventsWithCommit()
     {
-        printTestName();
         testAttributeResetEvents(false);
     }
 
@@ -1498,14 +1454,12 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testAttributeAddEventsWithRollback()
     {
-        printTestName();
         testAttributeAddEvents(true);
     }
     
     @Test
     public void testAttributeAddEventsWithCommit()
     {
-        printTestName();
         testAttributeAddEvents(false);
     }
     
@@ -1575,14 +1529,12 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testAttributeRemoveEventsWithRollback()
     {
-        printTestName();
         testAttributeRemoveEvents(true);
     }
     
     @Test
     public void testAttributeRemoveEventsWithCommit()
     {
-        printTestName();
         testAttributeRemoveEvents(false);
     }
     

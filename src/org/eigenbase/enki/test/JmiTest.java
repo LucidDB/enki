@@ -22,12 +22,14 @@
 package org.eigenbase.enki.test;
 
 import java.util.*;
+import java.util.logging.*;
 
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.util.*;
 import org.junit.*;
+import org.junit.runner.*;
 
 import eem.*;
 import eem.sample.*;
@@ -39,6 +41,7 @@ import eem.sample.special.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class JmiTest extends JmiTestBase
 {
     @Before
@@ -177,49 +180,50 @@ public class JmiTest extends JmiTestBase
     
     private List<RefObject> getMetaObjects(String desc, RefBaseObject o)
     {
+        Logger log = ModelTestBase.getTestLogger();
+        
         ArrayList<RefObject> result = new ArrayList<RefObject>();
-        System.out.println(desc);
-        try {
-            if (o == null) {
-                System.out.println("= null early =");
+        log.info(desc);
+        if (o == null) {
+            log.info("= null early =");
+            return result;
+        }
+        
+        RefBaseObject prevRefObj = o;
+        for(int i = 0; i < 100; i++) {
+            StringBuilder b = new StringBuilder();
+            b
+                .append(String.valueOf(i))
+                .append(": RefObj: ") 
+                .append(prevRefObj.getClass().getName())
+                .append(" / ")
+                .append(prevRefObj.refMofId());
+            if (prevRefObj instanceof ModelElement) {
+                ModelElement modelElem = (ModelElement)prevRefObj;
+                b.append(
+                    " (ModelElement.name = " + modelElem.getName() + ")");
+            }
+            log.info(b.toString());
+            
+            RefObject refObj = prevRefObj.refMetaObject();
+            
+            if (refObj == null) {
+                log.info("= null =");
+                return result;
+            }
+            if (refObj == prevRefObj) {
+                log.info("= circular =");
                 return result;
             }
             
-            RefBaseObject prevRefObj = o;
-            for(int i = 0; i < 100; i++) {
-                System.out.print(
-                    String.valueOf(i) + ": RefObj: " + 
-                    prevRefObj.getClass().getName() + " / " + 
-                    prevRefObj.refMofId());
-                if (prevRefObj instanceof ModelElement) {
-                    ModelElement modelElem = (ModelElement)prevRefObj;
-                    System.out.print(
-                        " (ModelElement.name = " + modelElem.getName() + ")");
-                }
-                System.out.println();
-                
-                RefObject refObj = prevRefObj.refMetaObject();
-                
-                if (refObj == null) {
-                    System.out.println("= null =");
-                    return result;
-                }
-                if (refObj == prevRefObj) {
-                    System.out.println("= circular =");
-                    return result;
-                }
-                
-                result.add(refObj);
-                
-                prevRefObj = refObj;
-            }
-
-            System.out.println("= too many levels =");
+            result.add(refObj);
             
-            return result;
-        } finally {
-            System.out.println("--");
+            prevRefObj = refObj;
         }
+
+        log.info("= too many levels =");
+        
+        return result;
     }
     
     @Test

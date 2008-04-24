@@ -22,6 +22,7 @@
 package org.eigenbase.enki.test;
 
 import org.junit.*;
+import org.junit.runner.*;
 
 import eem.sample.special.*;
 
@@ -31,6 +32,7 @@ import eem.sample.special.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class EntityAttributeTest
     extends SampleModelTestBase
 {

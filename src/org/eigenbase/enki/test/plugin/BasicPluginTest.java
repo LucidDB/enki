@@ -28,6 +28,7 @@ import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.test.*;
 import org.junit.*;
+import org.junit.runner.*;
 
 import eem.sample.pluginbase.*;
 
@@ -42,6 +43,7 @@ import eem.sample.pluginbase.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class BasicPluginTest extends SampleModelTestBase
 {
     @Test

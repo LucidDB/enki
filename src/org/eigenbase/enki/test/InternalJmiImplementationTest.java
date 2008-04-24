@@ -25,6 +25,7 @@ import javax.jmi.model.*;
 
 import org.eigenbase.enki.jmi.model.init.*;
 import org.junit.*;
+import org.junit.runner.*;
 
 /**
  * InternalJmiImplementationTest tests initialization of Enki's built-in
@@ -32,6 +33,7 @@ import org.junit.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class InternalJmiImplementationTest
 {
     @Test

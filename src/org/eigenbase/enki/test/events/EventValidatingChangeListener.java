@@ -23,6 +23,7 @@ package org.eigenbase.enki.test.events;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.test.*;
 import org.junit.*;
 import org.netbeans.api.mdr.events.*;
 
@@ -261,7 +262,7 @@ public class EventValidatingChangeListener implements MDRPreChangeListener
             .append(Thread.currentThread().getName())
             .append(")");
         
-        System.out.println(b.toString());
+        ModelTestBase.getTestLogger().info(b.toString());
     }
 
     private String describe(Object obj)
@@ -379,7 +380,8 @@ public class EventValidatingChangeListener implements MDRPreChangeListener
         } finally {
             long end = System.currentTimeMillis();
             if (printEvents) {
-                System.out.println("slept " + (end - start) + " millis");
+                ModelTestBase.getTestLogger().info(
+                    "slept " + (end - start) + " millis");
             }
         }
     }

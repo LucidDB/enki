@@ -26,6 +26,7 @@ import java.util.*;
 
 import org.eigenbase.enki.util.*;
 import org.junit.*;
+import org.junit.runner.*;
 
 /**
  * GenericCollectionsTest tests the collection wrappers returned by
@@ -33,6 +34,7 @@ import org.junit.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class GenericCollectionsTest
 {
     @Test(expected=ClassCastException.class)

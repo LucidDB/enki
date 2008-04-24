@@ -23,6 +23,7 @@ package org.eigenbase.enki.test;
 
 import java.io.*;
 import java.util.*;
+import java.util.logging.*;
 
 import javax.jmi.reflect.*;
 
@@ -59,6 +60,9 @@ public abstract class ModelTestBase
     // Default value for PROPERTY_ENKI_STORAGE_PROPS
     private static final String TEST_STORAGE_PROPERTIES_PATH = 
         "test/TestStorage.properties";
+    
+    private static final Logger log = 
+        Logger.getLogger("org.eigenbase.enki.test");
     
     private static EnkiMDRepository repos;
     private static RefPackage pkg;
@@ -148,6 +152,11 @@ public abstract class ModelTestBase
                 e);
             return null; // unreachable
         }
+    }
+    
+    public static Logger getTestLogger()
+    {
+        return log;
     }
     
     protected static RefPackage getPackage()

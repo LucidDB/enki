@@ -27,6 +27,7 @@ import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.junit.*;
+import org.junit.runner.*;
 
 import eem.sample.*;
 import eem.sample.special.*;
@@ -37,6 +38,7 @@ import eem.sample.special.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class JmiWriteTest extends JmiTestBase
 {
     private static List<String> carMofIds;

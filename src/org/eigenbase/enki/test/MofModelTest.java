@@ -22,12 +22,14 @@
 package org.eigenbase.enki.test;
 
 import java.util.*;
+import java.util.logging.*;
 
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.util.*;
 import org.junit.*;
+import org.junit.runner.*;
 import org.netbeans.api.mdr.*;
 
 /**
@@ -35,6 +37,7 @@ import org.netbeans.api.mdr.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class MofModelTest extends ProviderComparisonTestBase
 {
     private static final boolean DUMP_DEBUGGING_INFO = false;
@@ -222,7 +225,9 @@ public class MofModelTest extends ProviderComparisonTestBase
         Arrays.fill(SPACES_ARRAY, ' ');
         final String SPACES = new String(SPACES_ARRAY);
         
-        System.out.println(
+        Logger log = getTestLogger();
+        
+        log.info(
             "Expected" + SPACES.substring(0, colWidth - 8) + "\tGot");
         Iterator<Map.Entry<String, List<String>>> expectedIter =
             expected.entrySet().iterator();
@@ -254,17 +259,19 @@ public class MofModelTest extends ProviderComparisonTestBase
                 c = expectedKey.compareTo(gotKey);
             }
             
+            StringBuilder b = new StringBuilder();
             if (c <= 0) {
-                System.out.print(expectedKey);
-                System.out.print(
-                    SPACES.substring(0, colWidth - expectedKey.length()));
+                b
+                    .append(expectedKey)
+                    .append(
+                        SPACES.substring(0, colWidth - expectedKey.length()));
             } else {
-                System.out.print(SPACES);
+                b.append(SPACES);
             }
             if (c >= 0) {
-                System.out.print("\t" + gotKey);
+                b.append("\t" + gotKey);
             }
-            System.out.println();
+            log.info(b.toString());
             
             
             List<String> expectedList = Collections.emptyList();
@@ -298,22 +305,24 @@ public class MofModelTest extends ProviderComparisonTestBase
                 } else {
                     c2 = expectedValue.compareTo(gotValue);
                 }
-                   
+
+                b.setLength(0);
                 if (c2 <= 0) {
-                    System.out.print("    " + expectedValue);
-                    System.out.print(
-                        SPACES.substring(
-                            0, colWidth - expectedValue.length() - 4));
+                    b
+                        .append("    " + expectedValue)
+                        .append(
+                            SPACES.substring(
+                                0, colWidth - expectedValue.length() - 4));
 
                     expectedValue = null;
                 } else {
-                    System.out.print(SPACES);
+                    b.append(SPACES);
                 }
                 if (c2 >= 0) {
-                    System.out.print("\t    " + gotValue);
+                    b.append("\t    " + gotValue);
                     gotValue = null;
                 }
-                System.out.println();
+                log.info(b.toString());
             }
             
             if (c <= 0) {

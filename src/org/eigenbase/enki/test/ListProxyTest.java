@@ -25,6 +25,7 @@ import java.util.*;
 
 import org.eigenbase.enki.util.*;
 import org.junit.*;
+import org.junit.runner.*;
 
 import eem.sample.simple.*;
 
@@ -33,6 +34,7 @@ import eem.sample.simple.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class ListProxyTest extends SampleModelTestBase
 {
     private static final int N = 8;

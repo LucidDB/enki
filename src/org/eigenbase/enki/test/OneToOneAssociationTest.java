@@ -24,6 +24,7 @@ package org.eigenbase.enki.test;
 import javax.jmi.reflect.*;
 
 import org.junit.*;
+import org.junit.runner.*;
 
 import eem.sample.simple.*;
 
@@ -32,6 +33,7 @@ import eem.sample.simple.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class OneToOneAssociationTest extends SampleModelTestBase
 {
     @Test

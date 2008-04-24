@@ -25,6 +25,7 @@ import java.util.*;
 
 import org.eigenbase.enki.util.*;
 import org.junit.*;
+import org.junit.runner.*;
 
 import eem.sample.*;
 
@@ -33,6 +34,7 @@ import eem.sample.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class MdrApiTest extends SampleModelTestBase
 {
     private static String carMofId;

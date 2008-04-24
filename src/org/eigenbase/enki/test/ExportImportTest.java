@@ -30,6 +30,7 @@ import javax.jmi.xmi.*;
 
 import org.eigenbase.enki.util.*;
 import org.junit.*;
+import org.junit.runner.*;
 import org.netbeans.api.mdr.*;
 import org.netbeans.api.xmi.*;
 
@@ -40,6 +41,7 @@ import eem.sample.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class ExportImportTest extends SampleModelTestBase
 {
     private static String sampleMetamodelName;
@@ -125,7 +127,7 @@ public class ExportImportTest extends SampleModelTestBase
             }
         }
         
-        System.out.println("Metamodel = " + sampleMetamodelName);
+        getTestLogger().info("Metamodel = " + sampleMetamodelName);
     }
     
     @Test
