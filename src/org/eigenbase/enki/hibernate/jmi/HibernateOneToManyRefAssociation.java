@@ -25,6 +25,7 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
 
@@ -113,7 +114,16 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
                 "', got '" + cls.getName() + "'";
         }
 
-        Collection<? extends RefObject> c = super.query(end1IsParent, parent);
+        HibernateAssociable p = (HibernateAssociable)parent;
+        HibernateOneToManyAssociationBase assoc = 
+            (HibernateOneToManyAssociationBase)p.getAssociation(
+                type, end1IsParent);
+
+        if (assoc == null) {
+            return Collections.emptyList();
+        }
+       
+        Collection<? extends RefObject> c = assoc.get(p);
         if (c instanceof List) {
             return GenericCollections.asTypedList(
                 (List<? extends RefObject>)c, cls);

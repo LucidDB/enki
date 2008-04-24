@@ -108,7 +108,7 @@ public interface AssociationInfo
     
     /**
      * Tests whether the selected end of the described {@link Association}
-     * has a ordered multiplicity.
+     * has ordered multiplicity.
      */
     public boolean isOrdered(int end);
     

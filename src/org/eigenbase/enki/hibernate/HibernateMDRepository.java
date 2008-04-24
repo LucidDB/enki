@@ -43,6 +43,7 @@ import org.hibernate.*;
 import org.hibernate.cfg.*;
 import org.hibernate.event.*;
 import org.hibernate.event.def.*;
+import org.hibernate.stat.*;
 import org.hibernate.tool.hbm2ddl.*;
 import org.netbeans.api.mdr.*;
 import org.netbeans.api.mdr.events.*;
@@ -142,6 +143,37 @@ public class HibernateMDRepository
      */
     public static final boolean DEFAULT_ALLOW_IMPLICIT_SESSIONS = false;
     
+    /**    
+     * Storage property that configures whether sessions are tracked.  Session
+     * tracking allows matching of the begin/end session API calls in the 
+     * log file.  If the value evaluates to true, sessions are tracked with
+     * identifiers that are unique within this repository instance.
+     */
+    public static final String PROPERTY_STORAGE_TRACK_SESSIONS =
+        "org.eigenbase.enki.hibernate.trackSessions";
+    
+    /**
+     * Contains the default value for the 
+     * {@link #PROPERTY_STORAGE_TRACK_SESSIONS} storage property.  
+     * The default is {@value}. 
+     */
+    public static final boolean DEFAULT_TRACK_SESSIONS = false;
+    
+    /**
+     * Storage property that configures whether session factory statistics
+     * are periodically logged.  Values of zero or less disable statistics
+     * logging.  Larger values indicate the number of seconds between log
+     * messages.
+     */
+    public static final String PROPERTY_PERIODIC_STATS =
+        "org.eigenbase.enki.hibernate.periodicStats";
+    
+    /**
+     * Contains the default value for {@link #PROPERTY_PERIODIC_STATS}
+     * storage property.  The default is {@value}.
+     */
+    public static final int DEFAULT_PERIODIC_STATS_INTERVAL = 0;
+    
     /**
      * Identifier for the built-in MOF extent.
      */
@@ -150,6 +182,8 @@ public class HibernateMDRepository
     private static final MdrSessionStack sessionStack = new MdrSessionStack();
     
     private final AtomicInteger sessionCount;
+    
+    private final AtomicInteger sessionIdGenerator;
     
     /** List of all known model configuration properties files. */
     private final List<Properties> modelPropertiesList;
@@ -167,6 +201,12 @@ public class HibernateMDRepository
     private final Map<String, ExtentDescriptor> extentMap;
     
     private final boolean allowImplicitSessions;
+    
+    private final boolean trackSessions;
+    
+    private final int periodicStatsInterval;
+    
+    private Timer periodicStatsTimer;
     
     /** The Hibernate {@link SessionFactory} for this repository. */
     private SessionFactory sessionFactory;
@@ -213,12 +253,23 @@ public class HibernateMDRepository
                 PROPERTY_STORAGE_ALLOW_IMPLICIT_SESSIONS, 
                 DEFAULT_ALLOW_IMPLICIT_SESSIONS,
                 Boolean.class);
+        this.trackSessions =
+            readStorageProperty(
+                PROPERTY_STORAGE_TRACK_SESSIONS,
+                DEFAULT_TRACK_SESSIONS,
+                Boolean.class);
+        this.periodicStatsInterval = 
+            readStorageProperty(
+                PROPERTY_PERIODIC_STATS, 
+                DEFAULT_PERIODIC_STATS_INTERVAL, 
+                Integer.class);
         
         initModelMap();
         initModelExtent(MOF_EXTENT, false);
         initStorage();
         
         this.sessionCount = new AtomicInteger(0);  
+        this.sessionIdGenerator = new AtomicInteger(0);
     }
     
     private <T> T readStorageProperty(
@@ -280,7 +331,10 @@ public class HibernateMDRepository
     {
         MdrSession mdrSession = sessionStack.peek(this);
         if (mdrSession != null) {
-            logStack(Level.FINE, "begin re-entrant repository session");
+            logStack(
+                Level.FINE, 
+                "begin re-entrant repository session", 
+                mdrSession.sessionId);
             mdrSession.refCount++;
             return;
         }
@@ -290,20 +344,28 @@ public class HibernateMDRepository
     
     private MdrSession beginSessionImpl(boolean implicit)
     {
+        int sessionId = -1;
+        if (trackSessions) {
+            sessionId = sessionIdGenerator.incrementAndGet();
+        }
+        
         if (implicit) {
             if (!allowImplicitSessions) {
                 throw new InternalMdrError("implicit session");
             }
             
-            logStack(Level.WARNING, "begin implicit repository session");
+            logStack(
+                Level.WARNING,
+                "begin implicit repository session", 
+                sessionId);
         } else {
-            logStack(Level.FINE, "begin repository session");
+            logStack(Level.FINE, "begin repository session", sessionId);
         }
         
         Session session = sessionFactory.openSession();
         session.setFlushMode(FlushMode.COMMIT);
         
-        MdrSession mdrSession = new MdrSession(session, implicit);
+        MdrSession mdrSession = new MdrSession(session, implicit, sessionId);
         mdrSession.refCount++;
         
         sessionStack.push(mdrSession);
@@ -322,7 +384,10 @@ public class HibernateMDRepository
         }
         
         if (--mdrSession.refCount != 0) {
-            logStack(Level.FINE, "end re-entrant repository session");
+            logStack(
+                Level.FINE, 
+                "end re-entrant repository session", 
+                mdrSession.sessionId);
             return;
         }
         
@@ -350,12 +415,16 @@ public class HibernateMDRepository
         }
         
         if (mdrSession.isImplicit) {
-            log.warning("end implicit repository session");
+            logStack(
+                Level.WARNING, 
+                "end implicit repository session", 
+                mdrSession.sessionId);
         } else {
-            log.fine("end repository session");
+            logStack(
+                Level.FINE, "end repository session", mdrSession.sessionId);
         }
         
-        mdrSession.session.close();
+        mdrSession.close();
         sessionStack.pop();
         int count = sessionCount.decrementAndGet();
         assert(count >= 0);
@@ -522,7 +591,7 @@ public class HibernateMDRepository
                 } else {
                     txn.commit();
                 }
-                
+
                 fireChanges(mdrSession);
             } catch(HibernateException e) {
                 fireCanceledChanges(mdrSession);
@@ -718,27 +787,34 @@ public class HibernateMDRepository
 
     private RefBaseObject lookupByMofId(MdrSession mdrSession, long mofId)
     {
-        Map<Long, SoftReference<RefBaseObject>> cache = 
-            mdrSession.byMofIdCache;
-
-        SoftReference<RefBaseObject> ref = cache.get(mofId);
+        return softCacheLookup(mdrSession.byMofIdCache, mofId);
+    }
+    
+    private <V, K> V softCacheLookup(Map<K, SoftReference<V>> cache, K key)
+    {
+        SoftReference<V> ref = cache.get(key);
         if (ref == null) {
             return null;
         }
         
-        RefBaseObject obj = ref.get();
-        if (obj == null) {
-            cache.remove(mofId);
+        V value = ref.get();
+        if (value == null) {
+            cache.remove(key);
         }
         
-        return obj;
+        return value;
     }
 
+    private <K, V> void softCacheStore(
+        Map<K, SoftReference<V>> cache, K key, V value)
+    {
+        cache.put(key, new SoftReference<V>(value));
+    }
+    
     private void storeByMofId(
         MdrSession mdrSession, long mofId, RefBaseObject obj)
     {
-        mdrSession.byMofIdCache.put(
-            mofId, new SoftReference<RefBaseObject>(obj));
+        softCacheStore(mdrSession.byMofIdCache, mofId, obj);
     }
     
     public void deleteExtentDescriptor(RefPackage refPackage)
@@ -815,6 +891,8 @@ public class HibernateMDRepository
                         e);
                 }
                 
+                stopPeriodicStats();
+                
                 if (sessionFactory.getStatistics().isStatisticsEnabled()) {
                     sessionFactory.getStatistics().logSummary();
                 }
@@ -871,13 +949,11 @@ public class HibernateMDRepository
     }
     
     // Implement EnkiChangeEventThread.ListenerSource
-    public void getListeners(
-        Collection<EnkiMaskedMDRChangeListener> listenersCopy)
+    public Collection<EnkiMaskedMDRChangeListener> getListeners()
     {
-        listenersCopy.clear();
-        
         synchronized(listeners) {
-            listenersCopy.addAll(listeners.values());
+            return new ArrayList<EnkiMaskedMDRChangeListener>(
+                listeners.values());
         }
     }
     
@@ -984,24 +1060,24 @@ public class HibernateMDRepository
     
     public Collection<?> lookupAllOfTypeResult(HibernateRefClass cls)
     {
-        return getMdrSession().allOfTypeCache.get(cls);
+        return softCacheLookup(getMdrSession().allOfTypeCache, cls);
     }
     
     public void storeAllOfTypeResult(
         HibernateRefClass cls, Collection<?> allOfType)
     {
-        getMdrSession().allOfTypeCache.put(cls, allOfType);
+        softCacheStore(getMdrSession().allOfTypeCache, cls, allOfType);
     }
     
     public Collection<?> lookupAllOfClassResult(HibernateRefClass cls)
     {
-        return getMdrSession().allOfClassCache.get(cls);
+        return softCacheLookup(getMdrSession().allOfClassCache, cls);
     }
     
     public void storeAllOfClassResult(
         HibernateRefClass cls, Collection<?> allOfClass)
     {
-        getMdrSession().allOfClassCache.put(cls, allOfClass);
+        softCacheStore(getMdrSession().allOfClassCache, cls, allOfClass);
     }
     
     /**
@@ -1448,6 +1524,8 @@ public class HibernateMDRepository
         }
         
         sessionFactory = config.buildSessionFactory();
+        
+        startPeriodicStats();
         
         mofIdGenerator = 
             new MofIdGenerator(sessionFactory, config, storageProperties);
@@ -1932,9 +2010,20 @@ public class HibernateMDRepository
 
     private void logStack(Level level, String msg)
     {
+        logStack(level, msg, -1);
+    }
+    
+    private void logStack(Level level, String msg, int sessionId)
+    {
         Throwable t = null;
         if (log.isLoggable(Level.FINEST)) {
             t = new RuntimeException("SHOW STACK");
+        }
+     
+        if (sessionId != -1) {
+            StringBuilder b = new StringBuilder(msg);
+            b.append(" (id: ").append(sessionId).append(')');
+            msg = b.toString();
         }
         
         log.log(level, msg, t);
@@ -1944,6 +2033,52 @@ public class HibernateMDRepository
     {
         return Boolean.parseBoolean(
             modelProps.getProperty(PROPERTY_MODEL_PLUGIN, "false"));
+    }
+    
+    private void startPeriodicStats()
+    {
+        if (periodicStatsInterval <= 0) {
+            return;
+        }
+        
+        sessionFactory.getStatistics().setStatisticsEnabled(true);
+        
+        long delay = (long)periodicStatsInterval * 1000L;
+        
+        periodicStatsTimer = new Timer("Enki Hibernate Stats Timer", true);
+        periodicStatsTimer.schedule(
+            new TimerTask() {
+                @Override
+                public void run()
+                {
+                    logPeriodicStats();
+                }                
+            }, 
+            delay,
+            delay);
+    }
+    
+    private void logPeriodicStats()
+    {
+        Statistics stats = sessionFactory.getStatistics();
+        
+        StringBuilder b = new StringBuilder();
+        b
+            .append("stats: open sessions: ")
+            .append(stats.getSessionOpenCount())
+            .append(" closed sessions: ")
+            .append(stats.getSessionCloseCount());
+        
+        log.info(b.toString());
+    }
+    
+    private void stopPeriodicStats()
+    {
+        if (periodicStatsTimer == null) {
+            return;
+        }
+        
+        periodicStatsTimer.cancel();
     }
     
     protected static abstract class AbstractModelDescriptor
@@ -2029,27 +2164,29 @@ public class HibernateMDRepository
         private boolean containsWrites;
         private boolean isImplicit;
         private int refCount;
+        private final int sessionId;
         
         private final LinkedList<Context> context;
-        private final Map<HibernateRefClass, Collection<?>> allOfTypeCache;
-        private final Map<HibernateRefClass, Collection<?>> allOfClassCache;
+        private final Map<HibernateRefClass, SoftReference<Collection<?>>> allOfTypeCache;
+        private final Map<HibernateRefClass, SoftReference<Collection<?>>> allOfClassCache;
         private final Map<Long, SoftReference<RefBaseObject>> byMofIdCache;
         private final List<MDRChangeEvent> queuedEvents;
 
-        private MdrSession(Session session, boolean isImplicit)
+        private MdrSession(Session session, boolean isImplicit, int sessionId)
         {
             this.session = session;
             this.context = new LinkedList<Context>();
             this.allOfTypeCache = 
-                new HashMap<HibernateRefClass, Collection<?>>();
+                new HashMap<HibernateRefClass, SoftReference<Collection<?>>>();
             this.allOfClassCache =
-                new HashMap<HibernateRefClass, Collection<?>>();
+                new HashMap<HibernateRefClass, SoftReference<Collection<?>>>();
             this.byMofIdCache =
                 new HashMap<Long, SoftReference<RefBaseObject>>();
             this.containsWrites = false;
             this.queuedEvents = new LinkedList<MDRChangeEvent>();
             this.isImplicit = isImplicit;
             this.refCount = 0;
+            this.sessionId = sessionId;
         }
         
         private MofIdGenerator getMofIdGenerator()
@@ -2061,11 +2198,34 @@ public class HibernateMDRepository
         {
             return HibernateMDRepository.this;
         }
+        
+        public void close()
+        {
+            if (!context.isEmpty()) {
+                throw new InternalMdrError("open txns on session");
+            }
+            context.clear();
+            
+            if (!queuedEvents.isEmpty()) {
+                throw new InternalMdrError("unfired events on session");
+            }
+            queuedEvents.clear();
+            
+            allOfTypeCache.clear();
+            allOfClassCache.clear();
+            
+            byMofIdCache.clear();
+            
+            session.close();
+            session = null;
+        }
     }
     
     /**
      * MdrSessionStack maintains a thread-local stack of {@link MdrSession}
-     * instances.
+     * instances.  The stack should only ever contain a single session from
+     * any HibernateMDRepository.  It exists to support a single thread
+     * accessing multiple repositories.
      */
     private static class MdrSessionStack
     {

@@ -163,8 +163,9 @@ public abstract class RefBaseObjectBase implements RefBaseObject
      */
     public int hashCode()
     {
-        long mofId = getMofId();
-        return ((int)mofId) ^ ((int)(mofId >>> 32));
+        // Note that this matches Netbean's behavior, which causes HashSet
+        // iteration order to match.
+        return (int)mofId;
     }
 
     /**

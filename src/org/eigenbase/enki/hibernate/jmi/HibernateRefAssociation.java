@@ -261,9 +261,14 @@ public abstract class HibernateRefAssociation
     {
         int index = AssociationEvent.POSITION_NONE;
         if (end2Multiplicity.isOrdered()) {
-            int pos = ((List<?>)query(true, end1)).indexOf(end2);
-            if (pos >= 0) {
-                index = pos;
+            Collection<?> c = query(true, end1);
+            int pos = 0;
+            for(Object o: c) {
+                if (end2.equals(o)) {
+                    index = pos;
+                    break;
+                }
+                pos++;
             }
         }
 

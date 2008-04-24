@@ -25,6 +25,7 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
 
@@ -79,7 +80,15 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
 
     protected Collection<E1> getSourceOf(E2 target)
     {
-        Collection<? extends RefObject> c = super.query(false, target);
+        HibernateAssociable t = (HibernateAssociable)target;
+        HibernateManyToManyAssociationBase assoc = 
+            (HibernateManyToManyAssociationBase) t.getAssociation(type, false);
+        
+        if (assoc == null) {
+            return Collections.emptyList();
+        }
+        
+        Collection<? extends RefObject> c = assoc.get(t);
         if (c instanceof List) {
             return GenericCollections.asTypedList(
                 (List<? extends RefObject>)c, end1Class);
@@ -90,7 +99,15 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
 
     protected Collection<E2> getTargetOf(E1 source)
     {
-        Collection<? extends RefObject> c = super.query(true, source);
+        HibernateAssociable s = (HibernateAssociable)source;
+        HibernateManyToManyAssociationBase assoc = 
+            (HibernateManyToManyAssociationBase) s.getAssociation(type, true);
+        
+        if (assoc == null) {
+            return Collections.emptyList();
+        }
+        
+        Collection<? extends RefObject> c = assoc.get(s);
         if (c instanceof List) {
             return GenericCollections.asTypedList(
                 (List<? extends RefObject>)c, end2Class);

@@ -131,18 +131,40 @@ public class HibernateJavaHandler
         new JavaClassReference(HibernateOneToManyAssociation.class, false);
     
     /**
+     * Name of the base class for ordered one-to-many associations.
+     */
+    public static final JavaClassReference ASSOCIATION_ONE_TO_MANY_ORDERED_BASE = 
+        new JavaClassReference(
+            HibernateOneToManyOrderedAssociation.class, false);
+    
+    /**
      * Name of the base class for many-to-many associations.
      */
     public static final JavaClassReference ASSOCIATION_MANY_TO_MANY_BASE = 
         new JavaClassReference(HibernateManyToManyAssociation.class, false);
 
+    /**
+     * Name of the base class for ordered many-to-many associations.
+     */
+    public static final JavaClassReference ASSOCIATION_MANY_TO_MANY_ORDERED_BASE = 
+        new JavaClassReference(
+            HibernateManyToManyOrderedAssociation.class, false);
+
     /** Name of the base class for the custom Hibernate type-mapper. */
     public static final JavaClassReference ASSOCIATION_TYPE_MAPPER_BASE =
         new JavaClassReference(HibernateAssociationTypeMapper.class, false);
     
+    /** Reference to {@link CollectionProxy}. */
+    private static final JavaClassReference COLLECTION_PROXY_CLASS = 
+        new JavaClassReference(CollectionProxy.class, true);
+    
     /** Reference to {@link ListProxy}. */
     private static final JavaClassReference LIST_PROXY_CLASS = 
         new JavaClassReference(ListProxy.class, true);
+    
+    /** Reference to {@link AttributeCollectionProxy}. */
+    private static final JavaClassReference ATTRIB_COLLECTION_PROXY_CLASS = 
+        new JavaClassReference(AttributeCollectionProxy.class, true);
     
     /** Reference to {@link AttributeListProxy}. */
     private static final JavaClassReference ATTRIB_LIST_PROXY_CLASS = 
@@ -213,8 +235,10 @@ public class HibernateJavaHandler
         OBJECT_IMPL_CLASS,
         ASSOCIABLE_INTERFACE,
         ASSOCIATION_BASE_CLASS,
+        COLLECTION_PROXY_CLASS,
         LIST_PROXY_CLASS,
         ATTRIB_LIST_PROXY_CLASS,
+        ATTRIB_COLLECTION_PROXY_CLASS,
         ATTRIB_LIST_WRAPPER_CLASS,
         ATTRIB_COLLECTION_WRAPPER_CLASS,
         JAVA_UTIL_LIST_CLASS,
@@ -263,9 +287,21 @@ public class HibernateJavaHandler
 
     /** 
      * Reference to the model-specific, generated subclass of 
+     * {@link HibernateOneToManyOrderedAssociation}.
+     */
+    private JavaClassReference assocOneToManyOrderedClass;
+
+    /** 
+     * Reference to the model-specific, generated subclass of 
      * {@link HibernateManyToManyAssociation}.
      */
     private JavaClassReference assocManyToManyClass;
+    
+    /** 
+     * Reference to the model-specific, generated subclass of 
+     * {@link HibernateManyToManyOrderedAssociation}.
+     */
+    private JavaClassReference assocManyToManyOrderedClass;
     
     /** 
      * Reference to the model-specific, generated subclass of 
@@ -376,10 +412,18 @@ public class HibernateJavaHandler
             new JavaClassReference(
                 packageName,
                 ASSOCIATION_ONE_TO_MANY_BASE.toSimple());
+        assocOneToManyOrderedClass = 
+            new JavaClassReference(
+                packageName,
+                ASSOCIATION_ONE_TO_MANY_ORDERED_BASE.toSimple());
         assocManyToManyClass = 
             new JavaClassReference(
                 packageName,
                 ASSOCIATION_MANY_TO_MANY_BASE.toSimple());
+        assocManyToManyOrderedClass = 
+            new JavaClassReference(
+                packageName,
+                ASSOCIATION_MANY_TO_MANY_ORDERED_BASE.toSimple());
         assocTypeMapperClass =
             new JavaClassReference(
                 packageName,
@@ -396,7 +440,13 @@ public class HibernateJavaHandler
             generateAssociationStorageSubclass(
                 assocOneToManyClass, ASSOCIATION_ONE_TO_MANY_BASE);
             generateAssociationStorageSubclass(
+                assocOneToManyOrderedClass, 
+                ASSOCIATION_ONE_TO_MANY_ORDERED_BASE);
+            generateAssociationStorageSubclass(
                 assocManyToManyClass, ASSOCIATION_MANY_TO_MANY_BASE);
+            generateAssociationStorageSubclass(
+                assocManyToManyOrderedClass, 
+                ASSOCIATION_MANY_TO_MANY_ORDERED_BASE);
             generateAssociationStorageSubclass(
                 assocTypeMapperClass, ASSOCIATION_TYPE_MAPPER_BASE);
         }
@@ -477,7 +527,7 @@ public class HibernateJavaHandler
         
         open(typeName);
         try {
-            String superClass = makeType(assocInfo);
+            String superClass = makeRefType(assocInfo);
             
             writeClassHeader(
                 assoc,
@@ -503,14 +553,27 @@ public class HibernateJavaHandler
                     HibernateMappingHandler.QUERY_NAME_ALLLINKS;
                 break;
             case ONE_TO_MANY:
-                queryName =
-                    assocOneToManyClass.toFull() + "." +
-                    HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                if (assocInfo.isOrdered(0) || assocInfo.isOrdered(1)) {
+                    queryName =
+                        assocOneToManyOrderedClass.toFull() + "." +
+                        HibernateMappingHandler.QUERY_NAME_ALLLINKS;   
+                } else {
+                    queryName =
+                        assocOneToManyClass.toFull() + "." +
+                        HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                }
                 break;
             case MANY_TO_MANY:
-                queryName =
-                    assocManyToManyClass.toFull() + "." +
-                    HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                // Base many-to-many all-links queries on first end only
+                if (assocInfo.isOrdered(0)) {
+                    queryName =
+                        assocManyToManyOrderedClass.toFull() + "." +
+                        HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                } else {
+                    queryName =
+                        assocManyToManyClass.toFull() + "." +
+                        HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                }
                 break;
             }
             writeConstant(
@@ -896,7 +959,7 @@ public class HibernateJavaHandler
                 for(Reference ref: instanceReferences) {
                     ReferenceInfo refInfo = refInfoMap.get(ref);
                     writePrivateField(
-                        makeType(refInfo.getKind()),
+                        makeType(refInfo),
                         refInfo.getFieldName(), 
                         false, 
                         false);
@@ -914,7 +977,7 @@ public class HibernateJavaHandler
                     ReferenceInfo refInfo = unrefAssocRefInfoMap.get(unref);
                     
                     writePrivateField(
-                        makeType(refInfo.getKind()),
+                        makeType(refInfo),
                         refInfo.getFieldName(),
                         false,
                         false);
@@ -928,7 +991,7 @@ public class HibernateJavaHandler
                 writeln("// Component Attributes Fields");
                 for(ComponentInfo comonentInfo: componentInfoMap.values()) {
                     writePrivateField(
-                        makeType(comonentInfo.getKind()),
+                        makeType(comonentInfo),
                         comonentInfo.getFieldName(),
                         false,
                         false);
@@ -1217,7 +1280,7 @@ public class HibernateJavaHandler
                     writeln(
                         getReferenceMutatorName(refInfo),
                         "((",
-                        makeType(refInfo.getKind()),
+                        makeType(refInfo),
                         ")assoc);");
                     writeln("return;");
                 }
@@ -1257,9 +1320,9 @@ public class HibernateJavaHandler
                         getReferenceAccessorName(refInfo), "() == null");
                         
                     writeln(
-                        makeType(refInfo.getKind()),
+                        makeType(refInfo),
                         " assoc = new ",
-                        makeType(refInfo.getKind()),
+                        makeType(refInfo),
                         "();");
                     writeln("assoc.setType(type);");
                     
@@ -1281,17 +1344,11 @@ public class HibernateJavaHandler
                         }
                         writeln(
                             "assoc.setReversed(", refInfo.isSingle(1), ");");
-                        writeln(
-                            "assoc.setUnique(", 
-                            !(refInfo.isOrdered(0) || refInfo.isOrdered(1)),
-                            ");");
                         break;
 
                     case MANY_TO_MANY:
                         writeln("assoc.setSource(this);");
                         writeln("assoc.setReversed(!firstEnd);");
-                        writeln(
-                            "assoc.setUnique(", !refInfo.isOrdered(), ");");
                         break;
                     }
                     
@@ -1668,7 +1725,7 @@ public class HibernateJavaHandler
         writeln("// Internal use only");
         startBlock(
             "public ",
-            makeType(refInfo.getKind()),
+            makeType(refInfo),
             " ",
             getReferenceAccessorName(refInfo),
             "()");
@@ -1681,7 +1738,7 @@ public class HibernateJavaHandler
             "public void ",
             getReferenceMutatorName(refInfo),
             "(",
-            makeType(refInfo.getKind()),
+            makeType(refInfo),
             " newValue)");
         writeln("this.", refInfo.getFieldName(), " = newValue;");
         endBlock();
@@ -1764,13 +1821,19 @@ public class HibernateJavaHandler
         } else {
             String listElemType = 
                 refInfo.getEndType(refInfo.isSingle(0) ? 1 : 0);
+            
+            JavaClassReference proxyRef = COLLECTION_PROXY_CLASS;
+            if (refInfo.isOrdered()) {
+                proxyRef = LIST_PROXY_CLASS;
+            }
+            
             // REVIEW: SWZ: Consider caching ListProxy in a field
             startConditionalBlock(
                 CondType.IF, 
                 getReferenceAccessorName(refInfo), "() == null");
             writeln(
                 "return new ", 
-                LIST_PROXY_CLASS,
+                proxyRef,
                 "<", listElemType, ">",
                 "(", QUOTE, refInfo.getBaseName(), QUOTE,
                 ", this, ",
@@ -1780,7 +1843,7 @@ public class HibernateJavaHandler
             startConditionalBlock(CondType.ELSE);
             writeln(
                 "return new ",
-                LIST_PROXY_CLASS,
+                proxyRef,
                 "<", listElemType, ">",
                 "(",
                 getReferenceAccessorName(refInfo),
@@ -1826,9 +1889,15 @@ public class HibernateJavaHandler
         startConditionalBlock(
             CondType.IF,
             getReferenceAccessorName(refInfo), "() == null");
+        
+        JavaClassReference proxyRef = COLLECTION_PROXY_CLASS;
+        if (refInfo.isOrdered()) {
+            proxyRef = LIST_PROXY_CLASS;
+        }
+        
         writeln(
             "return new ", 
-            LIST_PROXY_CLASS, "<", listElemType, ">",
+            proxyRef, "<", listElemType, ">",
             "(", QUOTE, refInfo.getBaseName(), QUOTE,
             ", this, ",
             refInfo.isExposedEndFirst(), ", ", 
@@ -1837,7 +1906,7 @@ public class HibernateJavaHandler
         startConditionalBlock(CondType.ELSE);
         writeln(
             "return new ",
-            LIST_PROXY_CLASS, "<", listElemType, ">",
+            proxyRef, "<", listElemType, ">",
             "(", 
             getReferenceAccessorName(refInfo), "(), this, ",
             refInfo.isExposedEndFirst(), ", ",
@@ -1918,13 +1987,19 @@ public class HibernateJavaHandler
         } else {
             String listElemType = 
                 compInfo.getEndType(compInfo.isSingle(0) ? 1 : 0);
+            
+            JavaClassReference proxyRef = ATTRIB_COLLECTION_PROXY_CLASS;
+            if (compInfo.isOrdered()) {
+                proxyRef = ATTRIB_LIST_PROXY_CLASS;
+            }
+            
             // REVIEW: SWZ: Consider caching AttributeListProxy in a field
             startConditionalBlock(
                 CondType.IF, 
                 getReferenceAccessorName(compInfo), "() == null");
             writeln(
                 "return new ", 
-                ATTRIB_LIST_PROXY_CLASS,
+                proxyRef,
                 "<", listElemType, ">",
                 "(", QUOTE, compInfo.getBaseName(), QUOTE,
                 ", this, ", compInfo.isExposedEndFirst(), ", ",
@@ -1933,7 +2008,7 @@ public class HibernateJavaHandler
             startConditionalBlock(CondType.ELSE);
             writeln(
                 "return new ",
-                ATTRIB_LIST_PROXY_CLASS,
+                proxyRef,
                 "<", listElemType, ">",
                 "(",
                 getReferenceAccessorName(compInfo),
@@ -3002,21 +3077,35 @@ public class HibernateJavaHandler
      * model-specific {@link HibernateAssociation} subclasses generated 
      * in {@link #generateAssociationStorageSubclass(JavaClassReference, JavaClassReference)}.
      * 
-     * @param kind simple multiplicity
+     * @param refInfo description of the reference
      * @return full name of the implementation class
      */
-    private String makeType(AssociationKindEnum kind)
+    private String makeType(ReferenceInfo refInfo)
     {
+        AssociationKindEnum kind = refInfo.getKind();
+        
+        boolean isOrdered = refInfo.isOrdered();
+        boolean isEitherOrdered = 
+            isOrdered || refInfo.isOrdered(refInfo.getExposedEndIndex());
+        
         switch(kind)
         {
         case ONE_TO_ONE:
             return assocOneToOneClass.toString();
             
         case ONE_TO_MANY:
-            return assocOneToManyClass.toString();            
+            if (isEitherOrdered) {
+                return assocOneToManyOrderedClass.toString();
+            } else {
+                return assocOneToManyClass.toString();
+            }
 
         case MANY_TO_MANY:
-            return assocManyToManyClass.toString();
+            if (isOrdered) {
+                return assocManyToManyOrderedClass.toString();
+            } else {
+                return assocManyToManyClass.toString();
+            }
         }
         
         throw new IllegalArgumentException(
@@ -3097,7 +3186,7 @@ public class HibernateJavaHandler
      * @param assocInfo description of the Association
      * @return name of the type that handles it
      */
-    private String makeType(AssociationInfo assocInfo)
+    private String makeRefType(AssociationInfo assocInfo)
     {
         StringBuffer type = new StringBuffer();
         switch(assocInfo.getKind()) {

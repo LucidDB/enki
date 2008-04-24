@@ -36,12 +36,9 @@ import org.netbeans.api.mdr.events.*;
 public class EnkiChangeEventThread
     extends Thread
 {
-    private static final long POLLING_TIMEOUT = 5000L;
-    private static final int MAX_CONSECUTIVE = 1000;
-    private static final int MAX_CAPACITY = 10000;
-    
-    private static final CheckShutdownEvent CHECK_SHUTDOWN_EVENT = 
-        new CheckShutdownEvent();
+    private static final long POLLING_TIMEOUT = 1000L;
+    private static final int MAX_CONSECUTIVE = 100;
+    private static final int MAX_CAPACITY = 1000;
     
     private static final Logger log = 
         Logger.getLogger(EnkiChangeEventThread.class.getName());
@@ -64,13 +61,13 @@ public class EnkiChangeEventThread
     
     public synchronized void shutdown() throws InterruptedException
     {
-        // Protected against simultaneous shutdown calls.
-        shutdown = true;
+        if (shutdown) {
+            return;
+        }
+
         eventQueue.clear();
+        shutdown = true;
         
-        // If there are no events in the queue, place this one to cause the
-        // thread to wake up sooner.
-        eventQueue.offer(CHECK_SHUTDOWN_EVENT);
         join();
     }
     
@@ -81,36 +78,43 @@ public class EnkiChangeEventThread
     
     public void run()
     {
-        MDRChangeEvent event;
+        ArrayList<MDRChangeEvent> events = 
+            new ArrayList<MDRChangeEvent>(MAX_CONSECUTIVE + 1);
 
-        ArrayList<EnkiMaskedMDRChangeListener> listeners = 
-            new ArrayList<EnkiMaskedMDRChangeListener>();
-        
-        while(true) {
-            synchronized(this) {
-                if (shutdown) {
-                    break;
-                }
-            }
-        
-            try {
-                int numConsecutive = 0;
-                while(true) {
-                    if (numConsecutive == 0) {
-                        event = 
-                           eventQueue.poll(
-                               POLLING_TIMEOUT, TimeUnit.MILLISECONDS);
-                    } else {
-                        event = eventQueue.poll();
-                    }
-                    
-                    if (event == null || event == CHECK_SHUTDOWN_EVENT) {
-                        // Check shutdown flag and go back to sleep.
+        boolean sawEvents = false;
+        try {
+            while(true) {
+                synchronized(this) {
+                    if (shutdown) {
                         break;
                     }
+                }
+
+                if (!sawEvents) {
+                    MDRChangeEvent trigger = 
+                       eventQueue.poll(
+                           POLLING_TIMEOUT, TimeUnit.MILLISECONDS);
+
+                    if (trigger == null) {
+                        sawEvents = false;
+                        continue;
+                    }
                     
-                    listenerSource.getListeners(listeners);
+                    events.add(trigger);
+                } else {
+                    int numAdded = eventQueue.drainTo(events, MAX_CONSECUTIVE);
                     
+                    if (numAdded == 0) {
+                        sawEvents = false;
+                        continue;
+                    }
+                }
+
+                sawEvents = true;
+                    
+                Collection<EnkiMaskedMDRChangeListener> listeners= 
+                    listenerSource.getListeners();
+                for(MDRChangeEvent event: events) {                        
                     for(MDRChangeListener listener: listeners) { 
                         try {
                             listener.change(event);
@@ -122,23 +126,19 @@ public class EnkiChangeEventThread
                                 t);
                         }
                     }
-
-                    // Check the shutdown flag occasionally even when we're
-                    // swamped.
-                    if (++numConsecutive > MAX_CONSECUTIVE) {
-                        break;
-                    }
                 }
+
+                events.clear();
             }
-            catch(InterruptedException e) {
-                log.log(Level.SEVERE, "EnkiChangeEventThread interrupted", e);
-            }
-            catch(Throwable t) {
-                log.log(
-                    Level.SEVERE, 
-                    "EnkiChangeEventThread ending unexpectedly",
-                    t);
-            }
+        }
+        catch(InterruptedException e) {
+            log.log(Level.SEVERE, "EnkiChangeEventThread interrupted", e);
+        }
+        catch(Throwable t) {
+            log.log(
+                Level.SEVERE, 
+                "EnkiChangeEventThread ending unexpectedly",
+                t);
         }
     }
     
@@ -150,26 +150,11 @@ public class EnkiChangeEventThread
     public interface ListenerSource
     {
         /**
-         * Copy all current listeners into the given collection, clearing any
-         * existing elements first.
+         * Return all current listeners .
          * 
-         * @param listeners collection that will contain all current listeners
+         * @return listeners collection that will contain all current listeners
          */
-        public void getListeners(
-            Collection<EnkiMaskedMDRChangeListener> listeners);
-    }
-    
-    /**
-     * CheckShutdownEvent is a fake event used to speed up thread shutdown.
-     */
-    private static class CheckShutdownEvent extends MDRChangeEvent
-    {
-        private static final long serialVersionUID = 1L;
-
-        public CheckShutdownEvent()
-        {
-            super(EnkiChangeEventThread.class, 0);
-        }
+        public Collection<EnkiMaskedMDRChangeListener> getListeners();
     }
 }
 

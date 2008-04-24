@@ -27,17 +27,18 @@ import org.eigenbase.enki.hibernate.*;
 import org.netbeans.api.mdr.events.*;
 
 /**
- * AttributeListProxy extends {@link ListProxy} to generate MDR attribute
- * events rather than MDR association events.
+ * AttributeCollectionProxy extends {@link CollectionProxy} to generate MDR 
+ * attribute events rather than MDR association events.
  * 
  * @author Stephan Zuercher
  */
-public class AttributeListProxy<E extends RefObject> extends ListProxy<E>
+public class AttributeCollectionProxy<E extends RefObject> 
+    extends CollectionProxy<E>
 {
     private final String attributeName;
     
-    public AttributeListProxy(
-        HibernateOrderedAssociation assoc,
+    public AttributeCollectionProxy(
+        HibernateAssociation assoc,
         HibernateAssociable source,
         boolean firstEnd,
         String attributeName,
@@ -48,10 +49,10 @@ public class AttributeListProxy<E extends RefObject> extends ListProxy<E>
         this.attributeName = attributeName;
     }
 
-    public AttributeListProxy(
+    public AttributeCollectionProxy(
         String type,
         HibernateAssociable source,
-        boolean firstEnd,
+        boolean firstEnd, 
         String attributeName,
         Class<E> cls)
     {
@@ -61,7 +62,7 @@ public class AttributeListProxy<E extends RefObject> extends ListProxy<E>
     }
 
     @Override
-    protected void fireAddEvent(E e, int position)
+    protected void fireAddEvent(E e)
     {
         enqueueEvent(
             new AttributeEvent(
@@ -70,17 +71,11 @@ public class AttributeListProxy<E extends RefObject> extends ListProxy<E>
                 attributeName,
                 null,
                 e,
-                position));
+                AttributeEvent.POSITION_NONE));
     }
 
     @Override
-    protected void fireAddEvent(E e)
-    {
-        fireAddEvent(e, AttributeEvent.POSITION_NONE);
-    }
-
-    @Override
-    protected void fireRemoveEvent(E e, int position)
+    protected void fireRemoveEvent(E e)
     {
         enqueueEvent(
             new AttributeEvent(
@@ -89,26 +84,7 @@ public class AttributeListProxy<E extends RefObject> extends ListProxy<E>
                 attributeName,
                 e,
                 null,
-                position));
-    }
-
-    @Override
-    protected void fireRemoveEvent(E e)
-    {
-        fireRemoveEvent(e, AttributeEvent.POSITION_NONE);
-    }
-
-    @Override
-    protected void fireSetEvent(E oldE, E newE, int position)
-    {
-        enqueueEvent(
-            new AttributeEvent(
-                source,
-                AttributeEvent.EVENT_ATTRIBUTE_SET,
-                attributeName,
-                oldE,
-                newE,
-                position));
+                AttributeEvent.POSITION_NONE));
     }
     
     private void enqueueEvent(MDRChangeEvent event)
@@ -119,4 +95,4 @@ public class AttributeListProxy<E extends RefObject> extends ListProxy<E>
     }
 }
 
-// End AttributeListProxy.java
+// End AttributeCollectionProxy.java

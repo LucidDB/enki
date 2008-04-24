@@ -66,9 +66,6 @@ public class HibernateMappingHandler
     private static final String ASSOC_REVERSE_POLARITY_PROPERTY = 
         "reversed";
 
-    /** Name of the uniqueness property for association. */
-    private static final String ASSOC_UNIQUE_PROPERTY = "unique";
-
     private static final String ASSOC_ONE_TO_ONE_TABLE = "AssocOneToOne";
     private static final String ASSOC_ONE_TO_ONE_PARENT_PROPERTY = "parent";
     private static final String ASSOC_ONE_TO_ONE_PARENT_TYPE_COLUMN = 
@@ -82,6 +79,8 @@ public class HibernateMappingHandler
         "child_id";
 
     private static final String ASSOC_ONE_TO_MANY_TABLE = "AssocOneToMany";
+    private static final String ASSOC_ONE_TO_MANY_ORDERED_TABLE = 
+        "AssocOneToManyOrdered";
     private static final String ASSOC_ONE_TO_MANY_PARENT_PROPERTY = "parent";
     private static final String ASSOC_ONE_TO_MANY_PARENT_TYPE_COLUMN = 
         "parent_type";
@@ -90,18 +89,22 @@ public class HibernateMappingHandler
     private static final String ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY = 
         "children";
     private static final String ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN = 
-        "child_key";
+        "mofId";
     private static final String ASSOC_ONE_TO_MANY_CHILD_ORDINAL_COLUMN = 
-        "child_ordinal";
+        "ordinal";
 
     private static final String ASSOC_ONE_TO_MANY_CHILDREN_TABLE =
         "AssocOneToManyChildren";
+    private static final String ASSOC_ONE_TO_MANY_CHILDREN_ORDERED_TABLE =
+        "AssocOneToManyOrderedChildren";
     private static final String ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN = 
         "child_type";
     private static final String ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN = 
         "child_id";
     
     private static final String ASSOC_MANY_TO_MANY_TABLE = "AssocManyToMany";
+    private static final String ASSOC_MANY_TO_MANY_ORDERED_TABLE = 
+        "AssocManyToManyOrdered";
     private static final String ASSOC_MANY_TO_MANY_SOURCE_PROPERTY = "source";
     private static final String ASSOC_MANY_TO_MANY_SOURCE_TYPE_COLUMN = 
         "source_type";
@@ -110,10 +113,12 @@ public class HibernateMappingHandler
     private static final String ASSOC_MANY_TO_MANY_TARGET_PROPERTY = "target";
     private static final String ASSOC_MANY_TO_MANY_TARGET_TABLE = 
         "AssocManyToManyTarget";
+    private static final String ASSOC_MANY_TO_MANY_ORDERED_TARGET_TABLE = 
+        "AssocManyToManyOrderedTarget";
     private static final String ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN = 
-        "target_key";
+        "mofId";
     private static final String ASSOC_MANY_TO_MANY_TARGET_ORDINAL_COLUMN = 
-        "target_ordinal";
+        "ordinal";
     private static final String ASSOC_MANY_TO_MANY_TARGET_TYPE_COLUMN = 
         "target_type";
     private static final String ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN = 
@@ -169,7 +174,9 @@ public class HibernateMappingHandler
 
     private JavaClassReference assocOneToOneClass;
     private JavaClassReference assocOneToManyClass;
+    private JavaClassReference assocOneToManyOrderedClass;
     private JavaClassReference assocManyToManyClass;
+    private JavaClassReference assocManyToManyOrderedClass;
     
     private JavaClassReference assocTypeMapperClass;
 
@@ -240,10 +247,18 @@ public class HibernateMappingHandler
             new JavaClassReference(
                 packageName,
                 HibernateJavaHandler.ASSOCIATION_ONE_TO_MANY_BASE.toSimple());
+        assocOneToManyOrderedClass = 
+            new JavaClassReference(
+                packageName,
+                HibernateJavaHandler.ASSOCIATION_ONE_TO_MANY_ORDERED_BASE.toSimple());
         assocManyToManyClass = 
             new JavaClassReference(
                 packageName,
                 HibernateJavaHandler.ASSOCIATION_MANY_TO_MANY_BASE.toSimple());
+        assocManyToManyOrderedClass = 
+            new JavaClassReference(
+                packageName,
+                HibernateJavaHandler.ASSOCIATION_MANY_TO_MANY_ORDERED_BASE.toSimple());
         assocTypeMapperClass =
             new JavaClassReference(
                 packageName,
@@ -287,7 +302,13 @@ public class HibernateMappingHandler
                 writeOneToManyMapping();
                 newLine();
     
+                writeOneToManyOrderedMapping();
+                newLine();
+    
                 writeManyToManyMapping();
+                newLine();
+    
+                writeManyToManyOrderedMapping();
             }
             
             generateAllOfTypeQueries();
@@ -411,10 +432,72 @@ public class HibernateMappingHandler
             "name", ASSOC_REVERSE_POLARITY_PROPERTY,
             "not-null", "true");
 
+        startElem(
+            "any",
+            "name", ASSOC_ONE_TO_MANY_PARENT_PROPERTY,
+            "id-type", "long",
+            "meta-type", assocTypeMapperClass);
+        writeEmptyElem(
+            "column", "name", ASSOC_ONE_TO_MANY_PARENT_TYPE_COLUMN);
+        writeEmptyElem(
+            "column",
+            "name", ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN);
+        endElem("any");
+        
+        startElem(
+            "set",
+            "name", ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY,
+            "table", tableName(ASSOC_ONE_TO_MANY_CHILDREN_TABLE),
+            "cascade", "save-update",
+            "fetch", "subselect");
+        writeCacheElement();        
+        writeEmptyElem("key", "column", ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN);
+        startElem(
+            "many-to-any",
+            "id-type", "long", 
+            "meta-type", assocTypeMapperClass);
+        writeEmptyElem(
+            "column",
+            "name", ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN,
+            "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
+        writeEmptyElem("column", "name", ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN);
+        endElem("many-to-any");
+        endElem("set");
+        
+        // Named queries
+        newLine();
+        startElem(
+            "query", 
+            "name", QUERY_NAME_ALLLINKS);
+        writeCData(
+            "from ", 
+            assocOneToManyClass,
+            " where type = :", QUERY_PARAM_ALLLINKS_TYPE);
+        endElem("query");
+        
+        endElem("class");
+    }
+    
+    private void writeOneToManyOrderedMapping() throws GenerationException
+    {
+        startElem(
+            "class",
+            "name", assocOneToManyOrderedClass,
+            "table", tableName(ASSOC_ONE_TO_MANY_ORDERED_TABLE));
+        
+        writeCacheElement();
+        
+        writeIdBlock();
+        
         writeEmptyElem(
             "property",
-            "name", ASSOC_UNIQUE_PROPERTY,
-            "column", hibernateQuote(ASSOC_UNIQUE_PROPERTY),
+            "name", ASSOC_TYPE_PROPERTY,
+            "not-null", "true",
+            "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
+        
+        writeEmptyElem(
+            "property",
+            "name", ASSOC_REVERSE_POLARITY_PROPERTY,
             "not-null", "true");
 
         startElem(
@@ -432,7 +515,7 @@ public class HibernateMappingHandler
         startElem(
             "list",
             "name", ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY,
-            "table", tableName(ASSOC_ONE_TO_MANY_CHILDREN_TABLE),
+            "table", tableName(ASSOC_ONE_TO_MANY_CHILDREN_ORDERED_TABLE),
             "cascade", "save-update",
             "fetch", "subselect");
         writeCacheElement();        
@@ -458,13 +541,13 @@ public class HibernateMappingHandler
             "name", QUERY_NAME_ALLLINKS);
         writeCData(
             "from ", 
-            assocOneToManyClass,
+            assocOneToManyOrderedClass,
             " where type = :", QUERY_PARAM_ALLLINKS_TYPE);
         endElem("query");
         
         endElem("class");
     }
-    
+
     private void writeManyToManyMapping() throws GenerationException
     {
         startElem(
@@ -487,12 +570,73 @@ public class HibernateMappingHandler
             "name", ASSOC_REVERSE_POLARITY_PROPERTY,
             "not-null", "true");
         
+        startElem(
+            "any",
+            "name", ASSOC_MANY_TO_MANY_SOURCE_PROPERTY,
+            "id-type", "long",
+            "meta-type", assocTypeMapperClass);        
+        writeEmptyElem(
+            "column", "name", ASSOC_MANY_TO_MANY_SOURCE_TYPE_COLUMN);
+        writeEmptyElem(
+            "column",
+            "name", ASSOC_MANY_TO_MANY_SOURCE_ID_COLUMN);
+        endElem("any");
+
+        startElem(
+            "set",
+            "name", ASSOC_MANY_TO_MANY_TARGET_PROPERTY,
+            "table", tableName(ASSOC_MANY_TO_MANY_TARGET_TABLE),
+            "cascade", "save-update",
+            "fetch", "join");
+        writeCacheElement();
+        writeEmptyElem("key", "column", ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN);
+        startElem(
+            "many-to-any",
+            "id-type", "long", 
+            "meta-type", assocTypeMapperClass);
+        writeEmptyElem(
+            "column",
+            "name", ASSOC_MANY_TO_MANY_TARGET_TYPE_COLUMN,
+            "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
+        writeEmptyElem("column", "name", ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN);
+        endElem("many-to-any");
+        endElem("set");
+        
+        // Named queries
+        newLine();
+        startElem(
+            "query", 
+            "name", QUERY_NAME_ALLLINKS);
+        writeCData(
+            "from ", assocManyToManyClass,
+            " where type = :", QUERY_PARAM_ALLLINKS_TYPE, " and reversed = 0");
+        endElem("query");
+        
+        endElem("class");
+    }
+    
+    private void writeManyToManyOrderedMapping() throws GenerationException
+    {
+        startElem(
+            "class",
+            "name", assocManyToManyOrderedClass,
+            "table", tableName(ASSOC_MANY_TO_MANY_ORDERED_TABLE));
+        
+        writeCacheElement();
+        
+        writeIdBlock();
+        
         writeEmptyElem(
             "property",
-            "name", ASSOC_UNIQUE_PROPERTY,
-            "column", hibernateQuote(ASSOC_UNIQUE_PROPERTY),
-            "not-null", "true");
+            "name", ASSOC_TYPE_PROPERTY,
+            "not-null", "true",
+            "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
 
+        writeEmptyElem(
+            "property",
+            "name", ASSOC_REVERSE_POLARITY_PROPERTY,
+            "not-null", "true");
+        
         startElem(
             "any",
             "name", ASSOC_MANY_TO_MANY_SOURCE_PROPERTY,
@@ -508,7 +652,7 @@ public class HibernateMappingHandler
         startElem(
             "list",
             "name", ASSOC_MANY_TO_MANY_TARGET_PROPERTY,
-            "table", tableName(ASSOC_MANY_TO_MANY_TARGET_TABLE),
+            "table", tableName(ASSOC_MANY_TO_MANY_ORDERED_TARGET_TABLE),
             "cascade", "save-update",
             "fetch", "join");
         writeCacheElement();
@@ -533,13 +677,13 @@ public class HibernateMappingHandler
             "query", 
             "name", QUERY_NAME_ALLLINKS);
         writeCData(
-            "from ", assocManyToManyClass,
+            "from ", assocManyToManyOrderedClass,
             " where type = :", QUERY_PARAM_ALLLINKS_TYPE, " and reversed = 0");
         endElem("query");
         
         endElem("class");
     }
-    
+
     /**
      * Generate named queries for all classes, abstract or otherwise.  We
      * do not generate these within each class mapping since abstract classes 

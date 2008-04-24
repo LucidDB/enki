@@ -75,11 +75,13 @@ public abstract class ModelTestBase
         
         repos.beginSession();
         repos.beginTrans(true);
+        boolean rollback = true;
         try {
             delete(pkg);
+            rollback = false;
         }
         finally {
-            repos.endTrans();
+            repos.endTrans(rollback);
         }
     }
     

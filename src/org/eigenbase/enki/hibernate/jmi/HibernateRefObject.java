@@ -231,10 +231,9 @@ public abstract class HibernateRefObject
         HibernateRefAssociation refAssoc = 
             getHibernateRepository().findRefAssociation(refAssocId);
         
-        List<? extends RefObject> otherEnds = assoc.query(isExposedEndFirst);
-        for(int i = 0; i < otherEnds.size(); i++) {
-            refAssoc.fireRemoveEvent(
-                isExposedEndFirst, this, otherEnds.get(i), i);
+        int i = 0;
+        for(RefObject otherEnd: assoc.query(isExposedEndFirst)) {
+            refAssoc.fireRemoveEvent(isExposedEndFirst, this, otherEnd, i++);            
         }
     }
     

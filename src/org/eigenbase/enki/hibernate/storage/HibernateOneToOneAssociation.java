@@ -35,7 +35,7 @@ import org.eigenbase.enki.jmi.impl.*;
  * @author Stephan Zuercher
  */
 public abstract class HibernateOneToOneAssociation
-    extends HibernateAssociation
+    extends HibernateAssociationBase
 {
     private HibernateAssociable parent;
     private HibernateAssociable child;
@@ -74,7 +74,6 @@ public abstract class HibernateOneToOneAssociation
         return cls.cast(child);
     }
 
-    @Override
     public boolean add(
         HibernateAssociable newParent, HibernateAssociable newChild)
     {
@@ -125,14 +124,12 @@ public abstract class HibernateOneToOneAssociation
         return parentAssoc.add(newParent, newChild);
     }
 
-    @Override
     public void add(
         int index, HibernateAssociable parent, HibernateAssociable child)
     {
         add(parent, child);
     }
     
-    @Override
     public boolean remove(
         HibernateAssociable parent, HibernateAssociable child)
     {
@@ -162,14 +159,12 @@ public abstract class HibernateOneToOneAssociation
         return true;
     }
 
-    @Override
     public boolean remove(
         int index, HibernateAssociable parent, HibernateAssociable child)
     {
         return remove(parent, child);
     }
 
-    @Override
     public void removeAll(HibernateAssociable item, boolean cascadeDelete)
     {
         HibernateAssociable parent = getParent();
@@ -192,7 +187,16 @@ public abstract class HibernateOneToOneAssociation
         }
     }
 
-    @Override
+    public void postRemove(HibernateAssociable end1, HibernateAssociable end2)
+    {
+        final String type = getType();
+
+        end1.setAssociation(type, true, null);
+        end2.setAssociation(type, false, null);
+
+        delete(getHibernateRepository(parent));
+    }
+    
     public void clear(HibernateAssociable item)
     {
         HibernateAssociable parent = getParent();
@@ -203,22 +207,25 @@ public abstract class HibernateOneToOneAssociation
         remove(parent, child);
     }
     
-    @Override
-    public List<HibernateAssociable> get(HibernateAssociable item)
+    public List<HibernateAssociable> getOrdered(HibernateAssociable item)
     {
         HibernateAssociable parent = getParent();
         HibernateAssociable child = getChild();
         
         if (equals(parent, item)) {
-            return Collections.singletonList(child);
+            return new ModifiableSingletonList(child);
         } else if (equals(child, item)) {
-            return Collections.singletonList(parent);
+            return new ModifiableSingletonList(parent);
         } else {
             return Collections.emptyList();
         }
     }
     
-    @Override
+    public Collection<HibernateAssociable> get(HibernateAssociable item)
+    {
+        return getOrdered(item);
+    }
+    
     public Collection<RefAssociationLink> getLinks()
     {
         RefAssociationLink link = 
@@ -227,8 +234,7 @@ public abstract class HibernateOneToOneAssociation
         return Collections.singleton(link);
     }
 
-    @Override
-    public List<? extends RefObject> query(boolean returnSecondEnd)
+    public Collection<? extends RefObject> query(boolean returnSecondEnd)
     {
         RefObject result;
         if (returnSecondEnd) {
@@ -238,10 +244,76 @@ public abstract class HibernateOneToOneAssociation
         }
         
         if (result == null) {
-            return Collections.emptyList();
+            return Collections.emptySet();
         }
         
-        return Collections.singletonList(result);
+        return Collections.singleton(result);
+    }
+    
+    private static class ModifiableSingletonList
+        extends AbstractList<HibernateAssociable>
+        implements List<HibernateAssociable>
+    {
+        private HibernateAssociable item;
+        private int size;
+        
+        private ModifiableSingletonList(HibernateAssociable item)
+        {
+            this.item = item;
+            this.size = 1;
+        }
+        
+        @Override
+        public HibernateAssociable get(int index)
+        {
+            if (index != 0 || size == 0) {
+                throw new IndexOutOfBoundsException();
+            }
+            
+            return item;
+        }
+
+        @Override
+        public int size()
+        {
+            return size;
+        }
+
+        @Override
+        public void add(int index, HibernateAssociable element)
+        {
+            if (size == 0 && index == 0) {
+                item = element;
+                return;
+            }
+            
+            throw new IndexOutOfBoundsException();
+        }
+
+        @Override
+        public HibernateAssociable set(int index, HibernateAssociable element)
+        {
+            if (size == 1 && index == 0) {
+                HibernateAssociable result = item;
+                item = element;
+                return result;
+            }
+            
+            throw new IndexOutOfBoundsException();
+        }
+
+        @Override
+        public HibernateAssociable remove(int index)
+        {
+            if (size == 1 && index == 0) {
+                HibernateAssociable result = item;
+                item = null;
+                size = 0;
+                return result;
+            }
+            
+            throw new IndexOutOfBoundsException();
+        }
     }
 }
 

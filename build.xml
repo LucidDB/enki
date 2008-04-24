@@ -150,7 +150,7 @@
           <equals arg1="${enki.impl}" arg2="netbeans"/>
         </not>
         <length
-            string="${cleanSampleRepos.hibernate.connection.driver_class}" 
+            string="${cleanSampleRepos.org.eigenbase.enki.dev.connection.driver_class}" 
             trim="true"
             when="greater"
             length="0"/>
@@ -187,10 +187,10 @@
         ${cleanSampleRepos.org.eigenbase.enki.dev.createStorage}
     </echo>
     <sql
-        driver="${cleanSampleRepos.hibernate.connection.driver_class}"
-        url="${cleanSampleRepos.hibernate.connection.url}" 
-        userid="${cleanSampleRepos.hibernate.connection.username}"
-        password="${cleanSampleRepos.hibernate.connection.password}">
+        driver="${cleanSampleRepos.org.eigenbase.enki.dev.connection.driver_class}"
+        url="${cleanSampleRepos.org.eigenbase.enki.dev.connection.url}" 
+        userid="${cleanSampleRepos.org.eigenbase.enki.dev.connection.username}"
+        password="${cleanSampleRepos.org.eigenbase.enki.dev.connection.password}">
       ${cleanSampleRepos.org.eigenbase.enki.dev.dropStorage}
       ${cleanSampleRepos.org.eigenbase.enki.dev.createStorage}
     </sql>
@@ -218,7 +218,7 @@
           <equals arg1="${enki.impl}" arg2="netbeans"/>
         </not>
         <length
-            string="${cleanSamplePluginRepos.hibernate.connection.driver_class}" 
+            string="${cleanSamplePluginRepos.org.eigenbase.enki.dev.connection.driver_class}" 
             trim="true"
             when="greater"
             length="0"/>
@@ -255,10 +255,10 @@
         ${cleanSamplePluginRepos.org.eigenbase.enki.dev.createStorage}
     </echo>
     <sql
-        driver="${cleanSamplePluginRepos.hibernate.connection.driver_class}"
-        url="${cleanSamplePluginRepos.hibernate.connection.url}" 
-        userid="${cleanSamplePluginRepos.hibernate.connection.username}"
-        password="${cleanSamplePluginRepos.hibernate.connection.password}">
+        driver="${cleanSamplePluginRepos.org.eigenbase.enki.dev.connection.driver_class}"
+        url="${cleanSamplePluginRepos.org.eigenbase.enki.dev.connection.url}" 
+        userid="${cleanSamplePluginRepos.org.eigenbase.enki.dev.connection.username}"
+        password="${cleanSamplePluginRepos.org.eigenbase.enki.dev.connection.password}">
       ${cleanSamplePluginRepos.org.eigenbase.enki.dev.dropStorage}
       ${cleanSamplePluginRepos.org.eigenbase.enki.dev.createStorage}
     </sql>
@@ -891,7 +891,7 @@
           <equals arg1="${enki.impl}" arg2="netbeans"/>
         </not>
         <length
-            string="${cleanFarragoRepos.hibernate.connection.driver_class}" 
+            string="${cleanFarragoRepos.org.eigenbase.enki.dev.connection.driver_class}" 
             trim="true"
             when="greater"
             length="0"/>
