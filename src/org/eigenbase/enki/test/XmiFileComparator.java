@@ -31,10 +31,10 @@ import org.xml.sax.*;
 import org.xml.sax.helpers.*;
 
 /**
- * XmiFileComparator performs an order-insensitive comparison of two XMI files.
- * In addition to ignoring the order of model element instances as well as
- * the order of XML attributes, it does not require identical XMI ID values 
- * and ignores the timestamp value in the XMI header.
+ * XmiFileComparator performs an order-insensitive comparison of two XMI files
+ * or strings.  In addition to ignoring the order of model element instances 
+ * as well as the order of XML attributes, it does not require identical XMI 
+ * ID values and ignores the timestamp value in the XMI header.
  * 
  * @author Stephan Zuercher
  */
@@ -78,18 +78,31 @@ public class XmiFileComparator
         compare(expected, actual);
     }
     
-    private static Element load(File file, ElementFactory elementFactory)
+    public static void assertEqual(String expectedXmi, String actualXmi)
+    {
+        Element expected = load(expectedXmi, new ExpectedElementFactory());
+        Element actual = load(actualXmi, new ActualElementFactory());
+        
+        compare(expected, actual);
+    }
+    
+    private static Element load(
+        Reader in, 
+        ElementFactory elementFactory,
+        File sortedElementsDump)
     {
         try {
             SAXParser parser = saxParserFactory.newSAXParser();
             
+            InputSource source = new InputSource(in);
             Handler handler = new Handler(elementFactory);
-            parser.parse(file, handler);
+            
+            parser.parse(source, handler);
             
             Element element = handler.getRootElement();
             
             if (writeSortedElements) {
-                write(element, new File(file.getPath() + ".sorted"));
+                write(element, sortedElementsDump);
             }
             
             return element;
@@ -98,6 +111,29 @@ public class XmiFileComparator
             ModelTestBase.fail(e);
             return null; // unreachable
         }
+    }
+
+    private static Element load(String xmi, ElementFactory elementFactory)
+    {
+        return load(new StringReader(xmi), elementFactory, null);
+    }
+
+    private static Element load(File file, ElementFactory elementFactory)
+    {
+        File dumpFile = null;
+        if (writeSortedElements) {
+            dumpFile = new File(file.getPath() + ".sorted");
+        }
+        
+        FileReader in;
+        try {
+            in = new FileReader(file);
+        } catch (FileNotFoundException e) {
+            ModelTestBase.fail(e);
+            return null; // unreachable
+        }
+        
+        return load(in, elementFactory, dumpFile);
     }
     
     private static void compare(Element expected, Element actual)
