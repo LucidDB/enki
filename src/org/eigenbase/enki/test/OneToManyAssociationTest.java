@@ -25,15 +25,17 @@ import java.util.*;
 
 import org.eigenbase.enki.mdr.*;
 import org.junit.*;
+import org.junit.runner.*;
 
 import eem.sample.simple.*;
 import eem.sample.special.*;
 
 /**
  * OneToManyAssociationTest tests one-to-many associations.
- * 
+ *
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class OneToManyAssociationTest extends SampleModelTestBase
 {
     private static final int N = 8;
@@ -243,8 +245,15 @@ public class OneToManyAssociationTest extends SampleModelTestBase
 
         // Again in a new txn
         traverseHasEntity11(e10RefMofId, e11RefMofIds);
+    }
+    
+    @Test
+    public void testUnorderedClear()
+    {
+        Set<String> e11RefMofIds = new HashSet<String>();
+        
+        String e10RefMofId = createEntity10(N, e11RefMofIds, false);
 
-        // Remove the rest
         getRepository().beginTrans(true);
         
         try {
@@ -281,7 +290,7 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             List<Entity17> entities17 = e16.getEntity17();
             
             Iterator<Entity17> iter = entities17.iterator();
-            for(int i = 0; i < N / 4; i++) {
+            for(int i = 0; i < N; i++) {
                 Assert.assertTrue(iter.hasNext());
                 Entity17 e17 = iter.next();
                 iter.remove();
@@ -296,6 +305,14 @@ public class OneToManyAssociationTest extends SampleModelTestBase
         }
 
         traverseHasEntity17(e16RefMofId, e17RefMofIds);
+    }
+    
+    @Test
+    public void testOrderedRemoveByIndex()
+    {
+        List<String> e17RefMofIds = new ArrayList<String>();
+        
+        String e16RefMofId = createEntity16(N, e17RefMofIds, false);
 
         // Remove two via index
         getRepository().beginTrans(true);
@@ -318,35 +335,51 @@ public class OneToManyAssociationTest extends SampleModelTestBase
         }
 
         traverseHasEntity17(e16RefMofId, e17RefMofIds);
-        
-        if (getMdrProvider() != MdrProvider.NETBEANS_MDR) {
-            // Remove two via sublist
-            getRepository().beginTrans(true);
-            
-            try {
-                Entity16 e16 = findEntity(e16RefMofId, Entity16.class);
-                
-                List<Entity17> entities17 = e16.getEntity17();
-            
-                List<Entity17> subList = entities17.subList(0, N / 4);
-                subList.clear();
-                
-                List<String> mofIdSubList = e17RefMofIds.subList(0, N / 4);
-                mofIdSubList.clear();
-                
-                traverseHasEntity17(e16RefMofId, e17RefMofIds, false);
-            }
-            finally {
-                getRepository().endTrans();
-            }
+    }
     
-            traverseHasEntity17(e16RefMofId, e17RefMofIds);
-        } else {
-            System.out.println(
+    @Test
+    public void testOrderedRemoveBySublist()
+    {
+        if (getMdrProvider() == MdrProvider.NETBEANS_MDR) {
+            getTestLogger().info(
                 "skipping remove by subList -- not support in Netbeans");
+            return;
         }
+
+        List<String> e17RefMofIds = new ArrayList<String>();
         
-        // Remove the rest via clear
+        String e16RefMofId = createEntity16(N, e17RefMofIds, false);
+
+        // Remove two via sublist
+        getRepository().beginTrans(true);
+        
+        try {
+            Entity16 e16 = findEntity(e16RefMofId, Entity16.class);
+            
+            List<Entity17> entities17 = e16.getEntity17();
+        
+            List<Entity17> subList = entities17.subList(0, N / 4);
+            subList.clear();
+            
+            List<String> mofIdSubList = e17RefMofIds.subList(0, N / 4);
+            mofIdSubList.clear();
+            
+            traverseHasEntity17(e16RefMofId, e17RefMofIds, false);
+        }
+        finally {
+            getRepository().endTrans();
+        }
+
+        traverseHasEntity17(e16RefMofId, e17RefMofIds);
+    }
+    
+    @Test
+    public void testOrderedClear()
+    {
+        List<String> e17RefMofIds = new ArrayList<String>();
+        
+        String e16RefMofId = createEntity16(N, e17RefMofIds, false);
+
         getRepository().beginTrans(true);
         
         try {
