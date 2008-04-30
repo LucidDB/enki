@@ -58,6 +58,8 @@ public interface HibernateAssociation
     /**
      * Fix up association after one end has been removed via an operation
      * on the collection returned via {@link #get(HibernateAssociable)}.
+     * This is supported only for unique collections to simplify 
+     * {@link CollectionProxy.IteratorProxy}.
      *
      * @param left left-side of association
      * @param right right-side of association
@@ -72,10 +74,12 @@ public interface HibernateAssociation
      * a component attribute.
      * 
      * @param item an association end
+     * @param isFirstEnd if item is end 1 of the association vs. end 2
      * @param cascadeDelete if true, call {@link RefObject#refDelete()} on 
      *                      each removed item
      */
-    public void removeAll(HibernateAssociable item, boolean cascadeDelete);
+    public void removeAll(
+        HibernateAssociable item, boolean isFirstEnd, boolean cascadeDelete);
     
     /**
      * Generically remove all associations related to the given item, which

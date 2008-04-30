@@ -1203,47 +1203,51 @@ public abstract class JavaHandlerBase
     }
     
     /**
-     * Writes a private field with the given type and keywords and with a name 
+     * Writes a field with the given type and keywords and with a name 
      * generated from type's name.
      * 
      * @param feature field type
+     * @param scope the field's scope
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
      * @return the field's name
      */
-    protected String writePrivateField(
+    protected String writeField(
         StructuralFeature feature, 
-        boolean isFinal, 
+        String scope, 
+        boolean isFinal,
         boolean isStatic)
     {
-        String fieldName = feature.getName();
-        fieldName = generator.getClassFieldName(fieldName);
+        String name = feature.getName();
+        name = generator.getClassFieldName(name);
         
-        writePrivateField(
+        writeField(
             feature, 
-            fieldName, 
+            name, 
+            scope,
             isFinal,
             isStatic,
             null,
             false);
         
-        return fieldName;
+        return name;
     }
     
     /**
-     * Writes a private field with the given type and keywords and with a name 
+     * Writes a field with the given type and keywords and with a name 
      * generated from type's name.
      * 
      * @param feature field type
      * @param fieldNameSuffix suffix for the field name
+     * @param scope the field's scope
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
-     * 
      * @return the field's name
      */
-    protected String writePrivateField(
+    protected String writeField(
         StructuralFeature feature, 
         String fieldNameSuffix,
+        String scope, 
         boolean isFinal, 
         boolean isStatic)
     {
@@ -1253,9 +1257,10 @@ public abstract class JavaHandlerBase
             fieldName += fieldNameSuffix;
         }
         
-        writePrivateField(
+        writeField(
             feature, 
             fieldName, 
+            scope,
             isFinal,
             isStatic,
             null,
@@ -1265,57 +1270,60 @@ public abstract class JavaHandlerBase
     }
     
     /**
-     * Writes a private field with the given type and keywords and with a name 
+     * Writes a field with the given type and keywords and with a name 
      * generated from the feature's name.
      * 
-     * @param fieldType field type
+     * @param type field type
      * @param feature feature from which to derive the field's name
+     * @param scope the field's scope
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
-     * 
      * @return the field's name
      */
-    protected String writePrivateField(
-        String fieldType,
+    protected String writeField(
+        String type,
         StructuralFeature feature, 
-        boolean isFinal, 
+        String scope, 
+        boolean isFinal,
         boolean isStatic)
     {
-        String fieldName = feature.getName();
-        fieldName = generator.getClassFieldName(fieldName);
+        String name = feature.getName();
+        name = generator.getClassFieldName(name);
         
-        writePrivateField(
-            fieldType, 
-            fieldName, 
+        writeField(
+            type, 
+            name, 
+            scope,
             isFinal,
             isStatic);
         
-        return fieldName;
+        return name;
     }
     
     /**
-     * Writes a private field with the given type and keywords and with a name 
+     * Writes a field with the given type and keywords and with a name 
      * generated from type's name.
      * 
      * @param type field type
+     * @param scope the field's scope
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
      * @param typeSuffix suffix for the type (and therefore field) name
-     * 
      * @return the field's name
      */
-    protected String writePrivateField(
+    protected String writeField(
         ModelElement type, 
+        String scope, 
         boolean isFinal, 
-        boolean isStatic, 
-        String typeSuffix)
+        boolean isStatic, String typeSuffix)
     {
         String fieldName = generator.getSimpleTypeName(type, typeSuffix);
         fieldName = generator.getClassFieldName(fieldName);
         
-        writePrivateField(
+        writeField(
             type, 
             fieldName, 
+            scope,
             isFinal,
             isStatic,
             typeSuffix,
@@ -1325,22 +1333,23 @@ public abstract class JavaHandlerBase
     }
     
     /**
-     * Writes a private field with the given type, keywords and name.
+     * Writes a field with the given type, keywords and name.
      * 
      * @param type field type
      * @param name the field's name
+     * @param scope the field's scope
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
      * @param typeSuffix suffix for the type name
      * @param usePrimitiveTypes use primitive types
      */
-    private void writePrivateField(
+    private void writeField(
         ModelElement type, 
         String name, 
+        String scope, 
         boolean isFinal, 
-        boolean isStatic, 
-        String typeSuffix,
-        boolean usePrimitiveTypes)
+        boolean isStatic,
+        String typeSuffix, boolean usePrimitiveTypes)
     {
         String fieldType;
         if (type instanceof StructuralFeature) {
@@ -1354,30 +1363,33 @@ public abstract class JavaHandlerBase
             fieldType = Primitives.convertPrimitiveToTypeName(fieldType, true);
         }
 
-        writePrivateField(fieldType, name, isFinal, isStatic);
+        writeField(fieldType, name, scope, isFinal, isStatic);
     }
 
     /**
-     * Writes a private field with the given type, keywords and name.
+     * Writes a field with the given type, keywords and name.
      * 
-     * @param fieldType field type
-     * @param fieldName the field's name
+     * @param type field type
+     * @param name the field's name
+     * @param scope the field's scope
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
      */
-    protected void writePrivateField(
-        String fieldType,
-        String fieldName,
-        boolean isFinal, 
+    protected void writeField(
+        String type,
+        String name,
+        String scope, 
+        boolean isFinal,
         boolean isStatic)
     {
+        boolean hasScope = scope != null && scope.length() > 0;
         writeln(
-            "private ",
+            hasScope ? scope + " " : "",
             isStatic ? "static " : "",
             isFinal ? "final " : "",
-            fieldType,
+            type,
             " ",
-            fieldName,
+            name,
             ";");
     }
     

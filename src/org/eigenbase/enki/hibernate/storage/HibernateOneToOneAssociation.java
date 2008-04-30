@@ -165,22 +165,17 @@ public abstract class HibernateOneToOneAssociation
         return remove(parent, child);
     }
 
-    public void removeAll(HibernateAssociable item, boolean cascadeDelete)
+    public void removeAll(
+        HibernateAssociable item, boolean isFirstEnd, boolean cascadeDelete)
     {
-        HibernateAssociable parent = getParent();
-        HibernateAssociable child = getChild();
+        HibernateAssociable otherEnd = isFirstEnd ? getChild() : getParent();
         
-        HibernateAssociable otherEnd;
-        if (equals(parent, item)) {
-            otherEnd = child;
-        } else if (equals(child, item)) {
-            otherEnd = parent;
-        } else {
-            assert(false) : "item not in association";
-            otherEnd = null;
-        }
+        String type = getType();
+
+        item.setAssociation(type, isFirstEnd, null);
+        otherEnd.setAssociation(type, !isFirstEnd, null);
         
-        remove(parent, child);
+        delete(getHibernateRepository(item));
         
         if (cascadeDelete) {
             otherEnd.refDelete();

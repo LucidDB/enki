@@ -136,7 +136,17 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         this.refMofId = MofIdUtil.makeMofIdStr(refMofId);
     }
     
-    public boolean equals(Object other)
+    /**
+     * Test against another object for equality.  This method compares
+     * objects by MOF ID (via {@link #getMofId()} if possible, else
+     * {@link #refMofId()}).
+     * 
+     * <p>Note that this method is final to aid repository implementations 
+     * (e.g., Hibernate) that generate proxy classes.  Marking this method 
+     * final prevents Hibernate from needlessly loading the entire object's
+     * contents when we only require the primary key.
+     */
+    public final boolean equals(Object other)
     {
         if (this == other) {
             return true;
@@ -150,6 +160,8 @@ public abstract class RefBaseObjectBase implements RefBaseObject
             assert(otherMofId != 0L);
 
             return thisMofId == otherMofId;
+        } else if (other == null) {
+            return false;
         } else {
             return this.refMofId().equals(((RefBaseObject)other).refMofId());
         }
@@ -159,13 +171,18 @@ public abstract class RefBaseObjectBase implements RefBaseObject
      * Returns the hash code for this model entity.  The hash code is based
      * on the MOF ID.
      * 
+     * <p>Note that this method is final to aid repository implementations 
+     * (e.g., Hibernate) that generate proxy classes.  Marking this method 
+     * final prevents Hibernate from needlessly loading the entire object's
+     * contents when we only require the primary key.
+     *
      * @return the hash code for this model entity.
      */
-    public int hashCode()
+    public final int hashCode()
     {
         // Note that this matches Netbean's behavior, which causes HashSet
         // iteration order to match.
-        return (int)mofId;
+        return (int)getMofId();
     }
 
     /**

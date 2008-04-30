@@ -118,7 +118,7 @@ public abstract class HibernateOneToManyOrderedAssociation
 
             if (childAssoc != null && !sameChild) {
                 // Child associated with another parent.
-                childAssoc.removeAll(newChild, false);
+                childAssoc.removeAll(newChild, childIsFirstEnd, false);
             }
             
             newChild.setAssociation(type, childIsFirstEnd, this);

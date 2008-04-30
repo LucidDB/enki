@@ -421,7 +421,7 @@ public abstract class TransientImplementationHandler
                     emitSuppressWarningsAnnotation();
                     hasCollectionField = true;
                 }
-                String fieldName = writePrivateField(attrib, false, false);
+                String fieldName = writeField(attrib, "private", false, false);
                 nonDerivedAttribNames.put(attrib, fieldName);
             }
             newLine();
@@ -436,9 +436,10 @@ public abstract class TransientImplementationHandler
             for(Reference ref: instanceReferences) {
                 ReferenceInfo refInfo = new ReferenceInfoImpl(generator, ref);
 
-                writePrivateField(
+                writeField(
                     refInfo.getAssocInterfaceName(),
                     refInfo.getFieldName(), 
+                    "private", 
                     false, 
                     false);
                 
@@ -1023,8 +1024,8 @@ public abstract class TransientImplementationHandler
             }
             for(MofPackage nestedPkg: packages) {
                 String fieldName = 
-                    writePrivateField(
-                        nestedPkg, true, false, PACKAGE_SUFFIX);
+                    writeField(
+                        nestedPkg, "private", true, false, PACKAGE_SUFFIX);
                 packageFieldNames.add(fieldName);
             }
             
@@ -1039,8 +1040,8 @@ public abstract class TransientImplementationHandler
             }
             for(MofClass cls: classes) {
                 String fieldName =
-                    writePrivateField(
-                        cls, true, false, CLASS_PROXY_SUFFIX);
+                    writeField(
+                        cls, "private", true, false, CLASS_PROXY_SUFFIX);
                 classFieldNames.add(fieldName);
             }
             
@@ -1056,7 +1057,7 @@ public abstract class TransientImplementationHandler
             }
             for(Association assoc: assocs) {
                 String fieldName =
-                    writePrivateField(assoc, true, false, "");
+                    writeField(assoc, "private", true, false, "");
                 assocFieldNames.add(fieldName);
             }
             newLine();

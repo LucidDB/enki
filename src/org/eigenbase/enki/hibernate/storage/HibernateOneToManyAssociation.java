@@ -85,6 +85,37 @@ public abstract class HibernateOneToManyAssociation
         
         return getChildren();
     }
+    
+    @Override
+    public void postRemove(HibernateAssociable end1, HibernateAssociable end2)
+    {
+        HibernateAssociable parent;
+        HibernateAssociable child;
+        if (getReversed()) {
+            parent = end2;
+            child = end1;
+        } else {
+            parent = end1;
+            child = end2;
+        }
+
+        final String type = getType();
+
+        boolean childIsFirstEnd = getReversed();
+        boolean parentIsFirstEnd = !childIsFirstEnd;
+
+        Collection<HibernateAssociable> children = getCollection();
+
+        child.setAssociation(type, childIsFirstEnd, null);
+        
+        if (children.isEmpty()) {
+            parent.setAssociation(type, parentIsFirstEnd, null);
+            
+            delete(getHibernateRepository(parent));
+        } else {
+            assert(!children.contains(child));
+        }
+    }
 }
 
 // End HibernateOneToManyAssociation.java

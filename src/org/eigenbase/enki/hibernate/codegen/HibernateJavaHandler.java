@@ -54,6 +54,10 @@ public class HibernateJavaHandler
     // REVIEW: SWZ: 11/7/2007: Relies on JmiTemplateHandler to throw
     // for cases (e.g., Import, StructureType) that we don't handle yet.    
 
+    private static final String PROTECTED_SCOPE = "protected";
+
+    private static final String PRIVATE_SCOPE = "private";
+
     /** 
      * Suffix for implementation class names and association implementation
      * methods.
@@ -947,7 +951,12 @@ public class HibernateJavaHandler
             for(Attribute attrib: nonDerivedAttribs) {
                 if (!nonDataTypeAttribs.contains(attrib)) {
                     String fieldName = 
-                        writePrivateField(attrib, IMPL_SUFFIX, false, false);
+                        writeField(
+                            attrib,
+                            IMPL_SUFFIX,
+                            PROTECTED_SCOPE, 
+                            false, 
+                            false);
                     nonDerivedAttribNames.put(attrib, fieldName);
                 }
             }
@@ -958,10 +967,11 @@ public class HibernateJavaHandler
                 writeln("// Reference Fields");
                 for(Reference ref: instanceReferences) {
                     ReferenceInfo refInfo = refInfoMap.get(ref);
-                    writePrivateField(
+                    writeField(
                         makeType(refInfo),
-                        refInfo.getFieldName(), 
-                        false, 
+                        refInfo.getFieldName() + IMPL_SUFFIX, 
+                        PROTECTED_SCOPE, 
+                        false,
                         false);
                 }
                 newLine();
@@ -976,9 +986,10 @@ public class HibernateJavaHandler
                 for(Association unref: unreferencedAssociations) {
                     ReferenceInfo refInfo = unrefAssocRefInfoMap.get(unref);
                     
-                    writePrivateField(
+                    writeField(
                         makeType(refInfo),
-                        refInfo.getFieldName(),
+                        refInfo.getFieldName() + IMPL_SUFFIX,
+                        PROTECTED_SCOPE,
                         false,
                         false);
                 }
@@ -990,9 +1001,10 @@ public class HibernateJavaHandler
                 // associations.
                 writeln("// Component Attributes Fields");
                 for(ComponentInfo comonentInfo: componentInfoMap.values()) {
-                    writePrivateField(
+                    writeField(
                         makeType(comonentInfo),
-                        comonentInfo.getFieldName(),
+                        comonentInfo.getFieldName() + IMPL_SUFFIX,
+                        PROTECTED_SCOPE,
                         false,
                         false);
                 }
@@ -1586,7 +1598,9 @@ public class HibernateJavaHandler
         }
         writeln(
             getReferenceAccessorName(refInfo), 
-            "().removeAll(this, ", cascadeRefDelete, ");");
+            "().removeAll(this, ", 
+            refInfo.isExposedEndFirst(), ", ", 
+            cascadeRefDelete, ");");
         endBlock();
     }
 
@@ -1729,7 +1743,7 @@ public class HibernateJavaHandler
             " ",
             getReferenceAccessorName(refInfo),
             "()");
-        writeln("return ", refInfo.getFieldName(), ";");
+        writeln("return ", refInfo.getFieldName(), IMPL_SUFFIX, ";");
         endBlock();
 
         newLine();
@@ -1740,7 +1754,7 @@ public class HibernateJavaHandler
             "(",
             makeType(refInfo),
             " newValue)");
-        writeln("this.", refInfo.getFieldName(), " = newValue;");
+        writeln("this.", refInfo.getFieldName(), IMPL_SUFFIX, " = newValue;");
         endBlock();
     }
 
@@ -2699,8 +2713,8 @@ public class HibernateJavaHandler
             }
             for(MofPackage nestedPkg: packages) {
                 String fieldName = 
-                    writePrivateField(
-                        nestedPkg, true, false, PACKAGE_SUFFIX);
+                    writeField(
+                        nestedPkg, PRIVATE_SCOPE, true, false, PACKAGE_SUFFIX);
                 packageFieldNames.add(fieldName);
             }
             
@@ -2715,8 +2729,8 @@ public class HibernateJavaHandler
             }
             for(MofClass cls: classes) {
                 String fieldName =
-                    writePrivateField(
-                        cls, true, false, CLASS_PROXY_SUFFIX);
+                    writeField(
+                        cls, PRIVATE_SCOPE, true, false, CLASS_PROXY_SUFFIX);
                 classFieldNames.add(fieldName);
             }
             
@@ -2732,7 +2746,7 @@ public class HibernateJavaHandler
             }
             for(Association assoc: assocs) {
                 String fieldName =
-                    writePrivateField(assoc, true, false, "");
+                    writeField(assoc, PRIVATE_SCOPE, true, false, "");
                 assocFieldNames.add(fieldName);
             }
             newLine();

@@ -69,23 +69,23 @@ public class HibernateMappingHandler
     private static final String ASSOC_ONE_TO_ONE_TABLE = "AssocOneToOne";
     private static final String ASSOC_ONE_TO_ONE_PARENT_PROPERTY = "parent";
     private static final String ASSOC_ONE_TO_ONE_PARENT_TYPE_COLUMN = 
-        "parent_type";
+        "parentType";
     private static final String ASSOC_ONE_TO_ONE_PARENT_ID_COLUMN =
-        "parent_id";
+        "parentId";
     private static final String ASSOC_ONE_TO_ONE_CHILD_PROPERTY = "child";
     private static final String ASSOC_ONE_TO_ONE_CHILD_TYPE_COLUMN = 
-        "child_type";
+        "childType";
     private static final String ASSOC_ONE_TO_ONE_CHILD_ID_COLUMN =
-        "child_id";
+        "childId";
 
-    private static final String ASSOC_ONE_TO_MANY_TABLE = "AssocOneToMany";
+    private static final String ASSOC_ONE_TO_MANY_TABLE = "AssocOneToMany";    
     private static final String ASSOC_ONE_TO_MANY_ORDERED_TABLE = 
         "AssocOneToManyOrdered";
     private static final String ASSOC_ONE_TO_MANY_PARENT_PROPERTY = "parent";
     private static final String ASSOC_ONE_TO_MANY_PARENT_TYPE_COLUMN = 
-        "parent_type";
+        "parentType";
     private static final String ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN =
-        "parent_id";
+        "parentId";
     private static final String ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY = 
         "children";
     private static final String ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN = 
@@ -98,18 +98,18 @@ public class HibernateMappingHandler
     private static final String ASSOC_ONE_TO_MANY_CHILDREN_ORDERED_TABLE =
         "AssocOneToManyOrderedChildren";
     private static final String ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN = 
-        "child_type";
+        "childType";
     private static final String ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN = 
-        "child_id";
+        "childId";
     
     private static final String ASSOC_MANY_TO_MANY_TABLE = "AssocManyToMany";
     private static final String ASSOC_MANY_TO_MANY_ORDERED_TABLE = 
         "AssocManyToManyOrdered";
     private static final String ASSOC_MANY_TO_MANY_SOURCE_PROPERTY = "source";
     private static final String ASSOC_MANY_TO_MANY_SOURCE_TYPE_COLUMN = 
-        "source_type";
+        "sourceType";
     private static final String ASSOC_MANY_TO_MANY_SOURCE_ID_COLUMN =
-        "source_id";
+        "sourceId";
     private static final String ASSOC_MANY_TO_MANY_TARGET_PROPERTY = "target";
     private static final String ASSOC_MANY_TO_MANY_TARGET_TABLE = 
         "AssocManyToManyTarget";
@@ -120,15 +120,13 @@ public class HibernateMappingHandler
     private static final String ASSOC_MANY_TO_MANY_TARGET_ORDINAL_COLUMN = 
         "ordinal";
     private static final String ASSOC_MANY_TO_MANY_TARGET_TYPE_COLUMN = 
-        "target_type";
+        "targetType";
     private static final String ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN = 
-        "target_id";
+        "targetId";
 
-    /**
-     * Default prefix for association entity names.
-     */
-    public static final String DEFAULT_ASSOC_ENTITY_PREFIX = "_ENTITY_";
-
+    private static final String ASSOC_ONE_TO_MANY_FETCH_TYPE = "subselect";
+    private static final String ASSOC_MANY_TO_MANY_FETCH_TYPE = "join";
+    
     // Association HQL query names and named parameters.
     public static final String QUERY_NAME_ALLLINKS = "allLinks";
 
@@ -449,9 +447,11 @@ public class HibernateMappingHandler
             "name", ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY,
             "table", tableName(ASSOC_ONE_TO_MANY_CHILDREN_TABLE),
             "cascade", "save-update",
-            "fetch", "subselect");
-        writeCacheElement();        
-        writeEmptyElem("key", "column", ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN);
+            "fetch", ASSOC_ONE_TO_MANY_FETCH_TYPE);
+        writeCacheElement();
+        writeEmptyElem(
+            "key", 
+            "column", ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN);
         startElem(
             "many-to-any",
             "id-type", "long", 
@@ -460,7 +460,9 @@ public class HibernateMappingHandler
             "column",
             "name", ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN,
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
-        writeEmptyElem("column", "name", ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN);
+        writeEmptyElem(
+            "column", 
+            "name", ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN);
         endElem("many-to-any");
         endElem("set");
         
@@ -517,7 +519,7 @@ public class HibernateMappingHandler
             "name", ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY,
             "table", tableName(ASSOC_ONE_TO_MANY_CHILDREN_ORDERED_TABLE),
             "cascade", "save-update",
-            "fetch", "subselect");
+            "fetch", ASSOC_ONE_TO_MANY_FETCH_TYPE);
         writeCacheElement();        
         writeEmptyElem("key", "column", ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN);
         writeEmptyElem(
@@ -587,9 +589,11 @@ public class HibernateMappingHandler
             "name", ASSOC_MANY_TO_MANY_TARGET_PROPERTY,
             "table", tableName(ASSOC_MANY_TO_MANY_TARGET_TABLE),
             "cascade", "save-update",
-            "fetch", "join");
+            "fetch", ASSOC_MANY_TO_MANY_FETCH_TYPE);
         writeCacheElement();
-        writeEmptyElem("key", "column", ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN);
+        writeEmptyElem(
+            "key",
+            "column", ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN);
         startElem(
             "many-to-any",
             "id-type", "long", 
@@ -598,7 +602,9 @@ public class HibernateMappingHandler
             "column",
             "name", ASSOC_MANY_TO_MANY_TARGET_TYPE_COLUMN,
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
-        writeEmptyElem("column", "name", ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN);
+        writeEmptyElem(
+            "column", 
+            "name", ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN);
         endElem("many-to-any");
         endElem("set");
         
@@ -654,7 +660,7 @@ public class HibernateMappingHandler
             "name", ASSOC_MANY_TO_MANY_TARGET_PROPERTY,
             "table", tableName(ASSOC_MANY_TO_MANY_ORDERED_TARGET_TABLE),
             "cascade", "save-update",
-            "fetch", "join");
+            "fetch", ASSOC_MANY_TO_MANY_FETCH_TYPE);
         writeCacheElement();
         writeEmptyElem("key", "column", ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN);
         writeEmptyElem(
@@ -773,8 +779,7 @@ public class HibernateMappingHandler
         startElem(
             "class", 
             "name", typeName,
-            "table", tableName(tableName),
-            "batch-size", "25");
+            "table", tableName(tableName));
 
         writeCacheElement();
         

@@ -39,6 +39,7 @@ import eem.sample.special.*;
 public class OneToManyAssociationTest extends SampleModelTestBase
 {
     private static final int N = 8;
+    private static final int BIG_N = 500;
     
     @Test
     public void testUnorderedCreate()
@@ -774,6 +775,31 @@ public class OneToManyAssociationTest extends SampleModelTestBase
                 getRepository().endTrans();
             }
         }
+    }
+    
+    @Test
+    public void testLargeUnorderedCreate()
+    {
+        String e10RefMofId;
+        Set<String> e11RefMofIds = new HashSet<String>();
+        
+        e10RefMofId = createEntity10(BIG_N, e11RefMofIds, false);
+        
+        traverseHasEntity11(e10RefMofId, e11RefMofIds);
+    }
+    
+    @Test
+    public void testLargeOrderedCreate()
+    {
+        String e16RefMofId;
+        List<String> e17RefMofIds = new ArrayList<String>();
+        
+        e16RefMofId = createEntity16(BIG_N, e17RefMofIds, false);
+        
+        getRepository().endSession();
+        getRepository().beginSession();
+        
+        traverseHasEntity17(e16RefMofId, e17RefMofIds);
     }
 }
 

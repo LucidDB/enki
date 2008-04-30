@@ -94,10 +94,8 @@ public abstract class HibernateRefObject
     {
         getHibernateRepository().checkTransaction(true);
         
-        HibernateRefAssociation refAssoc = null;
-        if (refAssocId != null) {
-            refAssoc = getHibernateRepository().findRefAssociation(refAssocId);
-        }
+        HibernateRefAssociation refAssoc = 
+            getHibernateRepository().findRefAssociation(refAssocId);
 
         HibernateAssociable me = (HibernateAssociable)this;
         
@@ -128,25 +126,28 @@ public abstract class HibernateRefObject
                 end2 = me;
             }
 
-            if (refAssoc != null) {
-                refAssoc.fireAddEvent(true, end1, end2);
-            }
+            // Fixed end is always the first end.
+            refAssoc.fireAddEvent(true, end1, end2);
             assoc.add(end1, end2);                
         } else {
             // remove any existing association
-            if (refAssoc != null) {
-                int index = 0;
-                // This is not very intuitive, but it is how Netbeans behaves.
-                for(RefObject end: assoc.query(isExposedEndFirst)) {
-                    if (isExposedEndFirst) {
-                        refAssoc.fireRemoveEvent(true, me, end, index++);
-                    } else {
-                        refAssoc.fireRemoveEvent(true, end, me, index++);
-                    }
-                } 
+            int index = 0;
+            // The fixed end is always the first end, which is not very 
+            // intuitive, but it is how Netbeans behaves.  (Imagine a 1..*
+            // assoc where the many end is the first end, now remove one
+            // of the many-end elements from the association.  The event is 
+            // generated with the fixed end set to the removed element.)
+            for(RefObject end: assoc.query(isExposedEndFirst)) {
+                if (isExposedEndFirst) {
+                    refAssoc.fireRemoveEvent(true, me, end, index++);
+                } else {
+                    refAssoc.fireRemoveEvent(true, end, me, index++);
+                }
+            } 
+
+            if (index > 0) {
+                assoc.removeAll(me, isExposedEndFirst, false);
             }
-            
-            assoc.removeAll(me, false);
         }
     }
     
@@ -198,11 +199,15 @@ public abstract class HibernateRefObject
                 assoc.add(newValue, me);
             }
         } else {
-            for(RefObject end: assoc.query(isExposedEndFirst)) {
-                fireAttributeSetEvent(attribName, end, null);
-            }
+            Collection<? extends RefObject> otherEnds =
+                assoc.query(isExposedEndFirst);
+            if (!otherEnds.isEmpty()) {
+                for(RefObject otherEnd: otherEnds) {
+                    fireAttributeSetEvent(attribName, otherEnd, null);
+                }
             
-            assoc.removeAll(me, false);
+                assoc.removeAll(me, isExposedEndFirst, false);
+            }
         }
     }
     
@@ -276,13 +281,13 @@ public abstract class HibernateRefObject
     }
     
     @Override
-    public final EnkiMDRepository getRepository()
+    public EnkiMDRepository getRepository()
     {
         return repos;
     }
     
     @Override
-    public final HibernateMDRepository getHibernateRepository()
+    public HibernateMDRepository getHibernateRepository()
     {
         return repos;
     }

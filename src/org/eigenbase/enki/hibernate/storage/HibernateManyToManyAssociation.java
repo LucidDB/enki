@@ -83,6 +83,59 @@ public abstract class HibernateManyToManyAssociation
         
         return getTarget();
     }
+    
+    public void postRemove(HibernateAssociable end1, HibernateAssociable end2)
+    {
+        HibernateAssociable source;
+        HibernateAssociable target;
+        if (getReversed()) {
+            source = end2;
+            target = end1;
+        } else {
+            source = end1;
+            target = end2;
+        }
+
+        final String type = getType();
+
+        boolean targetIsFirstEnd = getReversed();
+        boolean sourceIsFirstEnd = !targetIsFirstEnd;
+        
+        HibernateManyToManyAssociationBase sourceAssoc =
+            (HibernateManyToManyAssociationBase)source.getAssociation(
+                type, sourceIsFirstEnd);
+        HibernateManyToManyAssociationBase targetAssoc =
+            (HibernateManyToManyAssociationBase)target.getAssociation(
+                type, targetIsFirstEnd);
+
+        boolean indexOnSourceAssoc = equals(sourceAssoc, this);
+        boolean indexOnTargetAssoc = equals(targetAssoc, this);
+        // This assertion also guarantees that either sourceAssoc or 
+        // targetAssoc equals this.
+        assert(indexOnSourceAssoc || indexOnTargetAssoc);
+
+        Collection<HibernateAssociable> sourceAssocTargets = 
+            sourceAssoc.getTargetCollection();
+        
+        if (sourceAssocTargets.isEmpty()) {
+            source.setAssociation(type, sourceIsFirstEnd, null);
+
+            sourceAssoc.delete(getHibernateRepository(source));
+        }
+        
+        Collection<HibernateAssociable> targetAssocTargets = 
+            targetAssoc.getTargetCollection();
+        
+        boolean removedFromTargetAssoc = targetAssocTargets.remove(source);
+        
+        if (removedFromTargetAssoc) {
+            if (targetAssocTargets.isEmpty()) {
+                target.setAssociation(type, targetIsFirstEnd, null);
+    
+                targetAssoc.delete(getHibernateRepository(source));
+            }
+        }        
+    }
 }
 
 // End HibernateManyToManyAssociation.java

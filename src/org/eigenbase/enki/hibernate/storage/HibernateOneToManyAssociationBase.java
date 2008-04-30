@@ -108,7 +108,7 @@ public abstract class HibernateOneToManyAssociationBase
 
             if (childAssoc != null && !sameChild) {
                 // Child associated with another parent.
-                childAssoc.removeAll(newChild, false);
+                childAssoc.removeAll(newChild, childIsFirstEnd, false);
             }
             
             newChild.setAssociation(type, childIsFirstEnd, this);
@@ -205,59 +205,10 @@ public abstract class HibernateOneToManyAssociationBase
         
         return true;
     }
-    
-    
+
     public void postRemove(HibernateAssociable end1, HibernateAssociable end2)
     {
-        HibernateAssociable parent;
-        HibernateAssociable child;
-        if (getReversed()) {
-            parent = end2;
-            child = end1;
-        } else {
-            parent = end1;
-            child = end2;
-        }
-
-        final String type = getType();
-
-        boolean childIsFirstEnd = getReversed();
-        boolean parentIsFirstEnd = !childIsFirstEnd;
-
-        // This association must be related to one of the two objects.
-        HibernateOneToManyAssociationBase parentAssoc = 
-            (HibernateOneToManyAssociationBase)parent.getAssociation(
-                type, parentIsFirstEnd);
-        HibernateOneToManyAssociationBase childAssoc = 
-            (HibernateOneToManyAssociationBase)child.getAssociation(
-                type, childIsFirstEnd);
-        
-        if (!equals(parentAssoc, childAssoc)) {
-            // Objects aren't associated
-            assert(false);
-            return;
-        }
-        
-        Collection<HibernateAssociable> children = getCollection();
-
-        assert(parentAssoc.equals(this));
-        assert(childAssoc.equals(this));
-        assert(equals(getParent(), parent));
-        
-        int count = getUnique() ? 1 : count(child, children);
-        assert(count >= 1);
-        
-        if (count == 1) {
-            child.setAssociation(type, childIsFirstEnd, null);
-        }
-        
-        assert(!children.contains(child));
-        
-        if (children.isEmpty()) {
-            parent.setAssociation(type, parentIsFirstEnd, null);
-            
-            delete(getHibernateRepository(parent));
-        }
+        throw new UnsupportedOperationException();
     }
     
     protected int count(
@@ -272,35 +223,51 @@ public abstract class HibernateOneToManyAssociationBase
         return count;
     }
     
-    public void removeAll(HibernateAssociable item, boolean cascadeDelete)
+    public void removeAll(
+        HibernateAssociable item, boolean isFirstEnd, boolean cascadeDelete)
     {
         HibernateAssociable parent = getParent();
         Collection<HibernateAssociable> children = getCollection();
+
+        String type = getType();
+        boolean isParent;
+        if (getReversed()) {
+            isParent = !isFirstEnd;
+        } else {
+            isParent = isFirstEnd;
+        }
+
+        item.setAssociation(type, isFirstEnd, null);
         
-        if (!equals(item, parent)) {
-            // REVIEW: SWZ: 4/22/08: This causes a lot of unnecessary Hibernate
-            // activity.
-//            assert(children.contains(item));
+        if (isParent) {
+            // Disassociate all children and delete the association object
+            Iterator<HibernateAssociable> childIter = children.iterator();
+            while(childIter.hasNext()) {
+                HibernateAssociable child = childIter.next();
+                childIter.remove();
+                child.setAssociation(type, !isFirstEnd, null);
+                
+                if (cascadeDelete) {
+                    child.refDelete();
+                }
+            }
+            
+            delete(getHibernateRepository(item));
+        } else {
+            children.remove(item);
+            boolean removedLast = children.isEmpty();
             
             // Null parent occurs when child is first end of association and
             // is added (via refAddLink) to a parent that already had a child.
             // Just ignore the call and the unused association should be gc'd.
-            if (parent != null) {
-                removeInternal(parent, item, -1);
+            if (removedLast && parent != null) {
+                parent.setAssociation(type, !isFirstEnd, null);
                 
+                delete(getHibernateRepository(item));
+
                 if (cascadeDelete) {
                     parent.refDelete();
-                }
-            }
-            return;
-        }
-        
-        while(!children.isEmpty()) {
-            HibernateAssociable child = children.iterator().next();
-            removeInternal(item, child, -1);
-            
-            if (cascadeDelete) {
-                child.refDelete();
+                }                
             }
         }
     }
@@ -309,7 +276,7 @@ public abstract class HibernateOneToManyAssociationBase
     {
         assert(equals(getParent(), item));
         
-        removeAll(item, false);
+        removeAll(item, !getReversed(), false);
     }
 
     public Collection<RefAssociationLink> getLinks()
