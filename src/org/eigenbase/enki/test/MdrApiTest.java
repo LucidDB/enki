@@ -79,6 +79,25 @@ public class MdrApiTest extends SampleModelTestBase
         
     }
 
+    @Test
+    public void testTypedGetByMofId()
+    {
+        getRepository().beginTrans(false);
+        try {
+            CarClass carClass = getSamplePackage().getCar();
+            
+            Car car = (Car)getRepository().getByMofId(carMofId, carClass);
+            Assert.assertNotNull(car);
+            
+            Car notCar = 
+                (Car)getRepository().getByMofId(carClass.refMofId(), carClass);
+            Assert.assertNull(notCar);
+        }
+        finally {
+            getRepository().endTrans();
+        }
+    }
+    
     private Car findCar()
     {
         Car car = null;

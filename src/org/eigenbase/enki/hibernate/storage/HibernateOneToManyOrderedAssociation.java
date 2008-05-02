@@ -74,7 +74,7 @@ public abstract class HibernateOneToManyOrderedAssociation
         return (List<E>)children;
     }
 
-    protected final Collection<HibernateAssociable> getCollection()
+    protected Collection<HibernateAssociable> getCollection()
     {
         return getChildren();
     }

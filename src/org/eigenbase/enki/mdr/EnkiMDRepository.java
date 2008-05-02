@@ -113,6 +113,18 @@ public interface EnkiMDRepository extends MDRepository
     public void endDetachedSession(EnkiMDSession session);
 
     /**
+     * Looks up a {@link RefObject} with the given MOF ID and type.  Some
+     * repositories may perform this operation more efficiently than the
+     * less specific {@link MDRepository#getByMofId(String)}.
+     * 
+     * @param mofId MOF ID of an object with the given {@link RefClass}
+     * @param cls non-abstract {@link RefClass} that has an instance with
+     *            the given MOF ID
+     * @return a RefObject or null if not found
+     */
+    public RefObject getByMofId(String mofId, RefClass cls);
+    
+    /**
      * Tests whether the named extent is built into this repository.  Built-in
      * extents cannot be imported or deleted.
      * 

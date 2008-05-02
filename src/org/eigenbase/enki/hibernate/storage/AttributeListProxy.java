@@ -23,7 +23,6 @@ package org.eigenbase.enki.hibernate.storage;
 
 import javax.jmi.reflect.*;
 
-import org.eigenbase.enki.hibernate.*;
 import org.netbeans.api.mdr.events.*;
 
 /**
@@ -113,9 +112,7 @@ public class AttributeListProxy<E extends RefObject> extends ListProxy<E>
     
     private void enqueueEvent(MDRChangeEvent event)
     {
-        HibernateMDRepository repos = 
-            ((HibernateObject)source).getHibernateRepository();
-        repos.enqueueEvent(event);
+        getHibernateRepository().enqueueEvent(event);
     }
 }
 

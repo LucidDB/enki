@@ -356,7 +356,8 @@ public class HibernateMappingHandler
         startElem(
             "class",
             "name", assocOneToOneClass,
-            "table", tableName(ASSOC_ONE_TO_ONE_TABLE));
+            "table", tableName(ASSOC_ONE_TO_ONE_TABLE),
+            "lazy", "true");
         
         writeCacheElement();
         
@@ -413,7 +414,8 @@ public class HibernateMappingHandler
         startElem(
             "class",
             "name", assocOneToManyClass,
-            "table", tableName(ASSOC_ONE_TO_MANY_TABLE));
+            "table", tableName(ASSOC_ONE_TO_MANY_TABLE),
+            "lazy", "true");
         
         writeCacheElement();
         
@@ -447,6 +449,7 @@ public class HibernateMappingHandler
             "name", ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY,
             "table", tableName(ASSOC_ONE_TO_MANY_CHILDREN_TABLE),
             "cascade", "save-update",
+            "lazy", "true",
             "fetch", ASSOC_ONE_TO_MANY_FETCH_TYPE);
         writeCacheElement();
         writeEmptyElem(
@@ -485,7 +488,8 @@ public class HibernateMappingHandler
         startElem(
             "class",
             "name", assocOneToManyOrderedClass,
-            "table", tableName(ASSOC_ONE_TO_MANY_ORDERED_TABLE));
+            "table", tableName(ASSOC_ONE_TO_MANY_ORDERED_TABLE),
+            "lazy", "true");
         
         writeCacheElement();
         
@@ -519,6 +523,7 @@ public class HibernateMappingHandler
             "name", ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY,
             "table", tableName(ASSOC_ONE_TO_MANY_CHILDREN_ORDERED_TABLE),
             "cascade", "save-update",
+            "lazy", "true",
             "fetch", ASSOC_ONE_TO_MANY_FETCH_TYPE);
         writeCacheElement();        
         writeEmptyElem("key", "column", ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN);
@@ -555,7 +560,8 @@ public class HibernateMappingHandler
         startElem(
             "class",
             "name", assocManyToManyClass,
-            "table", tableName(ASSOC_MANY_TO_MANY_TABLE));
+            "table", tableName(ASSOC_MANY_TO_MANY_TABLE),
+            "lazy", "true");
         
         writeCacheElement();
         
@@ -589,6 +595,7 @@ public class HibernateMappingHandler
             "name", ASSOC_MANY_TO_MANY_TARGET_PROPERTY,
             "table", tableName(ASSOC_MANY_TO_MANY_TARGET_TABLE),
             "cascade", "save-update",
+            "lazy", "true",
             "fetch", ASSOC_MANY_TO_MANY_FETCH_TYPE);
         writeCacheElement();
         writeEmptyElem(
@@ -626,7 +633,8 @@ public class HibernateMappingHandler
         startElem(
             "class",
             "name", assocManyToManyOrderedClass,
-            "table", tableName(ASSOC_MANY_TO_MANY_ORDERED_TABLE));
+            "table", tableName(ASSOC_MANY_TO_MANY_ORDERED_TABLE),
+            "lazy", "true");
         
         writeCacheElement();
         
@@ -660,6 +668,7 @@ public class HibernateMappingHandler
             "name", ASSOC_MANY_TO_MANY_TARGET_PROPERTY,
             "table", tableName(ASSOC_MANY_TO_MANY_ORDERED_TARGET_TABLE),
             "cascade", "save-update",
+            "lazy", "true",
             "fetch", ASSOC_MANY_TO_MANY_FETCH_TYPE);
         writeCacheElement();
         writeEmptyElem("key", "column", ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN);
@@ -779,7 +788,8 @@ public class HibernateMappingHandler
         startElem(
             "class", 
             "name", typeName,
-            "table", tableName(tableName));
+            "table", tableName(tableName),
+            "lazy", "true");
 
         writeCacheElement();
         
@@ -854,11 +864,14 @@ public class HibernateMappingHandler
                     String collTableName =
                         tableName + "$" + StringUtil.toInitialUpper(fieldName);
                     
+                    String collectionElem = 
+                        mappingType == MappingType.LIST ? "list" : "set";
                     startElem(
-                        mappingType == MappingType.LIST ? "list" : "set",
+                        collectionElem,
                         "name", propertyName,
                         "table", tableName(collTableName),
                         "cascade", "all",
+                        "lazy", "true",
                         "fetch", "join");
                     writeCacheElement();
                     writeEmptyElem(
@@ -886,7 +899,7 @@ public class HibernateMappingHandler
                             "column", hibernateQuote(fieldName),
                             "type", type);
                     }
-                    endElem("set");
+                    endElem(collectionElem);
                 }
                 break;
                     

@@ -72,7 +72,7 @@ public abstract class HibernateOneToManyAssociation
         return (Set<E>)children;
     }
 
-    protected final Collection<HibernateAssociable> getCollection()
+    protected Collection<HibernateAssociable> getCollection()
     {
         return getChildren();
     }

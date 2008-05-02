@@ -71,7 +71,7 @@ public abstract class HibernateManyToManyOrderedAssociation
         return (List<E>)target;
     }
 
-    protected final Collection<HibernateAssociable> getTargetCollection()
+    protected Collection<HibernateAssociable> getTargetCollection()
     {
         return getTarget();
     }

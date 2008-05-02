@@ -25,6 +25,7 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.hibernate.jmi.*;
 
 /**
@@ -61,7 +62,7 @@ public class CollectionProxy<E extends RefObject> implements Collection<E>
 
         if (refAssocId != null) {
             this.refAssoc = 
-                ((HibernateObject)assoc).getHibernateRepository().findRefAssociation(refAssocId);
+                getHibernateRepository().findRefAssociation(refAssocId);
         } else {
             this.refAssoc = null;
         }
@@ -71,7 +72,7 @@ public class CollectionProxy<E extends RefObject> implements Collection<E>
         
         modified(assoc, proxiedCollection);
     }
-    
+
     public CollectionProxy(
         String type,
         HibernateAssociable source,
@@ -87,8 +88,7 @@ public class CollectionProxy<E extends RefObject> implements Collection<E>
 
         if (refAssocId != null) {
             this.refAssoc = 
-                ((HibernateRefObject)source).getHibernateRepository().findRefAssociation(
-                    refAssocId);
+                getHibernateRepository().findRefAssociation(refAssocId);
         } else {
             this.refAssoc = null;
         }
@@ -101,9 +101,8 @@ public class CollectionProxy<E extends RefObject> implements Collection<E>
 
     protected void checkAssoc()
     {
+        getHibernateRepository().checkTransaction(true);
         if (assoc == null) {
-            ((HibernateObject)source).getHibernateRepository().checkTransaction(
-                true);
             
             assoc = 
                 (HibernateAssociation)source.getOrCreateAssociation(
@@ -112,9 +111,6 @@ public class CollectionProxy<E extends RefObject> implements Collection<E>
             proxiedCollection = assoc.get(source);
             
             modified(assoc, proxiedCollection);
-        } else {
-            ((HibernateObject)assoc).getHibernateRepository().checkTransaction(
-                true);
         }
     }
 
@@ -379,6 +375,11 @@ public class CollectionProxy<E extends RefObject> implements Collection<E>
                 assoc.postRemove(last, source);
             }
         }   
+    }
+    
+    protected HibernateMDRepository getHibernateRepository()
+    {
+        return ((HibernateRefObject)source).getHibernateRepository();
     }
 }
 

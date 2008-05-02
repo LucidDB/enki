@@ -276,6 +276,26 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     {
         return impl.getByMofId(mofId);
     }
+    
+    public RefObject getByMofId(String mofId, RefClass cls)
+    {
+        RefBaseObject baseObj = impl.getByMofId(mofId);
+        if (baseObj == null) {
+            return null;
+        }
+        
+        if (!(baseObj instanceof RefObject)) {
+            return null;
+        }
+        
+        RefObject obj = (RefObject)baseObj;
+        
+        if (!obj.refClass().equals(cls)) {
+            return null;
+        }
+        
+        return obj;
+    }
 
     public RefPackage getExtent(String name)
     {

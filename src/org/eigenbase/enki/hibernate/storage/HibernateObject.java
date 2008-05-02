@@ -115,14 +115,6 @@ public abstract class HibernateObject extends RefObjectBase
         Session session = repos.getCurrentSession();
         session.delete(this);
         
-        if (!(this instanceof HibernateAssociation)) {
-            Query query = session.getNamedQuery("TypeMappingByMofId");
-            query.setLong("mofId", getMofId());
-            
-            MofIdTypeMapping mapping = (MofIdTypeMapping)query.uniqueResult();
-            session.delete(mapping);
-        }
-        
         deleted = true;        
     }
     

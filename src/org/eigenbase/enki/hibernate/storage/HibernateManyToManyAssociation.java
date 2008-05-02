@@ -70,7 +70,7 @@ public abstract class HibernateManyToManyAssociation
         return (Set<E>)target;
     }
 
-    protected final Collection<HibernateAssociable> getTargetCollection()
+    protected Collection<HibernateAssociable> getTargetCollection()
     {
         return getTarget();
     }

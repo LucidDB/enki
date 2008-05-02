@@ -570,22 +570,38 @@ public class HibernateMDRepository
             if (mdrSession.containsWrites) {
                 // Evict all cached and potentially modified objects.
                 mdrSession.session.clear();
+                mdrSession.mofIdDeleteSet.clear();
             }
         } else {
-            // TODO: check for constraint violations
-            if (false) {
-                ArrayList<String> constraintErrors = new ArrayList<String>();
-                boolean foundConstraintError = false;
-    
-                if (foundConstraintError) {
-                    txn.rollback();
-                    
-                    throw new HibernateConstraintViolationException(
-                        constraintErrors);
-                }
-            }
-            
             try {
+                if (mdrSession.containsWrites &&
+                    !mdrSession.mofIdDeleteSet.isEmpty())
+                {
+                    // Update enki type mapping
+                    Query query = 
+                        mdrSession.session.getNamedQuery(
+                            "TypeMappingDeleteByMofId");
+                    query.setParameterList(
+                        "mofIds", mdrSession.mofIdDeleteSet);
+                    query.executeUpdate();
+                    
+                    mdrSession.mofIdDeleteSet.clear();
+                }
+                
+                // TODO: check for constraint violations
+                if (false) {
+                    ArrayList<String> constraintErrors = 
+                        new ArrayList<String>();
+                    boolean foundConstraintError = false;
+        
+                    if (foundConstraintError) {
+                        txn.rollback();
+                        
+                        throw new HibernateConstraintViolationException(
+                            constraintErrors);
+                    }
+                }
+            
                 if (!mdrSession.containsWrites) {
                     txn.rollback();
                 } else {
@@ -734,6 +750,65 @@ public class HibernateMDRepository
         dropModelStorage(extentDesc.modelDescriptor);
     }
     
+    public RefObject getByMofId(String mofId, RefClass cls)
+    {
+        MdrSession mdrSession = getMdrSession();
+        
+        long mofIdLong = MofIdUtil.parseMofIdStr(mofId); 
+
+        RefBaseObject cachedResult = 
+            (RefBaseObject)lookupByMofId(mdrSession, mofIdLong);
+        if (cachedResult != null) {
+            return convertToRefObject(cls, cachedResult);
+        }
+        
+        if((mofIdLong & MetamodelInitializer.METAMODEL_MOF_ID_MASK) != 0) {
+            RefBaseObject result = findMetaByMofId(mofId);
+            return convertToRefObject(cls, result);
+        }
+
+        if (mdrSession.mofIdDeleteSet.contains(mofIdLong)) {
+            return null;
+        }
+        
+        Session session = mdrSession.session;
+        
+        String byMofIdQueryName = 
+            ((HibernateRefClass)cls).getByMofIdQueryName();
+        if (byMofIdQueryName == null) {
+            // Querying on abstract class?
+            return null;
+        }
+        
+        Query query = session.getNamedQuery(byMofIdQueryName);
+        query.setLong("mofId", mofIdLong);
+            
+        RefObject result = (RefObject)query.uniqueResult();
+    
+        if (result != null) {
+            storeByMofId(mdrSession, mofIdLong, result);
+        }
+        
+        return result;
+    }
+
+    private RefObject convertToRefObject(
+        RefClass cls,
+        RefBaseObject cachedResult)
+    {
+        if (!(cachedResult instanceof RefObject)) {
+            return null;
+        }
+        
+        RefObject cachedResultObj = (RefObject)cachedResult;
+        
+        if (!cachedResultObj.refClass().equals(cls)) {
+            return null;
+        }
+
+        return cachedResultObj;
+    }
+    
     public RefBaseObject getByMofId(String mofId)
     {
         MdrSession mdrSession = getMdrSession();
@@ -747,20 +822,12 @@ public class HibernateMDRepository
         
         RefBaseObject result = null;
         if ((mofIdLong & MetamodelInitializer.METAMODEL_MOF_ID_MASK) != 0) {
-            synchronized(extentMap) {
-                for(ExtentDescriptor extentDesc: extentMap.values()) {
-                    // Only search in metamodels
-                    if (extentDesc.modelDescriptor == null ||
-                        extentDesc.modelDescriptor.name.equals(MOF_EXTENT))
-                    {
-                        result = extentDesc.initializer.getByMofId(mofId);
-                        if (result != null) {
-                            break;
-                        }
-                    }
-                }
-            }
+            result = findMetaByMofId(mofId);
         } else {
+            if (mdrSession.mofIdDeleteSet.contains(mofIdLong)) {
+                return null;
+            }
+            
             Session session = mdrSession.session;
             
             Query query = session.getNamedQuery("TypeMappingByMofId");
@@ -783,6 +850,26 @@ public class HibernateMDRepository
         }
         
         return result;
+    }
+    
+    private RefBaseObject findMetaByMofId(String mofId)
+    {
+        synchronized(extentMap) {
+            for(ExtentDescriptor extentDesc: extentMap.values()) {
+                // Only search in metamodels
+                if (extentDesc.modelDescriptor == null ||
+                    extentDesc.modelDescriptor.name.equals(MOF_EXTENT))
+                {
+                    RefBaseObject result = 
+                        extentDesc.initializer.getByMofId(mofId);
+                    if (result != null) {
+                        return result;
+                    }
+                }
+            }
+        }
+        
+        return null;
     }
 
     private RefBaseObject lookupByMofId(MdrSession mdrSession, long mofId)
@@ -1240,10 +1327,10 @@ public class HibernateMDRepository
 
         if (event.isOfType(InstanceEvent.EVENT_INSTANCE_DELETE)) {
             InstanceEvent instanceEvent = (InstanceEvent)event;
-            long mofId =
-                MofIdUtil.parseMofIdStr(
-                    instanceEvent.getInstance().refMofId());
+            long mofId = 
+                ((RefBaseObjectBase)instanceEvent.getInstance()).getMofId();
             mdrSession.byMofIdCache.remove(mofId);
+            mdrSession.mofIdDeleteSet.add(mofId);
         }
         
         enqueueEvent(mdrSession, event);
@@ -2170,6 +2257,7 @@ public class HibernateMDRepository
         private final Map<HibernateRefClass, SoftReference<Collection<?>>> allOfTypeCache;
         private final Map<HibernateRefClass, SoftReference<Collection<?>>> allOfClassCache;
         private final Map<Long, SoftReference<RefBaseObject>> byMofIdCache;
+        private final Set<Long> mofIdDeleteSet;
         private final List<MDRChangeEvent> queuedEvents;
 
         private MdrSession(Session session, boolean isImplicit, int sessionId)
@@ -2182,6 +2270,7 @@ public class HibernateMDRepository
                 new HashMap<HibernateRefClass, SoftReference<Collection<?>>>();
             this.byMofIdCache =
                 new HashMap<Long, SoftReference<RefBaseObject>>();
+            this.mofIdDeleteSet = new HashSet<Long>();
             this.containsWrites = false;
             this.queuedEvents = new LinkedList<MDRChangeEvent>();
             this.isImplicit = isImplicit;
