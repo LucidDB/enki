@@ -23,6 +23,7 @@ package org.eigenbase.enki.jmi.impl;
 
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.logging.*;
 
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
@@ -39,6 +40,10 @@ import org.eigenbase.enki.util.*;
  */
 public abstract class RefBaseObjectBase implements RefBaseObject
 {
+    private static final Logger log = 
+        Logger.getLogger("org.eigenbase.enki.jmi");
+    private static boolean loggingEnabled;
+    
     private final MetamodelInitializer initializer;
     
     private long mofId;
@@ -53,10 +58,12 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     protected RefBaseObjectBase(MetamodelInitializer initializer)
     {
         this.initializer = initializer;
-        
+
         if (initializer != null) {
             setMofId(initializer.nextMofId());
         }
+
+        loggingEnabled = log.isLoggable(Level.FINER);
     }
     
     /**
@@ -78,6 +85,8 @@ public abstract class RefBaseObjectBase implements RefBaseObject
      */
     public RefObject refMetaObject()
     {
+        logJmi("refMetaObject");
+        
         return metaObj;
     }
 
@@ -94,6 +103,8 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     
     public RefPackage refOutermostPackage()
     {
+        logJmi("refOutermostPackage");
+        
         if (refImmediatePackage() == null) {
             assert(this instanceof RefPackage);
             return (RefPackage)this;
@@ -105,6 +116,8 @@ public abstract class RefBaseObjectBase implements RefBaseObject
 
     public final Collection<?> refVerifyConstraints(boolean deepVerify)
     {
+        logJmi("refVerifyConstraints");
+        
         List<JmiException> errors = new ArrayList<JmiException>();
         
         checkConstraints(errors, deepVerify);
@@ -507,6 +520,15 @@ public abstract class RefBaseObjectBase implements RefBaseObject
      * @return the EnkiMDRepository that stores this object
      */
     public abstract EnkiMDRepository getRepository();
+    
+    protected void logJmi(String msg)
+    {
+        if (!loggingEnabled) {
+            return;
+        }
+        
+        log.finer(getClass().getSimpleName() + ": " + msg);
+    }
 }
 
 // End RefBaseObjectBase.java

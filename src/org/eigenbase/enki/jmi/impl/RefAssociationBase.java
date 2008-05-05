@@ -78,11 +78,15 @@ public abstract class RefAssociationBase
     // Implement RefBaseObjectBase/RefBaseObject
     public RefPackage refImmediatePackage()
     {
+        logJmi("refImmediatePackage");
+        
         return container;
     }
 
     public boolean refAddLink(RefObject end1, RefObject end2)
     {
+        logJmi("refAddLink");
+        
         RefAssociationLinkImpl link = new RefAssociationLinkImpl(end1, end2);
 
         addToMap(link, true, -1);
@@ -105,6 +109,8 @@ public abstract class RefAssociationBase
     @SuppressWarnings("unchecked")
     public Collection refAllLinks()
     {
+        logJmi("refAllLinks");
+        
         ArrayList<RefAssociationLinkImpl> allLinks = 
             new ArrayList<RefAssociationLinkImpl>();
         for(Collection<RefAssociationLinkImpl> links: 
@@ -117,6 +123,8 @@ public abstract class RefAssociationBase
 
     public boolean refLinkExists(RefObject end1, RefObject end2)    
     {
+        logJmi("refLinkExists");
+        
         RefAssociationLinkImpl testLink = 
             new RefAssociationLinkImpl(end1, end2);
         
@@ -126,6 +134,8 @@ public abstract class RefAssociationBase
     @SuppressWarnings("unchecked")
     public Collection refQuery(RefObject queryEnd, RefObject queryObject)
     {
+        logJmi("refQuery(ByEnd)");
+
         Object queryEndName = queryEnd.refGetValue("name");
         boolean isFirst = end1Name.equals(queryEndName);
         if (!isFirst && !end2Name.equals(queryEndName)) {
@@ -142,6 +152,8 @@ public abstract class RefAssociationBase
     @SuppressWarnings("unchecked")
     public Collection refQuery(String queryEndName, RefObject queryObject)
     {
+        logJmi("refQuery(ByEndName)");
+        
         boolean isFirst = end1Name.equals(queryEndName);
         if (!isFirst && !end2Name.equals(queryEndName)) {
             throw new InvalidNameException(queryEndName);
@@ -156,6 +168,8 @@ public abstract class RefAssociationBase
 
     public boolean refRemoveLink(RefObject end1, RefObject end2)
     {
+        logJmi("refRemoveLink");
+        
         throw new UnsupportedOperationException();
     }
     

@@ -163,7 +163,7 @@ public class HibernateMDRepository
      * Storage property that configures whether session factory statistics
      * are periodically logged.  Values of zero or less disable statistics
      * logging.  Larger values indicate the number of seconds between log
-     * messages.
+     * messages.  Default value is {@link #DEFAULT_PERIODIC_STATS_INTERVAL}.
      */
     public static final String PROPERTY_PERIODIC_STATS =
         "org.eigenbase.enki.hibernate.periodicStats";
@@ -173,6 +173,23 @@ public class HibernateMDRepository
      * storage property.  The default is {@value}.
      */
     public static final int DEFAULT_PERIODIC_STATS_INTERVAL = 0;
+    
+    /**
+     * Storage property that configures periodic session factory statistics
+     * logging to include information about the size (in bytes) of Hibernate
+     * caches.  Computing cache memory size requires serializing all cached
+     * objects, which can be very slow.  Valid values are true or false.
+     * Defaults to {@link #DEFAULT_MEM_STATS}. {@link #PROPERTY_PERIODIC_STATS}
+     * must be enabled for memory statistics logging to occur.
+     */
+    public static final String PROPERTY_MEM_STATS =
+        "org.eigenbase.enki.hibernate.periodicStats.memStats";
+    
+    /**
+     * Contains the default value of {@link #PROPERTY_MEM_STATS}.
+     * The default is {@value}.
+     */
+    public static final boolean DEFAULT_MEM_STATS = false;
     
     /**
      * Identifier for the built-in MOF extent.
@@ -205,6 +222,7 @@ public class HibernateMDRepository
     private final boolean trackSessions;
     
     private final int periodicStatsInterval;
+    private final boolean logMemStats;
     
     private Timer periodicStatsTimer;
     
@@ -263,6 +281,11 @@ public class HibernateMDRepository
                 PROPERTY_PERIODIC_STATS, 
                 DEFAULT_PERIODIC_STATS_INTERVAL, 
                 Integer.class);
+        this.logMemStats =
+            readStorageProperty(
+                PROPERTY_MEM_STATS, 
+                DEFAULT_MEM_STATS, 
+                Boolean.class);
         
         initModelMap();
         initModelExtent(MOF_EXTENT, false);
@@ -2157,6 +2180,23 @@ public class HibernateMDRepository
             .append(stats.getSessionCloseCount());
         
         log.info(b.toString());
+        
+        for(String cacheRegion: stats.getSecondLevelCacheRegionNames()) {
+            SecondLevelCacheStatistics cacheStats = 
+                stats.getSecondLevelCacheStatistics(cacheRegion);
+            b.setLength(0);
+            b
+                .append("stats: cache region: ")
+                .append(cacheRegion)
+                .append(": elements: ")
+                .append(cacheStats.getElementCountInMemory());
+            if (logMemStats) {
+                b
+                    .append(" size in memory: ")
+                    .append(cacheStats.getSizeInMemory());
+            }
+            log.info(b.toString());
+        }
     }
     
     private void stopPeriodicStats()

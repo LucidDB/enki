@@ -115,12 +115,16 @@ public abstract class RefPackageBase
     @SuppressWarnings("unchecked")
     public RefStruct refCreateStruct(RefObject struct, List params)
     {
+        logJmi("refCreateStruct(ByRefObject)");
+        
         return createInstance(struct, null, params, RefStruct.class);
     }
 
     @SuppressWarnings("unchecked")
     public RefStruct refCreateStruct(String structName, List params)
     {
+        logJmi("refCreateStruct(ByName)");
+
         return createInstance(null, structName, params, RefStruct.class);
     }
 

@@ -78,6 +78,8 @@ public abstract class HibernateRefClass
     @SuppressWarnings("unchecked")
     public Collection<?> refAllOfClass()
     {
+        logJmi("refAllOfClass");
+        
         if (allOfClassQueryName != null) {
             HibernateMDRepository repos = getHibernateRepository();
             
@@ -106,6 +108,8 @@ public abstract class HibernateRefClass
     @SuppressWarnings("unchecked")
     public Collection<?> refAllOfType()
     {
+        logJmi("refAllOfType");
+
         HibernateMDRepository repos = getHibernateRepository();
 
         repos.checkTransaction(false);

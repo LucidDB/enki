@@ -1123,6 +1123,8 @@ public class HibernateJavaHandler
         startBlock(
             "public ", REF_OBJECT_CLASS, " refImmediateComposite()");
         
+        writeln("logJmi(", QUOTE, "refImmediateComposite", QUOTE, ");");
+        
         // Find the composite associations, if any.  Note that MOF states
         // an object is only allowed to be the component end of a single
         // composite aggregation at a time, so we just traverse all of 
@@ -1773,6 +1775,11 @@ public class HibernateJavaHandler
     throws GenerationException
     {
         startAccessorBlock(ref);
+
+        writeln(
+            "logJmi(", 
+            QUOTE, generator.getAccessorName(ref), QUOTE, ");");
+
         startConditionalBlock(
             CondType.IF,
             getReferenceAccessorName(refInfo), "() == null");
@@ -1792,6 +1799,10 @@ public class HibernateJavaHandler
         if (ref.isChangeable()) {
             newLine();
             startMutatorBlock(ref);
+            
+            writeln(
+                "logJmi(", 
+                QUOTE, generator.getMutatorName(ref), QUOTE, ");");
             
             writeln(
                 "super.associationSetSingle(", 
@@ -1819,6 +1830,11 @@ public class HibernateJavaHandler
     throws GenerationException
     {
         startAccessorBlock(ref);
+
+        writeln(
+            "logJmi(", 
+            QUOTE, generator.getAccessorName(ref), QUOTE, ");");
+
         boolean hasParent = ref.getMultiplicity().getUpper() == 1;
         if (hasParent) {
             startConditionalBlock(
@@ -1874,6 +1890,10 @@ public class HibernateJavaHandler
             startMutatorBlock(ref);
             
             writeln(
+                "logJmi(", 
+                QUOTE, generator.getMutatorName(ref), QUOTE, ");");
+            
+            writeln(
                 "super.associationSetSingle(", 
                 QUOTE, refInfo.getBaseName(), QUOTE, ", ", 
                 QUOTE, getAssociationIdentifier(refInfo.getAssoc()), QUOTE, 
@@ -1897,6 +1917,11 @@ public class HibernateJavaHandler
     throws GenerationException
     {
         startAccessorBlock(ref);
+
+        writeln(
+            "logJmi(", 
+            QUOTE, generator.getAccessorName(ref), QUOTE, ");");
+
         String listElemType = 
             getReferenceEndType(refInfo, true);
         // REVIEW: SWZ: Consider caching ListProxy in a field
@@ -1942,6 +1967,11 @@ public class HibernateJavaHandler
         Attribute attrib, ComponentInfo compInfo)
     {
         startAccessorBlock(attrib);
+        
+        writeln(
+            "logJmi(", 
+            QUOTE, generator.getAccessorName(attrib), QUOTE, ");");
+
         startConditionalBlock(
             CondType.IF,
             getReferenceAccessorName(compInfo), "() == null");
@@ -1961,6 +1991,10 @@ public class HibernateJavaHandler
         newLine();
         startMutatorBlock(attrib);
             
+        writeln(
+            "logJmi(", 
+            QUOTE, generator.getMutatorName(attrib), QUOTE, ");");
+        
         writeln(
             "super.attributeSetSingle(", 
             QUOTE, compInfo.getBaseName(), QUOTE, ", ", 
@@ -1985,6 +2019,10 @@ public class HibernateJavaHandler
     {
         startAccessorBlock(attrib);
 
+        writeln(
+            "logJmi(", 
+            QUOTE, generator.getAccessorName(attrib), QUOTE, ");");
+        
         boolean hasParent = compInfo.isSingle(compInfo.getReferencedEndIndex());
         if (hasParent) {
             startConditionalBlock(
@@ -2038,6 +2076,10 @@ public class HibernateJavaHandler
             newLine();
             startMutatorBlock(attrib);
 
+            writeln(
+                "logJmi(", 
+                QUOTE, generator.getMutatorName(attrib), QUOTE, ");");
+            
             writeln(
                 "super.attributeSetSingle(", 
                 QUOTE, compInfo.getBaseName(), QUOTE, ", ", 
@@ -2253,6 +2295,10 @@ public class HibernateJavaHandler
                 // Public API accessor
                 newLine();
                 startAccessorBlock(attrib);
+
+                writeln(
+                    "logJmi(", 
+                    QUOTE, generator.getAccessorName(attrib), QUOTE, ");");
                 
                 if (primitiveConversionRequired) {
                     writeln(
@@ -2284,6 +2330,11 @@ public class HibernateJavaHandler
                 if (attrib.isChangeable()) {
                     newLine();
                     startMutatorBlock(attrib);
+                    
+                    writeln(
+                        "logJmi(", 
+                        QUOTE, generator.getMutatorName(attrib), QUOTE, ");");
+
                     // Fire event using the value from the API method so that
                     // un-set primitives are converted to numbers. 
                     writeln(
@@ -2306,6 +2357,11 @@ public class HibernateJavaHandler
                 boolean isOrdered = attrib.getMultiplicity().isOrdered();
                 newLine();
                 startAccessorBlock(attrib);
+
+                writeln(
+                    "logJmi(", 
+                    QUOTE, generator.getAccessorName(attrib), QUOTE, ");");
+
                 if (attrib.isChangeable()) {
                     if (isOrdered) {
                         writeln(

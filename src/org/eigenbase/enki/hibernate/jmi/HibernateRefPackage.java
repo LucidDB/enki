@@ -44,6 +44,8 @@ public abstract class HibernateRefPackage
     
     public void refDelete()
     {
+        logJmi("refDelete");
+        
         boolean deleteExtent = false;
         if (refImmediatePackage() == null) {
             getHibernateRepository().enqueueExtentDeleteEvent(this);

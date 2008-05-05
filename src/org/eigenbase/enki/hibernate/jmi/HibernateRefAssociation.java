@@ -71,6 +71,8 @@ public abstract class HibernateRefAssociation
     
     public Collection<?> refAllLinks()
     {
+        logJmi("refAllLinks");
+        
         getHibernateRepository().checkTransaction(false);
 
         Session session = getHibernateRepository().getCurrentSession();
@@ -107,6 +109,8 @@ public abstract class HibernateRefAssociation
 
     public boolean refLinkExists(RefObject end1, RefObject end2)
     {
+        logJmi("refLinkExists");
+
         checkTypes(end1, end2);
         
         getHibernateRepository().checkTransaction(false);
@@ -146,6 +150,8 @@ public abstract class HibernateRefAssociation
     
     public boolean refAddLink(RefObject end1, RefObject end2)
     {
+        logJmi("refAddLink");
+        
         checkTypes(end1, end2);
 
         getHibernateRepository().checkTransaction(true);
@@ -160,6 +166,8 @@ public abstract class HibernateRefAssociation
 
     public boolean refRemoveLink(RefObject end1, RefObject end2)
     {
+        logJmi("refRemoveLink");
+        
         checkTypes(end1, end2);
 
         getHibernateRepository().checkTransaction(true);

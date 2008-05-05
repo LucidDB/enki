@@ -78,17 +78,23 @@ public abstract class RefObjectBase
     // Implement RefObjectBaseObject/RefObjectBase
     public RefPackage refImmediatePackage()
     {
+        logJmi("refImmediatePackage");
+        
         return refClass().refImmediatePackage();
     }
     
     public RefClass refClass()
     {
+        logJmi("refClass");
+        
         return refClass;
     }
 
     @Override
     public RefObject refMetaObject()
     {
+        logJmi("refMetaObject");
+        
         return refClass().refMetaObject();
     }
     
@@ -100,11 +106,15 @@ public abstract class RefObjectBase
     
     public void refDelete()
     {
+        logJmi("refDelete");
+        
         throw new UnsupportedOperationException("RefObject.refDelete()");
     }
 
     public boolean refIsInstanceOf(RefObject objType, boolean considerSubtypes)
     {
+        logJmi("refIsInstanceOf");
+
         if (refClass().refMetaObject().equals(objType)) {
             return true;
         }
@@ -127,6 +137,8 @@ public abstract class RefObjectBase
 
     public RefFeatured refImmediateComposite()
     {
+        logJmi("refImmediateComposite");
+        
         // This is cheating:  The only composite aggregation in the M3 is
         // Contains, so just return the container if this is a ModelElement
         // and null otherwise.
@@ -139,6 +151,8 @@ public abstract class RefObjectBase
 
     public RefFeatured refOutermostComposite()
     {
+        logJmi("refOutermostComposite");
+        
         // This is cheating:  The only composite aggregation in the M3 is
         // Contains, so just return the outermost container if this is a 
         // ModelElement and null otherwise.

@@ -54,30 +54,40 @@ public abstract class RefClassBase extends RefFeaturedBase implements RefClass
     @SuppressWarnings("unchecked")
     public Collection refAllOfClass()
     {
+        logJmi("refAllOfClass");
+        
         return getInitializer().getAllInstancesOf(this, false);
     }
 
     @SuppressWarnings("unchecked")
     public Collection refAllOfType()
     {
+        logJmi("refAllOfClass");
+        
         return getInitializer().getAllInstancesOf(this, true);
     }
 
     @SuppressWarnings("unchecked")
     public RefObject refCreateInstance(List params)
     {
+        logJmi("refCreateInstance");
+        
         return createInstance(refMetaObject(), null, params, RefObject.class);
     }
 
     @SuppressWarnings("unchecked")
     public RefStruct refCreateStruct(RefObject struct, List params)
     {
+        logJmi("refCreateStruct(ByRefObject)");
+        
         return createInstance(struct, null, params, RefStruct.class);
     }
 
     @SuppressWarnings("unchecked")
     public RefStruct refCreateStruct(String struct, List params)
     {
+        logJmi("refCreateStruct(ByName)");
+        
         return createInstance(null, struct, params, RefStruct.class);
     }
 

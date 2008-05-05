@@ -52,12 +52,16 @@ public abstract class HibernateRefObject
     @Override
     public RefClass refClass()
     {
+        logJmi("refClass");
+        
         return getHibernateRepository().findRefClass(getClassIdentifier());
     }
     
     @Override
     public void refDelete()
     {
+        logJmi("refDelete");
+        
         getHibernateRepository().checkTransaction(true);
         
         enqueueEvent(
@@ -75,6 +79,8 @@ public abstract class HibernateRefObject
     @Override
     public RefFeatured refOutermostComposite()
     {
+        logJmi("refOutermostComposite");
+
         RefFeatured immediateComposite = refImmediateComposite();
         if (immediateComposite == null) {
             return this;

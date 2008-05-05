@@ -50,6 +50,8 @@ public abstract class RefFeaturedBase
     
     public Object refGetValue(RefObject type)
     {
+        logJmi("refGetValue(ByRefObject)");
+        
         Method method = findMethod(type, null, true, 0);
         
         if (method != null) {
@@ -61,6 +63,8 @@ public abstract class RefFeaturedBase
 
     public Object refGetValue(String typeName)
     {
+        logJmi("refGetValue(ByName)");
+        
         Method method = findMethod(null, typeName, true, 0);
         
         if (method != null) {
@@ -74,6 +78,8 @@ public abstract class RefFeaturedBase
     public Object refInvokeOperation(RefObject operation, List params)
         throws RefException
     {
+        logJmi("refInvokeOperation(ByRefObject)");
+        
         Method method = findOperationMethod(operation, null, params);
         
         if (method != null) {
@@ -87,6 +93,8 @@ public abstract class RefFeaturedBase
     public Object refInvokeOperation(String operationName, List params)
         throws RefException
     {
+        logJmi("refInvokeOperation(ByName)");
+        
         Method method = findOperationMethod(null, operationName, params);
         
         if (method != null) {
@@ -98,6 +106,8 @@ public abstract class RefFeaturedBase
 
     public void refSetValue(RefObject type, Object value)
     {
+        logJmi("refSetValue(ByRefObject)");
+        
         Method method = findMethod(type, null, false, 1);
         
         if (method != null&& isMutable(method, value.getClass())) {
@@ -110,6 +120,8 @@ public abstract class RefFeaturedBase
 
     public void refSetValue(String typeName, Object value)
     {
+        logJmi("refSetValue(ByName)");
+
         Method method = findMethod(null, typeName, false, 1);
         
         if (method != null&& isMutable(method, value.getClass())) {
