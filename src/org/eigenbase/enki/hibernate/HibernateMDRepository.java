@@ -106,6 +106,12 @@ public class HibernateMDRepository
     public static final String MAPPING_XML = "mapping.xml";
     
     /**
+     * The name of a metamodel-specific Hibernate mapping file that contains
+     * only &lt;database-object&gt; entries for special indexes.
+     */
+    public static final String INDEX_MAPPING_XML = "indexMapping.xml";
+    
+    /**
      * Path to the resource that contains a Hibernate mapping file for
      * persistent entities used across metamodels. 
      */
@@ -795,19 +801,11 @@ public class HibernateMDRepository
         }
         
         Session session = mdrSession.session;
+
+        Class<?> instanceClass = ((HibernateRefClass)cls).getInstanceClass();
         
-        String byMofIdQueryName = 
-            ((HibernateRefClass)cls).getByMofIdQueryName();
-        if (byMofIdQueryName == null) {
-            // Querying on abstract class?
-            return null;
-        }
-        
-        Query query = session.getNamedQuery(byMofIdQueryName);
-        query.setLong("mofId", mofIdLong);
+        RefObject result = (RefObject)session.get(instanceClass, mofIdLong);
             
-        RefObject result = (RefObject)query.uniqueResult();
-    
         if (result != null) {
             storeByMofId(mdrSession, mofIdLong, result);
         }
@@ -1811,11 +1809,48 @@ public class HibernateMDRepository
             
             List<?> exceptions = update.getExceptions();
             if (exceptions != null && !exceptions.isEmpty()) {
+                logDdlExceptions(
+                    exceptions, Level.SEVERE, "schema update error");
+
                 throw new EnkiCreationFailedException(
                     "Schema update for model '" + modelDesc.name + 
-                    "' failed (cause is first exception)",
-                    (Throwable)exceptions.get(0));
-    
+                    "' failed (see log for errors)");
+            }
+            
+            config = newConfiguration(false);
+            configureIndexMappings(config, modelDesc);
+            
+            log.info("Updating indexes for model '" + modelDesc.name + "'");
+            
+            SchemaExport export = new SchemaExport(config);
+            // execute params are:
+            //   script:     false (don't write DDL to stdout)
+            //   export:     true  (send DDL to DB)
+            //   justDrop:   true  (run only drop statements)
+            //   justCreate: false (don't run create statements)
+            export.execute(false, true, true, false);
+            
+            exceptions = export.getExceptions();
+            if (exceptions != null && !exceptions.isEmpty()) {
+                // Log drop errors, but don't abort (they'll always fail if
+                // this is the initial schema creation).
+                logDdlExceptions(exceptions, Level.FINE, "index drop error");
+            }
+
+            // execute params are:
+            //   script:     false (don't write DDL to stdout)
+            //   export:     true  (send DDL to DB)
+            //   justDrop:   false (don't run drop statements)
+            //   justCreate: true  (run only create statements)
+            export.execute(false, true, false, true);
+            
+            exceptions = export.getExceptions();
+            if (exceptions != null && !exceptions.isEmpty()) {
+                logDdlExceptions(
+                    exceptions, Level.SEVERE, "index create error");
+                throw new EnkiCreationFailedException(
+                    "Index creation for model '" + modelDesc.name + 
+                    "' failed (see log for errors)");
             }
         }
         finally {
@@ -1824,6 +1859,18 @@ public class HibernateMDRepository
                     contextClassLoader);                
             }
         }            
+    }
+
+    private void logDdlExceptions(List<?> exceptions, Level level, String msg)
+    {
+        int i = 1;
+        for(Object o: exceptions) {
+            Throwable t = (Throwable)o;
+            log.log(
+                level,
+                msg + " (" + i++ + " of " + exceptions.size() + ")",
+                t);
+        }
     }
     
     private void dropModelStorage(ModelDescriptor modelDesc)
@@ -1873,36 +1920,72 @@ public class HibernateMDRepository
         }
     }
     
+    private void configureIndexMappings(
+        Configuration config, ModelDescriptor modelDesc)
+    {
+        URL indexMappingUrl = getIndexMappingUrl(modelDesc);
+        config.addURL(indexMappingUrl);
+    }
+    
     private URL getModelMappingUrl(AbstractModelDescriptor modelDesc)
     {
-        if (modelDesc.mappingUrl != null) {
+        return getMappingUrl(modelDesc, false);
+    }
+    
+    private URL getIndexMappingUrl(AbstractModelDescriptor modelDesc)
+    {
+        return getMappingUrl(modelDesc, true);
+    }
+    
+    private URL getMappingUrl(
+        AbstractModelDescriptor modelDesc, boolean getIndexMapping)
+    {
+        if (modelDesc.mappingUrl == null) {
+            String configUrlStr = 
+                modelDesc.properties.getProperty(
+                    MDRepositoryFactory.PROPERTY_ENKI_RUNTIME_CONFIG_URL);
+            
+            log.config(
+                "Model" 
+                + (modelDesc.isPlugin() ? " Plugin" : "")
+                + ": "
+                + modelDesc.name
+                + ", Mapping URL: "
+                + configUrlStr);
+            
+            URL configUrl;
+            try {
+                configUrl = new URL(configUrlStr);
+            } catch(MalformedURLException e) {
+                throw new ProviderInstantiationException(
+                    "Cannot parse configuration URL", e);
+            }
+            
+            URL mappingUrl;
+            try {
+                mappingUrl = new URL(configUrl, MAPPING_XML);
+            } catch (MalformedURLException e) {
+                throw new ProviderInstantiationException(
+                    "Cannot parse mapping URL", e);
+            }
+    
+            URL indexMappingUrl;
+            try {
+                indexMappingUrl = new URL(configUrl, INDEX_MAPPING_XML);
+            } catch (MalformedURLException e) {
+                throw new ProviderInstantiationException(
+                    "Cannot parse index mapping URL", e);
+            }
+            
+            modelDesc.mappingUrl = mappingUrl;
+            modelDesc.indexMappingUrl = indexMappingUrl;
+        }
+        
+        if (getIndexMapping) {
+            return modelDesc.indexMappingUrl;
+        } else {
             return modelDesc.mappingUrl;
         }
-        
-        String configUrlStr = 
-            modelDesc.properties.getProperty(
-                MDRepositoryFactory.PROPERTY_ENKI_RUNTIME_CONFIG_URL);
-        
-        log.config(
-            "Model" 
-            + (modelDesc.isPlugin() ? " Plugin" : "")
-            + ": "
-            + modelDesc.name
-            + ", Mapping URL: "
-            + configUrlStr);
-        
-        URL mappingUrl;
-        try {
-            URL configUrl = new URL(configUrlStr);
-            mappingUrl = new URL(configUrl, MAPPING_XML);
-        } catch (MalformedURLException e) {
-            throw new ProviderInstantiationException(
-                "Cannot compute mapping.xml location", e);
-        }
-        
-        modelDesc.mappingUrl = mappingUrl;
-        
-        return mappingUrl;
     }
     
     private void initModelMap()
@@ -2213,6 +2296,7 @@ public class HibernateMDRepository
         protected final String name;
         protected final Properties properties;        
         protected URL mappingUrl;
+        protected URL indexMappingUrl;
         
         protected AbstractModelDescriptor(String name, Properties properties)
         {

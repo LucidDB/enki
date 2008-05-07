@@ -32,6 +32,7 @@ import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
+import org.hibernate.dialect.*;
 
 /**
  * HibernateMappingHandler generates Hibernate mapping file and an Enki
@@ -95,7 +96,7 @@ public class HibernateMappingHandler
 
     private static final String ASSOC_ONE_TO_MANY_CHILDREN_TABLE =
         "AssocOneToManyChildren";
-    private static final String ASSOC_ONE_TO_MANY_CHILDREN_ORDERED_TABLE =
+    private static final String ASSOC_ONE_TO_MANY_ORDERED_CHILDREN_TABLE =
         "AssocOneToManyOrderedChildren";
     private static final String ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN = 
         "childType";
@@ -125,7 +126,7 @@ public class HibernateMappingHandler
         "targetId";
 
     private static final String ASSOC_ONE_TO_MANY_FETCH_TYPE = "subselect";
-    private static final String ASSOC_MANY_TO_MANY_FETCH_TYPE = "join";
+    private static final String ASSOC_MANY_TO_MANY_FETCH_TYPE = "subselect";
     
     // Association HQL query names and named parameters.
     public static final String QUERY_NAME_ALLLINKS = "allLinks";
@@ -279,6 +280,12 @@ public class HibernateMappingHandler
         
         open(file);
         
+        startMapping();
+    }
+
+    private void startMapping()
+        throws GenerationException
+    {
         writeXmlDecl();
         writeDocType(
             "hibernate-mapping",
@@ -287,6 +294,11 @@ public class HibernateMappingHandler
         newLine();
 
         startElem("hibernate-mapping");
+    }
+    
+    private void endMapping()
+    {
+        endElem("hibernate-mapping");
     }
     
     // Implement Handler
@@ -311,12 +323,25 @@ public class HibernateMappingHandler
             
             generateAllOfTypeQueries();
             
-            endElem("hibernate-mapping");
+            endMapping();
         }
         
         close();
-                
+        
         if (!throwing) {
+            if (!pluginMode) {
+                File enkiIndexMappingFile = 
+                    new File(
+                        metaInfEnkiDir, 
+                        HibernateMDRepository.INDEX_MAPPING_XML);
+                
+                open(enkiIndexMappingFile);
+                startMapping();
+                writeIndexDefinitions();
+                endMapping();
+                close();
+            }
+            
             if (initializerName == null) {
                 throw new GenerationException("Unknown initializer");
             }
@@ -521,7 +546,7 @@ public class HibernateMappingHandler
         startElem(
             "list",
             "name", ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY,
-            "table", tableName(ASSOC_ONE_TO_MANY_CHILDREN_ORDERED_TABLE),
+            "table", tableName(ASSOC_ONE_TO_MANY_ORDERED_CHILDREN_TABLE),
             "cascade", "save-update",
             "lazy", "true",
             "fetch", ASSOC_ONE_TO_MANY_FETCH_TYPE);
@@ -723,6 +748,63 @@ public class HibernateMappingHandler
             writeCData("from ", interfaceName);
             endElem("query");
         }
+    }
+    
+    private void writeIndexDefinitions() throws GenerationException
+    {
+        generateIndexDefinition(
+            ASSOC_ONE_TO_MANY_CHILDREN_TABLE, 
+            ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN, 
+            ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN);
+        generateIndexDefinition(
+            ASSOC_ONE_TO_MANY_ORDERED_CHILDREN_TABLE, 
+            ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN, 
+            ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN);
+        generateIndexDefinition(
+            ASSOC_MANY_TO_MANY_TARGET_TABLE,
+            ASSOC_MANY_TO_MANY_TARGET_TYPE_COLUMN,
+            ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN);
+        generateIndexDefinition(
+            ASSOC_MANY_TO_MANY_ORDERED_TARGET_TABLE,
+            ASSOC_MANY_TO_MANY_TARGET_TYPE_COLUMN,
+            ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN);
+    }
+    
+    private void generateIndexDefinition(String table, String... columns) 
+        throws GenerationException
+    {        
+        startElem("database-object");
+        startElem("create");
+        writeText(
+            "create index ", indexName(table), " on ", tableName(table), " (");
+        increaseIndent();
+        for(int i = 0; i < columns.length; i++) {
+            String c = columns[i];
+            if (i + 1 < columns.length) {
+                writeText(hibernateQuote(c), ",");
+            } else {
+                writeText(hibernateQuote(c), ")");
+            }
+        }
+        decreaseIndent();
+        endElem("create");
+
+        // Dropping the table will take care of the indexes.
+        startElem("drop");
+        writeText(
+            "alter table ", tableName(table), 
+            " drop index ", indexName(table));
+        endElem("drop");
+        writeEmptyElem(
+            "dialect-scope", 
+            "name", MySQLDialect.class.getName());
+        writeEmptyElem(
+            "dialect-scope", 
+            "name", MySQLInnoDBDialect.class.getName());
+        writeEmptyElem(
+            "dialect-scope", 
+            "name", MySQLMyISAMDialect.class.getName());
+        endElem("database-object");
     }
     
     public void generateClassInstance(MofClass cls)
@@ -1052,6 +1134,15 @@ public class HibernateMappingHandler
         }
         
         return hibernateQuote(tableName);
+    }
+    
+    private String indexName(String tableName)
+    {
+        if (tablePrefix != null) {
+            tableName = tablePrefix + tableName;
+        }
+        
+        return hibernateQuote(tableName + "Index");
     }
     
     private MappingType getMappingType(

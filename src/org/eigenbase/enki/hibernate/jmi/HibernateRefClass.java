@@ -42,29 +42,27 @@ public abstract class HibernateRefClass
 {
     private final String allOfClassQueryName;
     private final String allOfTypeQueryName;
-    private final String byMofIdQueryName;
+    private final Class<?> classImpl;
     
     protected HibernateRefClass(
         RefPackage container,
-        Class<?> classImplementationName,
-        Class<?> classInterfaceName)
+        Class<?> classImplementation,
+        Class<?> classInterface)
     {
         super(container);
         
-        if (classImplementationName != null) {
+        if (classImplementation != null) {
             this.allOfClassQueryName = 
-                classImplementationName.getName() + "." + 
+                classImplementation.getName() + "." + 
                 HibernateMappingHandler.QUERY_NAME_ALLOFCLASS;
-            this.byMofIdQueryName =
-                classImplementationName.getName() + "." +
-                HibernateMappingHandler.QUERY_NAME_BYMOFID;
+            this.classImpl = classImplementation;
         } else {
             this.allOfClassQueryName = null;
-            this.byMofIdQueryName = null;
+            this.classImpl = null;
         }
         
         this.allOfTypeQueryName = 
-            classInterfaceName.getName() + "." + 
+            classInterface.getName() + "." + 
             HibernateMappingHandler.QUERY_NAME_ALLOFTYPE;
         
         getHibernateRepository().registerRefClass(
@@ -130,9 +128,9 @@ public abstract class HibernateRefClass
         return result;
     }
     
-    public String getByMofIdQueryName()
+    public Class<?> getInstanceClass()
     {
-        return byMofIdQueryName;
+        return classImpl;
     }
     
     protected HibernateMDRepository getHibernateRepository()

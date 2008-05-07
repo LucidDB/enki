@@ -175,6 +175,10 @@ public class EnkiTask
             if (mdr != null) {
                 mdr.shutdown();
             }
+        } catch(RuntimeException e) {
+            Logger.getLogger("org.eigenbase.enki.ant").log(
+                Level.SEVERE, "Build error", e);
+            throw e;
         } finally {
             resetLogManager();
         }
