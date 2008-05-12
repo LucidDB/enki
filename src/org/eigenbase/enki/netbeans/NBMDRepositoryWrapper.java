@@ -150,7 +150,7 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
         context.implicit = implicit;
 
         if (context.implicit) {
-            log.warning("begin implicit repository session");
+            log.fine("begin implicit repository session");
         }
     }
 
