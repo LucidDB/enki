@@ -106,6 +106,8 @@ public abstract class RefClassBase extends RefFeaturedBase implements RefClass
     {
         return repos;
     }
+    
+    public abstract Class<?> getInstanceClass();
 }
 
 // End RefClassBase.java

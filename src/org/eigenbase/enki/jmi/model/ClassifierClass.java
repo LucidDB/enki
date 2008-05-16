@@ -45,6 +45,11 @@ public class ClassifierClass
     protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
     {
     }
+
+    public Class<?> getInstanceClass()
+    {
+        return null;
+    }
 }
 
 // End ClassifierClass.java

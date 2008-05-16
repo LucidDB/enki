@@ -2815,11 +2815,9 @@ public final class Initializer
         attachesToAssoc.add(operation[6], tag[48]);
         attachesToAssoc.add(operation[4], tag[47]);
         attachesToAssoc.add(class_[26], tag[52]);
-        attachesToAssoc.add(class_[4], tag[20]);
-        attachesToAssoc.add(class_[3], tag[19]);
-        attachesToAssoc.add(attribute[5], tag[17]);
-        attachesToAssoc.add(attribute[4], tag[16]);
-        attachesToAssoc.add(class_[2], tag[18]);
+        attachesToAssoc.add(class_[25], tag[46]);
+        attachesToAssoc.add(class_[24], tag[45]);
+        attachesToAssoc.add(class_[23], tag[44]);
         attachesToAssoc.add(attribute[2], tag[14]);
         attachesToAssoc.add(class_[1], tag[15]);
         attachesToAssoc.add(attribute[1], tag[12]);
@@ -2840,9 +2838,6 @@ public final class Initializer
         attachesToAssoc.add(package_[1], tag[60]);
         attachesToAssoc.add(package_[1], tag[59]);
         attachesToAssoc.add(package_[0], tag[0]);
-        attachesToAssoc.add(class_[25], tag[46]);
-        attachesToAssoc.add(class_[24], tag[45]);
-        attachesToAssoc.add(class_[23], tag[44]);
         attachesToAssoc.add(class_[22], tag[43]);
         attachesToAssoc.add(class_[22], tag[42]);
         attachesToAssoc.add(class_[21], tag[41]);
@@ -2866,6 +2861,11 @@ public final class Initializer
         attachesToAssoc.add(class_[6], tag[23]);
         attachesToAssoc.add(class_[5], tag[22]);
         attachesToAssoc.add(class_[5], tag[21]);
+        attachesToAssoc.add(class_[4], tag[20]);
+        attachesToAssoc.add(class_[3], tag[19]);
+        attachesToAssoc.add(attribute[5], tag[17]);
+        attachesToAssoc.add(attribute[4], tag[16]);
+        attachesToAssoc.add(class_[2], tag[18]);
     }
 
     private void containsAssocInit()
@@ -2946,28 +2946,33 @@ public final class Initializer
         containsAssoc.add(class_[26], operation[6]);
         containsAssoc.add(class_[26], operation[5]);
         containsAssoc.add(class_[26], operation[4]);
-        containsAssoc.add(class_[4], tag[20]);
-        containsAssoc.add(class_[4], constraint[8]);
-        containsAssoc.add(class_[4], constraint[7]);
-        containsAssoc.add(class_[4], constraint[6]);
-        containsAssoc.add(class_[4], constraint[5]);
-        containsAssoc.add(class_[4], constraint[4]);
-        containsAssoc.add(class_[4], attribute[9]);
-        containsAssoc.add(class_[4], attribute[8]);
-        containsAssoc.add(class_[4], reference[2]);
-        containsAssoc.add(class_[3], tag[19]);
-        containsAssoc.add(class_[3], attribute[7]);
-        containsAssoc.add(class_[3], attribute[6]);
-        containsAssoc.add(class_[2], tag[18]);
-        containsAssoc.add(class_[2], constraint[3]);
-        containsAssoc.add(class_[2], constraint[2]);
-        containsAssoc.add(class_[2], attribute[5]);
-        containsAssoc.add(class_[2], tag[17]);
-        containsAssoc.add(class_[2], attribute[4]);
-        containsAssoc.add(class_[2], tag[16]);
-        containsAssoc.add(class_[2], enumerationType[0]);
-        containsAssoc.add(class_[2], attribute[3]);
-        containsAssoc.add(class_[2], reference[1]);
+        containsAssoc.add(operation[3], parameter[6]);
+        containsAssoc.add(operation[2], parameter[5]);
+        containsAssoc.add(operation[2], parameter[4]);
+        containsAssoc.add(operation[1], parameter[3]);
+        containsAssoc.add(operation[1], parameter[2]);
+        containsAssoc.add(operation[1], parameter[1]);
+        containsAssoc.add(class_[25], tag[46]);
+        containsAssoc.add(class_[25], constraint[52]);
+        containsAssoc.add(class_[25], constraint[51]);
+        containsAssoc.add(class_[25], constraint[50]);
+        containsAssoc.add(class_[25], constraint[49]);
+        containsAssoc.add(class_[25], constraint[48]);
+        containsAssoc.add(class_[25], constraint[47]);
+        containsAssoc.add(class_[25], constraint[46]);
+        containsAssoc.add(class_[25], attribute[27]);
+        containsAssoc.add(class_[25], attribute[26]);
+        containsAssoc.add(class_[25], attribute[25]);
+        containsAssoc.add(class_[25], attribute[24]);
+        containsAssoc.add(class_[25], reference[7]);
+        containsAssoc.add(class_[25], operation[3]);
+        containsAssoc.add(class_[25], operation[2]);
+        containsAssoc.add(class_[25], operation[1]);
+        containsAssoc.add(class_[24], tag[45]);
+        containsAssoc.add(class_[24], constraint[45]);
+        containsAssoc.add(class_[24], constraint[44]);
+        containsAssoc.add(class_[24], reference[6]);
+        containsAssoc.add(class_[23], tag[44]);
         containsAssoc.add(class_[1], tag[15]);
         containsAssoc.add(class_[1], constraint[1]);
         containsAssoc.add(class_[1], constraint[0]);
@@ -3072,33 +3077,6 @@ public final class Initializer
         containsAssoc.add(package_[0], primitiveType[2]);
         containsAssoc.add(package_[0], primitiveType[1]);
         containsAssoc.add(package_[0], primitiveType[0]);
-        containsAssoc.add(operation[3], parameter[6]);
-        containsAssoc.add(operation[2], parameter[5]);
-        containsAssoc.add(operation[2], parameter[4]);
-        containsAssoc.add(operation[1], parameter[3]);
-        containsAssoc.add(operation[1], parameter[2]);
-        containsAssoc.add(operation[1], parameter[1]);
-        containsAssoc.add(class_[25], tag[46]);
-        containsAssoc.add(class_[25], constraint[52]);
-        containsAssoc.add(class_[25], constraint[51]);
-        containsAssoc.add(class_[25], constraint[50]);
-        containsAssoc.add(class_[25], constraint[49]);
-        containsAssoc.add(class_[25], constraint[48]);
-        containsAssoc.add(class_[25], constraint[47]);
-        containsAssoc.add(class_[25], constraint[46]);
-        containsAssoc.add(class_[25], attribute[27]);
-        containsAssoc.add(class_[25], attribute[26]);
-        containsAssoc.add(class_[25], attribute[25]);
-        containsAssoc.add(class_[25], attribute[24]);
-        containsAssoc.add(class_[25], reference[7]);
-        containsAssoc.add(class_[25], operation[3]);
-        containsAssoc.add(class_[25], operation[2]);
-        containsAssoc.add(class_[25], operation[1]);
-        containsAssoc.add(class_[24], tag[45]);
-        containsAssoc.add(class_[24], constraint[45]);
-        containsAssoc.add(class_[24], constraint[44]);
-        containsAssoc.add(class_[24], reference[6]);
-        containsAssoc.add(class_[23], tag[44]);
         containsAssoc.add(class_[22], tag[43]);
         containsAssoc.add(class_[22], tag[42]);
         containsAssoc.add(class_[22], constraint[43]);
@@ -3176,6 +3154,28 @@ public final class Initializer
         containsAssoc.add(class_[5], tag[21]);
         containsAssoc.add(class_[5], constraint[10]);
         containsAssoc.add(class_[5], constraint[9]);
+        containsAssoc.add(class_[4], tag[20]);
+        containsAssoc.add(class_[4], constraint[8]);
+        containsAssoc.add(class_[4], constraint[7]);
+        containsAssoc.add(class_[4], constraint[6]);
+        containsAssoc.add(class_[4], constraint[5]);
+        containsAssoc.add(class_[4], constraint[4]);
+        containsAssoc.add(class_[4], attribute[9]);
+        containsAssoc.add(class_[4], attribute[8]);
+        containsAssoc.add(class_[4], reference[2]);
+        containsAssoc.add(class_[3], tag[19]);
+        containsAssoc.add(class_[3], attribute[7]);
+        containsAssoc.add(class_[3], attribute[6]);
+        containsAssoc.add(class_[2], tag[18]);
+        containsAssoc.add(class_[2], constraint[3]);
+        containsAssoc.add(class_[2], constraint[2]);
+        containsAssoc.add(class_[2], attribute[5]);
+        containsAssoc.add(class_[2], tag[17]);
+        containsAssoc.add(class_[2], attribute[4]);
+        containsAssoc.add(class_[2], tag[16]);
+        containsAssoc.add(class_[2], enumerationType[0]);
+        containsAssoc.add(class_[2], attribute[3]);
+        containsAssoc.add(class_[2], reference[1]);
     }
 
     private void generalizesAssocInit()
@@ -3238,13 +3238,10 @@ public final class Initializer
         constrainsAssoc.add(constraint[48], class_[25]);
         constrainsAssoc.add(constraint[47], class_[25]);
         constrainsAssoc.add(constraint[46], class_[25]);
-        constrainsAssoc.add(constraint[4], class_[4]);
-        constrainsAssoc.add(constraint[3], class_[2]);
-        constrainsAssoc.add(constraint[2], class_[2]);
-        constrainsAssoc.add(constraint[1], class_[1]);
-        constrainsAssoc.add(constraint[0], class_[1]);
         constrainsAssoc.add(constraint[45], class_[24]);
         constrainsAssoc.add(constraint[44], class_[24]);
+        constrainsAssoc.add(constraint[1], class_[1]);
+        constrainsAssoc.add(constraint[0], class_[1]);
         constrainsAssoc.add(constraint[43], class_[22]);
         constrainsAssoc.add(constraint[42], class_[22]);
         constrainsAssoc.add(constraint[41], package_[1]);
@@ -3284,6 +3281,9 @@ public final class Initializer
         constrainsAssoc.add(constraint[7], class_[4]);
         constrainsAssoc.add(constraint[6], class_[4]);
         constrainsAssoc.add(constraint[5], class_[4]);
+        constrainsAssoc.add(constraint[4], class_[4]);
+        constrainsAssoc.add(constraint[3], class_[2]);
+        constrainsAssoc.add(constraint[2], class_[2]);
     }
 
     private void canRaiseAssocInit()
@@ -3303,14 +3303,14 @@ public final class Initializer
         exposesAssoc.add(reference[10], associationEnd[14]);
         exposesAssoc.add(reference[9], associationEnd[8]);
         exposesAssoc.add(reference[8], associationEnd[15]);
-        exposesAssoc.add(reference[2], associationEnd[11]);
-        exposesAssoc.add(reference[1], associationEnd[9]);
-        exposesAssoc.add(reference[0], associationEnd[18]);
         exposesAssoc.add(reference[7], associationEnd[12]);
         exposesAssoc.add(reference[6], associationEnd[0]);
+        exposesAssoc.add(reference[0], associationEnd[18]);
         exposesAssoc.add(reference[5], associationEnd[5]);
         exposesAssoc.add(reference[4], associationEnd[3]);
         exposesAssoc.add(reference[3], associationEnd[7]);
+        exposesAssoc.add(reference[2], associationEnd[11]);
+        exposesAssoc.add(reference[1], associationEnd[9]);
     }
 
     private void refersToAssocInit()
@@ -3321,14 +3321,14 @@ public final class Initializer
         refersToAssoc.add(reference[10], associationEnd[15]);
         refersToAssoc.add(reference[9], associationEnd[9]);
         refersToAssoc.add(reference[8], associationEnd[14]);
-        refersToAssoc.add(reference[2], associationEnd[10]);
-        refersToAssoc.add(reference[1], associationEnd[8]);
-        refersToAssoc.add(reference[0], associationEnd[19]);
         refersToAssoc.add(reference[7], associationEnd[13]);
         refersToAssoc.add(reference[6], associationEnd[1]);
+        refersToAssoc.add(reference[0], associationEnd[19]);
         refersToAssoc.add(reference[5], associationEnd[4]);
         refersToAssoc.add(reference[4], associationEnd[2]);
         refersToAssoc.add(reference[3], associationEnd[6]);
+        refersToAssoc.add(reference[2], associationEnd[10]);
+        refersToAssoc.add(reference[1], associationEnd[8]);
     }
 
     private void isOfTypeAssocInit()
@@ -3412,12 +3412,6 @@ public final class Initializer
         isOfTypeAssoc.add(class_[26], associationEnd[15]);
         isOfTypeAssoc.add(class_[26], reference[2]);
         isOfTypeAssoc.add(class_[26], reference[10]);
-        isOfTypeAssoc.add(class_[4], associationEnd[11]);
-        isOfTypeAssoc.add(enumerationType[1], attribute[7]);
-        isOfTypeAssoc.add(enumerationType[0], attribute[3]);
-        isOfTypeAssoc.add(class_[2], associationEnd[9]);
-        isOfTypeAssoc.add(class_[2], reference[9]);
-        isOfTypeAssoc.add(class_[0], associationEnd[18]);
         isOfTypeAssoc.add(class_[25], associationEnd[12]);
         isOfTypeAssoc.add(class_[25], associationEnd[13]);
         isOfTypeAssoc.add(class_[25], parameter[6]);
@@ -3425,6 +3419,7 @@ public final class Initializer
         isOfTypeAssoc.add(class_[24], associationEnd[0]);
         isOfTypeAssoc.add(class_[23], associationEnd[1]);
         isOfTypeAssoc.add(class_[23], reference[6]);
+        isOfTypeAssoc.add(class_[0], associationEnd[18]);
         isOfTypeAssoc.add(class_[22], parameter[2]);
         isOfTypeAssoc.add(class_[22], parameter[10]);
         isOfTypeAssoc.add(structureType[0], attribute[6]);
@@ -3443,6 +3438,11 @@ public final class Initializer
         isOfTypeAssoc.add(class_[6], parameter[0]);
         isOfTypeAssoc.add(class_[6], reference[4]);
         isOfTypeAssoc.add(class_[6], reference[5]);
+        isOfTypeAssoc.add(class_[4], associationEnd[11]);
+        isOfTypeAssoc.add(enumerationType[1], attribute[7]);
+        isOfTypeAssoc.add(enumerationType[0], attribute[3]);
+        isOfTypeAssoc.add(class_[2], associationEnd[9]);
+        isOfTypeAssoc.add(class_[2], reference[9]);
     }
 
     @SuppressWarnings("unchecked")

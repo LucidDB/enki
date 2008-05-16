@@ -77,10 +77,7 @@ public abstract class HibernateObject extends RefObjectBase
             setMofId(mofId);
         
             if (!(this instanceof HibernateAssociation)) {
-                MofIdTypeMapping mapping = new MofIdTypeMapping();
-                mapping.setMofId(mofId);
-                mapping.setTypeName(this.getClass().getName());
-                session.save(mapping);
+                repos.recordObjectCreation(this);
             }
         }
         

@@ -44,7 +44,7 @@ public class MofIdGenerator
     
     private static final String COLUMN_NAME = "NEXT_MOF_ID_BLOCK";
 
-    private static final int DEFAULT_BLOCK_SIZE = 100;
+    private static final int DEFAULT_BLOCK_SIZE = 1000;
     
     private final SessionFactory sessionFactory;
     

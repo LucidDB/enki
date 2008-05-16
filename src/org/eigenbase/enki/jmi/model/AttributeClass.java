@@ -70,6 +70,11 @@ public class AttributeClass
     protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
     {
     }
+
+    public Class<?> getInstanceClass()
+    {
+        return org.eigenbase.enki.jmi.model.Attribute.class;
+    }
 }
 
 // End AttributeClass.java

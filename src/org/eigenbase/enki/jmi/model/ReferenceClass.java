@@ -68,6 +68,11 @@ public class ReferenceClass
     protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
     {
     }
+
+    public Class<?> getInstanceClass()
+    {
+        return org.eigenbase.enki.jmi.model.Reference.class;
+    }
 }
 
 // End ReferenceClass.java

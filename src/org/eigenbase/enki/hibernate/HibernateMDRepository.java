@@ -223,6 +223,9 @@ public class HibernateMDRepository
     /** Map of extent names to ExtentDescriptor instances. */
     private final Map<String, ExtentDescriptor> extentMap;
     
+    /** Value of hibernate.jdbc.batch_size. */
+    private final int batchSize;
+    
     private final boolean allowImplicitSessions;
     
     private final boolean trackSessions;
@@ -271,6 +274,10 @@ public class HibernateMDRepository
             new IdentityHashMap<MDRChangeListener, EnkiMaskedMDRChangeListener>();
         this.classRegistry = new HashMap<String, HibernateRefClass>();
         this.assocRegistry = new HashMap<String, HibernateRefAssociation>();
+        
+        this.batchSize = 
+            readStorageProperty(
+                "hibernate.jdbc.batch_size", -1, Integer.class);
         
         this.allowImplicitSessions = 
             readStorageProperty(
@@ -597,24 +604,44 @@ public class HibernateMDRepository
             fireCanceledChanges(mdrSession);
             
             if (mdrSession.containsWrites) {
-                // Evict all cached and potentially modified objects.
                 mdrSession.session.clear();
-                mdrSession.mofIdDeleteSet.clear();
+                mdrSession.reset();
             }
         } else {
             try {
-                if (mdrSession.containsWrites &&
-                    !mdrSession.mofIdDeleteSet.isEmpty())
-                {
-                    // Update enki type mapping
-                    Query query = 
-                        mdrSession.session.getNamedQuery(
-                            "TypeMappingDeleteByMofId");
-                    query.setParameterList(
-                        "mofIds", mdrSession.mofIdDeleteSet);
-                    query.executeUpdate();
+                Session session = mdrSession.session;
+                if (mdrSession.containsWrites) {
+                    if (!mdrSession.mofIdDeleteSet.isEmpty()) {
+                        // Update enki type mapping
+                        Query query = 
+                            session.getNamedQuery("TypeMappingDeleteByMofId");
+                        query.setParameterList(
+                            "mofIds", mdrSession.mofIdDeleteSet);
+                        query.executeUpdate();
+                        
+                        mdrSession.mofIdCreateMap.keySet().removeAll(
+                            mdrSession.mofIdDeleteSet);
+                        
+                        mdrSession.mofIdDeleteSet.clear();
+                    }
                     
-                    mdrSession.mofIdDeleteSet.clear();
+                    if (!mdrSession.mofIdCreateMap.isEmpty()) {
+                        int i = 0;
+                        for(Map.Entry<Long, Class<? extends RefObject>> entry:
+                                mdrSession.mofIdCreateMap.entrySet())
+                        {
+                            if (batchSize > 0 && i++ % batchSize == 0) {
+                                session.flush();
+                                session.clear();
+                            }
+                            MofIdTypeMapping mapping = new MofIdTypeMapping();
+                            mapping.setMofId(entry.getKey());
+                            mapping.setTypeName(entry.getValue().getName());
+                            mdrSession.session.save(mapping);
+                        }
+                        
+                        mdrSession.mofIdCreateMap.clear();
+                    }
                 }
                 
                 // TODO: check for constraint violations
@@ -641,6 +668,8 @@ public class HibernateMDRepository
             } catch(HibernateException e) {
                 fireCanceledChanges(mdrSession);
                 throw e;
+            } finally {
+                mdrSession.reset();
             }
         }
 
@@ -783,7 +812,7 @@ public class HibernateMDRepository
     {
         MdrSession mdrSession = getMdrSession();
         
-        long mofIdLong = MofIdUtil.parseMofIdStr(mofId); 
+        Long mofIdLong = MofIdUtil.parseMofIdStr(mofId); 
 
         RefBaseObject cachedResult = 
             (RefBaseObject)lookupByMofId(mdrSession, mofIdLong);
@@ -800,9 +829,17 @@ public class HibernateMDRepository
             return null;
         }
         
-        Session session = mdrSession.session;
-
         Class<?> instanceClass = ((HibernateRefClass)cls).getInstanceClass();
+
+        return getByMofId(mdrSession, mofIdLong, instanceClass);
+    }
+
+    private RefObject getByMofId(
+        MdrSession mdrSession,
+        Long mofIdLong,
+        Class<?> instanceClass)
+    {
+        Session session = mdrSession.session;
         
         RefObject result = (RefObject)session.get(instanceClass, mofIdLong);
             
@@ -849,6 +886,12 @@ public class HibernateMDRepository
                 return null;
             }
             
+            if (mdrSession.mofIdCreateMap.containsKey(mofIdLong)) {
+                Class<? extends RefObject> cls = 
+                    mdrSession.mofIdCreateMap.get(mofIdLong);
+                return getByMofId(mdrSession, mofIdLong, cls);
+            }
+            
             Session session = mdrSession.session;
             
             Query query = session.getNamedQuery("TypeMappingByMofId");
@@ -893,7 +936,7 @@ public class HibernateMDRepository
         return null;
     }
 
-    private RefBaseObject lookupByMofId(MdrSession mdrSession, long mofId)
+    private RefBaseObject lookupByMofId(MdrSession mdrSession, Long mofId)
     {
         return softCacheLookup(mdrSession.byMofIdCache, mofId);
     }
@@ -920,7 +963,7 @@ public class HibernateMDRepository
     }
     
     private void storeByMofId(
-        MdrSession mdrSession, long mofId, RefBaseObject obj)
+        MdrSession mdrSession, Long mofId, RefBaseObject obj)
     {
         softCacheStore(mdrSession.byMofIdCache, mofId, obj);
     }
@@ -1346,15 +1389,28 @@ public class HibernateMDRepository
             throw new IllegalStateException("Not in write transaction");
         }
 
-        if (event.isOfType(InstanceEvent.EVENT_INSTANCE_DELETE)) {
-            InstanceEvent instanceEvent = (InstanceEvent)event;
-            long mofId = 
-                ((RefBaseObjectBase)instanceEvent.getInstance()).getMofId();
-            mdrSession.byMofIdCache.remove(mofId);
-            mdrSession.mofIdDeleteSet.add(mofId);
-        }
-        
         enqueueEvent(mdrSession, event);
+    }
+    
+    public void recordObjectCreation(HibernateObject object)
+    {
+        MdrSession mdrSession = getMdrSession();
+
+        long mofId = object.getMofId();
+
+        Map<Long, Class<? extends RefObject>> mofIdCreateMap = 
+            mdrSession.mofIdCreateMap;
+        
+        mofIdCreateMap.put(mofId, object.getClass());
+    }
+    
+    public void recordObjectDeletion(HibernateObject object)
+    {
+        MdrSession mdrSession = getMdrSession();
+        
+        long mofId = object.getMofId();
+        mdrSession.byMofIdCache.remove(mofId);
+        mdrSession.mofIdDeleteSet.add(mofId);
     }
     
     /**
@@ -2255,15 +2311,9 @@ public class HibernateMDRepository
     {
         Statistics stats = sessionFactory.getStatistics();
         
+        stats.logSummary();
+        
         StringBuilder b = new StringBuilder();
-        b
-            .append("stats: open sessions: ")
-            .append(stats.getSessionOpenCount())
-            .append(" closed sessions: ")
-            .append(stats.getSessionCloseCount());
-        
-        log.info(b.toString());
-        
         for(String cacheRegion: stats.getSecondLevelCacheRegionNames()) {
             SecondLevelCacheStatistics cacheStats = 
                 stats.getSecondLevelCacheStatistics(cacheRegion);
@@ -2382,6 +2432,8 @@ public class HibernateMDRepository
         private final Map<HibernateRefClass, SoftReference<Collection<?>>> allOfClassCache;
         private final Map<Long, SoftReference<RefBaseObject>> byMofIdCache;
         private final Set<Long> mofIdDeleteSet;
+        private final Map<Long, Class<? extends RefObject>> mofIdCreateMap;
+        
         private final List<MDRChangeEvent> queuedEvents;
 
         private MdrSession(Session session, boolean isImplicit, int sessionId)
@@ -2395,6 +2447,8 @@ public class HibernateMDRepository
             this.byMofIdCache =
                 new HashMap<Long, SoftReference<RefBaseObject>>();
             this.mofIdDeleteSet = new HashSet<Long>();
+            this.mofIdCreateMap = 
+                new HashMap<Long, Class<? extends RefObject>>();
             this.containsWrites = false;
             this.queuedEvents = new LinkedList<MDRChangeEvent>();
             this.isImplicit = isImplicit;
@@ -2412,6 +2466,15 @@ public class HibernateMDRepository
             return HibernateMDRepository.this;
         }
         
+        public void reset()
+        {
+            allOfTypeCache.clear();
+            allOfClassCache.clear();
+            byMofIdCache.clear();
+            mofIdDeleteSet.clear();
+            mofIdCreateMap.clear();
+        }
+        
         public void close()
         {
             if (!context.isEmpty()) {
@@ -2423,11 +2486,8 @@ public class HibernateMDRepository
                 throw new InternalMdrError("unfired events on session");
             }
             queuedEvents.clear();
-            
-            allOfTypeCache.clear();
-            allOfClassCache.clear();
-            
-            byMofIdCache.clear();
+
+            reset();
             
             session.close();
             session = null;

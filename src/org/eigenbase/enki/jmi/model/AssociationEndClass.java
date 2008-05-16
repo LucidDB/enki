@@ -68,6 +68,11 @@ public class AssociationEndClass
     protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
     {
     }
+
+    public Class<?> getInstanceClass()
+    {
+        return org.eigenbase.enki.jmi.model.AssociationEnd.class;
+    }
 }
 
 // End AssociationEndClass.java

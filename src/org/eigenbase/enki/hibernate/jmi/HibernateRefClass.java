@@ -43,6 +43,7 @@ public abstract class HibernateRefClass
     private final String allOfClassQueryName;
     private final String allOfTypeQueryName;
     private final Class<?> classImpl;
+    private final Class<?> iface;
     
     protected HibernateRefClass(
         RefPackage container,
@@ -64,6 +65,7 @@ public abstract class HibernateRefClass
         this.allOfTypeQueryName = 
             classInterface.getName() + "." + 
             HibernateMappingHandler.QUERY_NAME_ALLOFTYPE;
+        this.iface = classInterface;
         
         getHibernateRepository().registerRefClass(
             getClassIdentifier(),
@@ -131,6 +133,11 @@ public abstract class HibernateRefClass
     public Class<?> getInstanceClass()
     {
         return classImpl;
+    }
+    
+    public Class<?> getInterfaceClass()
+    {
+        return iface;
     }
     
     protected HibernateMDRepository getHibernateRepository()

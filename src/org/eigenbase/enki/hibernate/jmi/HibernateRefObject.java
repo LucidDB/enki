@@ -62,7 +62,7 @@ public abstract class HibernateRefObject
     {
         logJmi("refDelete");
         
-        getHibernateRepository().checkTransaction(true);
+        repos.checkTransaction(true);
         
         enqueueEvent(
             new InstanceEvent(
@@ -70,6 +70,8 @@ public abstract class HibernateRefObject
                 InstanceEvent.EVENT_INSTANCE_DELETE,
                 null,
                 this));
+        
+        repos.recordObjectDeletion(this);
         
         removeAssociations();
         

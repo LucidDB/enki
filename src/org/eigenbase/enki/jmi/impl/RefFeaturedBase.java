@@ -38,6 +38,13 @@ public abstract class RefFeaturedBase
     extends RefBaseObjectBase 
     implements RefFeatured
 {
+    /** Maximum number of classes for which reflective methods are cached. */
+    private static final int MAX_CLASSES = 25;
+    private static final int MAX_METHODS_PER_CLASS = 10;
+    
+    private static final Map<Class<?>, Map<String, Method>> refMethodCache =
+        new LRUHashMap<Class<?>, Map<String, Method>>(MAX_CLASSES);
+    
     protected RefFeaturedBase()
     {
         super();
@@ -147,34 +154,52 @@ public abstract class RefFeaturedBase
             typeName = typeElement.getName();
         }
 
-        boolean startsWithIs = 
-            typeName.length() > 2 && 
-            typeName.startsWith("is") && 
-            Character.isUpperCase(typeName.charAt(2));
-
-        String primaryMethodName;
-        String secondaryMethodName;
-        if (isGetter) {
-            primaryMethodName = "get" + StringUtil.toInitialUpper(typeName);
-            if (startsWithIs) {
-                secondaryMethodName = typeName;
-            } else {
-                secondaryMethodName = 
-                    "is" + StringUtil.toInitialUpper(typeName);
-            }
+        Class<?> cls;
+        if (this instanceof RefClass) {
+            cls = getClass();
         } else {
-            primaryMethodName = "set" + StringUtil.toInitialUpper(typeName);
-            if (startsWithIs) {
-                secondaryMethodName = "set" + typeName.substring(2);
-            } else {
-                secondaryMethodName = null;
-            }
+            RefClass refCls = ((RefObject)this).refClass();
+            cls = ((RefClassBase)refCls).getInstanceClass();
         }
-            
-        Class<?> cls = getClass();
-        do {
-            Method[] methods = cls.getDeclaredMethods();
-
+        
+        String cacheTypeName = (isGetter ? "GET$$" : "SET$$") + typeName;
+        
+        synchronized(refMethodCache) {
+            Map<String, Method> classMethodCache = refMethodCache.get(cls);
+            if (classMethodCache != null) {
+                Method method = classMethodCache.get(cacheTypeName);
+                if (method != null) {
+                    return method;
+                }
+            }
+        
+            boolean startsWithIs = 
+                typeName.length() > 2 && 
+                typeName.startsWith("is") && 
+                Character.isUpperCase(typeName.charAt(2));
+    
+            String primaryMethodName;
+            String secondaryMethodName;
+            if (isGetter) {
+                primaryMethodName =
+                    "get" + StringUtil.toInitialUpper(typeName);
+                if (startsWithIs) {
+                    secondaryMethodName = typeName;
+                } else {
+                    secondaryMethodName = 
+                        "is" + StringUtil.toInitialUpper(typeName);
+                }
+            } else {
+                primaryMethodName = "set" + StringUtil.toInitialUpper(typeName);
+                if (startsWithIs) {
+                    secondaryMethodName = "set" + typeName.substring(2);
+                } else {
+                    secondaryMethodName = null;
+                }
+            }
+                
+            Method[] methods = cls.getMethods();
+    
             for(Method method: methods) {
                 String methodName = method.getName();
                 if (!methodName.equals(primaryMethodName)) {
@@ -186,12 +211,18 @@ public abstract class RefFeaturedBase
                 }
                 
                 if (method.getParameterTypes().length == numParams) {
+                    if (classMethodCache == null) {
+                        classMethodCache = 
+                            new LRUHashMap<String, Method>(
+                                MAX_METHODS_PER_CLASS);
+                        refMethodCache.put(cls, classMethodCache);
+                    }
+                    
+                    classMethodCache.put(cacheTypeName, method);
                     return method;
                 }
             }
-            
-            cls = cls.getSuperclass();
-        } while(cls != RefFeaturedBase.class);
+        }
         
         return null;
     }
@@ -270,6 +301,25 @@ public abstract class RefFeaturedBase
             return method.invoke(this, params);
         } catch (Exception e) {
             return null;
+        }
+    }
+    
+    private static class LRUHashMap<K, V> extends LinkedHashMap<K, V>
+    {
+        private static final long serialVersionUID = -1017977801627995410L;
+
+        private final int limit;
+        
+        public LRUHashMap(int limit)
+        {
+            super(16, 0.75f, true);
+            
+            this.limit = limit;
+        }
+        
+        protected boolean removeEldestEntry(Map.Entry<K, V> eldest)
+        {
+            return size() > limit;
         }
     }
 }

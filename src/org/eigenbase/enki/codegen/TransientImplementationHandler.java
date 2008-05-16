@@ -974,6 +974,16 @@ public abstract class TransientImplementationHandler
             
             newLine();
             writeCheckConstraints();
+            
+            newLine();
+            startBlock("public Class<?> getInstanceClass()");
+            if (cls.isAbstract()) {
+                writeln("return null;");
+            } else {
+                writeln("return ", instImplTypeName, ".class;");
+            }
+            endBlock();
+            
             writeEntityFooter();
         }
         finally {

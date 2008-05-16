@@ -185,7 +185,7 @@ public class Tag
             otherElement);
     }
 
-    protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
+    protected void checkConstraints(List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
     {
         if (name == null) {
             javax.jmi.model.Attribute attrib = findAttribute("name");

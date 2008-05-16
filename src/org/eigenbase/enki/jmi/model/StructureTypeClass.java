@@ -68,6 +68,11 @@ public class StructureTypeClass
     protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
     {
     }
+
+    public Class<?> getInstanceClass()
+    {
+        return org.eigenbase.enki.jmi.model.StructureType.class;
+    }
 }
 
 // End StructureTypeClass.java
