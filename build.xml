@@ -544,7 +544,8 @@
       <formatter type="plain"/>
       <batchtest todir="${test.results.dir}">
         <fileset dir="${classes.dir}">
-          <include name="**/test/**/*Test.class"/>
+          <include name="**/test/**/*Test.class" unless="enki.test.pattern"/>
+          <include name="${enki.test.pattern}" if="enki.test.pattern"/>
           <exclude name="**/test/plugin/*Test.class"/>
         </fileset>
       </batchtest>
@@ -574,7 +575,8 @@
       <formatter type="plain"/>
       <batchtest todir="${test.results.dir}">
         <fileset dir="${classes.dir}">
-          <include name="**/test/plugin/*Test.class"/>
+          <include name="**/test/plugin/*Test.class" unless="enki.test.pattern"/>
+          <include name="${enki.test.pattern}" if="enki.test.pattern"/>
         </fileset>
       </batchtest>
     </junit>

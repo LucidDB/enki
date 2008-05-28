@@ -21,6 +21,8 @@
 */
 package org.eigenbase.enki.codegen;
 
+import java.util.*;
+
 
 /**
  * XmlHandlerBase extends {@link HandlerBase} with convenience functions for
@@ -35,12 +37,16 @@ public class XmlHandlerBase
 
     private static final String COMMENT_START = "<!--";
 
+    private Stack<String> elemStack;
+    
     private String xmlNamespace;
     private String xmlNamespaceUri;
     
     public XmlHandlerBase()
     {
         super();
+        
+        this.elemStack = new Stack<String>();
     }
     
     protected void writeXmlDecl()
@@ -184,6 +190,8 @@ public class XmlHandlerBase
                 decreaseIndent();
             }
         }
+        
+        elementStartEvent(name);
     }
 
     /**
@@ -191,10 +199,12 @@ public class XmlHandlerBase
      * 
      * @param name element name
      */
-    protected void endElem(String name)
+    protected void endElem(String name) throws GenerationException
     {
         decreaseIndent();
         writeln("</", name, ">");
+        
+        elementEndEvent(name);
     }
     
     /**
@@ -260,6 +270,9 @@ public class XmlHandlerBase
                 decreaseIndent();
             }
         }
+        
+        elementStartEvent(name);
+        elementEndEvent(name);
     }
     
     /**
@@ -284,6 +297,7 @@ public class XmlHandlerBase
             startElemHanging(name, attribs);
             write(escapeText(value));
             writeln("</", name, ">");
+            elementEndEvent(name);
         }
     }
     
@@ -399,6 +413,27 @@ public class XmlHandlerBase
         
         return new GenerationException(
             "Cannot escape character " + hex + ": " + reason);
+    }
+    
+    private void elementStartEvent(String elem) throws GenerationException
+    {
+        elemStack.push(elem);
+    }
+    
+    private void elementEndEvent(String elem) throws GenerationException
+    {
+        if (elemStack.isEmpty()) {
+            throw new GenerationException(
+                "Unexpected end of element (no open elements): " + elem);
+        }
+        
+        String expectedElem = elemStack.pop();
+        
+        if (!expectedElem.equals(elem)) {
+            throw new GenerationException(
+                "Unexpected end of element: " + elem + 
+                ", expecting: " + expectedElem);
+        }
     }
 }
 

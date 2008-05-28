@@ -810,10 +810,30 @@ public class HibernateMDRepository
     
     public RefObject getByMofId(String mofId, RefClass cls)
     {
-        MdrSession mdrSession = getMdrSession();
-        
         Long mofIdLong = MofIdUtil.parseMofIdStr(mofId); 
 
+        return getByMofId(mofIdLong, cls, mofId);
+    }
+    
+    public RefObject getByMofId(long mofId, RefClass cls)
+    {
+        return getByMofId(mofId, cls, null);
+    }
+    
+    /**
+     * Loads a RefObject by MOF ID.  The string version of the MOF ID is
+     * optional, but if non-null must match <code>mofIdLong</code>.  If
+     * null, mofIdLong is converted to a string if needed (it usually is not).
+     * 
+     * @param mofIdLong MOF ID of the object to load
+     * @param cls {@link RefClass} representing the object's concrete type
+     * @param mofId optional string version of MOF ID
+     * @return the object requested or null if not found or already deleted
+     */
+    private RefObject getByMofId(long mofIdLong, RefClass cls, String mofId)
+    {
+        MdrSession mdrSession = getMdrSession();
+        
         RefBaseObject cachedResult = 
             (RefBaseObject)lookupByMofId(mdrSession, mofIdLong);
         if (cachedResult != null) {
@@ -821,6 +841,9 @@ public class HibernateMDRepository
         }
         
         if((mofIdLong & MetamodelInitializer.METAMODEL_MOF_ID_MASK) != 0) {
+            if (mofId == null) {
+                mofId = MofIdUtil.makeMofIdStr(mofIdLong);
+            }
             RefBaseObject result = findMetaByMofId(mofId);
             return convertToRefObject(cls, result);
         }

@@ -38,6 +38,13 @@ public abstract class HibernateAssociationBase
     extends HibernateObject
     implements HibernateAssociation
 {
+    private final HibernateMDRepository repos;
+    
+    public HibernateAssociationBase()
+    {
+        this.repos = HibernateMDRepository.getCurrentRepository();
+    }
+    
     /** Name of the association type. */
     private String type;
 
@@ -52,37 +59,16 @@ public abstract class HibernateAssociationBase
     }
     
     /**
-     * Test two HibernateAssociable objects for equality.  Equality is based
-     * on {@link Object#equals(Object)}.  Null references are handled without
+     * Test two objects for equality.  Equality is based on 
+     * {@link Object#equals(Object)}.  Null references are handled without
      * error.
      * 
-     * @param a1 a HibernateAssociable
-     * @param a2 a HibernateAssociable
+     * @param a1 an object
+     * @param a2 an object
      * @return true if a1.equals(a2) or a1 == null and a2 == null
      */
     protected static boolean equals(
-        HibernateAssociable a1, HibernateAssociable a2)
-    {
-        if (a1 == null) {
-            return a2 == null;
-        } else if (a2 == null) {
-            return false;
-        } else {
-            return a1.equals(a2);
-        }
-    }
-
-    /**
-     * Test two HibernateAssociation objects for equality.  Equality is based
-     * on {@link Object#equals(Object)}.  Null references are handled without
-     * error.
-     * 
-     * @param a1 a HibernateAssociation
-     * @param a2 a HibernateAssociation
-     * @return true if a1.equals(a2) or a1 == null and a2 == null
-     */
-    protected static boolean equals(
-        HibernateAssociation a1, HibernateAssociation a2)
+        Object a1, Object a2)
     {
         if (a1 == null) {
             return a2 == null;
@@ -98,39 +84,18 @@ public abstract class HibernateAssociationBase
         return getLinks().iterator();
     }
     
+    
     /**
-     * Retrieves a {@link HibernateMDRepository} instance via one of this
-     * association's ends.  This override is necessary since instances of
-     * HibernateAssociation do not have a reference to a RefAssociationBase.
-     * Instead the HibernateMDRepository is obtained via one of the members
-     * of the association.
+     * Retrieves a {@link HibernateMDRepository} instance.
 
      * @return the HibernateMDRepository that stores this association
      */
     @Override
     public HibernateMDRepository getHibernateRepository()
     {
-        // REVIEW: SWZ: 2008-02-12: Could be more efficient to use an abstract
-        // method that returns any end from the association.  Here we query
-        // the first end, and if no object is found (usually because this
-        // association is newly created) we query the other end (where there
-        // must be an object even at create time).
-        HibernateAssociable end;
-        Iterator<? extends RefObject> iter = query(false).iterator();
-        if (iter.hasNext()) {
-            end = (HibernateAssociable)iter.next();
-        } else {
-            iter = query(true).iterator();
-            if (iter.hasNext()) {
-                end = (HibernateAssociable)iter.next();
-            } else {
-                throw new InternalMdrError("empty association");
-            }
-        }
-        
-        return getHibernateRepository(end);
+        return repos;
     }
-
+ 
     /**
      * Retrieves this association's {@link HibernateMDRepository} as a
      * {@link EnkiMDRepository}.
@@ -140,9 +105,9 @@ public abstract class HibernateAssociationBase
     @Override
     public EnkiMDRepository getRepository()
     {
-        return getHibernateRepository();
+        return repos;
     }
-    
+  
     /**
      * Retrieves a {@link HibernateMDRepository} from an element of either
      * end of the association.

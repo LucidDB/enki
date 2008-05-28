@@ -65,6 +65,13 @@ public class CodeGenUtils
     public static final String TRANSIENT_PKG_TAG_NAME = 
         "org.eigenbase.enki.transientPackage";
     
+    /**
+     * Tag identifier for a custom Enki tag to control whether an association
+     * is loaded lazily.  The tag identifier is {@value}.
+     */
+    public static final String LAZY_ASSOCIATION_TAG_NAME =
+        "org.eigenbase.enki.lazyAssociation";
+    
     private CodeGenUtils()
     {
     }
@@ -97,6 +104,16 @@ public class CodeGenUtils
         }
     }
 
+    public static boolean isLazyAssociation(Association assoc)
+    {
+        String value = TagUtil.getTagValue(assoc, LAZY_ASSOCIATION_TAG_NAME);
+        if (value == null) {
+            return false;
+        }
+        
+        return Boolean.valueOf(value);
+    }
+    
     /**
      * Find all associations that refer to the given MofClass which are not
      * described by {@link Reference} instances.

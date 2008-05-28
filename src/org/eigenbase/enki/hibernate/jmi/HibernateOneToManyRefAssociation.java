@@ -115,9 +115,8 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
         }
 
         HibernateAssociable p = (HibernateAssociable)parent;
-        HibernateOneToManyAssociationBase assoc = 
-            (HibernateOneToManyAssociationBase)p.getAssociation(
-                type, end1IsParent);
+        HibernateAssociationBase assoc = 
+            (HibernateAssociationBase)p.getAssociation(type, end1IsParent);
 
         if (assoc == null) {
             return Collections.emptyList();

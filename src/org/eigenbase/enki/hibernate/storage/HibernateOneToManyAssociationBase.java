@@ -83,7 +83,6 @@ public abstract class HibernateOneToManyAssociationBase
             newParent = end1;
             newChild = end2;
             parentIsFirstEnd = true;
-
         }
         boolean childIsFirstEnd = !parentIsFirstEnd;
         
