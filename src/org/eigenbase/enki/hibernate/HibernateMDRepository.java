@@ -71,14 +71,24 @@ import org.netbeans.api.mdr.events.*;
  *     <td align="left">{@value #PROPERTY_STORAGE_ALLOW_IMPLICIT_SESSIONS}</td>
  *     <td align="left">
  *       Controls whether or not implicit sessions are allowed.  Defaults to
- *       <code>false</code> (not allowed).
+ *       {@value DEFAULT_ALLOW_IMPLICIT_SESSIONS}.
+ *     </td>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">{@value #PROPERTY_STORAGE_TRACK_SESSIONS}</td>
+ *     <td align="left">
+ *       Controls whether session begin/end pairs are tracked with a unique
+ *       identifier.  Useful for determining where a particular session begins
+ *       and ends when sessions are unexpectedly nested.  Note that the 
+ *       generated identifiers are only unique within a repository instance.
+ *       Defaults to {@value #DEFAULT_TRACK_SESSIONS}.
  *     </td>
  *   </tr>
  *   <tr>
  *     <td align="left">{@value #PROPERTY_STORAGE_TYPE_LOOKUP_FLUSH_SIZE}</td>
  *     <td align="left">
  *       Controls whether or not and how frequently insertions into the MOF
- *       ID/type lookup table are flushed. Default to the value of
+ *       ID/type lookup table are flushed. Defaults to the value of
  *       {@value #PROPERTY_STORAGE_HIBERNATE_JDBC_BATCH_SIZE}.
  *     </td>
  *   </tr>
@@ -87,8 +97,8 @@ import org.netbeans.api.mdr.events.*;
  *     <td align="left">
  *       All properties are passed to Hibernate's {@link Configuration} without
  *       modification. Note that the property
- *       {@value #PROPERTY_STORAGE_HIBERNATE_DEFAULT_FETCH_BATCH_SIZE} controls batch
- *       fetch size for lazy associations.
+ *       {@value #PROPERTY_STORAGE_HIBERNATE_DEFAULT_BATCH_FETCH_SIZE} controls
+ *       batch fetch size for lazy associations.
  *     </td>
  *   </tr>
  * </table>
@@ -180,15 +190,16 @@ public class HibernateMDRepository
      * Storage property that controls whether and how frequently the Hibernate
      * session is flushed while inserting entires into the MOF ID/type lookup
      * table.  Defaults to the value of the
-     * {@value #PROPERTY_STORAGE_HIBERNATE_JDBC_BATCH_SIZE} property.
+     * {@value #PROPERTY_STORAGE_HIBERNATE_JDBC_BATCH_SIZE} property.  Values
+     * less than or equal to 0 disable flushing.
      */
     public static final String PROPERTY_STORAGE_TYPE_LOOKUP_FLUSH_SIZE =
         "org.eigenbase.enki.hibernate.typeLookupFlushSize";
 
     /**
-     * Hibernate property re-used as a storage property to controls MOF ID/type
-     * mapping flushes during transaction commit in addition to its normal
-     * Hibernate behavior.
+     * Hibernate property re-used as a storage property to control the default
+     * size of MOF ID/type mapping flushes during transaction commit in
+     * addition to its normal Hibernate behavior.
      */
     public static final String PROPERTY_STORAGE_HIBERNATE_JDBC_BATCH_SIZE =
         "hibernate.jdbc.batch_size";
