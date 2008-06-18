@@ -878,6 +878,10 @@ public class HibernateMappingHandler
             ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN, 
             ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN);
         generateIndexDefinition(
+            ASSOC_ONE_TO_MANY_LAZY_CHILDREN_TABLE, 
+            ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN, 
+            ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN);
+        generateIndexDefinition(
             ASSOC_ONE_TO_MANY_ORDERED_CHILDREN_TABLE, 
             ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN, 
             ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN);

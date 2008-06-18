@@ -391,7 +391,54 @@ public class JmiWriteTest extends JmiTestBase
         finally {
             getRepository().endTrans();
         }
+    }
+    
+    @Test
+    public void testRefAllOfTypeForNewObjects()
+    {
+        reset();
         
+        getRepository().beginTrans(true);
+        try {
+            Car car = 
+                getSamplePackage().getCar().createCar("Lotus", "Elise", 2);
+            
+            Vehicle vehicle =
+                getSamplePackage().getVehicle().createVehicle("Segway", "i2");
+            
+            Collection<?> vehicles = 
+                getSamplePackage().getVehicle().refAllOfType();
+            
+            Assert.assertEquals(2, vehicles.size());
+            Assert.assertTrue(vehicles.contains(car));
+            Assert.assertTrue(vehicles.contains(vehicle));       
+        } finally {
+            getRepository().endTrans(false);
+        }
+    }
+    
+    @Test
+    public void testRefAllOfClassForNewObjects()
+    {
+        reset();
+        
+        getRepository().beginTrans(true);
+        try {
+            Vehicle vehicle =
+                getSamplePackage().getVehicle().createVehicle("Segway", "i2");
+            
+            Vehicle vehicle2 =
+                getSamplePackage().getVehicle().createVehicle("Segway", "x2");
+            
+            Collection<?> vehicles = 
+                getSamplePackage().getVehicle().refAllOfClass();
+            
+            Assert.assertEquals(2, vehicles.size());
+            Assert.assertTrue(vehicles.contains(vehicle));
+            Assert.assertTrue(vehicles.contains(vehicle2));       
+        } finally {
+            getRepository().endTrans(false);
+        }
     }
 }
 

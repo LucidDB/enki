@@ -21,6 +21,7 @@
 */
 package org.eigenbase.enki.netbeans;
 
+import java.util.*;
 import java.util.logging.*;
 
 import javax.jmi.reflect.*;
@@ -296,7 +297,95 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
         
         return obj;
     }
+    
+    public RefObject findAllOfType(
+        RefClass cls, String featureName, Object value)
+    {
+        assert(!(value instanceof RefObject));
+        
+        Collection<?> allOfType = cls.refAllOfType();
 
+        return search(allOfType, featureName, value);
+    }
+    
+    public RefObject findAllOfType(
+        RefClass cls, RefObject feature, Object value)
+    {
+        assert(!(value instanceof RefObject));
+        
+        Collection<?> allOfType = cls.refAllOfType();
+
+        return search(allOfType, feature, value);
+    }
+    
+    public RefObject findAllOfClass(
+        RefClass cls, String featureName, Object value)
+    {
+        assert(!(value instanceof RefObject));
+        
+        Collection<?> allOfClass = cls.refAllOfClass();
+
+        return search(allOfClass, featureName, value);
+    }
+    
+    public RefObject findAllOfClass(
+        RefClass cls, RefObject feature, Object value)
+    {
+        assert(!(value instanceof RefObject));
+        
+        Collection<?> allOfClass = cls.refAllOfClass();
+
+        return search(allOfClass, feature, value);
+    }
+    
+    private RefObject search(
+        Collection<?> refObjects, String featureName, Object value)
+    {
+        if (value == null) {
+            for(Object o: refObjects) {
+                RefObject refObj = (RefObject)o;
+                
+                if (refObj.refGetValue(featureName) == null) {
+                    return refObj;
+                }
+            }
+        } else {
+            for(Object o: refObjects) {
+                RefObject refObj = (RefObject)o;
+                
+                if (value.equals(refObj.refGetValue(featureName))) {
+                    return refObj;
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    private RefObject search(
+        Collection<?> refObjects, RefObject feature, Object value)
+    {
+        if (value == null) {
+            for(Object o: refObjects) {
+                RefObject refObj = (RefObject)o;
+                
+                if (refObj.refGetValue(feature) == null) {
+                    return refObj;
+                }
+            }
+        } else {
+            for(Object o: refObjects) {
+                RefObject refObj = (RefObject)o;
+                
+                if (value.equals(refObj.refGetValue(feature))) {
+                    return refObj;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
     public RefPackage getExtent(String name)
     {
         return impl.getExtent(name);

@@ -41,6 +41,7 @@ import org.eigenbase.enki.mdr.EnkiChangeEventThread.*;
 import org.eigenbase.enki.util.*;
 import org.hibernate.*;
 import org.hibernate.cfg.*;
+import org.hibernate.criterion.*;
 import org.hibernate.event.*;
 import org.hibernate.event.def.*;
 import org.hibernate.stat.*;
@@ -74,10 +75,20 @@ import org.netbeans.api.mdr.events.*;
  *     </td>
  *   </tr>
  *   <tr>
+ *     <td align="left">{@value #PROPERTY_STORAGE_TYPE_LOOKUP_FLUSH_SIZE}</td>
+ *     <td align="left">
+ *       Controls whether or not and how frequently insertions into the MOF
+ *       ID/type lookup table are flushed. Default to the value of
+ *       {@value #PROPERTY_STORAGE_HIBERNATE_JDBC_BATCH_SIZE}.
+ *     </td>
+ *   </tr>
+ *   <tr>
  *     <td align="left">hibernate.*</td>
  *     <td align="left">
- *       All properties are passed to Hibernate's {@link Configuration}
- *       without modification.
+ *       All properties are passed to Hibernate's {@link Configuration} without
+ *       modification. Note that the property
+ *       {@value #PROPERTY_STORAGE_HIBERNATE_DEFAULT_FETCH_BATCH_SIZE} controls batch
+ *       fetch size for lazy associations.
  *     </td>
  *   </tr>
  * </table>
@@ -164,7 +175,31 @@ public class HibernateMDRepository
      * The default is {@value}. 
      */
     public static final boolean DEFAULT_TRACK_SESSIONS = false;
-    
+
+    /**
+     * Storage property that controls whether and how frequently the Hibernate
+     * session is flushed while inserting entires into the MOF ID/type lookup
+     * table.  Defaults to the value of the
+     * {@value #PROPERTY_STORAGE_HIBERNATE_JDBC_BATCH_SIZE} property.
+     */
+    public static final String PROPERTY_STORAGE_TYPE_LOOKUP_FLUSH_SIZE =
+        "org.eigenbase.enki.hibernate.typeLookupFlushSize";
+
+    /**
+     * Hibernate property re-used as a storage property to controls MOF ID/type
+     * mapping flushes during transaction commit in addition to its normal
+     * Hibernate behavior.
+     */
+    public static final String PROPERTY_STORAGE_HIBERNATE_JDBC_BATCH_SIZE =
+        "hibernate.jdbc.batch_size";
+
+    /**
+     * Hibernate property re-used as a storage property to control lazy
+     * association batch size in addition to its normal Hibernate behavior.
+     */
+    public static final String PROPERTY_STORAGE_HIBERNATE_DEFAULT_BATCH_FETCH_SIZE =
+        "hibernate.default.batch_fetch_size";
+
     /**
      * Storage property that configures whether session factory statistics
      * are periodically logged.  Values of zero or less disable statistics
@@ -223,8 +258,11 @@ public class HibernateMDRepository
     /** Map of extent names to ExtentDescriptor instances. */
     private final Map<String, ExtentDescriptor> extentMap;
     
-    /** Value of hibernate.jdbc.batch_size. */
-    private final int batchSize;
+    /** Value of {@link #PROPERTY_STORAGE_TYPE_LOOKUP_FLUSH_SIZE}. */
+    private final int typeLookupFlushSize;
+
+    /** Value of hibernate.default.batch_fetch_size. */
+    private final int defaultBatchFetchSize;
     
     private final boolean allowImplicitSessions;
     
@@ -275,10 +313,22 @@ public class HibernateMDRepository
         this.classRegistry = new HashMap<String, HibernateRefClass>();
         this.assocRegistry = new HashMap<String, HibernateRefAssociation>();
         
-        this.batchSize = 
+        int jdbcBatchSize = 
             readStorageProperty(
-                "hibernate.jdbc.batch_size", -1, Integer.class);
+                PROPERTY_STORAGE_HIBERNATE_JDBC_BATCH_SIZE, -1, Integer.class);
         
+        this.typeLookupFlushSize =
+            readStorageProperty(
+                PROPERTY_STORAGE_TYPE_LOOKUP_FLUSH_SIZE,
+                jdbcBatchSize,
+                Integer.class);
+
+        this.defaultBatchFetchSize = 
+            readStorageProperty(
+                PROPERTY_STORAGE_HIBERNATE_DEFAULT_BATCH_FETCH_SIZE,
+                -1,
+                Integer.class);
+
         this.allowImplicitSessions = 
             readStorageProperty(
                 PROPERTY_STORAGE_ALLOW_IMPLICIT_SESSIONS, 
@@ -627,10 +677,12 @@ public class HibernateMDRepository
                     
                     if (!mdrSession.mofIdCreateMap.isEmpty()) {
                         int i = 0;
+                        int flushSize = typeLookupFlushSize;
+                        boolean flush = flushSize > 0;
                         for(Map.Entry<Long, Class<? extends RefObject>> entry:
                                 mdrSession.mofIdCreateMap.entrySet())
                         {
-                            if (batchSize > 0 && i++ % batchSize == 0) {
+                            if (flush && i++ % flushSize == 0) {
                                 session.flush();
                                 session.clear();
                             }
@@ -808,6 +860,11 @@ public class HibernateMDRepository
         dropModelStorage(extentDesc.modelDescriptor);
     }
     
+    public int getBatchSize()
+    {
+        return defaultBatchFetchSize;
+    }
+    
     public RefObject getByMofId(String mofId, RefClass cls)
     {
         Long mofIdLong = MofIdUtil.parseMofIdStr(mofId); 
@@ -818,6 +875,25 @@ public class HibernateMDRepository
     public RefObject getByMofId(long mofId, RefClass cls)
     {
         return getByMofId(mofId, cls, null);
+    }
+    
+    public List<RefObject> getByMofId(List<Long> mofIds, RefClass cls)
+    {
+        if (mofIds.isEmpty()) {
+            return Collections.emptyList();
+        } else if (mofIds.size() == 1) {
+            return Collections.singletonList(getByMofId(mofIds.get(0), cls));
+        }
+        
+        HibernateRefClass hibRefCls = (HibernateRefClass)cls;
+
+        Criteria criteria = 
+            getCurrentSession().createCriteria(hibRefCls.getInstanceClass())
+                .add(Restrictions.in("id", mofIds))
+                .setCacheable(true);
+
+        return GenericCollections.asTypedList(
+            criteria.list(), RefObject.class);
     }
     
     /**
@@ -840,7 +916,7 @@ public class HibernateMDRepository
             return convertToRefObject(cls, cachedResult);
         }
         
-        if((mofIdLong & MetamodelInitializer.METAMODEL_MOF_ID_MASK) != 0) {
+        if (isMetamodelMofId(mofIdLong)) {
             if (mofId == null) {
                 mofId = MofIdUtil.makeMofIdStr(mofIdLong);
             }
@@ -872,6 +948,11 @@ public class HibernateMDRepository
         
         return result;
     }
+    
+    private boolean isMetamodelMofId(long mofId)
+    {
+        return (mofId & MetamodelInitializer.METAMODEL_MOF_ID_MASK) != 0;
+    }
 
     private RefObject convertToRefObject(
         RefClass cls,
@@ -902,7 +983,7 @@ public class HibernateMDRepository
         }
         
         RefBaseObject result = null;
-        if ((mofIdLong & MetamodelInitializer.METAMODEL_MOF_ID_MASK) != 0) {
+        if (isMetamodelMofId(mofIdLong)) {
             result = findMetaByMofId(mofId);
         } else {
             if (mdrSession.mofIdDeleteSet.contains(mofIdLong)) {
@@ -989,6 +1070,56 @@ public class HibernateMDRepository
         MdrSession mdrSession, Long mofId, RefBaseObject obj)
     {
         softCacheStore(mdrSession.byMofIdCache, mofId, obj);
+    }
+    
+    public RefObject findAllOfType(
+        RefClass cls, String featureName, Object value)
+    {
+        HibernateRefClass hibRefCls = (HibernateRefClass)cls;
+        
+        String propertyName = 
+            StringUtil.mangleIdentifier(
+                featureName, StringUtil.IdentifierType.CAMELCASE_INIT_LOWER)
+            + HibernateJavaHandler.IMPL_SUFFIX;
+        
+        Criteria criteria = 
+            getCurrentSession().createCriteria(hibRefCls.getInterfaceClass())
+                .add(Restrictions.eq(propertyName, value))
+                .setCacheable(true);
+        
+        return (RefObject)criteria.uniqueResult();
+    }
+    
+    public RefObject findAllOfType(
+        RefClass cls, RefObject feature, Object value)
+    {
+        ModelElement featureElem = (ModelElement)feature;
+        return findAllOfType(cls, featureElem.getName(), value);
+    }
+    
+    public RefObject findAllOfClass(
+        RefClass cls, String featureName, Object value)
+    {
+        HibernateRefClass hibRefCls = (HibernateRefClass)cls;
+        
+        String propertyName = 
+            StringUtil.mangleIdentifier(
+                featureName, StringUtil.IdentifierType.CAMELCASE_INIT_LOWER)
+            + HibernateJavaHandler.IMPL_SUFFIX;
+        
+        Criteria criteria = 
+            getCurrentSession().createCriteria(hibRefCls.getInstanceClass())
+                .add(Restrictions.eq(propertyName, value))
+                .setCacheable(true);
+        
+        return (RefObject)criteria.uniqueResult();
+    }
+    
+    public RefObject findAllOfClass(
+        RefClass cls, RefObject feature, Object value)
+    {
+        ModelElement featureElem = (ModelElement)feature;
+        return findAllOfClass(cls, featureElem.getName(), value);
     }
     
     public void deleteExtentDescriptor(RefPackage refPackage)

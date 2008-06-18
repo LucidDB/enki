@@ -353,7 +353,7 @@ public class HibernateOneToManyLazyAssociation
                     childRefObj.refDelete();
                 }
             }
-            
+
             delete(getHibernateRepository(item));
         } else {
             item.setAssociation(type, !parentIsFirstEnd, null);
@@ -388,6 +388,15 @@ public class HibernateOneToManyLazyAssociation
         return repos.getByMofId(mofId, refClass);
     }
     
+    private List<RefObject> load(String classIdent, List<Long> mofIds)
+    {
+        HibernateMDRepository repos = getHibernateRepository();
+        
+        HibernateRefClass refClass = repos.findRefClass(classIdent);
+
+        return repos.getByMofId(mofIds, refClass);
+    }
+    
     private Element newElement(RefObject obj)
     {
         HibernateRefObject hibRefObj = (HibernateRefObject)obj;
@@ -398,6 +407,13 @@ public class HibernateOneToManyLazyAssociation
         return elem;
     }
     
+    /**
+     * Element represents a member of the many-end of the association.  It
+     * stores the object's type (via the {@link HibernateRefClass} unique
+     * identifier) and the MOF ID of the object.  Hibernate is not aware
+     * that this data refers to another persistent object, which allows us
+     * to control when the referenced object is loaded.
+     */
     public static class Element
     {
         protected String childType;
@@ -431,17 +447,23 @@ public class HibernateOneToManyLazyAssociation
         {
             Element that = (Element)other;
             
-            return 
-                this.getChildType().equals(that.getChildType()) &&
-                this.getChildId() == that.getChildId();
+            return  this.childId == that.getChildId();
         }
         
         public int hashCode()
         {
-            return getChildType().hashCode() ^ (int)getChildId();
+            return (int)childId;
         }
     }
     
+    /**
+     * ElementCollection wraps a Collection of {@link Element} objects and
+     * handles the conversion from {@link RefObject} instances to 
+     * {@link Element} instances.  All operations except iteration are
+     * handled without loading the RefObjects in the collection (although 
+     * it is likely that any proxied RefObject passed into its methods will
+     * be loaded).
+     */
     private class ElementCollection
         extends AbstractCollection<HibernateAssociable>
         implements Collection<HibernateAssociable>
@@ -498,23 +520,92 @@ public class HibernateOneToManyLazyAssociation
         }
     }
     
+    /**
+     * ElementIterator implements {@link Iterator} for 
+     * {@link ElementCollection}.  Upon construction it materializes the 
+     * collection into a List of {@link Element} instances and then loads
+     * the persistent {@link RefObject} instances referenced by those 
+     * Element during calls to {@link #next()}. Loads are executed in batches 
+     * of same-typed objects in the order in which the elements appear in the 
+     * collection. If objects of different types are interleaved, 
+     * ElementIterator skips ahead to find objects of the same type as that 
+     * being returned by the current call.
+     */
     private class ElementIterator implements Iterator<HibernateAssociable>
     {
-        private final Iterator<Element> iter;
+        private final List<Element> materializedCollection;
+        private final List<HibernateAssociable> loadedObjects;
+        private final int size;
+        private int pos;
         
         ElementIterator(Collection<Element> collection)
         {
-            this.iter = collection.iterator();
+            this.materializedCollection = new ArrayList<Element>(collection);
+            this.size = materializedCollection.size();
+            this.loadedObjects = new ArrayList<HibernateAssociable>(size);
+            for(int i = 0; i < size; i++) {
+                loadedObjects.add(null);
+            }
+            
+            this.pos = -1;
         }
         
         public boolean hasNext()
         {
-            return iter.hasNext();
+            return (pos + 1) < size;
         }
         
         public HibernateAssociable next()
         {
-            return (HibernateAssociable)load(iter.next());
+            pos++;
+            
+            if (pos >= size) {
+                throw new NoSuchElementException();
+            }
+            
+            HibernateAssociable result = loadedObjects.get(pos);
+            if (result != null) {
+                return result;
+            }
+            
+            List<Long> preLoadMofIds = new ArrayList<Long>();
+            Map<Long, Integer> preLoadIndexes = new HashMap<Long, Integer>();
+            
+            Element element = materializedCollection.get(pos);
+            
+            final String type = element.getChildType();
+            Long elementMofId = element.getChildId();
+            preLoadMofIds.add(elementMofId);
+            preLoadIndexes.put(elementMofId, pos);
+            
+            // Look for other objects in the collection with the same type
+            // and load them together.
+            final int batchSize = getHibernateRepository().getBatchSize();
+            int numAdded = 1;
+            for(int i = pos + 1; i < size && numAdded < batchSize; i++) {
+                element = materializedCollection.get(i);
+                if (type.equals(element.getChildType())) {
+                    elementMofId = element.getChildId();
+                    preLoadMofIds.add(elementMofId);
+                    preLoadIndexes.put(elementMofId, i);
+                    numAdded++;
+                }
+            }
+            
+            assert(numAdded == preLoadIndexes.size());
+            assert(numAdded == preLoadMofIds.size());
+            
+            List<RefObject> objects = load(type, preLoadMofIds);
+            // Assert <= because some objects may be deleted
+            assert(objects.size() <= numAdded);
+            
+            for(RefObject obj: objects) {
+                long mofId = ((HibernateRefObject)obj).getMofId();
+                int index = preLoadIndexes.get(mofId);
+                loadedObjects.set(index, (HibernateAssociable)obj);
+            }
+            
+            return loadedObjects.get(pos);
         }
         
         public void remove()

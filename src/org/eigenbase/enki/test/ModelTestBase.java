@@ -89,6 +89,27 @@ public abstract class ModelTestBase
         }
     }
     
+    /**
+     * Closes the current session and deletes all objects from the repository.
+     * The same steps are taken before each test class.  Assumes all 
+     * transactions on the repository are finished.
+     */
+    public static void reset()
+    {
+       repos.endSession();
+       
+       repos.beginSession();
+       repos.beginTrans(true);
+       boolean rollback = true;
+       try {
+           delete(pkg);
+           rollback = false;
+       }
+       finally {
+           repos.endTrans(rollback);
+       }
+    }
+    
     private static void delete(RefPackage pkg)
     {
         for(RefAssociation assoc: 

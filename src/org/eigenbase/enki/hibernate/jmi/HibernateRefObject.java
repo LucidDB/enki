@@ -27,11 +27,9 @@ import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.*;
-import org.eigenbase.enki.hibernate.codegen.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
-import org.hibernate.*;
 import org.netbeans.api.mdr.events.*;
 
 /**

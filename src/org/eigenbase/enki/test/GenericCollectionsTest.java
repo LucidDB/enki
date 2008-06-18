@@ -37,23 +37,6 @@ import org.junit.runner.*;
 @RunWith(LoggingTestRunner.class)
 public class GenericCollectionsTest
 {
-    @Test(expected=ClassCastException.class)
-    public void testCollectionWrapperConstructorTypeSafety()
-    {
-        Collection<?> delegate = 
-            makeCollection(new HashSet<String>(), 112358L);
-        
-        GenericCollections.asTypedCollection(delegate, Integer.class);
-    }
-    
-    @Test(expected=ClassCastException.class)
-    public void testListWrapperConstructorTypeSafety()
-    {
-        List<?> delegate = makeList(new ArrayList<String>(), 112358L);
-        
-        GenericCollections.asTypedList(delegate, Integer.class);
-    }
-
     @Test
     public void testSetWrapper()
     {

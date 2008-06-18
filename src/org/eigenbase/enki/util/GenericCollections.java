@@ -40,8 +40,8 @@ public class GenericCollections
      * identical to the one provided by 
      * {@link Collections#checkedCollection(Collection, Class)} or
      * {@link Collections#checkedSet(Set, Class)}, depending on whether the
-     * given collection implements {@link Set}.  This method verifies that 
-     * all members of the given collection are of the given type before 
+     * given collection implements {@link Set}.  This method does not verify
+     * that all members of the given collection are of the given type before 
      * returning.
      * 
      * @param <E> Collection element type
@@ -55,10 +55,6 @@ public class GenericCollections
     public static <E> Collection<E> asTypedCollection(
         final Collection<?> c, final Class<E> cls)
     {
-        for(Object o: c) {
-            cls.cast(o);
-        }
-        
         if (c instanceof Set) {
             // Use a class that implements Set<E> or else the equals method
             // will not work with JDK Set implementations.
@@ -71,8 +67,8 @@ public class GenericCollections
     /**
      * Wraps the given List with type information.  The wrapper is
      * identical to the one provided by 
-     * {@link Collections#checkedList(List, Class)}. This method 
-     * verifies that all members of the given collection are of the given type 
+     * {@link Collections#checkedList(List, Class)}. This method does not
+     * verify that all members of the given collection are of the given type 
      * before returning.
      * 
      * @param <E> Collection element type
@@ -86,10 +82,6 @@ public class GenericCollections
     public static <E> List<E> asTypedList(
         final List<?> list, final Class<E> cls)
     {
-        for(Object o: list) {
-            cls.cast(o);
-        }
-
         return Collections.checkedList((List<E>)list, cls);
     }
 }

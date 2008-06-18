@@ -40,7 +40,12 @@ public abstract class RefFeaturedBase
 {
     /** Maximum number of classes for which reflective methods are cached. */
     private static final int MAX_CLASSES = 25;
-    private static final int MAX_METHODS_PER_CLASS = 10;
+    
+    /** 
+     * Maximum number of methods per class for which reflective methods
+     * are cached.
+     */
+    private static final int MAX_METHODS_PER_CLASS = 50;
     
     private static final Map<Class<?>, Map<String, Method>> refMethodCache =
         new LRUHashMap<Class<?>, Map<String, Method>>(MAX_CLASSES);
@@ -178,19 +183,20 @@ public abstract class RefFeaturedBase
                 typeName.startsWith("is") && 
                 Character.isUpperCase(typeName.charAt(2));
     
+            String typeNameInitialUpper = StringUtil.toInitialUpper(typeName);
+            
             String primaryMethodName;
             String secondaryMethodName;
             if (isGetter) {
                 primaryMethodName =
-                    "get" + StringUtil.toInitialUpper(typeName);
+                    "get" + typeNameInitialUpper;
                 if (startsWithIs) {
                     secondaryMethodName = typeName;
                 } else {
-                    secondaryMethodName = 
-                        "is" + StringUtil.toInitialUpper(typeName);
+                    secondaryMethodName = "is" + typeNameInitialUpper;
                 }
             } else {
-                primaryMethodName = "set" + StringUtil.toInitialUpper(typeName);
+                primaryMethodName = "set" + typeNameInitialUpper;
                 if (startsWithIs) {
                     secondaryMethodName = "set" + typeName.substring(2);
                 } else {

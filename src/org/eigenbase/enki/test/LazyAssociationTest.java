@@ -63,12 +63,19 @@ public class LazyAssociationTest extends SampleModelTestBase
     
     private void createAssociations(int numParents, int numChildrenPerParent)
     {
-        createAssociations(numParents, numChildrenPerParent, true);
+        createAssociations(numParents, numChildrenPerParent, true, true);
+    }
+    
+    private void createVariedAssociations(
+        int numParents, int numChildrenPerParent)
+    {
+        createAssociations(numParents, numChildrenPerParent, false, true);
     }
     
     private void createAssociations(
         int numParents, 
         int numChildrenPerParent, 
+        boolean singleType,
         boolean manageTxn)
     {
         if (manageTxn) {
@@ -81,9 +88,11 @@ public class LazyAssociationTest extends SampleModelTestBase
             children = new ArrayList<List<LazyChild>>();
             childMofIds = new ArrayList<List<String>>();
             
+            SpecialPackage specialPkg = getSpecialPackage();
+            
             for(int p = 0; p < numParents; p++) {
                 LazyParent parent = 
-                    getSpecialPackage().getLazyParent().createLazyParent(
+                    specialPkg.getLazyParent().createLazyParent(
                         nextMama());
                 
                 parents.add(parent);
@@ -96,10 +105,15 @@ public class LazyAssociationTest extends SampleModelTestBase
                 childMofIds.add(progenyMofIds);
                 
                 for(int c = 0; c < numChildrenPerParent; c++) {
-                    LazyChild child = 
-                        getSpecialPackage().getLazyChild().createLazyChild(
+                    LazyChild child;
+                    if (singleType || (c % 2) == 0) {
+                        child = specialPkg.getLazyChild().createLazyChild(
                             nextBaby());
-                    
+                    } else {
+                        child = 
+                            specialPkg.getLazyChild2().createLazyChild2(
+                                nextBaby(), c);
+                    }
                     progeny.add(child);
                     progenyMofIds.add(child.refMofId());
                     
@@ -444,7 +458,7 @@ public class LazyAssociationTest extends SampleModelTestBase
     {
         getRepository().beginTrans(true);
         try {
-            createAssociations(1, 1, false);
+            createAssociations(1, 1, true, false);
             LazyParent parent = parents.get(0);
             
             LazyChild child = children.get(0).get(0);
@@ -475,6 +489,70 @@ public class LazyAssociationTest extends SampleModelTestBase
             Assert.assertEquals(parent, child.getLazyOwner());
         } finally {
             getRepository().endTrans();
+        }
+    }
+    
+    @Test
+    public void testLargeAssociation()
+    {
+        createVariedAssociations(1, 50);
+        String parentMofId = parentsMofIds.get(0);
+        List<String> child1MofIds = childMofIds.get(0);
+        
+        getRepository().endSession();
+        getRepository().beginSession();
+        
+        // read associations
+        getRepository().beginTrans(false);
+        try {
+            LazyParent parent = 
+                (LazyParent)getRepository().getByMofId(parentMofId);
+
+            Assert.assertEquals(parentMofId, parent.refMofId());
+            
+            Collection<LazyChild> children = 
+                getSpecialPackage().getLazyOwnership().getOwnsLazily(parent);
+            Assert.assertEquals(child1MofIds.size(), children.size());
+            
+            Set<String> childMofIdsCopy = new HashSet<String>(child1MofIds);
+            
+            for(LazyChild child: children) {
+                Assert.assertTrue(childMofIdsCopy.contains(child.refMofId()));
+                childMofIdsCopy.remove(child.refMofId());
+            }
+
+            Assert.assertTrue(childMofIdsCopy.isEmpty());
+        } finally {
+            getRepository().endTrans();
+        }
+    }
+    
+    @Test
+    public void testUnsavedAssociation()
+    {
+        getRepository().beginTrans(true);
+        try {
+            createAssociations(1, 10, false, false);
+            
+            LazyParent parent = 
+                (LazyParent)getRepository().getByMofId(parentsMofIds.get(0));
+            
+            List<String> child1MofIds = childMofIds.get(0);
+            
+            Collection<LazyChild> children = 
+                getSpecialPackage().getLazyOwnership().getOwnsLazily(parent);
+            Assert.assertEquals(child1MofIds.size(), children.size());
+            
+            Set<String> childMofIdsCopy = new HashSet<String>(child1MofIds);
+            
+            for(LazyChild child: children) {
+                Assert.assertTrue(childMofIdsCopy.contains(child.refMofId()));
+                childMofIdsCopy.remove(child.refMofId());
+            }
+
+            Assert.assertTrue(childMofIdsCopy.isEmpty());
+        } finally {
+            getRepository().endTrans(false);
         }
     }
 }
