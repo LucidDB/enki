@@ -131,11 +131,28 @@ public abstract class ModelTestBase
                     pkg.refAllClasses(),
                     RefClass.class))
         {
-            for(RefObject obj:
+            Collection<RefObject> allOfClass = 
+                new ArrayList<RefObject>(
                     GenericCollections.asTypedCollection(
                         cls.refAllOfClass(),
-                        RefObject.class))
-            {
+                        RefObject.class));
+
+            Iterator<RefObject> iter = allOfClass.iterator();
+            while(iter.hasNext()) {
+                RefFeatured owner = iter.next().refImmediateComposite();
+                if (owner != null && owner instanceof RefObject)
+                {
+                    // For Netbeans: If we delete this object before we happen
+                    // to have deleted its composite owner, the owner will
+                    // throw an exception (because this object was already
+                    // deleted). Can happen depending on iteration order of
+                    // pkg.refAllClasses(). So remove this object from the
+                    // collection and let the owner delete it.
+                    iter.remove();
+                }
+            }
+
+            for(RefObject obj: allOfClass) {
                 obj.refDelete();
             }
         }
