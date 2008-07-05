@@ -34,17 +34,24 @@
   </path>
   <property name="enki.build.classpath" refid="enki.build.classpath"/>
 
-  <!-- classpath for sample build -->
-  <path id="enki.sample.build.classpath">
+  <!-- classpath for test metamodel build -->
+  <path id="enki.test.build.classpath">
     <pathelement path="${enki.build.classpath}"/>
     <pathelement path="${classes.dir}"/>
   </path>
-  <property name="enki.sample.build.classpath" refid="enki.sample.build.classpath"/>
+  <property name="enki.test.build.classpath" refid="enki.test.build.classpath"/>
 
   <!-- classpath for sample-dependent build -->
   <path id="enki.sample.classpath">
-    <pathelement path="${enki.sample.build.classpath}"/>
+    <pathelement path="${enki.test.build.classpath}"/>
     <pathelement path="${sample.jar}"/>
+  </path>
+  <property name="enki.sample.classpath" refid="enki.sample.classpath"/>
+
+  <!-- classpath for umlm2-dependent build -->
+  <path id="enki.umlm2.classpath">
+    <pathelement path="${enki.test.build.classpath}"/>
+    <pathelement path="${umlm2.jar}"/>
   </path>
   <property name="enki.sample.classpath" refid="enki.sample.classpath"/>
 
@@ -70,6 +77,15 @@
   <property name="sample.jar" location="${sample.dir}/sample.jar"/>
   <property name="sample.dtd" location="${sample.catalog.dir}/xmi/sample.dtd"/>
 
+  <!-- umlm2 Catalog properties -->
+  <property name="umlm2.dir" location="${test.dir}/umlm2"/>
+  <property name="umlm2.catalog.dir" location="${umlm2.dir}/catalog"/>
+  <property 
+    name="umlm2.model.xmi" 
+    location="${umlm2.catalog.dir}/xmi/01-02-15_Diff.xml"/>
+  <property name="umlm2.jar" location="${umlm2.dir}/umlm2.jar"/>
+  <property name="umlm2.dtd" location="${umlm2.catalog.dir}/xmi/umlm2.dtd"/>
+
   <!-- classpath for Sample model implementation JAR -->
   <path id="sample.mdr.classpath">
     <pathelement location="${sample.jar}"/>
@@ -77,6 +93,14 @@
     <path refid="ant.classpath"/>
   </path>
   <property name="sample.mdr.classpath" refid="sample.mdr.classpath"/>
+
+  <!-- classpath for umlm2 model implementation JAR -->
+  <path id="umlm2.mdr.classpath">
+    <pathelement location="${umlm2.jar}"/>
+    <path refid="enki.run.classpath"/>
+    <path refid="ant.classpath"/>
+  </path>
+  <property name="umlm2.mdr.classpath" refid="umlm2.mdr.classpath"/>
 
   <!-- Sample Plugin properties -->
   <property 
@@ -135,9 +159,36 @@
     </copy>
   </target>
 
+  <target name="configureUmlm2Repository">
+    <copy todir="${test.dir}" overwrite="true">
+      <fileset dir="${test.config.dir}/${enki.impl}">
+        <include name="TestStorage.properties"/>
+        <include name="TestPluginStorage.properties"/>
+      </fileset>
+      <filterset begintoken="$${" endtoken="}">
+        <filter token="ENKI_CATALOG_DIR" value="${umlm2.catalog.dir}"/>
+      </filterset>
+    </copy>
+
+    <!-- Always copy and transform this file: it's used for comparison testing
+         between Netbeans MDR and Enki repository implementations. -->
+    <copy 
+        file="${test.config.dir}/netbeans/ComparisonTestStorage.properties"
+        tofile="${test.dir}/ComparisonTestStorage.properties"
+        overwrite="true">
+      <filterset begintoken="$${" endtoken="}">
+        <filter token="ENKI_CATALOG_DIR" value="${test.catalog.dir}"/>
+      </filterset>
+    </copy>
+  </target>
+
   <target 
       name="cleanSampleRepository"
       depends="compile.dependencies,enki_mdr.taskdef,configureSampleRepository,cleanDbStorage"/>
+
+  <target 
+      name="cleanUmlm2Repository"
+      depends="compile.dependencies,enki_mdr.taskdef,configureUmlm2Repository,cleanDbStorage"/>
 
   <target name="cleanDbStorage">
     <property 
@@ -170,10 +221,16 @@
             <include name="EnkiCatalog.*"/>
           </fileset>
         </delete>
+        <delete>
+          <fileset dir="${umlm2.catalog.dir}">
+            <include name="EnkiCatalog.*"/>
+          </fileset>
+        </delete>
       </then>
     </if>
 
     <delete dir="${sample.catalog.dir}/java" includes="**/*"/>
+    <delete dir="${umlm2.catalog.dir}/java" includes="**/*"/>
   </target>
 
   <target name="forked_cleanDbStorage">
@@ -291,7 +348,7 @@
     <enki.javac
       srcdir="${sample.catalog.dir}/java"
       destdir="${sample.catalog.dir}/java"
-      classpathref="enki.sample.build.classpath">
+      classpathref="enki.test.build.classpath">
       <include name="**/*.java"/>
     </enki.javac>
     <jar jarfile="${sample.jar}">
@@ -339,7 +396,7 @@
         srcdir="${sample.catalog.dir}/plugin/java"
         destdir="${sample.catalog.dir}/plugin/java">
       <classpath>
-        <pathelement path="${enki.sample.build.classpath}"/>
+        <pathelement path="${enki.test.build.classpath}"/>
         <pathelement path="${sample.jar}"/>
       </classpath>
       <include name="**/*.java"/>
@@ -397,6 +454,86 @@
     <enki.mdr propertiesFile="${test.dir}/TestPluginStorage.properties">
       <mdr-tasks>
         <writeDtd extent="SampleRepository" file="${sample.plugin.dtd}"/>
+      </mdr-tasks>
+    </enki.mdr>
+  </target>
+
+  <target 
+      name="createUmlm2Repository"
+      depends="clean,compile.dependencies,enki_mdr.taskdef,configureUmlm2Repository,cleanUmlm2Repository">
+
+    <!-- Choose generator class -->
+    <enki.set-generator-property impl="${enki.impl}" property="gen.cls"/>
+
+    <!-- No metamodel conversion needed (it's already checked in as MOF) -->
+
+    <mkdir dir="${umlm2.catalog.dir}/java"/>
+
+    <!-- Synthesize model into Java code -->
+    <enki.mdr>
+      <mdr-tasks>
+        <mapJava
+            file="${umlm2.model.xmi}"
+            dir="${umlm2.catalog.dir}/java"
+            extent="Umlm2Metamodel"
+            generatorClass="${gen.cls}"
+            generatorOptions="tablePrefix='UMLM2_',defaultStringLength=60000,identifierLimit=50"/>
+      </mdr-tasks>
+    </enki.mdr>
+
+    <!-- FIXME jvs 3-Jul-2008:  this stuff shouldn't be needed -->
+    <if>
+      <equals arg1="${enki.impl}" arg2="hibernate"/>
+      <then>
+        <replace 
+          file="${umlm2.catalog.dir}/java/org/omg/uml/foundation/core/Stereotype$Impl.java"
+          token="org.omg.uml.foundation.datatypes.name" 
+          value="String" />
+        <replace 
+          file="${umlm2.catalog.dir}/java/org/omg/uml/foundation/core/TaggedValue$Impl.java"
+          token="org.omg.uml.foundation.datatypes.string" 
+          value="String" />
+      </then>
+    </if>
+
+    <enki.javac
+      srcdir="${umlm2.catalog.dir}/java"
+      destdir="${umlm2.catalog.dir}/java"
+      classpathref="enki.test.build.classpath">
+      <include name="**/*.java"/>
+    </enki.javac>
+    <jar jarfile="${umlm2.jar}">
+      <fileset dir="${umlm2.catalog.dir}/java">
+        <include name="**/*.java"/>
+        <include name="**/*.class"/>
+        <include name="**/*.xml"/>
+        <include name="**/*.properties"/>
+      </fileset>
+    </jar>
+
+    <!-- create repository -->
+    <enki.antFork 
+      target="forked_importUmlm2Metamodel"
+      classpathref="umlm2.mdr.classpath"/>
+  </target>
+
+  <target name="forked_importUmlm2Metamodel" depends="enki_mdr.taskdef">
+    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
+      <mdr-tasks>
+        <createExtent name="Umlm2Metamodel"/>
+        <importXmi 
+            extent="Umlm2Metamodel"
+            file="${umlm2.model.xmi}" />
+        <createExtent 
+            name="Umlm2Repository"
+            extent="Umlm2Metamodel"
+            package="UML"/>
+      </mdr-tasks>
+    </enki.mdr>
+
+    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
+      <mdr-tasks>
+        <writeDtd extent="Umlm2Repository" file="${umlm2.dtd}"/>
       </mdr-tasks>
     </enki.mdr>
   </target>
@@ -519,6 +656,8 @@
 
   <target name="test-with-setup" depends="createSampleRepository,createSamplePluginRepository,test-only"/>
 
+  <target name="test-umlm2" depends="createUmlm2Repository"/>
+
   <target name="test-only">
     <echo message="**********************************************"/>
     <echo message="Testing ${enki.impl} implementation"/>
@@ -629,6 +768,10 @@
     <delete includeEmptyDirs="true" quiet="true">
       <fileset dir="${sample.catalog.dir}/java" includes="**/*"/>
       <fileset dir="${sample.catalog.dir}/plugin/java" includes="**/*"/>
+    </delete>
+    <delete includeEmptyDirs="true" quiet="true">
+      <fileset dir="${umlm2.catalog.dir}/java" includes="**/*"/>
+      <fileset dir="${umlm2.catalog.dir}/plugin/java" includes="**/*"/>
     </delete>
   </target>
 
