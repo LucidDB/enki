@@ -331,7 +331,14 @@ public class HibernateJavaHandler
      * {@link HibernateAssociationTypeMapper}.
      */
     private JavaClassReference assocTypeMapperClass;
-    
+
+    /**
+     * Map from each clustered package to the importing package
+     * designated as its "primary".  This forms a spanning tree
+     * over the import graph.
+     */
+    private final Map<MofPackage, MofPackage> clusteringMap;
+
     public HibernateJavaHandler()
     {
         super();
@@ -388,6 +395,7 @@ public class HibernateJavaHandler
         this.assocEndOrderMap = new HashMap<AssociationEnd, Integer>();
         this.componentAttribMap = 
             new HashMap<Classifier, List<ComponentInfo>>();
+        this.clusteringMap = new HashMap<MofPackage, MofPackage>();
     }
     
     @Override
@@ -2287,11 +2295,14 @@ public class HibernateJavaHandler
                 if (upper == -1 || upper > 1) {
                     // Copy the collection
                     writeln(
+                        "if (",
+                        paramInfo[1],
+                        " != null) { ",
                         "this.",
                         fieldName,
                         ".addAll(",
                         paramInfo[1],
-                        ");");
+                        "); }");
                 } else {
                     writeln(
                         "this.",
@@ -2768,7 +2779,10 @@ public class HibernateJavaHandler
         } else {
             writeln(JAVA_UTIL_COLLECTIONS_CLASS, ".unmodifiableList(");
             increaseIndent();
-            writeln(JAVA_UTIL_ARRAYS_CLASS, ".asList(new Object[] {");
+            // NOTE jvs 30-Jun-2008:  we have to qualify java.lang.Object
+            // here because the metamodel (e.g. UML) may use
+            // "Object" as a classname.
+            writeln(JAVA_UTIL_ARRAYS_CLASS, ".asList(new java.lang.Object[] {");
             increaseIndent();
             Iterator<String> paramIter = paramNames.iterator();
             while(paramIter.hasNext()) {
@@ -2841,7 +2855,44 @@ public class HibernateJavaHandler
             ArrayList<String> packageFieldNames = new ArrayList<String>();
             Collection<MofPackage> packages =
                 contentsOfType(pkg, MofPackage.class);
+            
+            Collection<MofPackage>
+                aliasedPackages = new ArrayList<MofPackage>();
+
+            Collection<Import> imports = contentsOfType(pkg, Import.class);
+            for(Import imp: imports) {
+                // Import is not a Feature, so contentsOfType throws if we
+                // try to get it to filter on visibility.
+                if (imp.isClustered() && 
+                    VisibilityKindEnum.PUBLIC_VIS.equals(imp.getVisibility()))
+                {
+                    Namespace ns = imp.getImportedNamespace();
+                    if (ns instanceof MofPackage &&
+                        VisibilityKindEnum.PUBLIC_VIS.equals(
+                            ((MofPackage) ns).getVisibility()))
+                    {
+                        MofPackage importedPkg = (MofPackage) ns;
+                        if (!clusteringMap.containsKey(importedPkg)) {
+                            // This is the first time we've seen a clustering
+                            // reference to importedPkg.  Arbitrarily designate
+                            // this as the "primary" instance, and treat it
+                            // just like a true composite package.  Remember
+                            // its parent path as a spanning tree edge so that
+                            // we can generate aliased references to it.
+                            clusteringMap.put(importedPkg, pkg);
+                            packages.add(importedPkg);
+                        } else {
+                            // We've seen a clustering for importedPkg before,
+                            // so treat this reference as an alias to
+                            // the primary.
+                            aliasedPackages.add(importedPkg);
+                        }
+                    }
+                }
+            }
+
             boolean hasPackages = !packages.isEmpty();
+            boolean hasAliasedPackages = !aliasedPackages.isEmpty();
             if (hasPackages) {
                 writeln("// Packages");
             }
@@ -2922,6 +2973,20 @@ public class HibernateJavaHandler
                     QUOTE, nestedPkg.getName(), QUOTE, 
                     ", this.", fieldName, ");");
             }
+
+            // Once the import spanning tree is complete, it
+            // is safe to add all of the aliases (the addAliasPackages
+            // operation requires refPackage invocations along
+            // the edges of the spanning tree).  So we do that as
+            // a final pass from the root down (non-root packages
+            // will be called by the generated implementations of
+            // addAliasPackages in their parents).
+            if ((pkg.getContainer() == null)
+                && !clusteringMap.containsKey(pkg))
+            {
+                writeln("addAliasPackages();");
+            }
+            
             if (hasPackages) {
                 newLine();
             }
@@ -2978,7 +3043,7 @@ public class HibernateJavaHandler
             
             // generate accessor methods
 
-            if (hasPackages) {
+            if (hasPackages || hasAliasedPackages) {
                 writeln("// Package Accessors");
                 newLine();
             }
@@ -2997,10 +3062,107 @@ public class HibernateJavaHandler
                 endBlock();
                 newLine();
             }
+
+            // aliased package accessors
+            for(
+                pkgIter = aliasedPackages.iterator();
+                pkgIter.hasNext(); )
+            {
+                MofPackage nestedPkg = pkgIter.next();
+                startPackageAccessorBlock(nestedPkg, PACKAGE_SUFFIX);
+
+                // Generate a series of refPackage calls from the root
+                // down to this package.  The first part of the path
+                // will be via containment edges, and the second part
+                // will be along import spanning tree edges.  Based
+                // on the information we have available, it's necessary
+                // to build this up in reverse order.
+
+                MofPackage parentPkg = clusteringMap.get(nestedPkg);
+                assert(parentPkg != null);
+
+                List<String> pkgPath = new ArrayList<String>();
+
+                for (;;) {
+                    pkgPath.add(0, parentPkg.getName());
+                    MofPackage grandParentPkg = clusteringMap.get(parentPkg);
+                    if (grandParentPkg == null) {
+                        // we've found the trunk of the import spanning
+                        // tree; from here on up, we'll go by containment
+                        // edges instead
+                        break;
+                    }
+                    parentPkg = grandParentPkg;
+                }
+
+                // prepend the containing packages; skip the last one,
+                // since it's accounted for as the last parentPkg above
+                List<?> nonClusteredPath = parentPkg.getQualifiedName();
+                for (int i = nonClusteredPath.size() - 2; i >= 0; --i) {
+                    pkgPath.add(0, nonClusteredPath.get(i).toString());
+                }
+
+                // refOutermostPackage will give us the root
+                write(
+                    "return (",
+                    generator.getTypeName(nestedPkg, PACKAGE_SUFFIX),
+                    ") refOutermostPackage().");
+
+                // now walk down from the root along the path
+                // we built up; skip the root itself (i=0) since
+                // that's already accounted for
+                for (int i = 1; i < pkgPath.size(); ++i) {
+                    String pkgName = pkgPath.get(i).toString();
+                    write(
+                        "refPackage(",
+                        QUOTE,
+                        pkgName,
+                        QUOTE,
+                        ").");
+                }
+
+                // finally, access the original package we were looking for
+                // (the path above does not include it)
+                writeln(
+                    "refPackage(",
+                    QUOTE,
+                    nestedPkg.getName(),
+                    QUOTE,
+                    ");");
+
+                endBlock();
+                newLine();
+            }
+
+            // Fill in addAliasPackages method implementations.  This
+            // has two steps:  (1) recursively call it for any child
+            // packages (whether by containment or spanning tree edge),
+            // and (2) for this package, call the addPackage registration
+            // method for all aliased imports.
+            startBlock("public void addAliasPackages()");
+            for(String packageFieldName : packageFieldNames) {
+                writeln(
+                    "((org.eigenbase.enki.hibernate.jmi.HibernateRefPackage) ",
+                    packageFieldName,
+                    ").addAliasPackages();");
+            }
+            for(
+                pkgIter = aliasedPackages.iterator();
+                pkgIter.hasNext(); )
+            {
+                MofPackage nestedPkg = pkgIter.next();
+
+                writeln(
+                    "super.addPackage(", 
+                    QUOTE, nestedPkg.getName(), QUOTE, 
+                    ", this.get", generator.getSimpleTypeName(nestedPkg),
+                    "());");
+            }
+            endBlock();
             
             // class proxy accessors
             if (hasClasses) {
-                if (hasPackages) {
+                if (hasPackages || hasAliasedPackages) {
                     newLine();
                 }
                 writeln("// Class Proxy Accessors");
@@ -3023,7 +3185,7 @@ public class HibernateJavaHandler
 
             // association accessors
             if (hasAssocs) {
-                if (hasPackages || hasClasses) {
+                if (hasPackages || hasAliasedPackages || hasClasses) {
                     newLine();
                 }
                 writeln("// Association Accessors");

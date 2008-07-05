@@ -59,6 +59,22 @@ import org.eigenbase.enki.codegen.*;
  *   </td>
  * </tr>
  * <tr>
+ *   <td align="left">{@value #IDENTIFIER_LIMIT_OPTION}</td>
+ *   <td align="left">
+ *     Controls the length of generated identifiers such as attribute and
+ *     reference data members and their corresponding accessor methods.  This
+ *     may be necessary for metamodels containing long object names; for
+ *     example, MySQL column names can be 64 characters long at most.  Setting
+ *     this limit too high can lead to errors during Hibernate mapping; setting
+ *     this limit too low can lead to uniqueness clashes in generated
+ *     identifiers (simple truncation is used, without mangling).
+ *     Consequently, setting this limit may require experimentation for a given
+ *     metamodel and DBMS combination (and requires upgrade consideration as
+ *     well when metamodels change).  If unspecified, the default is
+ *     unlimited.  Optional.
+ *   </td>
+ * </tr>
+ * <tr>
  *   <td align="left">{@value #INCLUDE_PACKAGE_OPTION}</td>
  *   <td align="left">
  *     List of packages (by fully-qualified Java name) to include.  All
@@ -90,6 +106,13 @@ public class HibernateGenerator extends MdrGenerator
     public static final String DEFAULT_STRING_LENGTH_OPTION = 
         "defaultStringLength";
     
+    /** 
+     * The name of the generator option for setting the identifier
+     * limit. 
+     */
+    public static final String IDENTIFIER_LIMIT_OPTION = 
+        "identifierLimit";
+    
     /**
      * The name of the generator option for including specific packages.
      */
@@ -106,6 +129,12 @@ public class HibernateGenerator extends MdrGenerator
      * been set.
      */
     private int defaultStringLength = -1;
+
+    /**
+     * Identifier limit.  A value of -1 indicates that no limit
+     * has been set.
+     */
+    private int identifierLimit = -1;
     
     /**
      * Included package list.
@@ -140,6 +169,11 @@ public class HibernateGenerator extends MdrGenerator
         String lengthValue = options.get(DEFAULT_STRING_LENGTH_OPTION);
         if (lengthValue != null) {
             defaultStringLength = Integer.parseInt(lengthValue);
+        }
+        
+        lengthValue = options.get(IDENTIFIER_LIMIT_OPTION);
+        if (lengthValue != null) {
+            identifierLimit = Integer.parseInt(lengthValue);
         }
         
         String includedPackages = options.get(INCLUDE_PACKAGE_OPTION);
@@ -194,7 +228,23 @@ public class HibernateGenerator extends MdrGenerator
         metamodelInitHandler.setPluginMode(pluginMode);
         addHandler(metamodelInitHandler);
     }
+    
+    @Override
+    public String transformIdentifier(String identifier)
+    {
+        // TODO jvs 30-Jun-2008:  something smarter than
+        // just truncation
+        
+        identifier = super.transformIdentifier(identifier);
+        if (identifierLimit != -1) {
+            if (identifier.length() > identifierLimit) {
+                identifier = identifier.substring(0, identifierLimit);
+            }
+        }
+        return identifier;
+    }
 
+    // REVIEW jvs 30-Jun-2008:  without Any what?
     /**
      * Provides an entry point for testing without Any.
      * 

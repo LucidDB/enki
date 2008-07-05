@@ -369,4 +369,14 @@ public interface Generator
      *         1-to-1, 1-to-many or many-to-many association.
      */
     public AssociationKindEnum getAssociationKind(Association assoc);
+
+    /**
+     * Applies any transformations required by this generator to an identifier.
+     * Example transformations are truncation and mangling.
+     *
+     * @param identifier identifier to be transformed
+     *
+     * @return transformed identifier
+     */
+    public String transformIdentifier(String identifier);
 }

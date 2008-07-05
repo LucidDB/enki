@@ -56,7 +56,7 @@ public class JmiTemplateHandler
 
     private final Logger log = 
         Logger.getLogger(JmiTemplateHandler.class.getName());
-    
+
     public JmiTemplateHandler()
     {
     }
@@ -733,9 +733,13 @@ public class JmiTemplateHandler
                         VisibilityKindEnum.PUBLIC_VIS.equals(
                             ((MofPackage) ns).getVisibility()))
                     {
-                        throw new UnsupportedOperationException(
-                            "Import not supported");
-                    }             
+                        MofPackage importedPkg = (MofPackage) ns;
+                        writeAbstractPackageAccessor(
+                            importedPkg,
+                            PACKAGE_GET_PACKAGE_COMMENT,
+                            PACKAGE_GET_PACKAGE_RETURN_COMMENT, 
+                            PACKAGE_SUFFIX);
+                    }
                 }
             }
             

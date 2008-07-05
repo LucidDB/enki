@@ -254,12 +254,76 @@ public abstract class GeneratorBase implements Generator
     {
         if (pkg instanceof ModelPackage) {
             ModelPackage modelPkg = (ModelPackage)pkg;
-    
-            for(Object e: modelPkg.getMofPackage().refAllOfClass()) {
-                ModelElement elem = (ModelElement)e;
+
+            // To deal with the general case of a graph of package imports, we
+            // order the visit calls via preorder BFS from the roots.  This
+            // allows the generator implementation to rely on the guarantee
+            // that before visiting any imported package, at least one of the
+            // packages which imports it is visited first.  (Not all of them;
+            // that would be a topological sort.)  The Hibernate generator
+            // relies on this for designating the first such importing
+            // package as the "primary" for building a spanning tree.
+            // Dude, where's my JGraphT?
+
+            // Note that this does not currently do anything special for normal
+            // package containment (which in fact comes out postorder
+            // because of the call ordering in visitRefObject).  In fact,
+            // there's an assumption here that a package is reachable either by
+            // containment or by (possibly multiple) imports, but not both
+            // (if this assumption doesn't hold, the package will be
+            // generated twice).
+
+            // First, we need to know which packages are imported
+            // so that we don't treat them as roots.
+            Set<Namespace> clusteredNamespaces = new HashSet<Namespace>();
+            for (Object o : modelPkg.getImport().refAllOfClass()) {
+                Import imp = (Import) o;
+                if (imp.isClustered()) {
+                    clusteredNamespaces.add(imp.getImportedNamespace());
+                }
+            }
+
+            // Data structures for primitive BFS.  (Use LinkedList
+            // instead of Queue interface to avoid JRockit bug.)
+            LinkedList<MofPackage> queue = new LinkedList<MofPackage>();
+            Set<MofPackage> visitedPackages = new HashSet<MofPackage>();
+
+            // Find the roots and queue them up.
+            for (Object e: modelPkg.getMofPackage().refAllOfClass()) {
+                MofPackage elem = (MofPackage)e;
                 
-                if (elem.getContainer() == null) {
-                    visitRefObject(elem);
+                if ((elem.getContainer() == null)
+                    && !clusteredNamespaces.contains(elem)) {
+                    queue.add(elem);
+                }
+            }
+
+            // Main BFS loop.  Note that we don't traverse containment edges
+            // here (that happens implicitly in visitRefObject).
+            while (!queue.isEmpty()) {
+                MofPackage currPkg = queue.poll();
+                if (!visitedPackages.contains(currPkg)) {
+                    visitedPackages.add(currPkg);
+                    visitRefObject(currPkg);
+                } else {
+                    continue;
+                }
+
+                // REVIEW jvs 1-Jul-2008:  do we need to care about
+                // import/package visibility here?
+
+                // Traverse import edges.
+                for (Object o : currPkg.getContents()) {
+                    if (o instanceof Import) {
+                        Import imp = (Import) o;
+                        if (imp.isClustered()) {
+                            Namespace ns = imp.getImportedNamespace();
+                            if (ns instanceof MofPackage) {
+                                MofPackage impPkg = (MofPackage) ns;
+                                queue.add(impPkg);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -566,7 +630,7 @@ public abstract class GeneratorBase implements Generator
             // the same names as the Java primitive wrapper classes.  Note
             // that Primitives contains entries for the bare and fully
             // qualified versions.
-            
+
             return /*"java.lang." + */ name;
         }
         
@@ -689,10 +753,19 @@ public abstract class GeneratorBase implements Generator
         }
         
         String attribName = elem.getName();
+
+        String substName = 
+            TagUtil.getTagValue(elem, TagUtil.TAGID_SUBSTITUTE_NAME);
+        if (substName != null) {
+            attribName = substName;
+        }
+
+        attribName = transformIdentifier(attribName);
+            
         String baseName = 
             StringUtil.mangleIdentifier(
                 attribName, IdentifierType.CAMELCASE_INIT_UPPER);
-            
+
         String accessorName = null;
 
         // Upper bound -1 means infinity.
@@ -735,6 +808,15 @@ public abstract class GeneratorBase implements Generator
         }
 
         String attribName = feature.getName();
+
+        String substName = 
+            TagUtil.getTagValue(feature, TagUtil.TAGID_SUBSTITUTE_NAME);
+        if (substName != null) {
+            attribName = substName;
+        }
+
+        attribName = transformIdentifier(attribName);
+        
         String baseName = 
             StringUtil.mangleIdentifier(
                 attribName, IdentifierType.CAMELCASE_INIT_UPPER);
@@ -812,5 +894,10 @@ public abstract class GeneratorBase implements Generator
         } else {
             return AssociationKindEnum.ONE_TO_MANY;
         }
+    }
+    
+    public String transformIdentifier(String identifier)
+    {
+        return identifier;
     }
 }

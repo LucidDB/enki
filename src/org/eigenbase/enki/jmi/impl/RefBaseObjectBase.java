@@ -337,7 +337,7 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     {
         if (!(this instanceof RefClass || this instanceof RefPackage)) {
             throw new InternalJmiError(
-                "bad call: createInstance only valid on RefClass/RefPackage");
+                "bad call: getEnum only valid on RefClass/RefPackage");
         }
                 
         if ((enumType == null && enumTypeName == null) ||
@@ -348,7 +348,16 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         }
         
         StringBuilder className = new StringBuilder();
-        if (enumType != null) {
+
+        // REVIEW jvs 1-Jul-2008: Need some MDR testing (as reference
+        // implementation, since JMI and MOF specs are silent on this) to see
+        // whether it's legal to pass in any enumType (as opposed to only a
+        // child of this package or class).  If that is legal, then to deal
+        // with imports, we need to reactivate this code, but change it to
+        // understand import spanning trees.  If that is illegal, then we can
+        // just get rid of it.
+        
+        if (false) {
             ModelElement modelElem = (ModelElement)enumType;
 
             // REVIEW: Should this differ for a call from a class proxy?
@@ -397,6 +406,22 @@ public abstract class RefBaseObjectBase implements RefBaseObject
                 
             }
             className.append("Enum");
+        }
+
+        if (enumTypeName == null) {
+
+            // REVIEW jvs 1-Jul-2008:  If we can get rid of
+            // the deactivated code above, then this code can stay;
+            // otherwise, it should be eliminated instead.
+            
+            ModelElement modelElem = (ModelElement) enumType;
+            List<?> qualifiedName = modelElem.getQualifiedName();
+            
+            className
+                .append(getClass().getPackage().getName())
+                .append('.')
+                .append(qualifiedName.get(qualifiedName.size() - 1))
+                .append("Enum");
         } else {
             // REVIEW: Should this differ for a call from a class proxy?
             className

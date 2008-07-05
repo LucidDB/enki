@@ -1386,6 +1386,11 @@ public class HibernateMappingHandler
         if (getPassIndex() != 0) {
             return;
         }
+
+        // REVIEW jvs 1-Jul-2008:  seems like we need more
+        // control over this for clustered imports.  For ArgoUML, I
+        // worked around by fixing the generated property file
+        // post-mapJava.
         
         if (pkg.getContainer() == null && 
             !pkg.getName().equals("PrimitiveTypes"))

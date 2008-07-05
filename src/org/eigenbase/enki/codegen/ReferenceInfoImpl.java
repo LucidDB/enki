@@ -114,8 +114,9 @@ public class ReferenceInfoImpl
             fieldName = StringUtil.toInitialLower(referencedEnd.getName());
         }
 
-        
+        baseName = generator.transformIdentifier(baseName);
         this.referenceEndBaseName = baseName;
+        fieldName = generator.transformIdentifier(fieldName);
         this.fieldName = fieldName;
         this.accessorName = generator.getAccessorName(referencedEnd, null);
         

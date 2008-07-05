@@ -28,7 +28,7 @@ import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.util.*;
 
 /**
- * HibernateRefPackage provides a Hibernate-based implementations of 
+ * HibernateRefPackage provides a Hibernate-based implementation of 
  * {@link RefPackage}.
  * 
  * @author Stephan Zuercher
@@ -130,5 +130,14 @@ public abstract class HibernateRefPackage
     protected HibernateMDRepository getHibernateRepository()
     {
         return (HibernateMDRepository)getRepository();
+    }
+
+    /**
+     * Registers any clustered import packages which are being treated as
+     * aliases.  Subclasses override this based on the way
+     * they have been generated.
+     */
+    public void addAliasPackages()
+    {
     }
 }
