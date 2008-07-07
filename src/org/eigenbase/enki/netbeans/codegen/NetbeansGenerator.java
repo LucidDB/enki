@@ -41,6 +41,23 @@ import org.eigenbase.enki.codegen.*;
  * {@link #setXmiFile(java.io.File)}, and 
  * {@link #setOutputDirectory(java.io.File)}.
  * 
+ *
+ * <p>Supported options:
+ * <table border="1">
+ * <tr>
+ *   <th align="left">Name</th>
+ *   <th align="left">Description</th>
+ * </tr>
+ * <tr>
+ *   <td align="left">{@value #INCLUDE_PACKAGE_OPTION}</td>
+ *   <td align="left">
+ *     List of packages (by fully-qualified Java name) to include.  All
+ *     other packages are excluded.  If unspecified, all packages are 
+ *     included.  Optional.
+ *   </td>
+ * </tr>
+ * </table>
+ * 
  * @author Stephan Zuercher
  */
 public class NetbeansGenerator
