@@ -69,11 +69,12 @@
   <property name="test.catalog.dir" location="${test.dir}/catalog"/>
 
   <!-- Sample Catalog properties -->
+  <property name="sample.metamodel.name" value="EnkiSampleMetamodel"/>
   <property name="sample.dir" location="${test.dir}/sample"/>
   <property name="sample.catalog.dir" location="${sample.dir}/catalog"/>
   <property 
     name="sample.model.xmi" 
-    location="${sample.catalog.dir}/xmi/EnkiSampleMetamodel.xmi"/>
+    location="${sample.catalog.dir}/xmi/${sample.metamodel.name}.xmi"/>
   <property name="sample.jar" location="${sample.dir}/sample.jar"/>
   <property name="sample.dtd" location="${sample.catalog.dir}/xmi/sample.dtd"/>
 
@@ -716,6 +717,7 @@
         <fileset dir="${classes.dir}">
           <include name="**/test/plugin/*Test.class" unless="enki.test.pattern"/>
           <include name="${enki.test.pattern}" if="enki.test.pattern"/>
+          <exclude name="**/test/*Test.class" if="enki.test.pattern"/>
         </fileset>
       </batchtest>
     </junit>
