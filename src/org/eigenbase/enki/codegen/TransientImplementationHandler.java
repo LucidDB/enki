@@ -998,6 +998,10 @@ public abstract class TransientImplementationHandler
     public void generatePackage(MofPackage pkg)
         throws GenerationException
     {
+        // TODO: SWZ: 2008-07-07: Modify this to deal with aliased packages
+        // in a manner similar to HibernateJavaHandler.  Currently does not
+        // generate an addAliasedPackages() method.
+        
         String interfaceName = 
             generator.getTypeName(pkg, PACKAGE_SUFFIX);
         

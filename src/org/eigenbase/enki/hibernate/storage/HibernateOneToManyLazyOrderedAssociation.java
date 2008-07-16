@@ -29,30 +29,33 @@ import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.jmi.impl.*;
 
 /**
- * HibernateOneToManyLazyAssociation represents an association between two
- * metamodel types with especially lazy loading semantics.  The association
+ * HibernateOneToManyLazyOrderedAssociation represents an association between 
+ * two metamodel types with especially lazy loading semantics.  The association
  * to metamodel instances is not known to Hibernate, which allows us to 
  * avoid loading instance objects except when truly necessary.
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateOneToManyLazyAssociation
+public abstract class HibernateOneToManyLazyOrderedAssociation
     extends HibernateOneToManyLazyAssociationBase
+    implements HibernateOrderedAssociation
 {
-    private Collection<Element> children;
+    private List<Element> children;
+    private ElementList  childrenWrapper;
     
-    public HibernateOneToManyLazyAssociation()
+    public HibernateOneToManyLazyOrderedAssociation()
     {
         super();
      
-        this.children = new HashSet<Element>();
+        this.children = new ArrayList<Element>();
     }
     
-    public Collection<Element> getChildren()
+    public List<Element> getChildren()
     {
         return children;
     }
     
+    @Override
     public void setInitialParent(HibernateAssociable parent)
     {
         HibernateRefObject refObj = (HibernateRefObject)parent;
@@ -60,12 +63,13 @@ public abstract class HibernateOneToManyLazyAssociation
         setParentId(refObj.getMofId());
     }
     
+    @Override
     public void addInitialChild(HibernateAssociable child)
     {
-        Collection<Element> children = getChildren();
+        List<Element> children = getChildren();
         
         if (children == null) {
-            children = new HashSet<Element>();
+            children = new ArrayList<Element>();
             setChildren(children);
         }
         
@@ -77,31 +81,21 @@ public abstract class HibernateOneToManyLazyAssociation
     {
         return getChildren();
     }
-    
+
     @Override
     protected void emptyElements()
     {
-        setChildren(new HashSet<Element>());
+        getChildren().clear();
     }
 
     @Override
     protected boolean getUnique()
     {
-        return true;
+        return false;
     }
 
-    public void setChildren(Collection<Element> children)
-    {
-        this.children = children;
-    }
-    
-    public Collection<HibernateAssociable> getCollection()
-    {
-        return new ElementCollection(getChildren());
-    }
-    
-    /*
-    public boolean add(HibernateAssociable end1, HibernateAssociable end2)
+    public void add(
+        int index, HibernateAssociable end1, HibernateAssociable end2)
     {
         final String type = getType();
 
@@ -116,52 +110,29 @@ public abstract class HibernateOneToManyLazyAssociation
             newParent = end1;
             newChild = end2;
             parentIsFirstEnd = true;
+
         }
         boolean childIsFirstEnd = !parentIsFirstEnd;
         
         // This association must be related to one of the two objects.
-        HibernateOneToManyLazyAssociation parentAssoc = 
-            (HibernateOneToManyLazyAssociation)newParent.getAssociation(
+        HibernateOneToManyLazyOrderedAssociation parentAssoc = 
+            (HibernateOneToManyLazyOrderedAssociation)newParent.getAssociation(
                 type, parentIsFirstEnd);
-        HibernateOneToManyLazyAssociation childAssoc = 
-            (HibernateOneToManyLazyAssociation)newChild.getAssociation(
+        HibernateOneToManyLazyOrderedAssociation childAssoc = 
+            (HibernateOneToManyLazyOrderedAssociation)newChild.getAssociation(
                 type, childIsFirstEnd);
-        
-        return addInternal(
-            type, 
-            parentAssoc, 
-            newParent, 
-            childAssoc, 
-            newChild, 
-            parentIsFirstEnd);
-    }
-    
-    private boolean addInternal(
-        final String type,
-        HibernateOneToManyLazyAssociation parentAssoc,
-        HibernateAssociable newParent,
-        HibernateOneToManyLazyAssociation childAssoc,
-        HibernateAssociable newChild,
-        boolean parentIsFirstEnd)
-    {
+
         boolean sameParent = parentAssoc != null && parentAssoc.equals(this);
         boolean sameChild = childAssoc != null && childAssoc.equals(this);
         assert(sameParent || sameChild);
         
         if (sameParent) {
-            if (sameChild) {
-                assert(
-                    equals(getParentId(), 
-                           ((HibernateRefObject)newParent).getMofId()));
-                return false;
-            }
-
             Element elem = newElement(newChild);
 
             if (childAssoc != null && !sameChild) {
-                // Child associated with another parent.
-                childAssoc.getChildren().remove(elem);
-                if (childAssoc.getChildren().isEmpty()) {
+                while(childAssoc.getElements().remove(elem));
+                childAssoc.childrenWrapper = null;
+                if (childAssoc.getElements().isEmpty()) {
                     HibernateAssociable childsParent = childAssoc.getParent();
                     if (childsParent != null) {
                         childsParent.setAssociation(
@@ -171,48 +142,70 @@ public abstract class HibernateOneToManyLazyAssociation
                 }
             }
             
-            newChild.setAssociation(type, !parentIsFirstEnd, parentAssoc);
-            getChildren().add(elem);
-            return true;
+            newChild.setAssociation(type, childIsFirstEnd, this);
+            getCollection().add(index, newChild);
+            return;
         }
 
-        // sameChild == true: childAssoc == this (modulo Hibernate magic)
-        
         if (parentAssoc == null) {
             // Parent had no previous association.
-            if (getParentType() == null) {
-                // child association is brand new, just set the parent
-                newParent.setAssociation(type, parentIsFirstEnd, this);
-                HibernateRefObject refObj = (HibernateRefObject)newParent;
-                setParentType(refObj.getClassIdentifier());
-                setParentId(refObj.getMofId());
-                return true;
-            }
-            
-            // Child has an old parent, create a new association for the
-            // parent.
-            parentAssoc = 
-                (HibernateOneToManyLazyAssociation)
-                newParent.getOrCreateAssociation(type, parentIsFirstEnd);   
+            newParent.setAssociation(type, parentIsFirstEnd, this);
+            HibernateRefObject refObj = (HibernateRefObject)newParent;
+            setParentType(refObj.getClassIdentifier());
+            setParentId(refObj.getMofId());
+            return;
         }
         
-        return parentAssoc.addInternal(
-            type, 
-            parentAssoc, 
-            newParent, 
-            childAssoc, 
-            newChild,
-            parentIsFirstEnd);
+        // Associating child with a new parent.  Invoke parent association's
+        // add method.
+        parentAssoc.add(index, end1, end2);
     }
-*/
+
+    public boolean remove(
+        int index, HibernateAssociable end1, HibernateAssociable end2)
+    {
+        HibernateAssociable parent;
+        HibernateAssociable child;
+        if (getReversed()) {
+            parent = end2;
+            child = end1;
+        } else {
+            parent = end1;
+            child = end2;
+        }
+
+        return removeInternal(parent, child, index);
+    }
+
+    public void setChildren(List<Element> children)
+    {
+        this.children = children;
+    }
+    
+    public List<HibernateAssociable> getCollection()
+    {
+        List<Element> children = getChildren();
+        
+        if (childrenWrapper == null || childrenWrapper.elements != children) {
+            childrenWrapper = new ElementList(children);
+        }
+
+        return childrenWrapper;
+    }
+    
     public Collection<HibernateAssociable> get(HibernateAssociable item)
+    {
+        return getOrdered(item);
+    }
+    
+    public List<HibernateAssociable> getOrdered(HibernateAssociable item)
     {
         HibernateRefObject refObj = (HibernateRefObject)item;
         
         if (refObj.getMofId() == getParentId()) {
             return getCollection();
         } else {
-            return Collections.singleton(getParent());
+            return Collections.singletonList(getParent());
         }
     }
     
@@ -256,6 +249,14 @@ public abstract class HibernateOneToManyLazyAssociation
             parentIsFirstEnd = true;            
         }
         
+        Element elem = newElement(child);
+        
+        if (getChildren().contains(elem)) {
+            // Children contained a second copy before remove, nothing else 
+            // left to do.
+            return;
+        }
+        
         child.setAssociation(getType(), !parentIsFirstEnd, null);
         
         if (getChildren().isEmpty()) {
@@ -280,42 +281,6 @@ public abstract class HibernateOneToManyLazyAssociation
         }
     }
 
-    /*
-    public boolean remove(HibernateAssociable end1, HibernateAssociable end2)
-    {
-        final String type = getType();
-        
-        HibernateAssociable parent;
-        HibernateAssociable child;
-        boolean parentIsFirstEnd;
-        if (getReversed()) {
-            parent = end2;
-            child = end1;
-            parentIsFirstEnd = false;
-        } else {
-            parent = end1;
-            child = end2;
-            parentIsFirstEnd = true;
-        }
-        
-        if (((HibernateRefObject)parent).getMofId() == getParentId()) {
-            child.setAssociation(type, !parentIsFirstEnd, null);
-            
-            Collection<Element> children = getChildren();
-            boolean result = children.remove(newElement(child));
-            
-            if (children.isEmpty()) {
-                parent.setAssociation(type, parentIsFirstEnd, null);
-                delete(getHibernateRepository(parent));
-            }
-            
-            return result;
-        }
-        
-        return false;
-    }
-*/
-    
     public void removeAll(
         HibernateAssociable item,
         boolean isFirstEnd,
@@ -333,7 +298,7 @@ public abstract class HibernateOneToManyLazyAssociation
             parentIsFirstEnd = true;
         }
 
-        Collection<Element> children = getChildren();
+        List<Element> children = getChildren();
         
         if (isParent) {
             item.setAssociation(type, parentIsFirstEnd, null);
@@ -348,7 +313,9 @@ public abstract class HibernateOneToManyLazyAssociation
                     childRefObj.refDelete();
                 }
             }
+            
             emptyElements();
+
             delete(getHibernateRepository(item));
         } else {
             item.setAssociation(type, !parentIsFirstEnd, null);
@@ -371,43 +338,94 @@ public abstract class HibernateOneToManyLazyAssociation
     }
 
     /**
-     * ElementCollection wraps a Collection of 
+     * ElementList wraps a List of 
      * {@link HibernateOneToManyLazyAssociationBase.Element} objects and
      * handles the conversion from {@link RefObject} instances to 
-     * Element instances.  All operations except iteration are
-     * handled without loading the RefObjects in the collection (although 
-     * it is likely that any proxied RefObject passed into its methods will
-     * be loaded).
+     * Element instances.  Most operations are handled without 
+     * loading the RefObjects in the list (although it is likely that any 
+     * proxied RefObject passed into its methods will be loaded).
      */
-    private class ElementCollection
-        extends AbstractCollection<HibernateAssociable>
-        implements Collection<HibernateAssociable>
+    private class ElementList
+        extends AbstractList<HibernateAssociable>
+        implements List<HibernateAssociable>
     {
-        private final Collection<Element> collection;
+        private final List<Element> elements;
+        private final List<HibernateAssociable> cache;
         
-        private ElementCollection(Collection<Element> collection)
+        private ElementList(List<Element> elements)
         {
-            this.collection = collection;
-        }
-        
-        @Override
-        public boolean add(HibernateAssociable o)
-        {
-            Element elem = newElement(o);
+            this.elements = elements;
             
-            return collection.add(elem);
+            int n = elements.size();
+            this.cache = new ArrayList<HibernateAssociable>(n);
+            while(n-- > 0) {
+                cache.add(null);
+            }
         }
-
+        
         @Override
-        public Iterator<HibernateAssociable> iterator()
+        public HibernateAssociable get(int i)
         {
-            return new ElementIterator(this, collection);
+            return get(i, true);
         }
+        
+        @Override
+        public HibernateAssociable remove(int i)
+        {
+            HibernateAssociable o = get(i, false);
+            
+            elements.remove(i);
+            cache.remove(i);
+            
+            return o;
+        }
+        
+        private HibernateAssociable get(int index, boolean preFetch)
+        {
+            HibernateAssociable result = cache.get(index);
+            if (result == null) {
+                if (preFetch) {
+                    loadNonUniqueBatch(
+                        elements, cache, index, elements.size());
+                    result = cache.get(index);
+                } else {
+                    result = (HibernateAssociable)load(elements.get(index));
+                    cache.set(index, result);
+                }
+            }
 
+            return result;
+        }
+        
+        @Override 
+        public void add(int index, HibernateAssociable e)
+        {
+            Element elem = newElement(e);
+            
+            elements.add(index, elem);
+            cache.add(index, e);
+        }
+        
+        @Override
+        public HibernateAssociable set(int i, HibernateAssociable newValue)
+        {
+            Element newElement = newElement(newValue);
+            Element oldElement = elements.get(i);
+            HibernateAssociable oldValue = get(i, false);
+            
+            if (!newElement.equals(oldElement)) {
+                // Only modify the elements if it's a new element.
+                elements.set(i, newElement);
+                cache.set(i, newValue);
+            }
+
+            return oldValue;
+        }
+        
         @Override
         public int size()
         {
-            return collection.size();
+            return elements.size();
         }
         
         @Override
@@ -415,7 +433,23 @@ public abstract class HibernateOneToManyLazyAssociation
         {
             Element elem = newElement((RefObject)o);
             
-            return collection.contains(elem);
+            return elements.contains(elem);
+        }
+
+        @Override
+        public int indexOf(Object o)
+        {
+            Element elem = newElement((RefObject)o);
+            
+            return elements.indexOf(elem);
+        }
+
+        @Override
+        public int lastIndexOf(Object o)
+        {
+            Element elem = newElement((RefObject)o);
+            
+            return elements.lastIndexOf(elem);
         }
 
         @Override
@@ -423,81 +457,15 @@ public abstract class HibernateOneToManyLazyAssociation
         {
             Element elem = newElement((RefObject)o);
             
-            return collection.remove(elem);
-        }
-    }
-    
-    /**
-     * ElementIterator implements {@link Iterator} for 
-     * {@link ElementCollection}.  Upon construction it materializes the 
-     * collection into a List of 
-     * {@link HibernateOneToManyLazyAssociationBase.Element} instances and then
-     * loads the persistent {@link RefObject} instances referenced by those 
-     * Element during calls to {@link #next()}. Loads are executed in batches 
-     * of same-typed objects in the order in which the elements appear in the 
-     * collection. If objects of different types are interleaved, 
-     * ElementIterator skips ahead to find objects of the same type as that 
-     * being returned by the current call.
-     */
-    private class ElementIterator implements Iterator<HibernateAssociable>
-    {
-        private final ElementCollection owner;
-        private final List<Element> materializedCollection;
-        private final List<HibernateAssociable> loadedObjects;
-        private int size;
-        private int pos;
-        
-        ElementIterator(
-            ElementCollection owner, Collection<Element> collection)
-        {
-            this.owner = owner;
-            this.materializedCollection = new ArrayList<Element>(collection);
-            this.size = materializedCollection.size();
-            this.loadedObjects = new ArrayList<HibernateAssociable>(size);
-            for(int i = 0; i < size; i++) {
-                loadedObjects.add(null);
+            int index = elements.indexOf(elem);
+            if (index < 0) {
+                return false;
             }
             
-            this.pos = -1;
-        }
-        
-        public boolean hasNext()
-        {
-            return (pos + 1) < size;
-        }
-        
-        public HibernateAssociable next()
-        {
-            pos++;
-            
-            if (pos >= size) {
-                throw new NoSuchElementException();
-            }
-            
-            HibernateAssociable result = loadedObjects.get(pos);
-            if (result != null) {
-                return result;
-            }
-            
-            loadBatch(materializedCollection, loadedObjects, pos, size);
-            
-            return loadedObjects.get(pos);
-        }
-        
-        public void remove()
-        {
-            if (pos < 0 || pos >= size) {
-                throw new NoSuchElementException();
-            }
-            
-            HibernateAssociable obj = loadedObjects.remove(pos);
-            materializedCollection.remove(pos);
-            owner.remove(obj);
-            
-            pos--;
-            size--;
+            remove(index);
+            return true;
         }
     }
 }
 
-// End HibernateOneToManyLazyAssociation.java
+// End HibernateOneToManyLazyOrderedAssociation.java

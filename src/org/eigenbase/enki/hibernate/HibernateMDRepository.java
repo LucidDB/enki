@@ -42,8 +42,6 @@ import org.eigenbase.enki.util.*;
 import org.hibernate.*;
 import org.hibernate.cfg.*;
 import org.hibernate.criterion.*;
-import org.hibernate.event.*;
-import org.hibernate.event.def.*;
 import org.hibernate.stat.*;
 import org.hibernate.tool.hbm2ddl.*;
 import org.netbeans.api.mdr.*;
@@ -209,7 +207,7 @@ public class HibernateMDRepository
      * association batch size in addition to its normal Hibernate behavior.
      */
     public static final String PROPERTY_STORAGE_HIBERNATE_DEFAULT_BATCH_FETCH_SIZE =
-        "hibernate.default.batch_fetch_size";
+        "hibernate.default_batch_fetch_size";
 
     /**
      * Storage property that configures whether session factory statistics
@@ -560,28 +558,14 @@ public class HibernateMDRepository
         // Nested txns are okay, but the outermost txn is the only one that
         // commits/rollsback.
         boolean isCommitter = false;
-        boolean setFlushMode = false;
         boolean beginTrans = false;
         if (contexts.isEmpty()) {
             isCommitter = true;
-            setFlushMode = true;
             beginTrans = true;
         } else {
             isCommitter = contexts.getLast().isImplicit;
-
-            if (!mdrSession.containsWrites && write) {
-                setFlushMode = true;
-            }
         }
         
-        if (setFlushMode) {
-            if (write) {
-                mdrSession.session.setFlushMode(FlushMode.AUTO);
-            } else {
-                mdrSession.session.setFlushMode(FlushMode.COMMIT);
-            }
-        }
-
         Transaction trans;
         if (beginTrans) {
             trans = mdrSession.session.beginTransaction();
@@ -898,13 +882,36 @@ public class HibernateMDRepository
         
         HibernateRefClass hibRefCls = (HibernateRefClass)cls;
 
+        Class<?> instanceClass = hibRefCls.getInstanceClass();
+        
         Criteria criteria = 
-            getCurrentSession().createCriteria(hibRefCls.getInstanceClass())
+            getCurrentSession().createCriteria(instanceClass)
                 .add(Restrictions.in("id", mofIds))
                 .setCacheable(true);
 
-        return GenericCollections.asTypedList(
-            criteria.list(), RefObject.class);
+        MdrSession mdrSession = getMdrSession();
+        
+        ArrayList<RefObject> result = new ArrayList<RefObject>();
+        for(RefObjectBase refObj: 
+                GenericCollections.asTypedList(
+                    criteria.list(), RefObjectBase.class))
+        {
+            if (!mdrSession.mofIdDeleteSet.contains(refObj.getMofId())) {
+                result.add(refObj);
+            }
+        }
+
+        if (mofIds.size() > result.size()) {
+            for(Long queryMofId: mofIds) {
+                Class<? extends RefObject> c = 
+                    mdrSession.mofIdCreateMap.get(queryMofId);
+                if (c != null) {
+                    result.add(getByMofId(mdrSession, queryMofId, c));
+                }
+            }
+        }
+        
+        return result;
     }
     
     /**
@@ -1374,26 +1381,80 @@ public class HibernateMDRepository
         return getMdrSession().getMofIdGenerator();
     }
     
-    public Collection<?> lookupAllOfTypeResult(HibernateRefClass cls)
+    @SuppressWarnings("unchecked")
+    public Collection<?> allOfType(HibernateRefClass cls, String queryName)
     {
-        return softCacheLookup(getMdrSession().allOfTypeCache, cls);
+        MdrSession mdrSession = getMdrSession();
+        checkTransaction(false);
+        
+        Collection<?> simpleResult = mdrSession.allOfTypeCache.get(cls);
+        if (simpleResult == null) {
+            Session session = getCurrentSession();
+            
+            Query query = session.getNamedQuery(queryName);
+            
+            simpleResult = query.list();
+            
+            mdrSession.allOfTypeCache.put(cls, simpleResult);
+        }
+        
+        Set<RefObject> result = new HashSet<RefObject>();
+        for(Object obj: simpleResult) {
+            RefObjectBase b = (RefObjectBase)obj;
+            if (!mdrSession.mofIdDeleteSet.contains(b.getMofId())) {
+                result.add(b);
+            }
+        }
+        
+        Class<?> ifaceClass = cls.getInterfaceClass();
+        for(Map.Entry<Long, Class<? extends RefObject>> e: 
+                mdrSession.mofIdCreateMap.entrySet())
+        {
+            Class<? extends RefObject> createdCls = e.getValue();
+            if (ifaceClass.isAssignableFrom(createdCls)) {
+                result.add(getByMofId(mdrSession, e.getKey(), createdCls));
+            }
+        }
+        
+        return Collections.unmodifiableSet(result);
     }
     
-    public void storeAllOfTypeResult(
-        HibernateRefClass cls, Collection<?> allOfType)
+    @SuppressWarnings("unchecked")
+    public Collection<?> allOfClass(HibernateRefClass cls, String queryName)
     {
-        softCacheStore(getMdrSession().allOfTypeCache, cls, allOfType);
-    }
+        MdrSession mdrSession = getMdrSession();
+        
+        checkTransaction(false);
+        
+        Collection<?> simpleResult= mdrSession.allOfClassCache.get(cls);
+        if (simpleResult == null) {
+            Session session = getCurrentSession();
+            
+            Query query = session.getNamedQuery(queryName);
     
-    public Collection<?> lookupAllOfClassResult(HibernateRefClass cls)
-    {
-        return softCacheLookup(getMdrSession().allOfClassCache, cls);
-    }
+            simpleResult = query.list();
     
-    public void storeAllOfClassResult(
-        HibernateRefClass cls, Collection<?> allOfClass)
-    {
-        softCacheStore(getMdrSession().allOfClassCache, cls, allOfClass);
+            mdrSession.allOfClassCache.put(cls, simpleResult);
+        }
+        
+        Set<RefObject> result = new HashSet<RefObject>();
+        for(Object obj: simpleResult) {
+            RefObjectBase b = (RefObjectBase)obj;
+            if (!mdrSession.mofIdDeleteSet.contains(b.getMofId())) {
+                result.add(b);
+            }
+        }
+        
+        Class<?> instanceClass = cls.getInstanceClass();
+        for(Map.Entry<Long, Class<? extends RefObject>> e: 
+                mdrSession.mofIdCreateMap.entrySet())
+        {
+            if (instanceClass.isAssignableFrom(e.getValue())) {
+                result.add(getByMofId(e.getKey(), cls));
+            }
+        }
+        
+        return Collections.unmodifiableSet(result);
     }
     
     /**
@@ -1563,10 +1624,7 @@ public class HibernateMDRepository
 
         long mofId = object.getMofId();
 
-        Map<Long, Class<? extends RefObject>> mofIdCreateMap = 
-            mdrSession.mofIdCreateMap;
-        
-        mofIdCreateMap.put(mofId, object.getClass());
+        mdrSession.mofIdCreateMap.put(mofId, object.getClass());
     }
     
     public void recordObjectDeletion(HibernateObject object)
@@ -1907,21 +1965,6 @@ public class HibernateMDRepository
             URL internalConfigIUrl = 
                 getClass().getResource(HIBERNATE_STORAGE_MAPPING_XML);
             config.addURL(internalConfigIUrl);
-            
-            EventListener listener = new EventListener();
-            
-            FlushEventListener[] flushListeners = { 
-                listener,
-                new DefaultFlushEventListener()
-            };
-            AutoFlushEventListener[] autoFlushListeners = { 
-                listener,
-                new DefaultAutoFlushEventListener()
-            };
-            
-            config.getEventListeners().setFlushEventListeners(flushListeners);
-            config.getEventListeners().setAutoFlushEventListeners(
-                autoFlushListeners);
         }
         
         return config;
@@ -2391,36 +2434,6 @@ public class HibernateMDRepository
                 "' model JAR could not be instantiated", e);                    
         }
     }
-        
-    public void onFlush(FlushEvent flushEvent) throws HibernateException
-    {
-        MdrSession mdrSession = sessionStack.peek(this);
-        if (mdrSession == null) {
-            // Not in a transaction (e.g. startup, shutdown)
-            return;
-        }
-        
-        mdrSession.allOfTypeCache.clear();
-        mdrSession.allOfClassCache.clear();
-    }
-
-    public void onAutoFlush(AutoFlushEvent autoFlushEvent) 
-        throws HibernateException
-    {
-        MdrSession mdrSession = sessionStack.peek(this);
-        if (mdrSession == null) {
-            // Not in a transaction (e.g. startup, shutdown)
-            return;
-        }
-
-        if (!isNestedWriteTransaction(mdrSession)) {
-            // Ignore auto-flush on read-only transactions.
-            return;
-        }
-        
-        mdrSession.allOfTypeCache.clear();
-        mdrSession.allOfClassCache.clear();
-    }
 
     private void logStack(Level level, String msg)
     {
@@ -2593,8 +2606,8 @@ public class HibernateMDRepository
         private final int sessionId;
         
         private final LinkedList<Context> context;
-        private final Map<HibernateRefClass, SoftReference<Collection<?>>> allOfTypeCache;
-        private final Map<HibernateRefClass, SoftReference<Collection<?>>> allOfClassCache;
+        private final Map<HibernateRefClass, Collection<?>> allOfTypeCache;
+        private final Map<HibernateRefClass, Collection<?>> allOfClassCache;
         private final Map<Long, SoftReference<RefBaseObject>> byMofIdCache;
         private final Set<Long> mofIdDeleteSet;
         private final Map<Long, Class<? extends RefObject>> mofIdCreateMap;
@@ -2606,9 +2619,9 @@ public class HibernateMDRepository
             this.session = session;
             this.context = new LinkedList<Context>();
             this.allOfTypeCache = 
-                new HashMap<HibernateRefClass, SoftReference<Collection<?>>>();
+                new HashMap<HibernateRefClass, Collection<?>>();
             this.allOfClassCache =
-                new HashMap<HibernateRefClass, SoftReference<Collection<?>>>();
+                new HashMap<HibernateRefClass, Collection<?>>();
             this.byMofIdCache =
                 new HashMap<Long, SoftReference<RefBaseObject>>();
             this.mofIdDeleteSet = new HashSet<Long>();
@@ -2732,31 +2745,6 @@ public class HibernateMDRepository
             this.isWrite = isWrite;
             this.isImplicit = isImplicit;
             this.isCommitter = isCommitter;
-        }
-    }
-    
-    /**
-     * EventListener implements Hibernate's {@link FlushEventListener} and 
-     * {@link AutoFlushEventListener} and invokes 
-     * {@link HibernateMDRepository#onFlush(FlushEvent)} and
-     * {@link HibernateMDRepository#onAutoFlush(AutoFlushEvent)} to process
-     * those events.
-     */
-    private class EventListener 
-        implements FlushEventListener, AutoFlushEventListener
-    {
-        private static final long serialVersionUID = 5884573353539473470L;
-
-        public void onFlush(FlushEvent flushEvent)
-            throws HibernateException
-        {
-            HibernateMDRepository.this.onFlush(flushEvent);
-        }
-
-        public void onAutoFlush(AutoFlushEvent autoFlushEvent)
-            throws HibernateException
-        {
-            HibernateMDRepository.this.onAutoFlush(autoFlushEvent);
         }
     }
     

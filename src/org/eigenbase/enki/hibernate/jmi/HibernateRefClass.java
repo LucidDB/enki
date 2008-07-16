@@ -75,7 +75,6 @@ public abstract class HibernateRefClass
     protected abstract String getClassIdentifier();
     
     @Override
-    @SuppressWarnings("unchecked")
     public Collection<?> refAllOfClass()
     {
         logJmi("refAllOfClass");
@@ -83,51 +82,20 @@ public abstract class HibernateRefClass
         if (allOfClassQueryName != null) {
             HibernateMDRepository repos = getHibernateRepository();
             
-            repos.checkTransaction(false);
-            
-            Collection<?> cacheResult = repos.lookupAllOfClassResult(this);
-            if (cacheResult != null) {
-                return cacheResult;
-            }
-            
-            Session session = repos.getCurrentSession();
-            
-            Query query = session.getNamedQuery(allOfClassQueryName);
-
-            Collection<?> result = Collections.unmodifiableList(query.list());
-
-            repos.storeAllOfClassResult(this, result);
-            
-            return result;
+            return repos.allOfClass(this, allOfClassQueryName);
         }
         
         return Collections.emptyList();
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Collection<?> refAllOfType()
     {
         logJmi("refAllOfType");
 
         HibernateMDRepository repos = getHibernateRepository();
 
-        repos.checkTransaction(false);
-        
-        Collection<?> cacheResult = repos.lookupAllOfTypeResult(this);
-        if (cacheResult != null) {
-            return cacheResult;
-        }
-        
-        Session session = repos.getCurrentSession();
-        
-        Query query = session.getNamedQuery(allOfTypeQueryName);
-        
-        Collection<?> result = Collections.unmodifiableList(query.list());
-        
-        repos.storeAllOfTypeResult(this, result);
-        
-        return result;
+        return repos.allOfType(this, allOfTypeQueryName);
     }
     
     public Class<?> getInstanceClass()

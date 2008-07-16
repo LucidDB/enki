@@ -27,7 +27,6 @@ import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
-import org.eigenbase.enki.util.*;
 
 /**
  * HibernateOneToManyRefAssociation extends {@link HibernateRefAssociation}
@@ -122,12 +121,25 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
             return Collections.emptyList();
         }
        
-        Collection<? extends RefObject> c = assoc.get(p);
-        if (c instanceof List) {
-            return GenericCollections.asTypedList(
-                (List<? extends RefObject>)c, cls);
+        boolean ordered = 
+            end1IsParent 
+                ? end2Multiplicity.isOrdered() 
+                : end1Multiplicity.isOrdered();
+        
+        if (ordered) {
+            return new ListProxy<EX>(
+                (HibernateOrderedAssociation)assoc, 
+                (HibernateAssociable)parent, 
+                end1IsParent, 
+                getAssociationIdentifier(), 
+                cls);
         } else {
-            return GenericCollections.asTypedCollection(c, cls);
+            return new CollectionProxy<EX>(
+                assoc, 
+                (HibernateAssociable)parent, 
+                end1IsParent, 
+                getAssociationIdentifier(), 
+                cls);
         }
     }
 

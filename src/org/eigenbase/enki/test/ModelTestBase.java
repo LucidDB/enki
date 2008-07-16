@@ -112,20 +112,6 @@ public abstract class ModelTestBase
     
     private static void delete(RefPackage pkg)
     {
-        for(RefAssociation assoc: 
-            GenericCollections.asTypedCollection(
-                pkg.refAllAssociations(),
-                RefAssociation.class))
-        {
-            for(RefAssociationLink link: 
-                GenericCollections.asTypedCollection(
-                    assoc.refAllLinks(),
-                    RefAssociationLink.class))
-            {
-                assoc.refRemoveLink(link.refFirstEnd(), link.refSecondEnd());
-            }
-        }
-        
         for(RefClass cls: 
                 GenericCollections.asTypedCollection(
                     pkg.refAllClasses(),

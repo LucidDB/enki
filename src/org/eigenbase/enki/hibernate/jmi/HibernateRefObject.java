@@ -71,9 +71,9 @@ public abstract class HibernateRefObject
                 null,
                 this));
         
-        repos.recordObjectDeletion(this);
-        
         removeAssociations();
+        
+        repos.recordObjectDeletion(this);
         
         super.delete();
     }

@@ -83,6 +83,13 @@ public class HibernateJavaHandler
         new JavaClassReference(HibernateRefPackage.class);
 
     /**
+     * Name of the provider-agnostic base class for classes that implement 
+     * {@link RefPackage}.
+     */
+    public static final JavaClassReference REF_PACKAGE_BASE_CLASS = 
+        new JavaClassReference(RefPackageBase.class);
+    
+    /**
      * Name of the base class for classes that implement {@link RefAssociation}
      * for one-to-many associations.
      */
@@ -139,6 +146,13 @@ public class HibernateJavaHandler
      */
     public static final JavaClassReference ASSOCIATION_ONE_TO_MANY_LAZY_BASE = 
         new JavaClassReference(HibernateOneToManyLazyAssociation.class, false);
+    
+    /**
+     * Name of the base class for lazy one-to-many associations.
+     */
+    public static final JavaClassReference ASSOCIATION_ONE_TO_MANY_LAZY_ORDERED_BASE = 
+        new JavaClassReference(
+            HibernateOneToManyLazyOrderedAssociation.class, false);
     
     /**
      * Name of the class for lazy one-to-many associations elements.
@@ -310,6 +324,12 @@ public class HibernateJavaHandler
 
     /** 
      * Reference to the model-specific, generated subclass of 
+     * {@link HibernateOneToManyLazyOrderedAssociation}.
+     */
+    
+    private JavaClassReference assocOneToManyLazyOrderedClass;
+    /** 
+     * Reference to the model-specific, generated subclass of 
      * {@link HibernateOneToManyOrderedAssociation}.
      */
     private JavaClassReference assocOneToManyOrderedClass;
@@ -451,6 +471,10 @@ public class HibernateJavaHandler
             new JavaClassReference(
                 packageName,
                 ASSOCIATION_ONE_TO_MANY_ORDERED_BASE.toSimple());
+        assocOneToManyLazyOrderedClass = 
+            new JavaClassReference(
+                packageName,
+                ASSOCIATION_ONE_TO_MANY_LAZY_ORDERED_BASE.toSimple());
         assocManyToManyClass = 
             new JavaClassReference(
                 packageName,
@@ -475,10 +499,13 @@ public class HibernateJavaHandler
             generateAssociationStorageSubclass(
                 assocOneToManyClass, ASSOCIATION_ONE_TO_MANY_BASE);
             generateAssociationStorageSubclass(
-                assocOneToManyLazyClass, ASSOCIATION_ONE_TO_MANY_LAZY_BASE);
-            generateAssociationStorageSubclass(
                 assocOneToManyOrderedClass, 
                 ASSOCIATION_ONE_TO_MANY_ORDERED_BASE);
+            generateAssociationStorageSubclass(
+                assocOneToManyLazyClass, ASSOCIATION_ONE_TO_MANY_LAZY_BASE);
+            generateAssociationStorageSubclass(
+                assocOneToManyLazyOrderedClass, 
+                ASSOCIATION_ONE_TO_MANY_LAZY_ORDERED_BASE);
             generateAssociationStorageSubclass(
                 assocManyToManyClass, ASSOCIATION_MANY_TO_MANY_BASE);
             generateAssociationStorageSubclass(
@@ -612,11 +639,19 @@ public class HibernateJavaHandler
                     HibernateMappingHandler.QUERY_NAME_ALLLINKS;
                 break;
             case ONE_TO_MANY:
+                boolean ordered = 
+                    assocInfo.isOrdered(0) || assocInfo.isOrdered(1);
                 if (isLazy(assocInfo)) {
-                    allLinksQueryName =
-                        assocOneToManyLazyClass.toFull() + "." +
-                        HibernateMappingHandler.QUERY_NAME_ALLLINKS;
-                } else if (assocInfo.isOrdered(0) || assocInfo.isOrdered(1)) {
+                    if (ordered) {
+                        allLinksQueryName =
+                            assocOneToManyLazyOrderedClass.toFull() + "." +
+                            HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                    } else {
+                        allLinksQueryName =
+                            assocOneToManyLazyClass.toFull() + "." +
+                            HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                    }
+                } else if (ordered) {
                     allLinksQueryName =
                         assocOneToManyOrderedClass.toFull() + "." +
                         HibernateMappingHandler.QUERY_NAME_ALLLINKS;   
@@ -3142,10 +3177,11 @@ public class HibernateJavaHandler
             startBlock("public void addAliasPackages()");
             for(String packageFieldName : packageFieldNames) {
                 writeln(
-                    "((org.eigenbase.enki.hibernate.jmi.HibernateRefPackage) ",
+                    "((" , REF_PACKAGE_BASE_CLASS, ") ",
                     packageFieldName,
                     ").addAliasPackages();");
             }
+            
             for(
                 pkgIter = aliasedPackages.iterator();
                 pkgIter.hasNext(); )
@@ -3407,7 +3443,11 @@ public class HibernateJavaHandler
             
         case ONE_TO_MANY:
             if (isLazy) {
-                return assocOneToManyLazyClass.toString();
+                if (isEitherOrdered) {
+                    return assocOneToManyLazyOrderedClass.toString();
+                } else {
+                    return assocOneToManyLazyClass.toString();
+                }
             } else if (isEitherOrdered) {
                 return assocOneToManyOrderedClass.toString();
             } else {
@@ -3560,23 +3600,7 @@ public class HibernateJavaHandler
             return false;
         }
         
-        if (!CodeGenUtils.isLazyAssociation(assocInfo.getAssoc())) {
-            return false;
-        }
-        
-        if (assocInfo.getKind() == AssociationKindEnum.ONE_TO_MANY) {
-            if ((assocInfo.isSingle(0) && !assocInfo.isOrdered(1)) ||
-                (assocInfo.isSingle(1) && !assocInfo.isOrdered(0)))
-            {
-                return true;
-            }
-            
-            throw new GenerationException(
-                "ordered one-to-many lazy associations not supported");
-        }
-        
-        throw new GenerationException(
-            "one-to-one and many-to-many lazy associations are not supported");
+        return (assocInfo.getKind() == AssociationKindEnum.ONE_TO_MANY);
     }
     
     /**

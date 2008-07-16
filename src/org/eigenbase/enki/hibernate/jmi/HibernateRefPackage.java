@@ -131,13 +131,4 @@ public abstract class HibernateRefPackage
     {
         return (HibernateMDRepository)getRepository();
     }
-
-    /**
-     * Registers any clustered import packages which are being treated as
-     * aliases.  Subclasses override this based on the way
-     * they have been generated.
-     */
-    public void addAliasPackages()
-    {
-    }
 }

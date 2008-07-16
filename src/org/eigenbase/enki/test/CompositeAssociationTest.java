@@ -57,6 +57,12 @@ public class CompositeAssociationTest
     
     public static String createCompositeBuildingAssociations()
     {
+        return createCompositeBuildingAssociations(false);
+    }
+    
+    public static String createCompositeBuildingAssociations(
+        boolean createCompanies)
+    {
         getRepository().beginTrans(true);
         
         boolean rollback = true;
@@ -73,6 +79,16 @@ public class CompositeAssociationTest
             Floor secondFloor =
                 getSpecialPackage().getFloor().createFloor(2, 10);
             
+            Company companyA = null;
+            Company companyB = null;
+            if (createCompanies) {
+                companyA = 
+                    getSpecialPackage().getCompany().createCompany(
+                        "Qwik-E-Mart");
+                companyB = 
+                    getSpecialPackage().getCompany().createCompany("Buy N Large");                
+            }
+            
             building.getFloors().add(firstFloor);
             building.getFloors().add(secondFloor);
             
@@ -86,6 +102,12 @@ public class CompositeAssociationTest
             firstFloor.getRooms().add(room100);
             secondFloor.getRooms().add(room200);
             secondFloor.getRooms().add(room201);
+            
+            if (createCompanies) {
+                room100.setCompany(companyA);
+                room200.setCompany(companyB);
+                room201.setCompany(companyB);
+            }
             rollback = false;
             
             return building.refMofId();
@@ -356,11 +378,13 @@ public class CompositeAssociationTest
     @Test
     public void testReferenceCompositionDeleteCascade()
     {
-        String buildingMofId = createCompositeBuildingAssociations();
+        String buildingMofId = createCompositeBuildingAssociations(true);
 
         // Delete build and expect floors are deleted as well.
         List<String> floorMofIds = new ArrayList<String>();
         List<String> roomMofIds = new ArrayList<String>();
+        Set<String> companyMofIds = new HashSet<String>();
+        
         getRepository().beginTrans(true);
         try {
             Building building = 
@@ -371,6 +395,8 @@ public class CompositeAssociationTest
                 
                 for(Room room: floor.getRooms()) {
                     roomMofIds.add(room.refMofId());
+                    
+                    companyMofIds.add(room.getCompany().refMofId());
                 }
             }
             
@@ -393,6 +419,11 @@ public class CompositeAssociationTest
             for(String roomMofId: roomMofIds) {
                 Assert.assertNull(
                     getRepository().getByMofId(roomMofId));
+            }
+            
+            for(String companyMofId: companyMofIds) {
+                Assert.assertNotNull(
+                    getRepository().getByMofId(companyMofId));
             }
         }
         finally {

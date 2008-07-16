@@ -27,7 +27,6 @@ import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
-import org.eigenbase.enki.util.*;
 
 /**
  * HibernateManyToManyRefAssociation extends {@link HibernateRefAssociation}
@@ -87,13 +86,21 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
         if (assoc == null) {
             return Collections.emptyList();
         }
-        
-        Collection<? extends RefObject> c = assoc.get(t);
-        if (c instanceof List) {
-            return GenericCollections.asTypedList(
-                (List<? extends RefObject>)c, end1Class);
+
+        if (end1Multiplicity.isOrdered()) {
+            return new ListProxy<E1>(
+                (HibernateOrderedAssociation)assoc,
+                t,
+                false,
+                getAssociationIdentifier(),
+                end1Class);
         } else {
-            return GenericCollections.asTypedCollection(c, end1Class);
+            return new CollectionProxy<E1>(
+                assoc,
+                (HibernateAssociable)t,
+                false,
+                getAssociationIdentifier(),
+                end1Class);
         }
     }
 
@@ -107,12 +114,16 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
             return Collections.emptyList();
         }
         
-        Collection<? extends RefObject> c = assoc.get(s);
-        if (c instanceof List) {
-            return GenericCollections.asTypedList(
-                (List<? extends RefObject>)c, end2Class);
+        if (end2Multiplicity.isOrdered()) {
+            return new ListProxy<E2>(
+                (HibernateOrderedAssociation)assoc,
+                s,
+                true,
+                getAssociationIdentifier(),
+                end2Class);
         } else {
-            return GenericCollections.asTypedCollection(c, end2Class);
+            return new CollectionProxy<E2>(
+                assoc, s, true, getAssociationIdentifier(), end2Class);
         }
     }
 

@@ -68,6 +68,15 @@ public abstract class RefPackageBase
         packageMap.put(name, refPackage);
     }
 
+    /**
+     * Registers any clustered import packages which are being treated as
+     * aliases.  Subclasses override this based on the way
+     * they have been generated.
+     */
+    public void addAliasPackages()
+    {
+    }
+    
     // Implement RefBaseObject
     public RefPackage refImmediatePackage()
     {
