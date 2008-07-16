@@ -98,7 +98,9 @@ public abstract class MdrGenerator
         } catch(Throwable t) {
             throw new GenerationException(t);
         } finally {
-            mdr.shutdown();
+            if (mdr != null) {
+                mdr.shutdown();
+            }
         }
     }
 
