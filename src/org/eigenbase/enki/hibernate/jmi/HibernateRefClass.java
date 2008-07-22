@@ -28,7 +28,6 @@ import javax.jmi.reflect.*;
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.hibernate.codegen.*;
 import org.eigenbase.enki.jmi.impl.*;
-import org.hibernate.*;
 
 /**
  * HibernateRefClass provides a Hibernate-based implementation of 
@@ -42,13 +41,13 @@ public abstract class HibernateRefClass
 {
     private final String allOfClassQueryName;
     private final String allOfTypeQueryName;
-    private final Class<?> classImpl;
-    private final Class<?> iface;
+    private final Class<? extends RefObject> classImpl;
+    private final Class<? extends RefObject> iface;
     
     protected HibernateRefClass(
         RefPackage container,
-        Class<?> classImplementation,
-        Class<?> classInterface)
+        Class<? extends RefObject> classImplementation,
+        Class<? extends RefObject> classInterface)
     {
         super(container);
         
@@ -98,12 +97,12 @@ public abstract class HibernateRefClass
         return repos.allOfType(this, allOfTypeQueryName);
     }
     
-    public Class<?> getInstanceClass()
+    public Class<? extends RefObject> getInstanceClass()
     {
         return classImpl;
     }
     
-    public Class<?> getInterfaceClass()
+    public Class<? extends RefObject> getInterfaceClass()
     {
         return iface;
     }

@@ -882,7 +882,8 @@ public class HibernateMDRepository
         
         HibernateRefClass hibRefCls = (HibernateRefClass)cls;
 
-        Class<?> instanceClass = hibRefCls.getInstanceClass();
+        Class<? extends RefObject> instanceClass = 
+            hibRefCls.getInstanceClass();
         
         Criteria criteria = 
             getCurrentSession().createCriteria(instanceClass)
@@ -946,7 +947,8 @@ public class HibernateMDRepository
             return null;
         }
         
-        Class<?> instanceClass = ((HibernateRefClass)cls).getInstanceClass();
+        Class<? extends RefObject> instanceClass = 
+            ((HibernateRefClass)cls).getInstanceClass();
 
         return getByMofId(mdrSession, mofIdLong, instanceClass);
     }
@@ -954,7 +956,7 @@ public class HibernateMDRepository
     private RefObject getByMofId(
         MdrSession mdrSession,
         Long mofIdLong,
-        Class<?> instanceClass)
+        Class<? extends RefObject> instanceClass)
     {
         Session session = mdrSession.session;
         
@@ -1445,7 +1447,7 @@ public class HibernateMDRepository
             }
         }
         
-        Class<?> instanceClass = cls.getInstanceClass();
+        Class<? extends RefObject> instanceClass = cls.getInstanceClass();
         for(Map.Entry<Long, Class<? extends RefObject>> e: 
                 mdrSession.mofIdCreateMap.entrySet())
         {

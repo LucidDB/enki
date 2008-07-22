@@ -154,8 +154,18 @@ public abstract class HibernateOneToManyLazyAssociationBase
 
             if (childAssoc != null && !sameChild) {
                 // Child associated with another parent.
-                while(childAssoc.getElements().remove(elem));
-                if (childAssoc.getElements().isEmpty()) {
+                boolean delete = false;
+                if (getUnique()) {
+                    childAssoc.getElements().remove(elem);
+                    delete = childAssoc.getElements().isEmpty();
+                } else {
+                    Collection<HibernateAssociable> c = 
+                        childAssoc.getCollection();
+                    while(c.remove(newChild));
+                    delete = c.isEmpty();
+                }
+                
+                if (delete) {
                     HibernateAssociable childsParent = childAssoc.getParent();
                     if (childsParent != null) {
                         childsParent.setAssociation(
