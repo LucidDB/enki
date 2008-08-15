@@ -348,7 +348,6 @@ public class MassDeletionTest extends SampleModelTestBase
         // (e.g., make sure all assocs point to an object that points back)
     }
     
-    @Ignore // BROKEN!  Need to fix up ordinal values
     @Test
     public void testMassDeletionOrdered()
     {
@@ -372,11 +371,11 @@ public class MassDeletionTest extends SampleModelTestBase
                 objects.add(object);
             }
             
-            objects.remove(9);
             objects.remove(0);
+            objects.remove(objects.size() - 1);
         
-            preservedMofIds.add(mofIds.remove(9));
             preservedMofIds.add(mofIds.remove(0));
+            preservedMofIds.add(mofIds.remove(mofIds.size() - 1));
       
             getRepository().delete(objects);
     

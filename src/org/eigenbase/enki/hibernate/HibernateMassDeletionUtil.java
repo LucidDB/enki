@@ -28,7 +28,6 @@ import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.hibernate.storage.*;
-import org.eigenbase.enki.hibernate.storage.HibernateAssociation.*;
 import org.eigenbase.enki.util.*;
 import org.hibernate.*;
 
@@ -86,12 +85,21 @@ class HibernateMassDeletionUtil
         new HashMap<HibernateRefClass, HashMultiMap<String, Long>>();
     
     /**
-     * Map of association type to collection of remove operations.  Each remove
-     * operation represents the deletion of a single end of an association
-     * where the other ends are left in place.
+     * Map of association type to collection of child identifiers to remove.
+     * Each child identifier represents the deletion of a single end of an 
+     * association where the other ends are left in place.
      */
     private HashMultiMap<HibernateAssociation.Kind, Long> assocRemoveMap =
         new HashMultiMap<HibernateAssociation.Kind, Long>(true);
+    
+    /**
+     * Map of association type to collection of ordered collection fix-up
+     * operations.  Each fix-up operation represents the deletion of all
+     * children beyond a certain ordinal and the re-insertion (with corrected
+     * ordinals) of undeleted successors.
+     */
+    private HashMultiMap<HibernateAssociation.Kind, OrderedAssocFixUp> assocFixUpMap =
+        new HashMultiMap<HibernateAssociation.Kind, OrderedAssocFixUp>();
     
     /**
      * Map of association type to table name.
@@ -207,8 +215,7 @@ class HibernateMassDeletionUtil
             }
             
             // delete associations members
-            for(HibernateAssociation.Kind assocKind: assocRemoveMap.keySet())
-            {
+            for(HibernateAssociation.Kind assocKind: assocRemoveMap.keySet()) {
                 Collection<Long> removeMofIds = 
                     assocRemoveMap.getValues(assocKind);
                 
@@ -218,6 +225,9 @@ class HibernateMassDeletionUtil
                     "delete from ", collectionTableMap.get(assocKind), 
                     " where childId in (", IN_PARAMS, ")");
             }
+            
+            // fix-up ordered associations
+            executeFixUps(conn);
         }
         catch(SQLException e) {
             throw new HibernateException(e);
@@ -276,25 +286,25 @@ class HibernateMassDeletionUtil
                 
             case ONE_TO_MANY:
                 computeAssociationMaps(
-                    (HibernateOneToManyLazyAssociationBase)assoc);
+                    (HibernateOneToManyLazyAssociationBase)assoc, false);
                 exemplars[1] = assoc;
                 break;
                 
             case ONE_TO_MANY_ORDERED:
                 computeAssociationMaps(
-                    (HibernateOneToManyLazyAssociationBase)assoc);
+                    (HibernateOneToManyLazyAssociationBase)assoc, true);
                 exemplars[2] = assoc;
                 break;
                 
             case MANY_TO_MANY:
                 computeAssociationMaps(
-                    (HibernateManyToManyLazyAssociationBase)assoc);
+                    (HibernateManyToManyLazyAssociationBase)assoc, false);
                 exemplars[3] = assoc;
                 break;
                 
             case MANY_TO_MANY_ORDERED:
                 computeAssociationMaps(
-                    (HibernateManyToManyLazyAssociationBase)assoc);
+                    (HibernateManyToManyLazyAssociationBase)assoc, true);
                 exemplars[4] = assoc;
                 break;
                 
@@ -348,7 +358,7 @@ class HibernateMassDeletionUtil
     }
 
     private void computeAssociationMaps(
-        HibernateOneToManyLazyAssociationBase assoc)
+        HibernateOneToManyLazyAssociationBase assoc, boolean isOrdered)
     {
         String parentType = assoc.getParentType();
         Long parentId = assoc.getParentId();
@@ -361,7 +371,7 @@ class HibernateMassDeletionUtil
                 assoc.getCollectionName(),
                 assocMofId));
             
-        Kind assocKind = assoc.getKind();
+        HibernateAssociation.Kind assocKind = assoc.getKind();
         
         if (parentInDelMap) {
             // Delete the association no matter what: just a question of 
@@ -424,19 +434,13 @@ class HibernateMassDeletionUtil
                 // Remove children in deletion map from the association
                 Iterator<HibernateLazyAssociationBase.Element> iter =
                     children.iterator();
-                int removals = 0;
-                
-                while(iter.hasNext()) {
-                    HibernateLazyAssociationBase.Element child = iter.next();
-                    
-                    boolean childInDelMap = 
-                        isInDeletionMap(
-                            child.getChildType(), child.getChildId());
-                    
-                    if (childInDelMap) {
-                        assocRemoveMap.put(assocKind, child.getChildId());
-                        removals++;
-                    }
+                int removals;
+                if (isOrdered) {
+                    removals = 
+                        removeDeletedOrderedElements(
+                            assocKind, assocMofId, iter);
+                } else {
+                    removals = removeDeletedElements(assocKind, iter);
                 }
                 
                 if (removals == 0) {
@@ -448,7 +452,7 @@ class HibernateMassDeletionUtil
     }
 
     private void computeAssociationMaps(
-        HibernateManyToManyLazyAssociationBase assoc)
+        HibernateManyToManyLazyAssociationBase assoc, boolean isOrdered)
     {
         if (processedManyToManyAssocs.contains(assoc)) {
             // Many-to-many assocs are stored as multiple one-to-many assocs.
@@ -467,7 +471,7 @@ class HibernateMassDeletionUtil
                 assoc.getCollectionName(), 
                 assocMofId));
 
-        Kind assocKind = assoc.getKind();
+        HibernateAssociation.Kind assocKind = assoc.getKind();
         
         if (sourceInDelMap) {
             // Delete the association no matter what: just a question of 
@@ -492,7 +496,8 @@ class HibernateMassDeletionUtil
                         target.getAssociation(assoc.getType(), isFirstEnd);
                                         
                     computeAssociationMaps(
-                        (HibernateManyToManyLazyAssociationBase)targetAssoc);
+                        (HibernateManyToManyLazyAssociationBase)targetAssoc,
+                        isOrdered);
                 }
             }
         } else {
@@ -529,20 +534,14 @@ class HibernateMassDeletionUtil
                     assoc.getType(), 
                     !assoc.getReversed());
             } else {
-                // Remove targets in deletion map from the association
+                // Remove targets in deletion map from the association.
                 Iterator<HibernateLazyAssociationBase.Element> iter =
                     targets.iterator();
 
-                while(iter.hasNext()) {
-                    HibernateLazyAssociationBase.Element target = iter.next();
-                    
-                    boolean targetInDelMap = 
-                        isInDeletionMap(
-                            target.getChildType(), target.getChildId());
-                    
-                    if (targetInDelMap) {
-                        assocRemoveMap.put(assocKind, target.getChildId());
-                    }
+                if (isOrdered) {
+                    removeDeletedOrderedElements(assocKind, assocMofId, iter);
+                } else {
+                    removeDeletedElements(assocKind, iter);
                 }
             }
         }
@@ -571,6 +570,73 @@ class HibernateMassDeletionUtil
         derefMap.put(columnName, mofId);
         
         evictionSet.add(new Eviction(hrc.getInstanceClass(), mofId));
+    }
+    
+    private int removeDeletedElements(
+        HibernateAssociation.Kind assocKind,
+        Iterator<HibernateLazyAssociationBase.Element> iter)
+    {
+        int removals = 0;
+        while(iter.hasNext()) {
+            HibernateLazyAssociationBase.Element child = iter.next();
+            
+            boolean childInDelMap = 
+                isInDeletionMap(
+                    child.getChildType(), child.getChildId());
+            
+            if (childInDelMap) {
+                assocRemoveMap.put(assocKind, child.getChildId());
+                removals++;
+            }
+        }
+        
+        return removals;
+    }
+
+    private int removeDeletedOrderedElements(
+        HibernateAssociation.Kind assocKind,
+        long assocMofId,
+        Iterator<HibernateLazyAssociationBase.Element> iter)
+    {
+        OrderedAssocFixUp fixUp = null;
+        
+        // Note: ordinal is only valid until the first deleted element is 
+        // encountered.
+        int ordinal = 0;
+        int removals = 0;        
+        while(iter.hasNext()) {
+            HibernateLazyAssociationBase.Element child = iter.next();
+            
+            boolean childInDelMap = 
+                isInDeletionMap(
+                    child.getChildType(), child.getChildId());
+            
+            // REVIEW: SWZ: 2008-08-15: An optimization here would be to detect
+            // when all the deleted children are at the end of the collection,
+            // place them in assocRemoveMap, and leave out the fix-up object.
+            // This would delete the child in all ordered assocs (which is okay
+            // because it is a deleted object).  Other ordered assocs might
+            // still require fix up operations, which would also work 
+            // correctly.
+            
+            if (childInDelMap) {
+                // No need to place the child in the assocRemoveMap, we'll
+                // use the fixup operation to delete it.
+                removals++;
+                
+                if (fixUp == null) {
+                    fixUp = new OrderedAssocFixUp(assocMofId, ordinal);
+                    assocFixUpMap.put(assocKind, fixUp);
+                }                
+            } else if (fixUp != null) {
+                fixUp.childTypes.add(child.getChildType());
+                fixUp.childIds.add(child.getChildId());
+            }
+            
+            ordinal++;
+        }
+        
+        return removals;
     }
     
     private void computeTableMaps(HibernateAssociation... assocs)
@@ -731,6 +797,47 @@ class HibernateMassDeletionUtil
         }
     }
     
+    private void executeFixUps(Connection conn) throws SQLException
+    {
+        for(HibernateAssociation.Kind assocKind: assocFixUpMap.keySet()) {
+            Collection<OrderedAssocFixUp> fixUpOps =
+                assocFixUpMap.getValues(assocKind);
+
+            if (fixUpOps.isEmpty()) {
+                continue;
+            }
+            
+            // TODO: dialect-specific quoting
+            PreparedStatement delStmt = 
+                conn.prepareStatement(
+                    "delete from " + collectionTableMap.get(assocKind) +
+                    " where mofId = ? and ordinal >= ?");
+            
+            // TODO: dialect-specific quoting
+            PreparedStatement insStmt = 
+                conn.prepareStatement(
+                    "insert into " + collectionTableMap.get(assocKind) +
+                    " values (?, ?, ?, ?)");
+            
+            for(OrderedAssocFixUp fixUpOp: fixUpOps) {
+                delStmt.setLong(1, fixUpOp.mofId);
+                delStmt.setInt(2, fixUpOp.initialOrdinal);
+                delStmt.executeUpdate();
+                
+                Iterator<String> typeIter = fixUpOp.childTypes.iterator();
+                Iterator<Long> idIter = fixUpOp.childIds.iterator();
+                int ordinal = fixUpOp.initialOrdinal;
+                while(typeIter.hasNext()) {
+                    insStmt.setLong(1, fixUpOp.mofId);
+                    insStmt.setString(2, typeIter.next());
+                    insStmt.setLong(3, idIter.next());
+                    insStmt.setInt(4, ordinal++);
+                    insStmt.executeUpdate();
+                }
+            }
+        }
+    }
+    
     private static class Eviction
     {
         final Class<?> entityClass;
@@ -779,6 +886,23 @@ class HibernateMassDeletionUtil
                 sessionFactory.evictCollection(
                     entityClass.getName() + "." + collectionName, mofId);
             }
+        }
+    }
+    
+    private static class OrderedAssocFixUp
+    {
+        final long mofId;
+        final int initialOrdinal;
+        final List<String> childTypes;
+        final List<Long> childIds;
+        
+        OrderedAssocFixUp(long mofId, int initialOrdinal)
+        {
+            this.mofId = mofId;
+            this.initialOrdinal = initialOrdinal;
+            
+            this.childTypes = new ArrayList<String>();
+            this.childIds = new ArrayList<Long>();
         }
     }
 }
