@@ -46,12 +46,6 @@ public class HibernateMofInitHandler extends MofInitHandler
         new JavaClassReference(RefPackageBase.class, false);
     
     private final Map<String, String> typeMap;
-    
-    /** 
-     * Reference to the model-specific, generated subclass of 
-     * {@link HibernateAssociationTypeMapper}.
-     */
-    private JavaClassReference assocTypeMapperClass;
 
     private Generalizes generalizes;
     
@@ -132,14 +126,6 @@ public class HibernateMofInitHandler extends MofInitHandler
         super.beginGeneration();
         
         generalizes = modelPackage.getGeneralizes();
-        
-        String packageName = 
-            TagUtil.getFullyQualifiedPackageName(modelPackage);
-        
-        assocTypeMapperClass =
-            new JavaClassReference(
-                packageName,
-                HibernateJavaHandler.ASSOCIATION_TYPE_MAPPER_BASE.toSimple());
     }
 
     
@@ -261,26 +247,6 @@ public class HibernateMofInitHandler extends MofInitHandler
         return result;
     }
 
-    @Override
-    protected void customInitialization()
-        throws GenerationException
-    {
-        List<String> allAssocTypes = new ArrayList<String>(typeMap.keySet());
-        Collections.sort(allAssocTypes);
-        
-        newLine();
-        writeln("// Initialize type mapper");
-        writeln(
-            assocTypeMapperClass, " tmap = new ", assocTypeMapperClass, "();");
-        for(String assocType: allAssocTypes) {
-            String simpleName = typeMap.get(assocType);
-            writeln(
-                "tmap.register(", 
-                assocType, ".class, ", 
-                QUOTE, simpleName, QUOTE, ");");
-        }
-    }
-        
     @Override
     protected void customStitchPackages()
     {

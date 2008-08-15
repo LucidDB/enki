@@ -360,4 +360,21 @@ public abstract class HibernateRefAssociation
     {
         return (HibernateMDRepository)getRepository();
     }
+
+    /**
+     * Retrieve the class that represents the type of this instance.  Separate
+     * from {@link #getClass()} because Hibernate can and will proxy the
+     * class and we don't want to accidentally retrieve the wrong type.
+     * 
+     * @return class that represents this object's type
+     */
+    public abstract Class<? extends HibernateAssociation> getInstanceClass();
+    
+    /**
+     * Get basic association type.
+     * 
+     * @return the {@link HibernateAssociation}.Kind that represents this 
+     *         association
+     */
+    public abstract HibernateAssociation.Kind getKind();
 }

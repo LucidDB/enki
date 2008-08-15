@@ -145,8 +145,8 @@ public class HibernateMDRepository
         "enki.model.initializer";
     
     /**
-     * Configuration file property indicates whether this model is a plug-in
-     * or a base model.  Valid values are true or false.
+     * Configuration file property that indicates whether this model is a 
+     * plug-in or a base model.  Valid values are true or false.
      */
     public static final String PROPERTY_MODEL_PLUGIN = 
         "enki.model.plugin";
@@ -303,7 +303,7 @@ public class HibernateMDRepository
     /** Map of unique association identifier to HibernateRefAssociation. */
     private final HashMap<String, HibernateRefAssociation> assocRegistry;
     
-    private final Logger log;
+    final Logger log;
 
     public HibernateMDRepository(
         List<Properties> modelProperties,
@@ -387,6 +387,11 @@ public class HibernateMDRepository
                 e);
             return defaultValue;
         }
+    }
+    
+    public MdrProvider getProviderType()
+    {
+        return MdrProvider.ENKI_HIBERNATE;
     }
     
     public EnkiMDSession detachSession()
@@ -656,6 +661,8 @@ public class HibernateMDRepository
             try {
                 Session session = mdrSession.session;
                 if (mdrSession.containsWrites) {
+                    session.flush();
+                    
                     if (!mdrSession.mofIdDeleteSet.isEmpty()) {
                         // Update enki type mapping
                         Query query = 
@@ -872,7 +879,7 @@ public class HibernateMDRepository
         return getByMofId(mofId, cls, null);
     }
     
-    public List<RefObject> getByMofId(List<Long> mofIds, RefClass cls)
+    public Collection<RefObject> getByMofId(List<Long> mofIds, RefClass cls)
     {
         if (mofIds.isEmpty()) {
             return Collections.emptyList();
@@ -892,7 +899,13 @@ public class HibernateMDRepository
 
         MdrSession mdrSession = getMdrSession();
         
-        ArrayList<RefObject> result = new ArrayList<RefObject>();
+        // We use a set here because certain types of objects (those with
+        // an attribute of type collection-of-primitive) cause Hibernate to
+        // return duplicate results. It performs a left outer join to load
+        // the objects with their collections and fails to return each
+        // instance only once.  Probably a Hibernate bug.
+        
+        Set<RefObject> result = new HashSet<RefObject>();
         for(RefObjectBase refObj: 
                 GenericCollections.asTypedList(
                     criteria.list(), RefObjectBase.class))
@@ -925,7 +938,7 @@ public class HibernateMDRepository
      * @param mofId optional string version of MOF ID
      * @return the object requested or null if not found or already deleted
      */
-    private RefObject getByMofId(long mofIdLong, RefClass cls, String mofId)
+    private RefObject getByMofId(Long mofIdLong, RefClass cls, String mofId)
     {
         MdrSession mdrSession = getMdrSession();
         
@@ -995,7 +1008,7 @@ public class HibernateMDRepository
     {
         MdrSession mdrSession = getMdrSession();
         
-        long mofIdLong = MofIdUtil.parseMofIdStr(mofId); 
+        Long mofIdLong = MofIdUtil.parseMofIdStr(mofId); 
 
         RefBaseObject cachedResult = lookupByMofId(mdrSession, mofIdLong);
         if (cachedResult != null) {
@@ -1090,6 +1103,11 @@ public class HibernateMDRepository
         MdrSession mdrSession, Long mofId, RefBaseObject obj)
     {
         softCacheStore(mdrSession.byMofIdCache, mofId, obj);
+    }
+    
+    public void delete(Collection<RefObject> objects)
+    {
+        new HibernateMassDeletionUtil(this).massDelete(objects);
     }
     
     public RefObject findAllOfType(
@@ -1634,8 +1652,19 @@ public class HibernateMDRepository
         MdrSession mdrSession = getMdrSession();
         
         long mofId = object.getMofId();
+
         mdrSession.byMofIdCache.remove(mofId);
         mdrSession.mofIdDeleteSet.add(mofId);
+    }
+
+    void recordObjectDeletions(Collection<Long> mofIds)
+    {
+        MdrSession mdrSession = getMdrSession();
+        
+        for(Long mofId: mofIds) {
+            mdrSession.byMofIdCache.remove(mofId);
+            mdrSession.mofIdDeleteSet.add(mofId);
+        }
     }
     
     /**

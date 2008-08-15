@@ -210,6 +210,7 @@ public class HibernateGenerator extends MdrGenerator
         HibernateJavaHandler javaHandler = new HibernateJavaHandler();
         javaHandler.setIncludes(includedPackageList);
         javaHandler.setPluginMode(pluginMode);
+        javaHandler.setTablePrefix(tablePrefix);
         addHandler(javaHandler);
         
         HibernateMappingHandler mappingHandler = new HibernateMappingHandler();

@@ -25,20 +25,23 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.codegen.*;
+import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.jmi.impl.*;
 
 /**
- * HibernateManyToManyAssociationBase is an abstract base class for 
+ * HibernateManyToManyAssociationLazyBase is an abstract base class for lazy 
  * many-to-many association storage.
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateManyToManyAssociationBase
-    extends HibernateAssociationBase
+public abstract class HibernateManyToManyLazyAssociationBase
+    extends HibernateLazyAssociationBase
 {
     private boolean reversed;
     
-    private HibernateAssociable source;
+    private String sourceType;
+    private long sourceId;
     
     public boolean getReversed()
     {
@@ -50,35 +53,66 @@ public abstract class HibernateManyToManyAssociationBase
         this.reversed = reversed;
     }
     
-    public abstract boolean getUnique();
+    public String getSourceType()
+    {
+        return sourceType;
+    }
+    
+    public void setSourceType(String sourceType)
+    {
+        this.sourceType = sourceType;
+    }
+    
+    public long getSourceId()
+    {
+        return sourceId;
+    }
+    
+    public void setSourceId(long sourceId)
+    {
+        this.sourceId = sourceId;
+    }
     
     public HibernateAssociable getSource()
     {
-        return source;
+        String sourceType = getSourceType();
+        if (sourceType == null) {
+            return null;
+        }
+        
+        return (HibernateAssociable)load(sourceType, getSourceId());
     }
 
-    public void setSource(HibernateAssociable source)
-    {
-        this.source = source;
-    }
-    
     public <E> E getSource(Class<E> cls)
     {
-        return cls.cast(source);
+        return cls.cast(getSource());
     }
     
-    protected abstract Collection<HibernateAssociable> getTargetCollection();
+    
+    protected abstract boolean getUnique();
+    public abstract Collection<Element> getTargetElements();
+    protected abstract void emptyTargetElements();
+    public abstract Collection<HibernateAssociable> getTargetCollection();
+    
+    public abstract void addInitialTarget(HibernateAssociable target);
+
+    public void setInitialSource(HibernateAssociable parent)
+    {
+        HibernateRefObject refObj = (HibernateRefObject)parent;
+        setSourceType(refObj.getClassIdentifier());
+        setSourceId(refObj.getMofId());
+    }
     
     public boolean add(
         HibernateAssociable newSource, HibernateAssociable newTarget)
     {
         final String type = getType();
 
-        HibernateManyToManyAssociationBase sourceAssoc =
-            (HibernateManyToManyAssociationBase)newSource.getOrCreateAssociation(
+        HibernateManyToManyLazyAssociationBase sourceAssoc =
+            (HibernateManyToManyLazyAssociationBase)newSource.getOrCreateAssociation(
                 type, true);
-        HibernateManyToManyAssociationBase targetAssoc =
-            (HibernateManyToManyAssociationBase)newTarget.getOrCreateAssociation(
+        HibernateManyToManyLazyAssociationBase targetAssoc =
+            (HibernateManyToManyLazyAssociationBase)newTarget.getOrCreateAssociation(
                 type, false);
         
         boolean result = false;
@@ -127,11 +161,11 @@ public abstract class HibernateManyToManyAssociationBase
         boolean targetIsFirstEnd = getReversed();
         boolean sourceIsFirstEnd = !targetIsFirstEnd;
         
-        HibernateManyToManyAssociationBase sourceAssoc =
-            (HibernateManyToManyAssociationBase)source.getAssociation(
+        HibernateManyToManyLazyAssociationBase sourceAssoc =
+            (HibernateManyToManyLazyAssociationBase)source.getAssociation(
                 type, sourceIsFirstEnd);
-        HibernateManyToManyAssociationBase targetAssoc =
-            (HibernateManyToManyAssociationBase)target.getAssociation(
+        HibernateManyToManyLazyAssociationBase targetAssoc =
+            (HibernateManyToManyLazyAssociationBase)target.getAssociation(
                 type, targetIsFirstEnd);
 
         boolean indexOnSourceAssoc = equals(sourceAssoc, this);
@@ -140,6 +174,9 @@ public abstract class HibernateManyToManyAssociationBase
         // targetAssoc equals this.
         assert(indexOnSourceAssoc || indexOnTargetAssoc);
 
+        Element sourceElem = newElement(source);
+        Element targetElem = newElement(target);
+        
         boolean result = false;
         Collection<HibernateAssociable> sourceAssocTargets = 
             sourceAssoc.getTargetCollection();
@@ -148,7 +185,9 @@ public abstract class HibernateManyToManyAssociationBase
         if (indexOnSourceAssoc && index != -1) {
             HibernateAssociable removed = 
                 ((List<HibernateAssociable>)sourceAssocTargets).remove(index);
-            assert(target.equals(removed));
+            assert(
+                ((HibernateRefObject)removed).getMofId() == 
+                    targetElem.getChildId().longValue());
             removedFromSourceAssoc = true;
         } else {
             removedFromSourceAssoc = sourceAssocTargets.remove(target);
@@ -170,7 +209,9 @@ public abstract class HibernateManyToManyAssociationBase
         if (indexOnTargetAssoc && index != -1) {
             HibernateAssociable removed = 
                 ((List<HibernateAssociable>)targetAssocTargets).remove(index);
-            assert(source.equals(removed));
+            assert(
+                ((HibernateRefObject)removed).getMofId() == 
+                    sourceElem.getChildId().longValue());
             removedFromTargetAssoc = true;
         } else {
             removedFromTargetAssoc = targetAssocTargets.remove(source);
@@ -268,6 +309,11 @@ public abstract class HibernateManyToManyAssociationBase
         } else {
             return Collections.unmodifiableCollection(getTargetCollection());
         }
+    }
+    
+    public String getCollectionName()
+    {
+        return HibernateMappingHandler.ASSOC_MANY_TO_MANY_TARGET_PROPERTY;
     }
 }
 

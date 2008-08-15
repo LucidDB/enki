@@ -80,8 +80,7 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
     protected Collection<E1> getSourceOf(E2 target)
     {
         HibernateAssociable t = (HibernateAssociable)target;
-        HibernateManyToManyAssociationBase assoc = 
-            (HibernateManyToManyAssociationBase) t.getAssociation(type, false);
+        HibernateAssociation assoc = t.getAssociation(type, false);
         
         if (assoc == null) {
             return Collections.emptyList();
@@ -107,8 +106,7 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
     protected Collection<E2> getTargetOf(E1 source)
     {
         HibernateAssociable s = (HibernateAssociable)source;
-        HibernateManyToManyAssociationBase assoc = 
-            (HibernateManyToManyAssociationBase) s.getAssociation(type, true);
+        HibernateAssociation assoc = s.getAssociation(type, true);
         
         if (assoc == null) {
             return Collections.emptyList();

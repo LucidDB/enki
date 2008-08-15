@@ -23,23 +23,80 @@ package org.eigenbase.enki.hibernate.storage;
 
 import java.util.*;
 
+import org.eigenbase.enki.hibernate.jmi.*;
+
 /**
- * HibernateManyToManyAssociation extends HibernateManyToManyAssociationBase
- * to provide a base class that stores unordered many-to-many associations.
- * It is extended per-model to provide separate storage for each model's 
- * associations. 
+ * HibernateManyToManyLazyOrderedAssociation extends 
+ * HibernateManyToManyLazyAssociationBase to provide a base class that stores 
+ * unordered, lazy, many-to-many associations.  It is extended per-model to 
+ * provide separate storage for each model's associations. 
 
  * @author Stephan Zuercher
  */
-public abstract class HibernateManyToManyOrderedAssociation
-    extends HibernateManyToManyAssociationBase
+public abstract class HibernateManyToManyLazyOrderedAssociation
+    extends HibernateManyToManyLazyAssociationBase
     implements HibernateOrderedAssociation
 {
-    private List<HibernateAssociable> target;
+    private List<Element> target;
+    private ElementList targetWrapper;
     
-    public HibernateManyToManyOrderedAssociation()
+    public HibernateManyToManyLazyOrderedAssociation()
     {
-        this.target = new ArrayList<HibernateAssociable>();
+        super();
+        
+        this.target = new ArrayList<Element>();
+    }
+
+    public List<Element> getTarget()
+    {
+        return target;
+    }
+    
+    public void setTarget(List<Element> target)
+    {
+        this.target = target;
+    }
+    
+    @Override
+    public void addInitialTarget(HibernateAssociable target)
+    {
+        List<Element> targets = getTarget();
+        
+        if (target == null) {
+            targets = new ArrayList<Element>();
+            setTarget(targets);
+        }
+        
+        targets.add(newElement(target));
+    }
+
+    @Override
+    public Collection<HibernateAssociable> getTargetCollection()
+    {
+        return getTargetList();
+    }
+
+    protected List<HibernateAssociable> getTargetList()
+    {
+        List<Element> target = getTarget();
+        
+        if (targetWrapper == null || targetWrapper.elements != target) {
+            targetWrapper = new ElementList(target);
+        }
+
+        return targetWrapper;
+    }
+    
+    @Override
+    public Collection<Element> getTargetElements()
+    {
+        return getTarget();
+    }
+
+    @Override
+    protected void emptyTargetElements()
+    {
+        setTarget(new ArrayList<Element>());
     }
 
     /*
@@ -51,31 +108,16 @@ public abstract class HibernateManyToManyOrderedAssociation
         return false;
     }
     
-    public List<HibernateAssociable> getTarget()
-    {
-        return target;
-    }
-
-    public void setTarget(List<HibernateAssociable> target)
-    {
-        this.target = target;
-    }
-    
     @SuppressWarnings("unchecked")
     public <E> List<E> getTarget(Class<E> cls)
     {
-        for(Object obj: target) {
+        for(Object obj: getTarget()) {
             cls.cast(obj);
         }
 
         return (List<E>)target;
     }
 
-    protected Collection<HibernateAssociable> getTargetCollection()
-    {
-        return getTarget();
-    }
-    
     public void add(
         int index, 
         HibernateAssociable newSource, 
@@ -83,18 +125,19 @@ public abstract class HibernateManyToManyOrderedAssociation
     {
         final String type = getType();
 
-        HibernateManyToManyOrderedAssociation sourceAssoc =
-            (HibernateManyToManyOrderedAssociation)newSource.getOrCreateAssociation(
+        HibernateManyToManyLazyOrderedAssociation sourceAssoc =
+            (HibernateManyToManyLazyOrderedAssociation)newSource.getOrCreateAssociation(
                 type, true);
-        HibernateManyToManyOrderedAssociation targetAssoc =
-            (HibernateManyToManyOrderedAssociation)newTarget.getOrCreateAssociation(
+        HibernateManyToManyLazyOrderedAssociation targetAssoc =
+            (HibernateManyToManyLazyOrderedAssociation)newTarget.getOrCreateAssociation(
                 type, false);
 
         boolean indexOnSourceAssoc = equals(sourceAssoc, this);
         boolean indexOnTargetAssoc = equals(targetAssoc, this);
         assert(indexOnSourceAssoc || indexOnTargetAssoc);
         
-        List<HibernateAssociable> sourceAssocTargets = sourceAssoc.getTarget();
+        List<HibernateAssociable> sourceAssocTargets = 
+            sourceAssoc.getTargetList();
         if (!sourceAssoc.getUnique() ||
             !sourceAssocTargets.contains(newTarget))
         {
@@ -105,7 +148,7 @@ public abstract class HibernateManyToManyOrderedAssociation
             }
         }
         
-        List<HibernateAssociable> targetAssocTargets = targetAssoc.getTarget();
+        List<HibernateAssociable> targetAssocTargets = targetAssoc.getTargetList();
         if (!targetAssoc.getUnique() ||
             !targetAssocTargets.contains(newSource))
         {
@@ -140,12 +183,18 @@ public abstract class HibernateManyToManyOrderedAssociation
     
     public List<HibernateAssociable> getOrdered(HibernateAssociable item)
     {
-        if (!equals(item, getSource())) {
+        long itemMofId = ((HibernateRefObject)item).getMofId();
+        if (itemMofId != getSourceId()) {
             return Collections.emptyList();
         }
         
-        return getTarget();
+        return getTargetList();
+    }
+    
+    public final Kind getKind()
+    {
+        return Kind.MANY_TO_MANY_ORDERED;
     }
 }
 
-// End HibernateManyToManyOrderedAssociation.java
+// End HibernateManyToManyLazyOrderedAssociation.java

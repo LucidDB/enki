@@ -32,7 +32,9 @@ import org.hibernate.*;
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateObject extends RefObjectBase
+public abstract class HibernateObject 
+    extends RefObjectBase
+    implements HibernateIdentifiable
 {
     private static final Logger log = 
         Logger.getLogger(HibernateObject.class.getName());

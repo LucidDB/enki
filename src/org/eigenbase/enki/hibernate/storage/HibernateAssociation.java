@@ -30,7 +30,7 @@ import javax.jmi.reflect.*;
  * 
  * @author Stephan Zuercher
  */
-public interface HibernateAssociation
+public interface HibernateAssociation extends HibernateIdentifiable
 {
     public String getType();
     
@@ -106,6 +106,40 @@ public interface HibernateAssociation
      * @return Collection of items associated with item
      */
     public Collection<HibernateAssociable> get(HibernateAssociable item);
+    
+    /**
+     * Retrieve the class that represents the type of this instance.  Separate
+     * from {@link Object#getClass()} because Hibernate can and will proxy the
+     * class and we don't want to accidentally retrieve the wrong type.
+     * 
+     * @return class that represents this object's type
+     */
+    public abstract Class<? extends HibernateAssociation> getInstanceClass();
+    
+    /**
+     * Get basic association type.
+     * 
+     * @return the {@link Kind} that represents this association
+     */
+    public abstract HibernateAssociation.Kind getKind();
+    
+    public abstract String getTable();
+    
+    public abstract String getCollectionTable();
+
+    public abstract String getCollectionName();
+    
+    /**
+     * Kind represents the basic multiplicity of an association. It
+     * is constant for a given type of association.
+     */
+    public enum Kind {
+        ONE_TO_ONE,
+        ONE_TO_MANY,
+        ONE_TO_MANY_ORDERED,
+        MANY_TO_MANY,
+        MANY_TO_MANY_ORDERED;
+    }
 }
 
 // End HibernateAssociation.java

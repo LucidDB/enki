@@ -21,6 +21,8 @@
 */
 package org.eigenbase.enki.mdr;
 
+import java.util.*;
+
 import javax.jmi.reflect.*;
 
 import org.netbeans.api.mdr.*;
@@ -33,6 +35,14 @@ import org.netbeans.api.mdr.*;
  */
 public interface EnkiMDRepository extends MDRepository
 {
+    /**
+     * Retrieves the {@link MdrProvider} enumeration literal that describes
+     * this EnkiMDRepository implementation.
+     * 
+     * @return an MdrProvider enumeration literal
+     */
+    public MdrProvider getProviderType();
+    
     /**
      * Drops the extent associated with the given top-level package.  If
      * {@link EnkiDropFailedException} is thrown, the extent's storage is
@@ -123,6 +133,19 @@ public interface EnkiMDRepository extends MDRepository
      * @return a RefObject or null if not found
      */
     public RefObject getByMofId(String mofId, RefClass cls);
+    
+    /**
+     * Deletes the given collection of {@link RefObject} instances.  This
+     * method is functionally equivalent to iterating over the given collection
+     * and invoking {@link RefObject#refDelete()} on each object.  Note, 
+     * however, that the actual order of deletion and order of events fired
+     * may not correspond to the iterator-and-delete pattern described.
+     * Duplication of objects or providing both composite owners and their 
+     * owned objects may cause exceptions.
+     * 
+     * @param objects the objects to delete
+     */
+    public void delete(Collection<RefObject> objects);
     
     /**
      * Finds a {@link RefObject} of the given type (including its subclasses) 

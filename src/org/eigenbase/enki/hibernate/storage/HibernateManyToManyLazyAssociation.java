@@ -1,9 +1,9 @@
 /*
 // $Id$
 // Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-// Copyright (C) 2007-2007 The Eigenbase Project
-// Copyright (C) 2007-2007 Disruptive Tech
-// Copyright (C) 2007-2007 LucidEra, Inc.
+// Copyright (C) 2008-2008 The Eigenbase Project
+// Copyright (C) 2008-2008 Disruptive Tech
+// Copyright (C) 2008-2008 LucidEra, Inc.
 //
 // This library is free software; you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License as published by
@@ -23,65 +23,79 @@ package org.eigenbase.enki.hibernate.storage;
 
 import java.util.*;
 
-/**
- * HibernateManyToManyAssociation extends HibernateManyToManyAssociationBase
- * to provide a base class that stores unordered many-to-many associations.
- * It is extended per-model to provide separate storage for each model's 
- * associations. 
+import org.eigenbase.enki.hibernate.jmi.*;
 
+/**
  * @author Stephan Zuercher
  */
-public abstract class HibernateManyToManyAssociation
-    extends HibernateManyToManyAssociationBase
+public abstract class HibernateManyToManyLazyAssociation
+    extends HibernateManyToManyLazyAssociationBase
 {
-    private Set<HibernateAssociable> target;
-    
-    public HibernateManyToManyAssociation()
-    {
-        this.target = new HashSet<HibernateAssociable>();
-    }
+    private Set<Element> target;
 
-    /*
-     * N.B. Uniqueness is a MOF constraint and is NOT enforced by Netbeans
-     * MDR.
-     */
-    public boolean getUnique()
+    public HibernateManyToManyLazyAssociation()
     {
-        return true;
+        super();
+     
+        this.target = new HashSet<Element>();
     }
     
-    public Set<HibernateAssociable> getTarget()
+    public Set<Element> getTarget()
     {
         return target;
     }
-
-    public void setTarget(Set<HibernateAssociable> target)
+    
+    public void setTarget(Set<Element> target)
     {
         this.target = target;
     }
     
-    @SuppressWarnings("unchecked")
-    public <E> Set<E> getTarget(Class<E> cls)
+    @Override
+    public void addInitialTarget(HibernateAssociable target)
     {
-        for(Object obj: target) {
-            cls.cast(obj);
-        }
-
-        return (Set<E>)target;
-    }
-
-    protected Collection<HibernateAssociable> getTargetCollection()
-    {
-        return getTarget();
-    }
-    
-    public Collection<HibernateAssociable> get(HibernateAssociable item)
-    {
-        if (!equals(item, getSource())) {
-            return Collections.emptyList();
+        Set<Element> targets = getTarget();
+        
+        if (target== null) {
+            targets = new HashSet<Element>();
+            setTarget(targets);
         }
         
+        targets.add(newElement(target));
+    }
+
+    @Override
+    public Collection<HibernateAssociable> getTargetCollection()
+    {
+        return new ElementCollection(getTarget());
+    }
+
+    @Override
+    public Collection<Element> getTargetElements()
+    {
         return getTarget();
+    }
+
+    @Override
+    protected void emptyTargetElements()
+    {
+        setTarget(new HashSet<Element>());
+    }
+
+    @Override
+    protected boolean getUnique()
+    {
+        return false;
+    }
+
+    public Collection<HibernateAssociable> get(HibernateAssociable item)
+    {
+        HibernateRefObject refObj = (HibernateRefObject)item;
+        
+        if (refObj.getMofId() == getSourceId()) {
+            return getTargetCollection();
+        } else {
+            return Collections.emptySet();
+        }
     }
     
     public void postRemove(HibernateAssociable end1, HibernateAssociable end2)
@@ -101,21 +115,17 @@ public abstract class HibernateManyToManyAssociation
         boolean targetIsFirstEnd = getReversed();
         boolean sourceIsFirstEnd = !targetIsFirstEnd;
         
-        HibernateManyToManyAssociationBase sourceAssoc =
-            (HibernateManyToManyAssociationBase)source.getAssociation(
+        HibernateManyToManyLazyAssociationBase sourceAssoc =
+            (HibernateManyToManyLazyAssociationBase)source.getAssociation(
                 type, sourceIsFirstEnd);
-        HibernateManyToManyAssociationBase targetAssoc =
-            (HibernateManyToManyAssociationBase)target.getAssociation(
+        HibernateManyToManyLazyAssociationBase targetAssoc =
+            (HibernateManyToManyLazyAssociationBase)target.getAssociation(
                 type, targetIsFirstEnd);
 
-        boolean indexOnSourceAssoc = equals(sourceAssoc, this);
-        boolean indexOnTargetAssoc = equals(targetAssoc, this);
-        // This assertion also guarantees that either sourceAssoc or 
-        // targetAssoc equals this.
-        assert(indexOnSourceAssoc || indexOnTargetAssoc);
+        assert(equals(sourceAssoc, this) || equals(targetAssoc, this));
 
-        Collection<HibernateAssociable> sourceAssocTargets = 
-            sourceAssoc.getTargetCollection();
+        Collection<Element> sourceAssocTargets = 
+            sourceAssoc.getTargetElements();
         
         if (sourceAssocTargets.isEmpty()) {
             source.setAssociation(type, sourceIsFirstEnd, null);
@@ -123,10 +133,11 @@ public abstract class HibernateManyToManyAssociation
             sourceAssoc.delete(getHibernateRepository(source));
         }
         
-        Collection<HibernateAssociable> targetAssocTargets = 
-            targetAssoc.getTargetCollection();
+        Collection<Element> targetAssocTargets = 
+            targetAssoc.getTargetElements();
         
-        boolean removedFromTargetAssoc = targetAssocTargets.remove(source);
+        boolean removedFromTargetAssoc = 
+            targetAssocTargets.remove(newElement(source));
         
         if (removedFromTargetAssoc) {
             if (targetAssocTargets.isEmpty()) {
@@ -136,6 +147,11 @@ public abstract class HibernateManyToManyAssociation
             }
         }        
     }
+    
+    public final Kind getKind()
+    {
+        return Kind.MANY_TO_MANY;
+    }
 }
 
-// End HibernateManyToManyAssociation.java
+// End HibernateManyToManyLazyAssociation.java

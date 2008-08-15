@@ -23,17 +23,17 @@ package org.eigenbase.enki.hibernate.storage;
 
 import java.util.*;
 
-import javax.jmi.reflect.*;
-
-import org.apache.commons.collections.*;
-import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.hibernate.codegen.*;
 import org.eigenbase.enki.hibernate.jmi.*;
 
 /**
+ * HibernateOnetoManyLazyAssociationBase is base class for one-to-many 
+ * association storage.
+ * 
  * @author Stephan Zuercher
  */
 public abstract class HibernateOneToManyLazyAssociationBase
-    extends HibernateAssociationBase
+    extends HibernateLazyAssociationBase
 {
     /** 
      * If true, this is a many-to-1 association.  That is, end1 is not the
@@ -85,14 +85,19 @@ public abstract class HibernateOneToManyLazyAssociationBase
 
     protected abstract boolean getUnique();
     
-    protected abstract Collection<Element> getElements();
+    public abstract Collection<Element> getElements();
     protected abstract void emptyElements();
-    protected abstract Collection<HibernateAssociable> getCollection();
+    public abstract Collection<HibernateAssociable> getCollection();
     
     public abstract void addInitialChild(HibernateAssociable child);
 
-    public abstract void setInitialParent(HibernateAssociable parent);
-
+    public void setInitialParent(HibernateAssociable parent)
+    {
+        HibernateRefObject refObj = (HibernateRefObject)parent;
+        setParentType(refObj.getClassIdentifier());
+        setParentId(refObj.getMofId());
+    }
+    
     public boolean add(
         HibernateAssociable end1, HibernateAssociable end2)
     {
@@ -252,7 +257,7 @@ public abstract class HibernateOneToManyLazyAssociationBase
                     ((List<HibernateAssociable>)children).remove(index);
                 assert(
                     ((HibernateRefObject)removed).getMofId() == 
-                        childElement.getChildId());
+                        childElement.getChildId().longValue());
                 result = true;
             }
             
@@ -282,217 +287,10 @@ public abstract class HibernateOneToManyLazyAssociationBase
         return count;
     }
     
-    protected RefObject load(Element elem)
+    public String getCollectionName()
     {
-        return load(elem.getChildType(), elem.getChildId());
+        return HibernateMappingHandler.ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY;
     }
-
-    protected RefObject load(String classIdent, long mofId)
-    {
-        HibernateMDRepository repos = getHibernateRepository();
-        
-        HibernateRefClass refClass = repos.findRefClass(classIdent);
-    
-        return repos.getByMofId(mofId, refClass);
-    }
-
-    protected List<RefObject> load(String classIdent, List<Long> mofIds)
-    {
-        HibernateMDRepository repos = getHibernateRepository();
-        
-        HibernateRefClass refClass = repos.findRefClass(classIdent);
-    
-        return repos.getByMofId(mofIds, refClass);
-    }
-
-    protected Element newElement(RefObject obj)
-    {
-        HibernateRefObject hibRefObj = (HibernateRefObject)obj;
-        
-        Element elem = new Element();
-        elem.setChildType(hibRefObj.getClassIdentifier());
-        elem.setChildId(hibRefObj.getMofId());
-        return elem;
-    }
-    
-    /**
-     * Scans the list of elements and pre-loads additional objects of the
-     * same type.  Pre-load batch size is controlled by
-     * {@link HibernateMDRepository#getBatchSize()}.
-     * 
-     * @param elements list of Element objects
-     * @param loadedObjects list of previously loaded objects corresponding to
-     *                      elements index-by-index
-     * @param pos index of element to load
-     * @param size size of elements and loadedObjects
-     */
-    protected void loadBatch(
-        List<Element> elements,
-        List<HibernateAssociable> loadedObjects, 
-        final int pos,
-        final int size)
-    {
-        List<Long> preLoadMofIds = new ArrayList<Long>();
-        Map<Long, Integer> preLoadIndexes = new HashMap<Long, Integer>();
-        
-        Element element = elements.get(pos);
-        
-        final String type = element.getChildType();
-        Long elementMofId = element.getChildId();
-        preLoadMofIds.add(elementMofId);
-        preLoadIndexes.put(elementMofId, pos);
-        
-        // Look for other objects in the collection with the same type
-        // and load them together.
-        final int batchSize = getHibernateRepository().getBatchSize();
-        int numAdded = 1;
-        for(
-            int i = (pos + 1) % size; 
-            i != pos && numAdded < batchSize; 
-            i = (i + 1) % size)
-        {
-            element = elements.get(i);
-            if (loadedObjects.get(i) == null &&
-                type.equals(element.getChildType()))
-            {
-                elementMofId = element.getChildId();
-                preLoadMofIds.add(elementMofId);
-                preLoadIndexes.put(elementMofId, i);
-                numAdded++;
-            }
-        }
-        
-        assert(numAdded == preLoadIndexes.size());
-        assert(numAdded == preLoadMofIds.size());
-        
-        List<RefObject> objects = load(type, preLoadMofIds);
-        assert(objects.size() == numAdded);
-        
-        for(RefObject obj: objects) {
-            long mofId = ((HibernateRefObject)obj).getMofId();
-            int index = preLoadIndexes.get(mofId);
-            loadedObjects.set(index, (HibernateAssociable)obj);
-        }
-    }
-    
-    /**
-     * Scans the list of elements and pre-loads additional objects of the
-     * same type.  See {@link #loadBatch(List, List, int, int)}.  The primary
-     * distinction is that this method handles ordered semantics, where an
-     * object can appear in the list multiple times.
-     * 
-     * @param elements list of Element objects
-     * @param loadedObjects list of previously loaded objects corresponding to
-     *                      elements index-by-index
-     * @param pos index of element to load
-     * @param size size of elements and loadedObjects
-     */
-    protected void loadNonUniqueBatch(
-        List<Element> elements,
-        List<HibernateAssociable> loadedObjects,
-        final int pos,
-        final int size)
-    {
-        // TODO: SWZ: 2008-07-14: These is nearly identical to loadBatch,
-        // except for the multi-map usage.  Perhaps simply combine them.
-        List<Long> preLoadMofIds = new ArrayList<Long>();
-        MultiHashMap preLoadIndexes = new MultiHashMap();
-        
-        Element element = elements.get(pos);
-        
-        final String type = element.getChildType();
-        Long elementMofId = element.getChildId();
-        preLoadMofIds.add(elementMofId);
-        preLoadIndexes.put(elementMofId, pos);
-        
-        // Look for other objects in the collection with the same type
-        // and load them together.
-        final int batchSize = getHibernateRepository().getBatchSize();
-        int numAdded = 1;
-        for(
-            int i = (pos + 1) % size; 
-            i != pos && numAdded < batchSize; 
-            i = (i + 1) % size)
-        {
-            element = elements.get(i);
-            if (loadedObjects.get(i) == null && 
-                type.equals(element.getChildType()))
-            {
-                elementMofId = element.getChildId();
-                if (!preLoadIndexes.containsKey(elementMofId)) {
-                    preLoadMofIds.add(elementMofId);
-                    numAdded++;                    
-                }
-                preLoadIndexes.put(elementMofId, i);
-            }
-        }
-        
-        assert(numAdded == preLoadIndexes.size());
-        assert(numAdded == preLoadMofIds.size());
-        
-        List<RefObject> objects = load(type, preLoadMofIds);
-        assert(objects.size() == numAdded);
-        
-        for(RefObject obj: objects) {
-            long mofId = ((HibernateRefObject)obj).getMofId();
-            Collection<?> indexes = (Collection<?>)preLoadIndexes.get(mofId);
-            
-            for(Object indexObj: indexes) {
-                Integer index = (Integer)indexObj;
-                loadedObjects.set(index, (HibernateAssociable)obj);
-            }
-        }
-    }
-
-    /**
-     * Element represents a member of the many-end of the association.  It
-     * stores the object's type (via the {@link HibernateRefClass} unique
-     * identifier) and the MOF ID of the object.  Hibernate is not aware
-     * that this data refers to another persistent object, which allows us
-     * to control when the referenced object is loaded.
-     */
-    public static class Element
-    {
-        protected String childType;
-        protected long childId;
-        
-        public Element()
-        {
-        }
-        
-        public String getChildType()
-        {
-            return childType;
-        }
-        
-        public void setChildType(String childType)
-        {
-            this.childType = childType;
-        }
-        
-        public long getChildId()
-        {
-            return childId;
-        }
-        
-        public void setChildId(long childId)
-        {
-            this.childId = childId;
-        }
-        
-        public boolean equals(Object other)
-        {
-            Element that = (Element)other;
-            
-            return  this.childId == that.getChildId();
-        }
-        
-        public int hashCode()
-        {
-            return (int)childId;
-        }
-    }
-
 }
 
 // End HibernateOneToManyLazyAssociationBase.java

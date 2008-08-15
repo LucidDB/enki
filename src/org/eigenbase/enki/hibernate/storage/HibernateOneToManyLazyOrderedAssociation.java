@@ -41,7 +41,7 @@ public abstract class HibernateOneToManyLazyOrderedAssociation
     implements HibernateOrderedAssociation
 {
     private List<Element> children;
-    private ElementList  childrenWrapper;
+    private ElementList childrenWrapper;
     
     public HibernateOneToManyLazyOrderedAssociation()
     {
@@ -53,14 +53,6 @@ public abstract class HibernateOneToManyLazyOrderedAssociation
     public List<Element> getChildren()
     {
         return children;
-    }
-    
-    @Override
-    public void setInitialParent(HibernateAssociable parent)
-    {
-        HibernateRefObject refObj = (HibernateRefObject)parent;
-        setParentType(refObj.getClassIdentifier());
-        setParentId(refObj.getMofId());
     }
     
     @Override
@@ -77,7 +69,7 @@ public abstract class HibernateOneToManyLazyOrderedAssociation
     }
     
     @Override
-    protected Collection<Element> getElements()
+    public Collection<Element> getElements()
     {
         return getChildren();
     }
@@ -336,135 +328,10 @@ public abstract class HibernateOneToManyLazyOrderedAssociation
             }            
         }
     }
-
-    /**
-     * ElementList wraps a List of 
-     * {@link HibernateOneToManyLazyAssociationBase.Element} objects and
-     * handles the conversion from {@link RefObject} instances to 
-     * Element instances.  Most operations are handled without 
-     * loading the RefObjects in the list (although it is likely that any 
-     * proxied RefObject passed into its methods will be loaded).
-     */
-    private class ElementList
-        extends AbstractList<HibernateAssociable>
-        implements List<HibernateAssociable>
+    
+    public final Kind getKind()
     {
-        private final List<Element> elements;
-        private final List<HibernateAssociable> cache;
-        
-        private ElementList(List<Element> elements)
-        {
-            this.elements = elements;
-            
-            int n = elements.size();
-            this.cache = new ArrayList<HibernateAssociable>(n);
-            while(n-- > 0) {
-                cache.add(null);
-            }
-        }
-        
-        @Override
-        public HibernateAssociable get(int i)
-        {
-            return get(i, true);
-        }
-        
-        @Override
-        public HibernateAssociable remove(int i)
-        {
-            HibernateAssociable o = get(i, false);
-            
-            elements.remove(i);
-            cache.remove(i);
-            
-            return o;
-        }
-        
-        private HibernateAssociable get(int index, boolean preFetch)
-        {
-            HibernateAssociable result = cache.get(index);
-            if (result == null) {
-                if (preFetch) {
-                    loadNonUniqueBatch(
-                        elements, cache, index, elements.size());
-                    result = cache.get(index);
-                } else {
-                    result = (HibernateAssociable)load(elements.get(index));
-                    cache.set(index, result);
-                }
-            }
-
-            return result;
-        }
-        
-        @Override 
-        public void add(int index, HibernateAssociable e)
-        {
-            Element elem = newElement(e);
-            
-            elements.add(index, elem);
-            cache.add(index, e);
-        }
-        
-        @Override
-        public HibernateAssociable set(int i, HibernateAssociable newValue)
-        {
-            Element newElement = newElement(newValue);
-            Element oldElement = elements.get(i);
-            HibernateAssociable oldValue = get(i, false);
-            
-            if (!newElement.equals(oldElement)) {
-                // Only modify the elements if it's a new element.
-                elements.set(i, newElement);
-                cache.set(i, newValue);
-            }
-
-            return oldValue;
-        }
-        
-        @Override
-        public int size()
-        {
-            return elements.size();
-        }
-        
-        @Override
-        public boolean contains(Object o)
-        {
-            Element elem = newElement((RefObject)o);
-            
-            return elements.contains(elem);
-        }
-
-        @Override
-        public int indexOf(Object o)
-        {
-            Element elem = newElement((RefObject)o);
-            
-            return elements.indexOf(elem);
-        }
-
-        @Override
-        public int lastIndexOf(Object o)
-        {
-            Element elem = newElement((RefObject)o);
-            
-            return elements.lastIndexOf(elem);
-        }
-
-        @Override
-        public boolean remove(Object o)
-        {
-            Element elem = newElement((RefObject)o);
-            
-            int index = elements.indexOf(elem);
-            if (index < 0) {
-                return false;
-            }
-            
-            remove(index);
-            return true;
-        }
+        return Kind.ONE_TO_MANY_ORDERED;
     }
 }
 

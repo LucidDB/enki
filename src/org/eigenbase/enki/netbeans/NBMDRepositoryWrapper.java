@@ -99,6 +99,12 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     }
 
     // implement EnkiMDRepository
+    public MdrProvider getProviderType()
+    {
+        return MdrProvider.NETBEANS_MDR;
+    }
+    
+    // implement EnkiMDRepository
     public void dropExtentStorage(String extentName)
         throws EnkiDropFailedException
     {
@@ -296,6 +302,14 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
         }
         
         return obj;
+    }
+    
+    public void delete(Collection<RefObject> objects)
+    {
+        for(RefObject object: objects)
+        {
+            object.refDelete();
+        }
     }
     
     public RefObject findAllOfType(

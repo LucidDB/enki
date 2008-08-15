@@ -41,6 +41,7 @@ public abstract class HibernateRefClass
 {
     private final String allOfClassQueryName;
     private final String allOfTypeQueryName;
+    
     private final Class<? extends RefObject> classImpl;
     private final Class<? extends RefObject> iface;
     
@@ -71,7 +72,7 @@ public abstract class HibernateRefClass
             this);
     }
 
-    protected abstract String getClassIdentifier();
+    public abstract String getClassIdentifier();
     
     @Override
     public Collection<?> refAllOfClass()
@@ -107,8 +108,24 @@ public abstract class HibernateRefClass
         return iface;
     }
     
+    public abstract String getTable();
+    public abstract String getQueryCacheRegion();
+    
     protected HibernateMDRepository getHibernateRepository()
     {
         return (HibernateMDRepository)getRepository();
     }
+    
+    /**
+     * Retrieves the name of the column that stores a reference to this
+     * association for this type.
+     * 
+     * @param type name of the type of association
+     * @param firstEnd if true, get the name of the column where this object
+     *                 is the first end (to distinguish circular associations)
+     * @return the name of the column that holds the association reference
+     * @throws UnsupportedOperationException if this RefClass is abstract
+     */
+    public abstract String getAssociationColumnName(
+        String type, boolean firstEnd);
 }

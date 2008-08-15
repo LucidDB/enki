@@ -29,7 +29,7 @@ import javax.jmi.reflect.*;
  * 
  * @author Stephan Zuercher
  */
-public interface HibernateAssociable extends RefObject
+public interface HibernateAssociable extends RefObject, HibernateIdentifiable
 {
     /**
      * Retrieves the {@link HibernateAssociation} instance associated with
@@ -65,6 +65,17 @@ public interface HibernateAssociable extends RefObject
      */
     public HibernateAssociation getOrCreateAssociation(
         String type, boolean firstEnd);
+    
+    /**
+     * Retrieves the name of the column that stores a reference to this
+     * association.
+     * 
+     * @param type name of the type of association
+     * @param firstEnd if true, get the name of the column where this object
+     *                 is the first end (to distinguish circular associations)
+     * @return the name of the column that holds the association reference
+     */
+    public String getAssociationColumnName(String type, boolean firstEnd);
 }
 
 // End HibernateAssociable.java

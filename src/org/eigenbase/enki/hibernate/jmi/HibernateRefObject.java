@@ -221,6 +221,19 @@ public abstract class HibernateRefObject
     
     protected abstract void removeAssociations();
     
+    /**
+     * Returns a collection of associations which represent objects that 
+     * compose this object.  This objects referred to by these associations
+     * would return this from their {@link #refImmediateComposite} methods.
+     */
+    public abstract Collection<HibernateAssociation> getComposingAssociations();
+    
+    /**
+     * Returns a collection of all associations this object participates in
+     * that are not returned by {@link #getComposingAssociations()}.
+     */
+    public abstract Collection<HibernateAssociation> getNonComposingAssociations();
+    
     public abstract String getClassIdentifier();
     
     protected void fireAttributeSetEvent(
@@ -286,6 +299,12 @@ public abstract class HibernateRefObject
         }
         
         return null;
+    }
+    
+    public final String getAssociationColumnName(
+        String assocType, boolean firstEnd)
+    {
+        return getHibernateRepository().findRefClass(getClassIdentifier()).getAssociationColumnName(assocType, firstEnd);
     }
     
     @Override

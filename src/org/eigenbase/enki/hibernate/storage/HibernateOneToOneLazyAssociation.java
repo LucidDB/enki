@@ -1,9 +1,9 @@
 /*
 // $Id$
 // Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-// Copyright (C) 2007-2007 The Eigenbase Project
-// Copyright (C) 2007-2007 Disruptive Tech
-// Copyright (C) 2007-2007 LucidEra, Inc.
+// Copyright (C) 2008-2008 The Eigenbase Project
+// Copyright (C) 2008-2008 Disruptive Tech
+// Copyright (C) 2008-2008 LucidEra, Inc.
 //
 // This library is free software; you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License as published by
@@ -25,53 +25,110 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.jmi.impl.*;
 
 /**
- * HibernateOneToOneAssociation extends HibernateAssociation to provide a base
- * class that stores one-to-one associations.  It is extended per-model
- * to provide separate storage for each model's associations.
+ * HibernateOneToOneLazyAssociation extends HibernateAssociation to provide a 
+ * base class that stores lazy one-to-one associations.  It is extended 
+ * per-model to provide separate storage for each model's associations.
  * 
  * @author Stephan Zuercher
  */
-public abstract class HibernateOneToOneAssociation
-    extends HibernateAssociationBase
+public abstract class HibernateOneToOneLazyAssociation
+    extends HibernateLazyAssociationBase
 {
-    private HibernateAssociable parent;
-    private HibernateAssociable child;
+    private String parentType;
+    private long parentId;
+    private String childType;
+    private long childId;
     
-    public HibernateOneToOneAssociation()
+    public HibernateOneToOneLazyAssociation()
     {
     }
     
+    public String getParentType()
+    {
+        return parentType;
+    }
+    
+    public void setParentType(String parentType)
+    {
+        this.parentType = parentType;
+    }
+    
+    public long getParentId()
+    {
+        return parentId;
+    }
+    
+    public void setParentId(long parentId)
+    {
+        this.parentId = parentId;
+    }
+    
+    public String getChildType()
+    {
+        return childType;
+    }
+    
+    public void setChildType(String childType)
+    {
+        this.childType = childType;
+    }
+    
+    public long getChildId()
+    {
+        return childId;
+    }
+    
+    public void setChildId(long childId)
+    {
+        this.childId = childId;
+    }
+    
+    public void setInitialParent(HibernateAssociable parent)
+    {
+        HibernateRefObject refObj = (HibernateRefObject)parent;
+        setParentType(refObj.getClassIdentifier());
+        setParentId(refObj.getMofId());
+    }
+    
+    public void setInitialChild(HibernateAssociable child)
+    {
+        HibernateRefObject refObj = (HibernateRefObject)child;
+        setChildType(refObj.getClassIdentifier());
+        setChildId(refObj.getMofId());
+    }
+
     public HibernateAssociable getParent()
     {
-        return parent;
-    }
-    
-    public void setParent(HibernateAssociable parent)
-    {
-        this.parent = parent;
+        String parentType = getParentType();
+        if (parentType == null) {
+            return null;
+        }
+        
+        return (HibernateAssociable)load(parentType, getParentId());
     }
     
     public <E> E getParent(Class<E> cls)
     {
-        return cls.cast(parent);
+        return cls.cast(getParent());
     }
 
     public HibernateAssociable getChild()
     {
-        return child;
-    }
-
-    public void setChild(HibernateAssociable child)
-    {
-        this.child = child;
+        String childType = getChildType();
+        if (childType == null) {
+            return null;
+        }
+        
+        return (HibernateAssociable)load(childType, getChildId());
     }
     
     public <E> E getChild(Class<E> cls)
     {
-        return cls.cast(child);
+        return cls.cast(getChild());
     }
 
     public boolean add(
@@ -79,11 +136,11 @@ public abstract class HibernateOneToOneAssociation
     {
         final String type = getType();
         
-        HibernateOneToOneAssociation parentAssoc = 
-            (HibernateOneToOneAssociation)newParent.getAssociation(
+        HibernateOneToOneLazyAssociation parentAssoc = 
+            (HibernateOneToOneLazyAssociation)newParent.getAssociation(
                 type, true);
-        HibernateOneToOneAssociation childAssoc = 
-            (HibernateOneToOneAssociation)newChild.getAssociation(
+        HibernateOneToOneLazyAssociation childAssoc = 
+            (HibernateOneToOneLazyAssociation)newChild.getAssociation(
                 type, false);
                 
         boolean sameParent = parentAssoc != null && parentAssoc.equals(this);
@@ -98,14 +155,15 @@ public abstract class HibernateOneToOneAssociation
             }
             
             if (childAssoc != null) {
-                // Child associated with another parent.
-                childAssoc.setChild(null);
-                
-                // REVIEW: 12/19/07: Should we delete childAssoc?
+                // Child was associated with another parent.
+                childAssoc.delete(getHibernateRepository());
             }
             
             newChild.setAssociation(type, false, this);
-            setChild(newChild);
+
+            HibernateRefObject newChildRefObj = (HibernateRefObject)newChild;
+            setChildType(newChildRefObj.getClassIdentifier());
+            setChildId(newChildRefObj.getMofId());
             return true;
         }
 
@@ -115,7 +173,10 @@ public abstract class HibernateOneToOneAssociation
                 parent.setAssociation(type, true, null);
             }
             newParent.setAssociation(type, true, this);
-            setParent(newParent);
+            
+            HibernateRefObject newParentRefObj = (HibernateRefObject)newParent;
+            setParentType(newParentRefObj.getClassIdentifier());
+            setParentId(newParentRefObj.getMofId());
             return true;
         }
         
@@ -144,15 +205,18 @@ public abstract class HibernateOneToOneAssociation
             return false;
         }
         
-        HibernateAssociable thisParent = getParent();
-        HibernateAssociable thisChild = getChild();
+        HibernateRefObject parentRefObj = (HibernateRefObject)parent;
+        HibernateRefObject childRefObj = (HibernateRefObject)child;
         
-        assert(equals(thisParent, parent) && equals(thisChild, child));
+        assert(parentRefObj.getClassIdentifier().equals(getParentType()));
+        assert(childRefObj.getClassIdentifier().equals(getChildType()));
+        assert(parentRefObj.getMofId() == getParentId());
+        assert(childRefObj.getMofId() == getChildId());        
         assert(equals(this, parentAssoc));
         assert(equals(this, childAssoc));
         
-        thisParent.setAssociation(type, true, null);
-        thisChild.setAssociation(type, false, null);
+        parent.setAssociation(type, true, null);
+        child.setAssociation(type, false, null);
         
         delete(getHibernateRepository(parent));
         
@@ -189,28 +253,26 @@ public abstract class HibernateOneToOneAssociation
         end1.setAssociation(type, true, null);
         end2.setAssociation(type, false, null);
 
-        delete(getHibernateRepository(parent));
+        delete(getHibernateRepository(end1));
     }
     
     public void clear(HibernateAssociable item)
     {
-        HibernateAssociable parent = getParent();
-        HibernateAssociable child = getChild();
+        HibernateRefObject itemRefObj = (HibernateRefObject)item;
+        assert(itemRefObj.getClassIdentifier().equals(getParentType()));
+        assert(itemRefObj.getMofId() == getParentId());
         
-        assert(equals(parent, item));
-        
-        remove(parent, child);
+        remove(item, getChild());
     }
     
     public List<HibernateAssociable> getOrdered(HibernateAssociable item)
     {
-        HibernateAssociable parent = getParent();
-        HibernateAssociable child = getChild();
+        long itemMofId = ((HibernateRefObject)item).getMofId();
         
-        if (equals(parent, item)) {
-            return new ModifiableSingletonList(child);
-        } else if (equals(child, item)) {
-            return new ModifiableSingletonList(parent);
+        if (itemMofId == getParentId()) {
+            return new ModifiableSingletonList(getChild());
+        } else if (itemMofId == getChildId()) {
+            return new ModifiableSingletonList(getParent());
         } else {
             return Collections.emptyList();
         }
@@ -310,6 +372,16 @@ public abstract class HibernateOneToOneAssociation
             throw new IndexOutOfBoundsException();
         }
     }
+    
+    public Kind getKind()
+    {
+        return Kind.ONE_TO_ONE;
+    }
+    
+    public String getCollectionName()
+    {
+        return null;
+    }
 }
 
-// End HibernateOneToOneAssociation.java
+// End HibernateOneToOneLazyAssociation.java

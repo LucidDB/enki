@@ -132,14 +132,8 @@ public class HibernateJavaHandler
     /**
      * Name of the base class for one-to-one associations.
      */
-    public static final JavaClassReference ASSOCIATION_ONE_TO_ONE_BASE = 
-        new JavaClassReference(HibernateOneToOneAssociation.class, false);
-    
-    /**
-     * Name of the base class for one-to-many associations.
-     */
-    public static final JavaClassReference ASSOCIATION_ONE_TO_MANY_BASE = 
-        new JavaClassReference(HibernateOneToManyAssociation.class, false);
+    public static final JavaClassReference ASSOCIATION_ONE_TO_ONE_LAZY_BASE = 
+        new JavaClassReference(HibernateOneToOneLazyAssociation.class, false);
     
     /**
      * Name of the base class for lazy one-to-many associations.
@@ -155,35 +149,24 @@ public class HibernateJavaHandler
             HibernateOneToManyLazyOrderedAssociation.class, false);
     
     /**
-     * Name of the class for lazy one-to-many associations elements.
-     */
-    public static final JavaClassReference ASSOCIATION_ONE_TO_MANY_LAZY_ELEMENT = 
-        new JavaClassReference(
-            HibernateOneToManyLazyAssociation.Element.class, false);
-    
-    /**
-     * Name of the base class for ordered one-to-many associations.
-     */
-    public static final JavaClassReference ASSOCIATION_ONE_TO_MANY_ORDERED_BASE = 
-        new JavaClassReference(
-            HibernateOneToManyOrderedAssociation.class, false);
-    
-    /**
      * Name of the base class for many-to-many associations.
      */
-    public static final JavaClassReference ASSOCIATION_MANY_TO_MANY_BASE = 
-        new JavaClassReference(HibernateManyToManyAssociation.class, false);
+    public static final JavaClassReference ASSOCIATION_MANY_TO_MANY_LAZY_BASE = 
+        new JavaClassReference(HibernateManyToManyLazyAssociation.class, false);
 
     /**
      * Name of the base class for ordered many-to-many associations.
      */
-    public static final JavaClassReference ASSOCIATION_MANY_TO_MANY_ORDERED_BASE = 
+    public static final JavaClassReference ASSOCIATION_MANY_TO_MANY_LAZY_ORDERED_BASE = 
         new JavaClassReference(
-            HibernateManyToManyOrderedAssociation.class, false);
+            HibernateManyToManyLazyOrderedAssociation.class, false);
 
-    /** Name of the base class for the custom Hibernate type-mapper. */
-    public static final JavaClassReference ASSOCIATION_TYPE_MAPPER_BASE =
-        new JavaClassReference(HibernateAssociationTypeMapper.class, false);
+    /**
+     * Name of the class for lazy one associations elements.
+     */
+    public static final JavaClassReference ASSOCIATION_LAZY_ELEMENT = 
+        new JavaClassReference(
+            HibernateLazyAssociationBase.Element.class, false);
     
     /** Reference to {@link CollectionProxy}. */
     private static final JavaClassReference COLLECTION_PROXY_CLASS = 
@@ -241,9 +224,17 @@ public class HibernateJavaHandler
     private static final JavaClassReference JAVA_UTIL_COLLECTIONS_CLASS =
         new JavaClassReference(Collections.class, true);
     
+    /** Reference to {@link Collections}. */
+    private static final JavaClassReference JAVA_UTIL_COLLECTION_CLASS =
+        new JavaClassReference(Collection.class, true);
+    
     /** Reference to {@link Arrays}. */
     private static final JavaClassReference JAVA_UTIL_ARRAYS_CLASS =
         new JavaClassReference(Arrays.class, true);
+    
+    /** Reference to {@link Arrays}. */
+    private static final JavaClassReference JAVA_UTIL_ARRAYLIST_CLASS =
+        new JavaClassReference(ArrayList.class, true);
     
     /** Reference to {@link GenericCollections}. */
     private static final JavaClassReference GENERIC_COLLECTIONS_CLASS =
@@ -272,7 +263,9 @@ public class HibernateJavaHandler
         ATTRIB_COLLECTION_PROXY_CLASS,
         ATTRIB_LIST_WRAPPER_CLASS,
         ATTRIB_COLLECTION_WRAPPER_CLASS,
+        JAVA_UTIL_COLLECTION_CLASS,
         JAVA_UTIL_LIST_CLASS,
+        JAVA_UTIL_ARRAYLIST_CLASS,
         JAVA_UTIL_COLLECTIONS_CLASS,
         GENERIC_COLLECTIONS_CLASS,
         UNSUPPORTED_OPERATION_EXCEPTION,
@@ -306,15 +299,9 @@ public class HibernateJavaHandler
     
     /** 
      * Reference to the model-specific, generated subclass of 
-     * {@link HibernateOneToOneAssociation}.
+     * {@link HibernateOneToOneLazyAssociation}.
      */
-    private JavaClassReference assocOneToOneClass;
-
-    /** 
-     * Reference to the model-specific, generated subclass of 
-     * {@link HibernateOneToManyAssociation}.
-     */
-    private JavaClassReference assocOneToManyClass;
+    private JavaClassReference assocOneToOneLazyClass;
 
     /** 
      * Reference to the model-specific, generated subclass of 
@@ -325,39 +312,29 @@ public class HibernateJavaHandler
     /** 
      * Reference to the model-specific, generated subclass of 
      * {@link HibernateOneToManyLazyOrderedAssociation}.
-     */
-    
+     */    
     private JavaClassReference assocOneToManyLazyOrderedClass;
-    /** 
-     * Reference to the model-specific, generated subclass of 
-     * {@link HibernateOneToManyOrderedAssociation}.
-     */
-    private JavaClassReference assocOneToManyOrderedClass;
 
     /** 
      * Reference to the model-specific, generated subclass of 
-     * {@link HibernateManyToManyAssociation}.
+     * {@link HibernateManyToManyLazyAssociation}.
      */
-    private JavaClassReference assocManyToManyClass;
+    private JavaClassReference assocManyToManyLazyClass;
     
     /** 
      * Reference to the model-specific, generated subclass of 
-     * {@link HibernateManyToManyOrderedAssociation}.
+     * {@link HibernateManyToManyLazyOrderedAssociation}.
      */
-    private JavaClassReference assocManyToManyOrderedClass;
+    private JavaClassReference assocManyToManyLazyOrderedClass;
     
-    /** 
-     * Reference to the model-specific, generated subclass of 
-     * {@link HibernateAssociationTypeMapper}.
-     */
-    private JavaClassReference assocTypeMapperClass;
-
     /**
      * Map from each clustered package to the importing package
      * designated as its "primary".  This forms a spanning tree
      * over the import graph.
      */
     private final Map<MofPackage, MofPackage> clusteringMap;
+
+    private String tablePrefix;
 
     public HibernateJavaHandler()
     {
@@ -426,6 +403,11 @@ public class HibernateJavaHandler
         transientHandler.setGenerator(generator);
     }
 
+    public void setTablePrefix(String tablePrefix)
+    {
+        this.tablePrefix = tablePrefix;
+    }
+
     @Override
     public void setOutputDir(File outputDir)
     {
@@ -455,38 +437,26 @@ public class HibernateJavaHandler
         String packageName = 
             TagUtil.getFullyQualifiedPackageName(modelPackage);
         
-        assocOneToOneClass = 
+        assocOneToOneLazyClass = 
             new JavaClassReference(
                 packageName,
-                ASSOCIATION_ONE_TO_ONE_BASE.toSimple());
-        assocOneToManyClass = 
-            new JavaClassReference(
-                packageName,
-                ASSOCIATION_ONE_TO_MANY_BASE.toSimple());
+                ASSOCIATION_ONE_TO_ONE_LAZY_BASE.toSimple());
         assocOneToManyLazyClass = 
             new JavaClassReference(
                 packageName,
                 ASSOCIATION_ONE_TO_MANY_LAZY_BASE.toSimple());
-        assocOneToManyOrderedClass = 
-            new JavaClassReference(
-                packageName,
-                ASSOCIATION_ONE_TO_MANY_ORDERED_BASE.toSimple());
         assocOneToManyLazyOrderedClass = 
             new JavaClassReference(
                 packageName,
                 ASSOCIATION_ONE_TO_MANY_LAZY_ORDERED_BASE.toSimple());
-        assocManyToManyClass = 
+        assocManyToManyLazyClass = 
             new JavaClassReference(
                 packageName,
-                ASSOCIATION_MANY_TO_MANY_BASE.toSimple());
-        assocManyToManyOrderedClass = 
+                ASSOCIATION_MANY_TO_MANY_LAZY_BASE.toSimple());
+        assocManyToManyLazyOrderedClass = 
             new JavaClassReference(
                 packageName,
-                ASSOCIATION_MANY_TO_MANY_ORDERED_BASE.toSimple());
-        assocTypeMapperClass =
-            new JavaClassReference(
-                packageName,
-                ASSOCIATION_TYPE_MAPPER_BASE.toSimple());
+                ASSOCIATION_MANY_TO_MANY_LAZY_ORDERED_BASE.toSimple());
     }
 
     @Override
@@ -495,24 +465,35 @@ public class HibernateJavaHandler
     {
         if (!throwing && !pluginMode) {
             generateAssociationStorageSubclass(
-                assocOneToOneClass, ASSOCIATION_ONE_TO_ONE_BASE);
+                assocOneToOneLazyClass, 
+                ASSOCIATION_ONE_TO_ONE_LAZY_BASE,
+                AssociationKindEnum.ONE_TO_ONE,
+                HibernateMappingHandler.ASSOC_ONE_TO_ONE_LAZY_TABLE,
+                null);
             generateAssociationStorageSubclass(
-                assocOneToManyClass, ASSOCIATION_ONE_TO_MANY_BASE);
-            generateAssociationStorageSubclass(
-                assocOneToManyOrderedClass, 
-                ASSOCIATION_ONE_TO_MANY_ORDERED_BASE);
-            generateAssociationStorageSubclass(
-                assocOneToManyLazyClass, ASSOCIATION_ONE_TO_MANY_LAZY_BASE);
+                assocOneToManyLazyClass,
+                ASSOCIATION_ONE_TO_MANY_LAZY_BASE,
+                AssociationKindEnum.ONE_TO_MANY,
+                HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_TABLE,
+                HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_CHILDREN_TABLE);
             generateAssociationStorageSubclass(
                 assocOneToManyLazyOrderedClass, 
-                ASSOCIATION_ONE_TO_MANY_LAZY_ORDERED_BASE);
+                ASSOCIATION_ONE_TO_MANY_LAZY_ORDERED_BASE,
+                AssociationKindEnum.ONE_TO_MANY,
+                HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_ORDERED_TABLE,
+                HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_ORDERED_CHILDREN_TABLE);
             generateAssociationStorageSubclass(
-                assocManyToManyClass, ASSOCIATION_MANY_TO_MANY_BASE);
+                assocManyToManyLazyClass, 
+                ASSOCIATION_MANY_TO_MANY_LAZY_BASE,
+                AssociationKindEnum.MANY_TO_MANY,
+                HibernateMappingHandler.ASSOC_MANY_TO_MANY_LAZY_TABLE,
+                HibernateMappingHandler.ASSOC_MANY_TO_MANY_LAZY_TARGET_TABLE);
             generateAssociationStorageSubclass(
-                assocManyToManyOrderedClass, 
-                ASSOCIATION_MANY_TO_MANY_ORDERED_BASE);
-            generateAssociationStorageSubclass(
-                assocTypeMapperClass, ASSOCIATION_TYPE_MAPPER_BASE);
+                assocManyToManyLazyOrderedClass, 
+                ASSOCIATION_MANY_TO_MANY_LAZY_ORDERED_BASE,
+                AssociationKindEnum.MANY_TO_MANY,
+                HibernateMappingHandler.ASSOC_MANY_TO_MANY_LAZY_ORDERED_TABLE,
+                HibernateMappingHandler.ASSOC_MANY_TO_MANY_LAZY_ORDERED_TARGET_TABLE);
         }
         
         super.endGeneration(throwing);
@@ -525,27 +506,17 @@ public class HibernateJavaHandler
      * 
      * @param classRef name of the subclass
      * @param superClassRef class to extend
-     * @throws GenerationException if there is an error generating the class
-     */
-    private void generateAssociationStorageSubclass(
-        JavaClassReference classRef, JavaClassReference superClassRef)
-    throws GenerationException
-    {
-        generateAssociationStorageSubclass(classRef, superClassRef, false);
-    }
-    
-    /**
-     * Generates a trivial, model-specific subclass with the given name.
-     * 
-     * @param classRef name of the subclass
-     * @param superClassRef class to extend
-     * @param isLazy generate extra methods for lazy associations
+     * @param assocKind the basic type of association
+     * @param tableName association table name
+     * @param collectionTableName association collection table name
      * @throws GenerationException if there is an error generating the class
      */
     private void generateAssociationStorageSubclass(
         JavaClassReference classRef, 
         JavaClassReference superClassRef,
-        boolean isLazy)
+        AssociationKindEnum assocKind,
+        String tableName,
+        String collectionTableName)
     throws GenerationException
     {
         String typeName = classRef.toFull();
@@ -557,16 +528,49 @@ public class HibernateJavaHandler
                 typeName,
                 superClassRef,
                 new JavaClassReference[0],
+                new JavaClassReference[] { ASSOCIATION_INTERFACE },
                 false,
                 "Model-specific storage sub-class.");
+            
+            if (tablePrefix != null) {
+                tableName = tablePrefix + tableName;
+            }
+            writeConstant(
+                "String", "_table", QUOTE + tableName + QUOTE, true);
+            
+            if (tablePrefix != null && collectionTableName != null) {
+                collectionTableName = tablePrefix + collectionTableName;
+            }
+            if (collectionTableName != null) {
+                writeConstant(
+                    "String", "_collectionTable", 
+                    QUOTE + collectionTableName + QUOTE, true);
+            } else {
+                writeConstant(
+                    "String", "_collectionTable", "null", true);
+            }
             
             startBlock("public ", classRef.toSimple(), "()");
             writeln("super();");
             endBlock();
             
-            if (isLazy) {
-                
-            }
+            newLine();
+            startBlock(
+                "public Class<? extends ",
+                ASSOCIATION_INTERFACE, 
+                "> getInstanceClass()");
+            writeln("return ", typeName, ".class;");
+            endBlock();
+                        
+            newLine();
+            startBlock("public String getTable()");
+            writeln("return _table;");
+            endBlock();
+            
+            newLine();
+            startBlock("public String getCollectionTable()");
+            writeln("return _collectionTable;");
+            endBlock();
             
             writeEntityFooter();
         }
@@ -620,7 +624,9 @@ public class HibernateJavaHandler
                 typeName, 
                 superClass,
                 new String[] { interfaceName }, 
-                JavaClassReference.computeImports(METAMODEL_INITIALIZER_CLASS),
+                JavaClassReference.computeImports(
+                    METAMODEL_INITIALIZER_CLASS,
+                    ASSOCIATION_INTERFACE),
                 false,
                 ASSOC_IMPL_COMMENT);
         
@@ -629,51 +635,41 @@ public class HibernateJavaHandler
                 "String", "_id", QUOTE + assocIdentifier + QUOTE, true);
             newLine();
             
-            String allLinksQueryName;
+            JavaClassReference implClass;
+            HibernateAssociation.Kind implKind;
             switch(assocInfo.getKind()) {
             default:
                 assert(false);
             case ONE_TO_ONE:
-                allLinksQueryName =
-                    assocOneToOneClass.toFull() + "." +
-                    HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                implClass = assocOneToOneLazyClass;
+                implKind = HibernateAssociation.Kind.ONE_TO_ONE;
                 break;
             case ONE_TO_MANY:
                 boolean ordered = 
                     assocInfo.isOrdered(0) || assocInfo.isOrdered(1);
-                if (isLazy(assocInfo)) {
-                    if (ordered) {
-                        allLinksQueryName =
-                            assocOneToManyLazyOrderedClass.toFull() + "." +
-                            HibernateMappingHandler.QUERY_NAME_ALLLINKS;
-                    } else {
-                        allLinksQueryName =
-                            assocOneToManyLazyClass.toFull() + "." +
-                            HibernateMappingHandler.QUERY_NAME_ALLLINKS;
-                    }
-                } else if (ordered) {
-                    allLinksQueryName =
-                        assocOneToManyOrderedClass.toFull() + "." +
-                        HibernateMappingHandler.QUERY_NAME_ALLLINKS;   
+                if (ordered) {
+                    implClass = assocOneToManyLazyOrderedClass;
+                    implKind = HibernateAssociation.Kind.ONE_TO_MANY_ORDERED;
                 } else {
-                    allLinksQueryName =
-                        assocOneToManyClass.toFull() + "." +
-                        HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                    implClass = assocOneToManyLazyClass;
+                    implKind = HibernateAssociation.Kind.ONE_TO_MANY;
                 }
                 break;
             case MANY_TO_MANY:
                 // Base many-to-many all-links queries on first end only
                 if (assocInfo.isOrdered(0)) {
-                    allLinksQueryName =
-                        assocManyToManyOrderedClass.toFull() + "." +
-                        HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                    implClass = assocManyToManyLazyOrderedClass;
+                    implKind = HibernateAssociation.Kind.MANY_TO_MANY_ORDERED;
                 } else {
-                    allLinksQueryName =
-                        assocManyToManyClass.toFull() + "." +
-                        HibernateMappingHandler.QUERY_NAME_ALLLINKS;
+                    implClass = assocManyToManyLazyClass;
+                    implKind = HibernateAssociation.Kind.MANY_TO_MANY;
                 }
                 break;
             }
+            
+            String allLinksQueryName =
+                implClass.toFull() + "." + 
+                HibernateMappingHandler.QUERY_NAME_ALLLINKS;
             writeConstant(
                 "String", "_allLinksQueryName", 
                 QUOTE + allLinksQueryName + QUOTE, true);
@@ -886,6 +882,18 @@ public class HibernateJavaHandler
             endBlock();
 
             newLine();
+            startBlock(
+                "public Class<? extends ", 
+                ASSOCIATION_INTERFACE, "> getInstanceClass()");
+            writeln("return ", implClass.toFull(), ".class;");
+            endBlock();
+            
+            newLine();
+            startBlock("public ", ASSOCIATION_INTERFACE, ".Kind getKind()");
+            writeln("return ", ASSOCIATION_INTERFACE, ".Kind.", implKind, ";");
+            endBlock();
+            
+            newLine();
             startBlock("protected String getAllLinksQueryName()");
             writeln("return _allLinksQueryName;");
             endBlock();
@@ -976,16 +984,12 @@ public class HibernateJavaHandler
                 VisibilityKindEnum.PUBLIC_VIS,
                 Reference.class);
 
-        Map<Reference, ReferenceInfo> refInfoMap =
-            new HashMap<Reference, ReferenceInfo>();
-        for(Reference ref: instanceReferences) {
-            ReferenceInfo refInfo = new ReferenceInfoImpl(generator, ref);
-            refInfoMap.put(ref, refInfo);
-        }
+        Map<Reference, ReferenceInfo> refInfoMap = 
+            buildRefInfoMap(instanceReferences);
         
         Map<Association, ReferenceInfo> unrefAssocRefInfoMap =
             new HashMap<Association, ReferenceInfo>();
-        
+
         Collection<Association> unreferencedAssociations = 
             CodeGenUtils.findUnreferencedAssociations(
                 generator,
@@ -994,19 +998,9 @@ public class HibernateJavaHandler
                 instanceReferences, 
                 unrefAssocRefInfoMap);
         
-        Map<Attribute, ComponentInfo> componentInfoMap =
-            new LinkedHashMap<Attribute, ComponentInfo>();
-        if (componentAttribMap.containsKey(cls)) {
-            for(ComponentInfo componentInfo: componentAttribMap.get(cls)) {
-                componentInfoMap.put(
-                    componentInfo.getOwnerAttribute(), componentInfo);
-            }
-        }
-        for(Attribute attrib: nonDataTypeAttribs) {
-            componentInfoMap.put(
-                attrib,
-                new ComponentInfo(generator, cls, attrib, true));
-        }
+        Map<Attribute, ComponentInfo> componentInfoMap = buildComponentInfoMap(
+            cls,
+            nonDataTypeAttribs);
 
         boolean hasAssociations = 
             !instanceReferences.isEmpty() || 
@@ -1154,8 +1148,12 @@ public class HibernateJavaHandler
                 generateGetOrCreateAssociationMethod(refInfos);
 
                 generateRemoveAssociationMethod(cls, refInfos);
+                generateGetComposingAssociationsMethod(cls, refInfos);
+                generateGetNonComposingAssociationsMethod(cls, refInfos);
             } else {
                 generateRemoveAssociationMethod(cls, null);
+                generateGetComposingAssociationsMethod(cls, null);
+                generateGetNonComposingAssociationsMethod(cls, null);
             }
 
             generateRefImmediateComposite(
@@ -1175,6 +1173,39 @@ public class HibernateJavaHandler
         finally {
             close();
         }
+    }
+
+    private Map<Attribute, ComponentInfo> buildComponentInfoMap(
+        MofClass cls,
+        Set<Attribute> nonDataTypeAttribs)
+    {
+        Map<Attribute, ComponentInfo> componentInfoMap =
+            new LinkedHashMap<Attribute, ComponentInfo>();
+        if (componentAttribMap.containsKey(cls)) {
+            for(ComponentInfo componentInfo: componentAttribMap.get(cls)) {
+                componentInfoMap.put(
+                    componentInfo.getOwnerAttribute(), componentInfo);
+            }
+        }
+        for(Attribute attrib: nonDataTypeAttribs) {
+            componentInfoMap.put(
+                attrib,
+                new ComponentInfo(generator, cls, attrib, true));
+        }
+        return componentInfoMap;
+    }
+
+    private Map<Reference, ReferenceInfo> buildRefInfoMap(
+        Collection<Reference> instanceReferences)
+        throws GenerationException
+    {
+        Map<Reference, ReferenceInfo> refInfoMap =
+            new HashMap<Reference, ReferenceInfo>();
+        for(Reference ref: instanceReferences) {
+            ReferenceInfo refInfo = new ReferenceInfoImpl(generator, ref);
+            refInfoMap.put(ref, refInfo);
+        }
+        return refInfoMap;
     }
 
     /**
@@ -1439,33 +1470,26 @@ public class HibernateJavaHandler
                     // Set up the local end of the association.
                     switch(refInfo.getKind()) {
                     case ONE_TO_ONE:
-                        writeln(
-                            "assoc.set",
-                            getReferenceEndName(refInfo, false),
-                            "(this);");
+                        if (refInfo.isExposedEndFirst()) {
+                            writeln("assoc.setInitialParent(this);");
+                        } else {
+                            writeln("assoc.setInitialChild(this);");
+                        }
                         break;
                         
                     case ONE_TO_MANY:
                         boolean hasParent = refInfo.isSingle();
-                        if (isLazy(refInfo)) {
-                            if (!hasParent) {
-                                writeln("assoc.setInitialParent(this);");
-                            } else {
-                                writeln("assoc.addInitialChild(this);");
-                            }
+                        if (!hasParent) {
+                            writeln("assoc.setInitialParent(this);");
                         } else {
-                            if (!hasParent) {
-                                writeln("assoc.setParent(this);");
-                            } else {
-                                writeln("assoc.getChildren().add(this);");
-                            }
+                            writeln("assoc.addInitialChild(this);");
                         }
                         writeln(
                             "assoc.setReversed(", refInfo.isSingle(1), ");");
                         break;
 
                     case MANY_TO_MANY:
-                        writeln("assoc.setSource(this);");
+                        writeln("assoc.setInitialSource(this);");
                         writeln("assoc.setReversed(!firstEnd);");
                         break;
                     }
@@ -1480,6 +1504,42 @@ public class HibernateJavaHandler
         endBlock();
     }
 
+    /**
+     * Generates an implementation of 
+     * {@link HibernateAssociable#getAssociation(String, boolean)} for the
+     * described references.  Delegates to 
+     * {@link #generateGenericAssociationMethod(List, AssocMethodGenerator)}.
+     * 
+     * @param refInfos descriptions of {@link Reference} instances which must
+     *                 be handled by the generated method
+     * @throws GenerationException if there's an error generating the method
+     */
+    private void generateGetAssociationColumnNameMethod(
+        List<ReferenceInfo> refInfos)
+    throws GenerationException
+    {
+        writeln("// Implement HibernateAssociable");
+        startBlock(
+            "public String getAssociationColumnName(String type, boolean firstEnd)");
+
+        generateGenericAssociationMethod(
+            refInfos,
+            new AssocMethodGenerator() {
+                public void generate(ReferenceInfo refInfo)
+                    throws GenerationException
+                {
+                    String columnName = 
+                        StringUtil.toInitialLower(
+                            refInfo.getReferencedEndBaseName());
+                    writeln(
+                        "return ", 
+                        QUOTE, columnName, QUOTE, ";");
+                }                
+            });
+        
+        endBlock();
+    }
+    
     /**
      * Generates an association method generically based on the described
      * references and {@link AssocMethodGenerator}.
@@ -1725,6 +1785,138 @@ public class HibernateJavaHandler
         endBlock();
         
         return true;
+    }
+
+    /**
+     * Generates an implementation of the 
+     * {@link HibernateRefObject#getComposingAssociations()} method.
+     * 
+     * @param cls the class being generated
+     * @param refInfos descriptions of {@link Reference} instances which must
+     *                 be handled by the generated method
+     * @throws GenerationException if there's an error generating the method
+     */
+    private void generateGetComposingAssociationsMethod(
+        MofClass cls, List<ReferenceInfo> refInfos)
+    throws GenerationException
+    {
+        newLine();
+        writeln("// Implement HibernateRefObject");
+        startBlock(
+            "public ", 
+            JAVA_UTIL_COLLECTION_CLASS,
+            "<", ASSOCIATION_INTERFACE, "> getComposingAssociations()");
+
+        if (refInfos == null) {
+            writeln("return ", JAVA_UTIL_COLLECTIONS_CLASS, ".emptySet();");
+            endBlock();
+            return;
+        }
+
+        List<ReferenceInfo> compInfos = new ArrayList<ReferenceInfo>();
+        for(ReferenceInfo refInfo: refInfos) {
+            // ComponentInfo always has the composite owner as the first
+            // end.  If this class is the owner, we want to return the
+            // association.
+            if (refInfo instanceof ComponentInfo) {
+                if (refInfo.isExposedEndFirst()) {
+                    compInfos.add(refInfo);
+                }
+            } else if (refInfo.isComposite(refInfo.getExposedEndIndex())) {
+                compInfos.add(refInfo);
+            }
+        }
+
+        if (compInfos.size() == 0) {
+            writeln("return ", JAVA_UTIL_COLLECTIONS_CLASS, ".emptySet();");
+        } else {
+            writeln(
+                JAVA_UTIL_LIST_CLASS, "<", ASSOCIATION_INTERFACE, "> result = ",
+                "new ", JAVA_UTIL_ARRAYLIST_CLASS, "<", ASSOCIATION_INTERFACE, ">(",
+                compInfos.size(), ");");
+            boolean first = true;
+            for(ReferenceInfo compInfo: compInfos) {
+                if (first) {
+                    write(ASSOCIATION_INTERFACE, " ");
+                    first = false;
+                }
+
+                writeln("assoc = ", getReferenceAccessorName(compInfo), "();");
+                startConditionalBlock(CondType.IF, "assoc != null");
+                writeln("result.add(assoc);");
+                endBlock();
+            }
+    
+            writeln("return result;");
+        }
+        endBlock();
+    }
+
+    /**
+     * Generates an implementation of the 
+     * {@link HibernateRefObject#getNonComposingAssociations()} method.
+     * 
+     * @param cls the class being generated
+     * @param refInfos descriptions of {@link Reference} instances which must
+     *                 be handled by the generated method
+     * @throws GenerationException if there's an error generating the method
+     */
+    private void generateGetNonComposingAssociationsMethod(
+        MofClass cls, List<ReferenceInfo> refInfos)
+    throws GenerationException
+    {
+        newLine();
+        writeln("// Implement HibernateRefObject");
+        startBlock(
+            "public ", 
+            JAVA_UTIL_COLLECTION_CLASS,
+            "<", ASSOCIATION_INTERFACE, "> getNonComposingAssociations()");
+
+        if (refInfos == null) {
+            writeln("return ", JAVA_UTIL_COLLECTIONS_CLASS, ".emptySet();");
+            endBlock();
+            return;
+        }
+
+        List<ReferenceInfo> nonCompInfos = new ArrayList<ReferenceInfo>();
+        for(ReferenceInfo refInfo: refInfos) {
+            // ComponentInfo always has the composite owner as the first
+            // end.  If this class is not the owner, we want to return the
+            // association.
+            if (refInfo instanceof ComponentInfo) {
+                if (refInfo.isExposedEndFirst()) {
+                    continue;
+                }
+            } else if (refInfo.isComposite(refInfo.getExposedEndIndex())) {
+                continue;
+            }
+
+            nonCompInfos.add(refInfo);
+        }
+
+        if (nonCompInfos.size() == 0) {
+            writeln("return ", JAVA_UTIL_COLLECTIONS_CLASS, ".emptySet();");
+        } else {
+            writeln(
+                JAVA_UTIL_LIST_CLASS, "<", ASSOCIATION_INTERFACE, "> result = ",
+                "new ", JAVA_UTIL_ARRAYLIST_CLASS, "<", ASSOCIATION_INTERFACE, ">(",
+                nonCompInfos.size(), ");");
+            boolean first = true;
+            for(ReferenceInfo refInfo: nonCompInfos) {
+                if (first) {
+                    write(ASSOCIATION_INTERFACE, " ");
+                    first = false;
+                }
+    
+                writeln("assoc = ", getReferenceAccessorName(refInfo), "();");
+                startConditionalBlock(CondType.IF, "assoc != null");
+                writeln("result.add(assoc);");
+                endBlock();
+            }
+            
+            writeln("return result;");
+        }
+        endBlock();
     }
 
     /**
@@ -2682,6 +2874,22 @@ public class HibernateJavaHandler
                 "String", "_id", "\"" + classIdentifier + "\"", true);
             newLine();
             
+            String queryCacheRegion = 
+                HibernateMappingHandler.CACHE_REGION_SUFFIX + 
+                HibernateMappingHandler.CACHE_REGION_QUERY_SUFFIX;
+            String tableName = generator.getSimpleTypeName(cls);
+            if (tablePrefix != null) {
+                queryCacheRegion = tablePrefix + queryCacheRegion;
+                tableName = tablePrefix + tableName;
+            }
+            writeConstant(
+                "String", "_queryCacheRegion", "\"" + queryCacheRegion + "\"",
+                true);
+            
+            writeConstant(
+                "String", "_table", "\"" + tableName + "\"", true);
+            newLine();
+            
             startConstructorBlock(
                 cls,
                 new String[] { REF_PACKAGE_CLASS.toString() },
@@ -2785,9 +2993,84 @@ public class HibernateJavaHandler
             writeCheckConstraints();
             
             newLine();
-            startBlock("protected String getClassIdentifier()");
+            startBlock("public String getClassIdentifier()");
             writeln("return _id;");
             endBlock();
+            
+            newLine();
+            startBlock("public String getTable()");
+            writeln("return _table;");
+            endBlock();
+            
+            newLine();
+            startBlock("public String getQueryCacheRegion()");
+            writeln("return _queryCacheRegion;");
+            endBlock();
+            
+            newLine();
+            
+            // TODO: collect this information once (rather than recomputing
+            // for each class in instance and proxy generation)
+            Collection<Reference> instanceReferences =
+                contentsOfType(
+                    cls,
+                    HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
+                    VisibilityKindEnum.PUBLIC_VIS,
+                    Reference.class);
+
+            Map<Reference, ReferenceInfo> refInfoMap = 
+                buildRefInfoMap(instanceReferences);
+            
+            Map<Association, ReferenceInfo> unrefAssocRefInfoMap =
+                new HashMap<Association, ReferenceInfo>();
+
+            Collection<Association> unreferencedAssociations = 
+                CodeGenUtils.findUnreferencedAssociations(
+                    generator,
+                    assocInfoMap,
+                    cls,
+                    instanceReferences, 
+                    unrefAssocRefInfoMap);
+            
+            Collection<Attribute> instanceAttributes =
+                contentsOfType(
+                    cls,
+                    HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
+                    VisibilityKindEnum.PUBLIC_VIS,
+                    ScopeKindEnum.INSTANCE_LEVEL,
+                    Attribute.class);
+            Set<Attribute> nonDataTypeAttribs = new HashSet<Attribute>();
+            for(Attribute attrib: instanceAttributes) {
+                if (attrib.isDerived()) {
+                    continue;
+                }
+                
+                boolean isDataType = attrib.getType() instanceof DataType;
+                
+                if (!isDataType) {
+                    nonDataTypeAttribs.add(attrib);
+                }
+            }
+
+            Map<Attribute, ComponentInfo> componentInfoMap = 
+                buildComponentInfoMap(
+                    cls,
+                    nonDataTypeAttribs);
+
+            List<ReferenceInfo> refInfos = 
+                gatherRefInfos(
+                    instanceReferences, refInfoMap, 
+                    unreferencedAssociations, unrefAssocRefInfoMap,
+                    componentInfoMap);
+
+            if (cls.isAbstract() || refInfos.isEmpty()) {
+                startBlock(
+                    "public String getAssociationColumnName(String assocType, boolean firstEnd)");
+                writeln("throw new UnsupportedOperationException();");
+                endBlock();
+            } else {
+                generateGetAssociationColumnNameMethod(refInfos);
+            }
             
             writeEntityFooter();
         }
@@ -3264,8 +3547,7 @@ public class HibernateJavaHandler
     /**
      * Retrieves the unique identifier for the given {@link MofClass}.  Checks
      * the cache (in {@link #classIdentifierMap}) first, and if not found,
-     * generates a value based on the class name, super type names, attribute 
-     * type names, attribute names, reference type names and reference names.
+     * generates a value based on the class name.
      *
      * @param cls {@link MofClass} to get an identifier for
      * @return the class's unique identifier
@@ -3277,59 +3559,28 @@ public class HibernateJavaHandler
             return classIdentifierMap.get(cls);
         }
 
-        try {
-            MessageDigest sha1md = MessageDigest.getInstance("SHA-1");
-            
-            // All super types, in hierarchical order
-            List<MofClass> clsHierarchy = new ArrayList<MofClass>();
-            clsHierarchy.add(cls);
-            for(int i = 0; i < clsHierarchy.size(); i++) {
-                MofClass type = clsHierarchy.get(i);
-                
-                clsHierarchy.addAll(
-                    GenericCollections.asTypedList(
-                        type.getSupertypes(), MofClass.class));
-                
-                String superTypeName = generator.getTypeName(type);
-                sha1md.update(superTypeName.getBytes());
-            }
-            
-            for(MofClass type: clsHierarchy) {
-                for(Attribute attrib: 
-                        contentsOfType(
-                            type, 
-                            HierachySearchKindEnum.ENTITY_ONLY,
-                            VisibilityKindEnum.PUBLIC_VIS,
-                            Attribute.class)) 
-                {
-                    String attribType = generator.getTypeName(attrib);
-                    String attribName = attrib.getName();
-                    
-                    sha1md.update(attribType.getBytes());
-                    sha1md.update(attribName.getBytes());
-                }
-
-                for(Reference ref: 
-                    contentsOfType(
-                        type, 
-                        HierachySearchKindEnum.ENTITY_ONLY,
-                        VisibilityKindEnum.PUBLIC_VIS,
-                        Reference.class)) 
-                {
-                    String attribType = generator.getTypeName(ref);
-                    String attribName = ref.getName();
-                    
-                    sha1md.update(attribType.getBytes());
-                    sha1md.update(attribName.getBytes());
-                }
-            }
-            
-            String digestStr = computeDigestString(sha1md);
-            classIdentifierMap.put(cls, digestStr);
-            return digestStr;
-        } catch (NoSuchAlgorithmException e) {
-            throw new GenerationException(e);
+        // Build a string based on the class's name, with packages appended
+        // in reverse order.  E.g., "Driver.sample.eem".  Previously we
+        // generated a hash over the class, its supertypes and their 
+        // attributes.  This makes upgrades cumbersome since adding an 
+        // attribute invalidates all existing associations.
+        
+        StringBuilder idBuilder = new StringBuilder(cls.getName());
+        
+        Namespace container = cls;
+        while((container = container.getContainer()) != null) {
+            idBuilder.append('.').append(container.getName());
         }
+        
+        String id = idBuilder.toString();
+        
+        if (classIdentifierMap.values().contains(id)) {
+            throw new GenerationException("duplicate identifier error: " + id);
+        }
+        
+        classIdentifierMap.put(cls, id);
+        
+        return id;
     }
     
     /**
@@ -3421,7 +3672,7 @@ public class HibernateJavaHandler
     /**
      * Convert an {@link AssociationKindEnum} to name of one of the 
      * model-specific {@link HibernateAssociation} subclasses generated 
-     * in {@link #generateAssociationStorageSubclass(JavaClassReference, JavaClassReference)}.
+     * in {@link #generateAssociationStorageSubclass(JavaClassReference, JavaClassReference, AssociationKindEnum, String, String)}
      * 
      * @param refInfo description of the reference
      * @return full name of the implementation class
@@ -3431,7 +3682,6 @@ public class HibernateJavaHandler
     {
         AssociationKindEnum kind = refInfo.getKind();
         
-        boolean isLazy = isLazy(refInfo);
         boolean isOrdered = refInfo.isOrdered();
         boolean isEitherOrdered = 
             isOrdered || refInfo.isOrdered(refInfo.getExposedEndIndex());
@@ -3439,26 +3689,20 @@ public class HibernateJavaHandler
         switch(kind)
         {
         case ONE_TO_ONE:
-            return assocOneToOneClass.toString();
+            return assocOneToOneLazyClass.toString();
             
         case ONE_TO_MANY:
-            if (isLazy) {
-                if (isEitherOrdered) {
-                    return assocOneToManyLazyOrderedClass.toString();
-                } else {
-                    return assocOneToManyLazyClass.toString();
-                }
-            } else if (isEitherOrdered) {
-                return assocOneToManyOrderedClass.toString();
+            if (isEitherOrdered) {
+                return assocOneToManyLazyOrderedClass.toString();
             } else {
-                return assocOneToManyClass.toString();
+                return assocOneToManyLazyClass.toString();
             }
 
         case MANY_TO_MANY:
             if (isOrdered) {
-                return assocManyToManyOrderedClass.toString();
+                return assocManyToManyLazyOrderedClass.toString();
             } else {
-                return assocManyToManyClass.toString();
+                return assocManyToManyLazyClass.toString();
             }
         }
         
@@ -3592,15 +3836,6 @@ public class HibernateJavaHandler
         }
         
         result.add(cls);
-    }
-    
-    private boolean isLazy(AssociationInfo assocInfo) throws GenerationException
-    {
-        if (assocInfo instanceof ComponentInfo) {
-            return false;
-        }
-        
-        return (assocInfo.getKind() == AssociationKindEnum.ONE_TO_MANY);
     }
     
     /**
