@@ -667,9 +667,27 @@ public class HibernateMDRepository
                         // Update enki type mapping
                         Query query = 
                             session.getNamedQuery("TypeMappingDeleteByMofId");
-                        query.setParameterList(
-                            "mofIds", mdrSession.mofIdDeleteSet);
-                        query.executeUpdate();
+                        
+                        // Do this in chunks or else feel the wrath of
+                        // http://opensource.atlassian.com/projects/hibernate/browse/HHH-766
+                        int flushSize = typeLookupFlushSize;
+                        if (flushSize <= 0) {
+                            flushSize = 100;
+                        }
+                        List<Long> chunk = new ArrayList<Long>();
+                        for(Long mofId: mdrSession.mofIdDeleteSet) {
+                            chunk.add(mofId);
+                            if (chunk.size() >= flushSize) {
+                                query.setParameterList("mofIds", chunk);
+                                query.executeUpdate();
+                                chunk.clear();
+                            }
+                        }
+                        if (!chunk.isEmpty()) {
+                            query.setParameterList("mofIds", chunk);
+                            query.executeUpdate();                            
+                            chunk.clear();
+                        }
                         
                         mdrSession.mofIdCreateMap.keySet().removeAll(
                             mdrSession.mofIdDeleteSet);
