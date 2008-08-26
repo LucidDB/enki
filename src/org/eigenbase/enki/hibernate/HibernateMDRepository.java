@@ -24,6 +24,7 @@ package org.eigenbase.enki.hibernate;
 import java.lang.ref.*;
 import java.lang.reflect.*;
 import java.net.*;
+import java.sql.*;
 import java.util.*;
 import java.util.concurrent.atomic.*;
 import java.util.logging.*;
@@ -42,6 +43,7 @@ import org.eigenbase.enki.util.*;
 import org.hibernate.*;
 import org.hibernate.cfg.*;
 import org.hibernate.criterion.*;
+import org.hibernate.dialect.*;
 import org.hibernate.stat.*;
 import org.hibernate.tool.hbm2ddl.*;
 import org.netbeans.api.mdr.*;
@@ -302,6 +304,9 @@ public class HibernateMDRepository
     
     /** Map of unique association identifier to HibernateRefAssociation. */
     private final HashMap<String, HibernateRefAssociation> assocRegistry;
+    
+    /** The SQL dialect in use by the configured database. */
+    private Dialect sqlDialect;
     
     final Logger log;
 
@@ -1226,6 +1231,11 @@ public class HibernateMDRepository
         }
     }
 
+    Dialect getSqlDialect()
+    {
+        return sqlDialect;
+    }
+    
     public void shutdown()
     {                
         log.info("repository shut down");
@@ -2024,20 +2034,35 @@ public class HibernateMDRepository
         SessionFactory tempSessionFactory = config.buildSessionFactory();
 
         Session session = tempSessionFactory.getCurrentSession();
-        
+
         boolean exists = false;
         Transaction trans = session.beginTransaction();
         try {
-            // Execute the query
-            session.getNamedQuery("AllExtents").list();
-            exists = true;
-        } catch(HibernateException e) {
-            // Presume that table doesn't exist.
-            
-            // REVIEW: SWZ: 3/12/08: If it's a connection error, and suddenly
-            // starts working (startup race?) we could conceivably destroy the
-            // tables, which would be bad.
-            log.log(Level.FINE, "Extent Query Error", e);
+            try {
+                DatabaseMetaData dbMetadata = 
+                    session.connection().getMetaData();
+                this.sqlDialect = 
+                    DialectFactory.buildDialect(
+                        config.getProperties(),
+                        dbMetadata.getDatabaseProductName(),
+                        dbMetadata.getDatabaseMajorVersion());
+            } catch(Exception e) {
+                throw new ProviderInstantiationException(
+                    "Unable to determine appropriate SQL dialect", e);
+            }
+
+            try {
+                // Execute the query
+                session.getNamedQuery("AllExtents").list();
+                exists = true;
+            } catch(HibernateException e) {
+                // Presume that table doesn't exist.
+                
+                // REVIEW: SWZ: 3/12/08: If it's a connection error, and
+                // suddenly starts working (startup race?) we could 
+                // conceivably destroy the tables, which would be bad.
+                log.log(Level.FINE, "Extent Query Error", e);
+            }
         } finally {
             trans.commit();
             

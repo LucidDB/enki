@@ -30,6 +30,7 @@ import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.util.*;
 import org.hibernate.*;
+import org.hibernate.dialect.*;
 
 /**
  * HibernateMassDeletionUtil is a utility class that implements deleting 
@@ -46,6 +47,9 @@ class HibernateMassDeletionUtil
     private static final String IN_PARAMS = "?...";
 
     private final HibernateMDRepository repos;
+    private final Dialect sqlDialect;
+    private final String quotedMofId;
+    
     private Session session; 
     
     /** 
@@ -119,10 +123,12 @@ class HibernateMassDeletionUtil
      */
     private Set<HibernateAssociation> processedManyToManyAssocs = 
         new HashSet<HibernateAssociation>();
-    
+
     HibernateMassDeletionUtil(HibernateMDRepository repos)
     {
         this.repos = repos;
+        this.sqlDialect = repos.getSqlDialect();
+        this.quotedMofId = quote("mofId");
     }
     
     public void massDelete(Collection<RefObject> objects)
@@ -172,11 +178,11 @@ class HibernateMassDeletionUtil
                 for(String columnName: map.keySet()) {
                     Collection<Long> deRefMofIds = map.getValues(columnName);
                     
-                    // TODO: dialect-specific quoting
                     executeInSql(
                         conn, deRefMofIds,
-                        "update ", table, " set ", columnName,  
-                        " = null where mofId in (", IN_PARAMS, ")");
+                        "update ", quote(table), " set ", quote(columnName),  
+                        " = null where ", quotedMofId, 
+                        " in (", IN_PARAMS, ")");
                 }
             }
                 
@@ -186,11 +192,10 @@ class HibernateMassDeletionUtil
     
                 Collection<Long> delMofIds = delMap.getValues(hrcId);
                 
-                // TODO: dialect-specific quoting
                 executeInSql(
                     conn, delMofIds,
-                    "delete from ", hrc.getTable(), 
-                    " where mofId in (", IN_PARAMS, ")");
+                    "delete from ", quote(hrc.getTable()), 
+                    " where ", quotedMofId, " in (", IN_PARAMS, ")");
             }
             
             // delete associations
@@ -200,30 +205,29 @@ class HibernateMassDeletionUtil
                 
                 String collectionTable = collectionTableMap.get(assocKind);
                 if (collectionTable != null) {
-                    // TODO: dialect-specific quoting
                     executeInSql(
                         conn, assocMofIds, 
-                        "delete from ", collectionTable, 
-                        " where mofId in (", IN_PARAMS, ")");
+                        "delete from ", quote(collectionTable), 
+                        " where ", quotedMofId, " in (", IN_PARAMS, ")");
                 }
                 
-                // TODO: dialect-specific quoting
                 executeInSql(
                     conn, assocMofIds, 
-                    "delete from ", tableMap.get(assocKind), 
-                    " where mofId in (", IN_PARAMS, ")");
+                    "delete from ", quote(tableMap.get(assocKind)),
+                    " where ", quotedMofId, " in (", IN_PARAMS, ")");
             }
+            
+            final String quotedChildId = quote("childId");
             
             // delete associations members
             for(HibernateAssociation.Kind assocKind: assocRemoveMap.keySet()) {
                 Collection<Long> removeMofIds = 
                     assocRemoveMap.getValues(assocKind);
                 
-                // TODO: dialect-specific quoting
                 executeInSql(
                     conn, removeMofIds, 
-                    "delete from ", collectionTableMap.get(assocKind), 
-                    " where childId in (", IN_PARAMS, ")");
+                    "delete from ", quote(collectionTableMap.get(assocKind)), 
+                    " where ", quotedChildId, " in (", IN_PARAMS, ")");
             }
             
             // fix-up ordered associations
@@ -799,6 +803,8 @@ class HibernateMassDeletionUtil
     
     private void executeFixUps(Connection conn) throws SQLException
     {
+        final String quotedOrdinal = quote("ordinal");
+        
         for(HibernateAssociation.Kind assocKind: assocFixUpMap.keySet()) {
             Collection<OrderedAssocFixUp> fixUpOps =
                 assocFixUpMap.getValues(assocKind);
@@ -807,17 +813,20 @@ class HibernateMassDeletionUtil
                 continue;
             }
             
-            // TODO: dialect-specific quoting
             PreparedStatement delStmt = 
                 conn.prepareStatement(
-                    "delete from " + collectionTableMap.get(assocKind) +
-                    " where mofId = ? and ordinal >= ?");
+                    concat(
+                        "delete from ",
+                        quote(collectionTableMap.get(assocKind)),
+                        " where ", quotedMofId, " = ? and ",
+                        quotedOrdinal, " >= ?"));
             
-            // TODO: dialect-specific quoting
             PreparedStatement insStmt = 
                 conn.prepareStatement(
-                    "insert into " + collectionTableMap.get(assocKind) +
-                    " values (?, ?, ?, ?)");
+                    concat(
+                        "insert into ", 
+                        quote(collectionTableMap.get(assocKind)),
+                        " values (?, ?, ?, ?)"));
             
             for(OrderedAssocFixUp fixUpOp: fixUpOps) {
                 delStmt.setLong(1, fixUpOp.mofId);
@@ -836,6 +845,25 @@ class HibernateMassDeletionUtil
                 }
             }
         }
+    }
+    
+    private String quote(String entity)
+    {
+        StringBuilder b = new StringBuilder();
+        b
+            .append(sqlDialect.openQuote())
+            .append(entity)
+            .append(sqlDialect.closeQuote());
+        return b.toString();
+    }
+    
+    private String concat(String... strs)
+    {
+        StringBuilder b = new StringBuilder();
+        for(String s: strs) {
+            b.append(s);
+        }
+        return b.toString();
     }
     
     private static class Eviction
