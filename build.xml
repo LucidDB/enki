@@ -131,6 +131,12 @@
   </path>
   <property name="enki.javadoc.classpath" refid="enki.javadoc.classpath"/>
 
+  <!-- sourcepath for tags -->
+  <fileset dir="${enki.dir}" id="fileset.taggable">
+    <include name="src/**/*.java"/>
+    <include name="test/**/*.java"/>
+  </fileset>
+
   <target name="createClasspathFile">
     <delete file="${file.classpath}" quiet="true"/>
     <echo file="${file.classpath}" message="${enki.run.classpath}"/>
@@ -826,6 +832,26 @@
       <link href="http://junit.sourceforge.net/javadoc_40"/>
       <link href="http://www.eigenbase.org/mdr/javadoc"/>
     </javadoc>
+  </target>
+
+  <target name="etags">
+    <delete file="${basedir}/taggedfiles.tmp" quiet="true"/>
+    <concat destfile="taggedfiles.tmp">replaceme</concat>
+    <pathconvert property="files.taggable"
+      pathsep="${line.separator}"
+      dirsep="/" refid="fileset.taggable" >
+      <map from="${basedir}" to="." />
+    </pathconvert>
+    <replace file="taggedfiles.tmp"
+      token="replaceme" value="${files.taggable}" />
+    <fixcrlf srcDir="${basedir}" includes="taggedfiles.tmp"
+      eol="lf" eof="remove" />
+    <exec dir="${basedir}" executable="ctags">
+      <arg line="--langmap=java:+.jj"/>
+      <arg line="-e"/>
+      <arg line="-L taggedfiles.tmp"/>
+    </exec>
+    <delete file="${basedir}/taggedfiles.tmp" quiet="true"/>
   </target>
 
   <target name="start-mysql-server">
