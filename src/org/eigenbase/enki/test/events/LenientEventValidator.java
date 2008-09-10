@@ -25,7 +25,7 @@ import org.netbeans.api.mdr.events.*;
 
 /**
  * LenientEventValidator accepts all known event types without testing
- * any aspect of the event (including expected event type).  It's primary
+ * any aspect of the event (including expected event type).  Its primary
  * purpose is to allow unit tests to guarantee that all events related to
  * test case set-up have been emitted before beginning the actual test.
  * 

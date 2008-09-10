@@ -76,7 +76,7 @@ public class HibernateDetachSessionTest extends SampleModelTestBase
             getRepository().reattachSession(firstSession);
         }
 
-        // First session should have been re-attached.  End it's txn and
+        // First session should have been re-attached.  End its txn and
         // verify the data was written.
         getRepository().endTrans(false);
 

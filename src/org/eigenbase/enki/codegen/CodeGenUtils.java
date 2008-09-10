@@ -236,7 +236,7 @@ public class CodeGenUtils
      *     {@value #MAX_LENGTH_TAG_NAME}, the tag's value is used.
      *   </li>
      *   <li>
-     *     Otherwise, if the {@link Classifier} or one of it's supertypes
+     *     Otherwise, if the {@link Classifier} or one of its supertypes
      *     contains a Tag identified by {@value #MAX_LENGTH_TAG_NAME}, the
      *     tag's value is used.  Supertypes are searched breadth-first, and
      *     the first value found is used.  This is primarily useful if an

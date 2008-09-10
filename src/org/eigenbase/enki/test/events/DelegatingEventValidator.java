@@ -25,9 +25,9 @@ import org.junit.*;
 import org.netbeans.api.mdr.events.*;
 
 /**
- * DelegatingEventValidator delegates validation, by sequence number, to
- * a collection of {@link EventValidator} instances.  Each EventValidator
- * is configured with it's the DelegatingEventValidator instance so that
+ * DelegatingEventValidator delegates validation, by sequence number, to a
+ * collection of {@link EventValidator} instances.  Each EventValidator is
+ * configured with a reference to the DelegatingEventValidator instance so that
  * they can communicate, if necessary.
  * 
  * @author Stephan Zuercher
