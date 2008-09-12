@@ -1,0 +1,14 @@
+#!/bin/bash
+# $Id$
+# Convenience script for running a single Enki JUnit test class from the
+# command line.  Usage is slightly different from the corresponding
+# script in Farrago; you can only specify an unqualified class name,
+# and there are no fancy options yet.
+
+if [ $# -ne 1 ]; then
+    echo "Error:  specify a single unqualified test class name"
+    echo "Example usage:  junitSingle MdrEventsApiTest"
+    exit 1
+fi
+
+ant -Denki.test.pattern=**/$1.class test-only
