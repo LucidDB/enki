@@ -311,6 +311,16 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
             object.refDelete();
         }
     }
+
+    public void previewRefDelete(RefObject obj)
+    {
+        throw new UnsupportedOperationException();
+    }
+    
+    public boolean supportsPreviewRefDelete()
+    {
+        return false;
+    }
     
     public RefObject findAllOfType(
         RefClass cls, String featureName, Object value)

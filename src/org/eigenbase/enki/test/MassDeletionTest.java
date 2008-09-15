@@ -426,6 +426,81 @@ public class MassDeletionTest extends SampleModelTestBase
             getRepository().endTrans(false);
         }
     }
+
+    // REVIEW jvs 14-Sept-2008:  This test is currently disabled until
+    // it is optimized.  It may want to move to some separate performance
+    // suite.
+    public void _disabledTestHighFanOutUnordered()
+    {
+        // REVIEW jvs 14-Sept-2008: This test can be used for checking whether
+        // deletion from high fanout associations is being optimized.  When
+        // optimized, it runs in about 8 seconds on my laptop.  When not
+        // optimized, it takes 150-some seconds.  To optimize it,
+        // edit the META-INF/enki/mapping.xml in enki/test/sample/sample.jar,
+        // changing fetch="join" to fetch="select" for
+        // SMPL_AssocOneToManyLazyChildren.
+
+        // For the LucidDB drop scenarios, I also had to disable
+        // hibernate.default_batch_fetch_size to optimize it, but that
+        // doesn't seem to come into play in this unit test scenario.
+        // I haven't come up with a unit test scenario where it matters.
+        
+        List<String> result = new ArrayList<String>();
+
+        // Populate a high fanout association instance.
+        getRepository().beginTrans(true);
+        try {
+            Entity12 e12 = getSimplePackage().getEntity12().createEntity12();
+            
+            for(int i = 0; i < 10000; i++) {
+                Entity13 e13 = 
+                    getSimplePackage().getEntity13().createEntity13();
+                e12.getEntity13().add(e13);
+                result.add(e13.refMofId());
+            }
+        } finally {
+            getRepository().endTrans(false);
+        }
+        
+        // Run individual transactions to delete some of the children one by
+        // one.
+        for(int i = 0; i < 1000; ++i) {
+            getRepository().beginTrans(true);
+            try {
+                RefObject obj =
+                    (RefObject) (getRepository().getByMofId(result.get(i)));
+                getRepository().delete(Collections.singletonList(obj));
+            } finally {
+                getRepository().endTrans(false);
+            }
+        }
+    }
+
+    // REVIEW jvs 14-Sept-2008:  This test exhibits a bug
+    // in the mass-deletion API.  If you change the delete call to
+    // a normal obj.refDelete(), the test passes, but using the
+    // mass-deletion API, the assertNotNull fails.
+    public void _disabledTestDeleteNotLastWithinTxn()
+    {
+        String id1, id2;
+        
+        getRepository().beginTrans(true);
+        try {
+            Entity12 e12;
+            e12 = getSimplePackage().getEntity12().createEntity12();
+            id1 = e12.refMofId();
+            e12 = getSimplePackage().getEntity12().createEntity12();
+            id2 = e12.refMofId();
+            RefObject obj =
+                (RefObject) (getRepository().getByMofId(id1));
+            getRepository().delete(Collections.singletonList(obj));
+            obj =
+                (RefObject) (getRepository().getByMofId(id2));
+            Assert.assertNotNull(obj);
+        } finally {
+            getRepository().endTrans(false);
+        }
+    }
     
     @After
     public void checkIntegrity()

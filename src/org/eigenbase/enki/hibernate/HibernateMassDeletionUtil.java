@@ -124,6 +124,8 @@ class HibernateMassDeletionUtil
     private Set<HibernateAssociation> processedManyToManyAssocs = 
         new HashSet<HibernateAssociation>();
 
+    private boolean indiscriminateOneToManyDelete;
+
     HibernateMassDeletionUtil(HibernateMDRepository repos)
     {
         this.repos = repos;
@@ -403,8 +405,36 @@ class HibernateMassDeletionUtil
                 }
             }
         } else {
-            // Parent is not being deleted.  Three cases:
-            // 1. all children in del map => delete assoc & deref from  parent
+            // Parent is not being deleted.  
+
+            // For an unordered 1-to-many association, we are free to carry out
+            // "indiscriminate" deletion; just purge all references to deleted
+            // objects, regardless of which association they are part of.
+            // Deleted objects which happen not to be children of any 1-to-many
+            // unordered associations will just be skipped by the DELETE
+            // statement since there won't be any corresponding records
+            // matching those MOFID's in the IN list.  Note that a side-effect
+            // here is that if we are deleting all of the remaining children
+            // from a particular association instance (case 1 below), then that
+            // association instance will stay around, empty.  So, empty
+            // instances have to be tolerated, and must behave the same as if
+            // the association instance no longer existed.
+            if (!isOrdered) {
+                if (indiscriminateOneToManyDelete) {
+                    // If we've already done this for some other association,
+                    // no need to waste cycles doing it again; assocRemoveMap
+                    // doesn't track association, only association kind.
+                    return;
+                }
+                indiscriminateOneToManyDelete = true;
+                for (Long mofId : delMap.values()) {
+                    assocRemoveMap.put(assocKind, mofId);
+                }
+                return;
+            }
+            
+            // Otherwise, three cases:
+            // 1. all children in del map => delete assoc & deref from parent
             // 2. no children in del map => error
             // 3. else => remove children in del map from assoc links
             
@@ -414,6 +444,7 @@ class HibernateMassDeletionUtil
             // Look for first child not in the deletion map (which implies 
             // case 2 or 3 above)
             boolean atLeastOneUndeletedChild = false;
+            
             for(HibernateLazyAssociationBase.Element child: children) {
                 boolean childInDelMap = 
                     isInDeletionMap(child.getChildType(), child.getChildId());
@@ -461,7 +492,7 @@ class HibernateMassDeletionUtil
         if (processedManyToManyAssocs.contains(assoc)) {
             // Many-to-many assocs are stored as multiple one-to-many assocs.
             // It's possible that the recursion below can cause the same
-            // assoc to be handled multiple times; skip the the repeats.
+            // assoc to be handled multiple times; skip the repeats.
             return;
         }
         

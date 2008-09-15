@@ -156,6 +156,10 @@ public abstract class HibernateManyToManyLazyAssociationBase
     protected boolean removeInternal(
         HibernateAssociable source, HibernateAssociable target, int index) 
     {        
+        if (getHibernateRepository(source).inPreviewDelete()) {
+            return false;
+        }
+        
         final String type = getType();
 
         boolean targetIsFirstEnd = getReversed();
@@ -238,7 +242,7 @@ public abstract class HibernateManyToManyLazyAssociationBase
 
         if (!equals(item, source)) {
             assert(targets.contains(item));
-            
+
             removeInternal(source, item, -1);
             
             if (cascadeDelete) {

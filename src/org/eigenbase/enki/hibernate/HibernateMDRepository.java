@@ -310,6 +310,8 @@ public class HibernateMDRepository
     
     final Logger log;
 
+    private boolean previewDelete;
+
     public HibernateMDRepository(
         List<Properties> modelProperties,
         Properties storageProperties,
@@ -446,7 +448,7 @@ public class HibernateMDRepository
         
         beginSessionImpl(false);
     }
-    
+
     private MdrSession beginSessionImpl(boolean implicit)
     {
         int sessionId = -1;
@@ -466,7 +468,7 @@ public class HibernateMDRepository
         } else {
             logStack(Level.FINE, "begin repository session", sessionId);
         }
-        
+
         Session session = sessionFactory.openSession();
         session.setFlushMode(FlushMode.COMMIT);
         
@@ -1132,6 +1134,26 @@ public class HibernateMDRepository
     {
         new HibernateMassDeletionUtil(this).massDelete(objects);
     }
+
+    public void previewRefDelete(RefObject obj)
+    {
+        previewDelete = true;
+        try {
+            obj.refDelete();
+        } finally {
+            previewDelete = false;
+        }
+    }
+
+    public boolean supportsPreviewRefDelete()
+    {
+        return true;
+    }
+    
+    public boolean inPreviewDelete()
+    {
+        return previewDelete;
+    }
     
     public RefObject findAllOfType(
         RefClass cls, String featureName, Object value)
@@ -1677,6 +1699,10 @@ public class HibernateMDRepository
     
     public void recordObjectDeletion(HibernateObject object)
     {
+        if (previewDelete) {
+            return;
+        }
+        
         MdrSession mdrSession = getMdrSession();
         
         long mofId = object.getMofId();
@@ -1730,8 +1756,12 @@ public class HibernateMDRepository
     private void enqueueEvent(MdrSession mdrSession, MDRChangeEvent event)
     {
         // Cache event in Context (we'll need to fire it upon commit even if
-        // there are no listeners now.)
-        mdrSession.queuedEvents.add(event);
+        // there are no listeners now.)  For deletion preview, do not
+        // enqueue anything, since there's no actual effect to be committed
+        // or rolled back.
+        if (!previewDelete) {
+            mdrSession.queuedEvents.add(event);
+        }
         
         // Fire as planned change immediately (and from this thread).
         synchronized(listeners) {
@@ -2740,7 +2770,7 @@ public class HibernateMDRepository
             queuedEvents.clear();
 
             reset();
-            
+
             session.close();
             session = null;
         }

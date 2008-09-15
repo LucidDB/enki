@@ -110,6 +110,10 @@ public abstract class HibernateObject
         }
         
         repos.checkTransaction(true);
+
+        if (repos.inPreviewDelete()) {
+            return;
+        }
         
         Session session = repos.getCurrentSession();
         session.delete(this);

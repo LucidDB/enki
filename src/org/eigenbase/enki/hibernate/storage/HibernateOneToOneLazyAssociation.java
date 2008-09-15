@@ -234,12 +234,17 @@ public abstract class HibernateOneToOneLazyAssociation
     {
         HibernateAssociable otherEnd = isFirstEnd ? getChild() : getParent();
         
-        String type = getType();
-
-        item.setAssociation(type, isFirstEnd, null);
-        otherEnd.setAssociation(type, !isFirstEnd, null);
+        boolean inPreviewDelete =
+            getHibernateRepository(item).inPreviewDelete();
         
-        delete(getHibernateRepository(item));
+        if (!inPreviewDelete) {
+            String type = getType();
+
+            item.setAssociation(type, isFirstEnd, null);
+            otherEnd.setAssociation(type, !isFirstEnd, null);
+        
+            delete(getHibernateRepository(item));
+        }
         
         if (cascadeDelete) {
             otherEnd.refDelete();

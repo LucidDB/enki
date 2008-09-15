@@ -146,6 +146,49 @@ public interface EnkiMDRepository extends MDRepository
      * @param objects the objects to delete
      */
     public void delete(Collection<RefObject> objects);
+
+    /**
+     * Causes PLANNED events to be fired similar to those from invoking {@link
+     * RefObject#refDelete} on <code>obj</code>, but without actually making
+     * any changes to repository state.  Not all repository implementations
+     * support this call (those that do not will throw {@link
+     * UnsupportedOperationException}); {@link #supportsPreviewRefDelete} can
+     * be used to check for support.
+     *
+     *<p>
+     *
+     * Events will only be delivered to pre-change listeners; no
+     * asynchronous post-change listener events will be enqueued
+     * since no change is actually taking place.  Nor will
+     * change cancellation events be delivered.
+     *
+     *<p>
+     *
+     * One other difference from the events delivered by refDelete is that the
+     * preview may contain additional "echo" association removal events for
+     * composite associations.  If A contains B, and refDelete is called on A,
+     * then only a single associational removal event with end references (A,
+     * B) will be delivered.  In contrast, for a preview deletion of A,
+     * two events will be delivered; one with end references (A, B), and one
+     * with end references (B, A).
+     *
+     *<p>
+     *
+     * This call requires a write transaction (same as refDelete) even though
+     * it does not actually make any changes to the repository.
+     *
+     * @param obj object for which deletion effect should be previewed
+     */
+    public void previewRefDelete(RefObject obj);
+
+    /**
+     * Checks whether the repository implementation supports
+     * {@link #previewRefDelete}.
+     *
+     * @return true if the repository implementation supports
+     * deletion preview, false otherwise
+     */
+    public boolean supportsPreviewRefDelete();
     
     /**
      * Finds a {@link RefObject} of the given type (including its subclasses) 

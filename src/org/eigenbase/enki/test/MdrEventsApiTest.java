@@ -250,18 +250,34 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testDeleteInstanceEventsWithRollback()
     {
-        testDeleteInstanceEvents(true);
+        testDeleteInstanceEvents(true, false);
+    }
+    
+    @Test
+    public void testDeleteInstanceEventsPreviewWithRollback()
+    {
+        testDeleteInstanceEvents(true, true);
     }
     
     @Test
     public void testDeleteInstanceEventsWithCommit()
     {
-        testDeleteInstanceEvents(false);
+        testDeleteInstanceEvents(false, false);
+    }
+    
+    @Test
+    public void testDeleteInstanceEventsPreviewWithCommit()
+    {
+        testDeleteInstanceEvents(false, true);
     }
     
     private void testDeleteInstanceEvents(
-        boolean rollback)
+        boolean rollback, boolean preview)
     {
+        if (!getRepository().supportsPreviewRefDelete()) {
+            return;
+        }
+        
         final EventType postTxnEventType = 
             rollback ? EventType.CANCELED : EventType.CHANGED;
 
@@ -288,20 +304,40 @@ public class MdrEventsApiTest extends SampleModelTestBase
         waitAndCheckErrors();
         destroyListener();
         
+        List<EventValidator> validators =
+            new ArrayList<EventValidator>();
+        validators.add(
+            new DeleteInstanceEventValidator(
+                EventType.PLANNED, refDeleteMofId));
+        // For preview, don't expect post-change event
+        if (!preview) {
+            validators.add(
+                new DuplicateEventValidator(postTxnEventType, 0));
+        }
         configureListener(
             InstanceEvent.EVENTMASK_INSTANCE, 
             new DelegatingEventValidator(
-                new DeleteInstanceEventValidator(
-                    EventType.PLANNED, refDeleteMofId),
-                new DuplicateEventValidator(postTxnEventType, 0)
-            ));
+                validators.toArray(
+                    new EventValidator[0])));
         
         getRepository().beginTrans(true);
         try {
             IceCreamCone cone = 
                 (IceCreamCone)getRepository().getByMofId(refDeleteMofId);
+
+            if (preview) {
+                getRepository().previewRefDelete(cone);
+            } else {
+                cone.refDelete();
+            }
+
+            if (preview) {
+                // verify that the cone is still there
+                IceCreamCone cone2 = 
+                    (IceCreamCone)getRepository().getByMofId(refDeleteMofId);
+                Assert.assertEquals(cone, cone2);
+            }
             
-            cone.refDelete();
         } finally {
             getRepository().endTrans(rollback);
         }
@@ -312,18 +348,34 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testDeleteInstanceEventCascadeWithRollback()
     {
-        testDeleteInstanceEventCascade(true);
+        testDeleteInstanceEventCascade(true, false);
+    }
+    
+    @Test
+    public void testDeleteInstanceEventCascadePreviewWithRollback()
+    {
+        testDeleteInstanceEventCascade(true, true);
     }
     
     @Test
     public void testDeleteInstanceEventCascadeWithCommit()
     {
-        testDeleteInstanceEventCascade(false);
+        testDeleteInstanceEventCascade(false, false);
+    }
+    
+    @Test
+    public void testDeleteInstanceEventCascadePreviewWithCommit()
+    {
+        testDeleteInstanceEventCascade(false, true);
     }
     
     private void testDeleteInstanceEventCascade(
-        boolean rollback)
+        boolean rollback, boolean preview)
     {
+        if (!getRepository().supportsPreviewRefDelete()) {
+            return;
+        }
+        
         final EventType postTxnEventType = 
             rollback ? EventType.CANCELED : EventType.CHANGED;
 
@@ -363,28 +415,42 @@ public class MdrEventsApiTest extends SampleModelTestBase
         waitAndCheckErrors();
         destroyListener();
         
+        List<EventValidator> validators =
+            new ArrayList<EventValidator>();
+        validators.add(
+            new DeleteInstanceEventValidator(
+                EventType.PLANNED, refDeleteMofIds[0]));
+        validators.add(
+            new AssociationRemoveEventValidator(
+                EventType.PLANNED, "Driven",
+                Bus.class, "make", "GMC",
+                Driver.class, "name", "Otto Mann"));
+        validators.add(
+            new DeleteInstanceEventValidator(
+                EventType.PLANNED, refDeleteMofIds[1]));
+        validators.add(
+            new DeleteInstanceEventValidator(
+                EventType.PLANNED, refDeleteMofIds[2]));
+        // Don't expect post-change events for preview
+        if (!preview) {
+            validators.add(
+                new DuplicateEventValidator(postTxnEventType, 0));
+            validators.add(
+                new AssociationRemoveEventValidator(
+                    postTxnEventType, "Driven",
+                    Bus.class, null, null, // will be an invalid object
+                    Driver.class, "name", "Otto Mann"));
+            validators.add(
+                new DuplicateEventValidator(postTxnEventType, 2));
+            validators.add(
+                new DuplicateEventValidator(postTxnEventType, 3));
+        }
         configureListener(
             InstanceEvent.EVENTMASK_INSTANCE | 
                 AssociationEvent.EVENTMASK_ASSOCIATION, 
             new DelegatingEventValidator(
-                new DeleteInstanceEventValidator(
-                    EventType.PLANNED, refDeleteMofIds[0]),
-                new AssociationRemoveEventValidator(
-                    EventType.PLANNED, "Driven",
-                    Bus.class, "make", "GMC",
-                    Driver.class, "name", "Otto Mann"),
-                new DeleteInstanceEventValidator(
-                    EventType.PLANNED, refDeleteMofIds[1]),
-                new DeleteInstanceEventValidator(
-                    EventType.PLANNED, refDeleteMofIds[2]),                    
-                new DuplicateEventValidator(postTxnEventType, 0),
-                new AssociationRemoveEventValidator(
-                    postTxnEventType, "Driven",
-                    Bus.class, null, null, // will be an invalid object
-                    Driver.class, "name", "Otto Mann"),
-                new DuplicateEventValidator(postTxnEventType, 2),
-                new DuplicateEventValidator(postTxnEventType, 3)
-            ));
+                validators.toArray(
+                    new EventValidator[0])));
         
         getRepository().beginTrans(true);
         try {
@@ -392,11 +458,33 @@ public class MdrEventsApiTest extends SampleModelTestBase
             PhoneNumber phoneNumber = 
                 (PhoneNumber)getRepository().getByMofId(refDeleteMofIds[1]);
 
-            // Delete bus, cascades to "remove" AssociationEvent 
-            bus.refDelete();
+            // Delete bus, cascades to "remove" AssociationEvent
+            if (preview) {
+                getRepository().previewRefDelete(bus);
+            } else {
+                bus.refDelete();
+            }
             
             // Delete phoneNumber, cascades to delete areaCode
-            phoneNumber.refDelete();
+            if (preview) {
+                getRepository().previewRefDelete(phoneNumber);
+            } else {
+                phoneNumber.refDelete();
+            }
+
+            if (preview) {
+                // verify that everything is still there
+                Bus bus2 = (Bus)getRepository().getByMofId(refDeleteMofIds[0]);
+                PhoneNumber phoneNumber2 = 
+                    (PhoneNumber)getRepository().getByMofId(refDeleteMofIds[1]);
+                Assert.assertEquals(bus, bus2);
+                Assert.assertEquals("Otto Mann", bus2.getDriver().getName());
+                Assert.assertEquals(bus, bus2.getDriver().getDriven());
+                Assert.assertEquals(phoneNumber, phoneNumber2);
+                Assert.assertEquals(
+                    refDeleteMofIds[2],
+                    phoneNumber2.getAreaCode().refMofId());
+            }
             
         } finally {
             getRepository().endTrans(rollback);
@@ -1161,17 +1249,34 @@ public class MdrEventsApiTest extends SampleModelTestBase
     @Test
     public void testCompositeAssociationRemoveEventsWithRollback()
     {
-        testCompositeAssociationRemoveEvents(true);
+        testCompositeAssociationRemoveEvents(true, false);
+    }
+
+    @Test
+    public void testCompositeAssociationRemoveEventsPreviewWithRollback()
+    {
+        testCompositeAssociationRemoveEvents(true, true);
     }
     
     @Test
     public void testCompositeAssociationRemoveEventsWithCommit()
     {
-        testCompositeAssociationRemoveEvents(false);
+        testCompositeAssociationRemoveEvents(false, false);
     }
     
-    private void testCompositeAssociationRemoveEvents(boolean rollback)
+    @Test
+    public void testCompositeAssociationRemoveEventsPreviewWithCommit()
     {
+        testCompositeAssociationRemoveEvents(false, true);
+    }
+    
+    private void testCompositeAssociationRemoveEvents(
+        boolean rollback, boolean preview)
+    {
+        if (!getRepository().supportsPreviewRefDelete()) {
+            return;
+        }
+        
         final EventType postTxnEventType = 
             rollback ? EventType.CANCELED : EventType.CHANGED;
 
@@ -1191,37 +1296,82 @@ public class MdrEventsApiTest extends SampleModelTestBase
         int pos = 
             getMdrProvider() == MdrProvider.ENKI_HIBERNATE 
                 ? 0 
-                : AssociationEvent.POSITION_NONE; 
-        
-        configureListener(
-            MDRChangeEvent.EVENTMASK_ON_ASSOCIATION, 
-            new DelegatingEventValidator(
+                : AssociationEvent.POSITION_NONE;
+
+        List<AssociationRemoveEventValidator> validators =
+            new ArrayList<AssociationRemoveEventValidator>();
+        validators.add(
+            new AssociationRemoveEventValidator(
+                EventType.PLANNED, "building",
+                Building.class, "address", "1510 Fashion Island Blvd.",
+                Floor.class, "floorNumber", "2",
+                pos));
+        validators.add(
+            new AssociationRemoveEventValidator(
+                EventType.PLANNED, "floor",
+                Floor.class, "floorNumber", "2",
+                Room.class, "roomNumber", "240"));
+        if (preview) {
+            // In preview mode, we will hear "echoes" of the events too.
+            validators.add(
                 new AssociationRemoveEventValidator(
-                    EventType.PLANNED, "building",
-                    Building.class, "address", "1510 Fashion Island Blvd.",
-                    Floor.class, "floorNumber", "2",
-                    pos),
+                    EventType.PLANNED, "rooms",
+                    Room.class, "roomNumber", "240",
+                    Floor.class, "floorNumber", "2"));
+            validators.add(
                 new AssociationRemoveEventValidator(
-                    EventType.PLANNED, "floor",
+                    EventType.PLANNED, "floors",
                     Floor.class, "floorNumber", "2",
-                    Room.class, "roomNumber", "240"),
-                // Can't access the objects on commit, so just verify types
+                    Building.class, "address", "1510 Fashion Island Blvd."));
+        }
+        // Can't access the objects on commit, so just verify types.
+        // No commit events are expected for preview.
+        if (!preview) {
+            validators.add(
                 new AssociationRemoveEventValidator(
                     postTxnEventType, "building",
                     Building.class, null, null,
                     Floor.class, null, null,
-                    pos),
+                    pos));
+            validators.add(
                 new AssociationRemoveEventValidator(
                     postTxnEventType, "floor",
                     Floor.class, null, null,
-                    Room.class, null, null)));
+                    Room.class, null, null));
+        }
+        
+        configureListener(
+            MDRChangeEvent.EVENTMASK_ON_ASSOCIATION, 
+            new DelegatingEventValidator(
+                validators.toArray(new AssociationRemoveEventValidator[0])));
         
         getRepository().beginTrans(true);
         try {
             Building building = 
                 (Building)getRepository().getByMofId(mofIds[0]);
+
+            if (preview) {
+                getRepository().previewRefDelete(building);
+            } else {
+                building.refDelete();
+            }
+
+            if (preview) {
+                // verify that everything is still there
+                Building building2 = 
+                    (Building)getRepository().getByMofId(mofIds[0]);
+                Assert.assertEquals(building, building2);
+                Assert.assertEquals(1, building2.getFloors().size());
+                Floor floor = building2.getFloors().get(0);
+                Assert.assertEquals(mofIds[1], floor.refMofId());
+                Assert.assertEquals(2, floor.getFloorNumber());
+                Assert.assertEquals(building, floor.getBuilding());
+                Assert.assertEquals(1, floor.getRooms().size());
+                Room room = floor.getRooms().iterator().next();
+                Assert.assertEquals(mofIds[2], room.refMofId());
+                Assert.assertEquals(floor, room.getFloor());
+            }
             
-            building.refDelete();
         } finally {
             getRepository().endTrans(rollback);
         }

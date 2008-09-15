@@ -185,34 +185,45 @@ public abstract class HibernateOneToManyLazyAssociation
             parentIsFirstEnd = true;
         }
 
+        boolean inPreviewDelete = 
+            getHibernateRepository(item).inPreviewDelete();
+
         Collection<Element> children = getChildren();
         
         if (isParent) {
-            item.setAssociation(type, parentIsFirstEnd, null);
+            if (!inPreviewDelete) {
+                item.setAssociation(type, parentIsFirstEnd, null);
+            }
             
             for(Element child: children) {
                 RefObject childRefObj = load(child);
                 
-                ((HibernateAssociable)childRefObj).setAssociation(
-                    type, !parentIsFirstEnd, null);
+                if (!inPreviewDelete) {
+                    ((HibernateAssociable)childRefObj).setAssociation(
+                        type, !parentIsFirstEnd, null);
+                }
                 
                 if (cascadeDelete) {
                     childRefObj.refDelete();
                 }
             }
-            emptyElements();
-            delete(getHibernateRepository(item));
-        } else {
-            item.setAssociation(type, !parentIsFirstEnd, null);
-            
-            Element elem = newElement(item);
-        
-            children.remove(elem);
-            
-            if (children.isEmpty()) {
-                getParent().setAssociation(type, parentIsFirstEnd, null);
+            if (!inPreviewDelete) {
                 emptyElements();
                 delete(getHibernateRepository(item));
+            }
+        } else {
+            if (!inPreviewDelete) {
+                item.setAssociation(type, !parentIsFirstEnd, null);
+            
+                Element elem = newElement(item);
+        
+                children.remove(elem);
+            
+                if (children.isEmpty()) {
+                    getParent().setAssociation(type, parentIsFirstEnd, null);
+                    emptyElements();
+                    delete(getHibernateRepository(item));
+                }
             }
             
             HibernateAssociable parent = getParent();
