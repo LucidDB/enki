@@ -426,6 +426,20 @@ public class XmiFileComparator
         
         public int compare(Element o1, Element o2)
         {
+            // Short circuit self-comparison.  This can occur when
+            // bi-directional associations A<->B1 and A<->B2 exist.  Depending
+            // on how the XMI is generated (ordering can vary by model
+            // generation, which varies by JDK) the XMI may have A, with
+            // references to B1 and B2.  We attempt to sort A's children and
+            // compare B1 with B2.  If the reference back to A appears before
+            // the data that distinguishes B1 and B2 (or if B1 and B2 are
+            // identical save for xmlid) we end up recursing over B1 and B2's
+            // child (A) and compare it to itself.  Thus, an infinite loop and
+            // this test:
+            if (o1 == o2) {
+                return 0;
+            }
+            
             int c = o1.name.compareTo(o2.name);
             if (c != 0) {
                 return c;
