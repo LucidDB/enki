@@ -68,7 +68,7 @@ public class DropExtentSubTask
     }
     
     @Override
-    void execute() throws BuildException
+    protected void execute() throws BuildException
     {
         if (extentName == null) {
             throw new BuildException("Missing extent attribute");

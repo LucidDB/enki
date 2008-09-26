@@ -320,7 +320,7 @@ public class MofInitHandler
 
         boolean requiresWarningSupression = false;
         Collection<Attribute> attribs = 
-            contentsOfType(
+            CodeGenUtils.contentsOfType(
                 cls,
                 HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                 VisibilityKindEnum.PUBLIC_VIS, 
@@ -428,7 +428,7 @@ public class MofInitHandler
                     newLine();
                     ModelElement refMetaObject = 
                         (ModelElement)refObj.refMetaObject();
-                    String typeName = generator.getTypeName(refMetaObject);
+                    String typeName = CodeGenUtils.getTypeName(refMetaObject);
                     String className = 
                         refMetaObject.refGetValue("name").toString();
                     String instanceName = 
@@ -473,7 +473,7 @@ public class MofInitHandler
         associationMetaObjInitMap.put(assocName, assoc.getName());
 
         AssociationEnd[] assocEnds =
-            contentsOfType(assoc, AssociationEnd.class)
+            CodeGenUtils.contentsOfType(assoc, AssociationEnd.class)
             .toArray(new AssociationEnd[2]);
   
         if (!assocEnds[0].isChangeable() && !assocEnds[1].isChangeable()) {

@@ -98,20 +98,8 @@ public class MDRepositoryFactory
      */
     public static EnkiMDRepository newMDRepository(Properties storageProps)
     {
-        String providerName = storageProps.getProperty(ENKI_IMPL_TYPE);
-        if (providerName == null) {
-            throw new UnknownProviderException(
-                "repository storage properties is missing key '" +
-                ENKI_IMPL_TYPE + "'");
-        }
-
-        MdrProvider provider = 
-            MdrProvider.valueOf(providerName.toUpperCase(Locale.US));
-        if (provider == null) {
-            throw new UnknownProviderException(
-                "unknown provider: " + providerName);
-        }
-
+        MdrProvider provider = getProvider(storageProps);
+        
         // Special case for delegation to Netbeans MDR implementation.
         if (provider == MdrProvider.NETBEANS_MDR) {
             return newNetbeansMDRepository(storageProps);
@@ -143,6 +131,25 @@ public class MDRepositoryFactory
         }
     }
 
+    private static MdrProvider getProvider(Properties storageProperties)
+    {
+        String providerName = storageProperties.getProperty(ENKI_IMPL_TYPE);
+        if (providerName == null) {
+            throw new UnknownProviderException(
+                "repository storage properties is missing key '" +
+                ENKI_IMPL_TYPE + "'");
+        }
+
+        MdrProvider provider = 
+            MdrProvider.valueOf(providerName.toUpperCase(Locale.US));
+        if (provider == null) {
+            throw new UnknownProviderException(
+                "unknown provider: " + providerName);
+        }
+
+        return provider;
+    }
+    
     private static EnkiMDRepository newNetbeansMDRepository(
         Properties storageProps)
     {
@@ -229,6 +236,34 @@ public class MDRepositoryFactory
                     contextClassLoader);                
             }
         }
+    }
+    
+    public static List<Properties> getRepositoryProperties(
+        Properties storageProperties)
+    {
+        MdrProvider provider = getProvider(storageProperties);
+        
+        // Special case for delegation to Netbeans MDR implementation.
+        if (provider == MdrProvider.NETBEANS_MDR) {
+            return Collections.emptyList();
+        }
+
+        ClassLoader classLoader;
+        if (classLoaderProvider != null) {
+            classLoader = classLoaderProvider.getClassLoader();
+        } else {
+            classLoader = Thread.currentThread().getContextClassLoader();
+        }
+        
+        List<Properties> modelProperties;
+        try {
+            modelProperties = loadRepositoryProperties(provider, classLoader);
+        } catch (IOException e) {
+            throw new ProviderInstantiationException(
+                "Could not load model properties for " + provider, e);
+        }
+
+        return modelProperties;
     }
 
     private static List<Properties> loadRepositoryProperties(

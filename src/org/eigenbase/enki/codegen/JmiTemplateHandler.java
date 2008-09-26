@@ -54,6 +54,14 @@ public class JmiTemplateHandler
     private static final JavaClassReference ORDERED_COLLECTION_CLASS_IMPL = 
         new JavaClassReference(ArrayList.class);
 
+    public static final JavaClassReference MAP_CLASS = 
+        new JavaClassReference(Map.class);
+    public static final JavaClassReference MAP_IMPL_CLASS = 
+        new JavaClassReference(HashMap.class);
+
+    public static final JavaClassReference STRING_CLASS = 
+        new JavaClassReference(String.class, true);
+    
     private final Logger log = 
         Logger.getLogger(JmiTemplateHandler.class.getName());
 
@@ -64,7 +72,7 @@ public class JmiTemplateHandler
     public void generateAssociation(Association assoc)
         throws GenerationException
     {
-        String typeName = generator.getTypeName(assoc);
+        String typeName = CodeGenUtils.getTypeName(assoc);
 
         if (!isIncluded(assoc)) {
             log.fine("Skipping Excluded Association '" + typeName + "'");
@@ -73,16 +81,16 @@ public class JmiTemplateHandler
         
         log.fine("Generating Association '" + typeName + "'");
         
-        AssociationEnd[] ends = generator.getAssociationEnds(assoc);
+        AssociationEnd[] ends = CodeGenUtils.getAssociationEnds(assoc);
         
         String[] names = new String[] {
-            generator.getSimpleTypeName(ends[0]),
-            generator.getSimpleTypeName(ends[1])
+            CodeGenUtils.getSimpleTypeName(ends[0]),
+            CodeGenUtils.getSimpleTypeName(ends[1])
         };
         
         String[] types = new String[] {
-            generator.getTypeName(ends[0].getType()),
-            generator.getTypeName(ends[1].getType())
+            CodeGenUtils.getTypeName(ends[0].getType()),
+            CodeGenUtils.getTypeName(ends[1].getType())
         };
 
         String[] paramDescs = new String[] {
@@ -124,7 +132,7 @@ public class JmiTemplateHandler
                         : ASSOC_GET_END_MULTI_COMMENT,
                     single 
                         ? types[0]
-                        : generator.getCollectionType(
+                        : CodeGenUtils.getCollectionType(
                             ordered 
                                 ? ORDERED_COLLECTION_CLASS 
                                 : COLLECTION_CLASS,
@@ -134,7 +142,8 @@ public class JmiTemplateHandler
                         : ordered 
                             ? ASSOC_GET_END_RETURN_ORDERED_COMMENT 
                             : ASSOC_GET_END_RETURN_MULTI_COMMENT,
-                    generator.getAccessorName(ends[0], null),
+                            CodeGenUtils.getAccessorName(
+                                generator, ends[0], null),
                     new String[] { types[1] },
                     new String[] { names[1] },
                     new String[] { ASSOC_GET_END2_PARAM_COMMENT });
@@ -152,7 +161,7 @@ public class JmiTemplateHandler
                         : ASSOC_GET_END_MULTI_COMMENT,
                     single 
                         ? types[1]
-                        : generator.getCollectionType(
+                        : CodeGenUtils.getCollectionType(
                             ordered 
                                 ? ORDERED_COLLECTION_CLASS 
                                 : COLLECTION_CLASS,
@@ -162,7 +171,8 @@ public class JmiTemplateHandler
                         : ordered 
                             ? ASSOC_GET_END_RETURN_ORDERED_COMMENT 
                             : ASSOC_GET_END_RETURN_MULTI_COMMENT,
-                    generator.getAccessorName(ends[1], null),
+                            CodeGenUtils.getAccessorName(
+                                generator, ends[1], null),
                     new String[] { types[0] },
                     new String[] { names[0] },
                     new String[] { ASSOC_GET_END1_PARAM_COMMENT });
@@ -205,7 +215,7 @@ public class JmiTemplateHandler
     public void generateClassInstance(MofClass cls)
         throws GenerationException
     {
-        String typeName = generator.getTypeName(cls);
+        String typeName = CodeGenUtils.getTypeName(cls);
 
         if (!isIncluded(cls)) {
             log.fine("Skipping Excluded Class Instance '" + typeName + "'");
@@ -230,7 +240,7 @@ public class JmiTemplateHandler
             
             // constants
             Collection<Constant> instanceConstants = 
-                contentsOfType(
+                CodeGenUtils.contentsOfType(
                     cls,
                     HierachySearchKindEnum.ENTITY_ONLY, 
                     Constant.class);
@@ -241,7 +251,7 @@ public class JmiTemplateHandler
             
             // operations
             Collection<Operation> instanceOperations =
-                contentsOfType(
+                CodeGenUtils.contentsOfType(
                     cls,
                     HierachySearchKindEnum.ENTITY_ONLY, 
                     VisibilityKindEnum.PUBLIC_VIS, 
@@ -254,7 +264,7 @@ public class JmiTemplateHandler
             
             // attributes
             Collection<Attribute> instanceAttributes =
-                contentsOfType(
+                CodeGenUtils.contentsOfType(
                     cls,
                     HierachySearchKindEnum.ENTITY_ONLY, 
                     VisibilityKindEnum.PUBLIC_VIS,
@@ -283,7 +293,7 @@ public class JmiTemplateHandler
             
             // references
             Collection<Reference> instanceReferences =
-                contentsOfType(
+                CodeGenUtils.contentsOfType(
                     cls,
                     HierachySearchKindEnum.ENTITY_ONLY, 
                     VisibilityKindEnum.PUBLIC_VIS,
@@ -319,7 +329,7 @@ public class JmiTemplateHandler
     public void generateClassProxy(MofClass cls)
         throws GenerationException
     {
-        String typeName = generator.getTypeName(cls, CLASS_PROXY_SUFFIX);
+        String typeName = CodeGenUtils.getTypeName(cls, CLASS_PROXY_SUFFIX);
 
         if (!isIncluded(cls)) {
             log.fine("Skipping Excluded Class Proxy '" + typeName + "'");
@@ -346,7 +356,7 @@ public class JmiTemplateHandler
                     "");
 
                 Collection<Attribute> allAttributes =
-                    contentsOfType(
+                    CodeGenUtils.contentsOfType(
                         cls, 
                         HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                         ScopeKindEnum.INSTANCE_LEVEL,
@@ -375,7 +385,7 @@ public class JmiTemplateHandler
             }
             
             Collection<Operation> allClassOps = 
-                contentsOfType(
+                CodeGenUtils.contentsOfType(
                     cls,
                     HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                     ScopeKindEnum.CLASSIFIER_LEVEL, 
@@ -386,7 +396,7 @@ public class JmiTemplateHandler
             }
             
             Collection<Attribute> allClassAttributes =
-                contentsOfType(
+                CodeGenUtils.contentsOfType(
                     cls,
                     HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                     ScopeKindEnum.CLASSIFIER_LEVEL, 
@@ -397,7 +407,7 @@ public class JmiTemplateHandler
             }
             
             Collection<StructureType> structTypes =
-                contentsOfType(
+                CodeGenUtils.contentsOfType(
                     cls, 
                     HierachySearchKindEnum.ENTITY_ONLY,
                     StructureType.class);
@@ -417,7 +427,7 @@ public class JmiTemplateHandler
         EnumerationType enumType)
         throws GenerationException
     {
-        String typeName = generator.getTypeName(enumType);
+        String typeName = CodeGenUtils.getTypeName(enumType);
         
         if (!isIncluded(enumType)) {
             log.fine(
@@ -446,9 +456,10 @@ public class JmiTemplateHandler
         EnumerationType enumType)
         throws GenerationException
     {
-        String interfaceTypeName = generator.getSimpleTypeName(enumType);
+        String interfaceTypeName = CodeGenUtils.getSimpleTypeName(enumType);
         
-        String typeName = generator.getTypeName(enumType, ENUM_CLASS_SUFFIX);
+        String typeName = 
+            CodeGenUtils.getTypeName(enumType, ENUM_CLASS_SUFFIX);
 
         if (!isIncluded(enumType)) {
             log.fine("Skipping Excluded Enumeration Class '" + typeName + "'");
@@ -456,7 +467,7 @@ public class JmiTemplateHandler
         }
         
         String simpleTypeName = 
-            generator.getSimpleTypeName(enumType, ENUM_CLASS_SUFFIX);
+            CodeGenUtils.getSimpleTypeName(enumType, ENUM_CLASS_SUFFIX);
         
         log.fine("Generating Enumeration Class '" + typeName + "'");
         
@@ -486,31 +497,53 @@ public class JmiTemplateHandler
                     "public static final ",
                     simpleTypeName,
                     " ",
-                    generator.getEnumFieldName(literal),
+                    CodeGenUtils.getEnumFieldName(literal),
                     " = new ",
                     simpleTypeName,
-                    "(\"",
+                    "(",
+                    QUOTE,
                     literal,
-                    "\");");
+                    QUOTE,
+                    ");");
                 newLine();
             }
             
             // private fields
             writeln(
                 "private static final ",
-                generator.getCollectionType(ORDERED_COLLECTION_CLASS, "String"),
-                " typeName;");
-            writeln("private final String literalName;");
+                CodeGenUtils.getMapType(
+                    MAP_CLASS, STRING_CLASS.toString(), simpleTypeName),
+                " valueMap;");
+            // static initializer for valueMap
+            startStmtBlock("static {");
+            writeln(
+                "valueMap = new ", 
+                CodeGenUtils.getMapType(
+                    MAP_IMPL_CLASS, STRING_CLASS.toString(), simpleTypeName),
+                    "();");
+            for(String literal: 
+                    GenericCollections.asTypedList(labels, String.class))
+            {
+                writeln(
+                    "valueMap.put(", 
+                    QUOTE, literal, QUOTE, ", ", 
+                    CodeGenUtils.getEnumFieldName(literal), ");");
+            }
+            endStmtBlock();
             newLine();
             
-            // static initializer
-            startStmtBlock("static {");
-            
             writeln(
-                generator.getCollectionType(
+                "private static final ",
+                CodeGenUtils.getCollectionType(
+                    ORDERED_COLLECTION_CLASS, STRING_CLASS.toString()),
+                " typeName;");
+            // static initializer for typeName
+            startStmtBlock("static {");
+            writeln(
+                CodeGenUtils.getCollectionType(
                     ORDERED_COLLECTION_CLASS_IMPL, "String"),
                 " temp = new ",
-                generator.getCollectionType(
+                CodeGenUtils.getCollectionType(
                     ORDERED_COLLECTION_CLASS_IMPL, "String"),
                 "();");
             
@@ -535,6 +568,9 @@ public class JmiTemplateHandler
             endStmtBlock();
             newLine();
             
+            writeln("private final String literalName;");
+            newLine();
+            
             // constructor
             startBlock(
                 "private ",
@@ -549,7 +585,8 @@ public class JmiTemplateHandler
                 enumType,
                 ENUM_REF_TYPE_NAME_COMMENT, 
                 ENUM_REF_TYPE_NAME_RETURN_COMMENT, 
-                generator.getCollectionType(ORDERED_COLLECTION_CLASS, "String"),
+                CodeGenUtils.getCollectionType(
+                    ORDERED_COLLECTION_CLASS, "String"),
                 "refTypeName",
                 "typeName");
 
@@ -609,33 +646,18 @@ public class JmiTemplateHandler
                 null);
             startBlock(
                 "public static ", interfaceTypeName, " forName(String name)");
-            boolean first = true;
-            for(String literal: 
-                    GenericCollections.asTypedList(labels, String.class))
-            {
-                if (first) {
-                    startStmtBlock(
-                        "if (name.equals(\"", 
-                        literal, 
-                        "\")) {");
-                    first = false;
-                } else {
-                    restartStmtBlock(
-                        "} else if (name.equals(\"", 
-                        literal, 
-                        "\")) {");                    
-                }
-                writeln("return ", generator.getEnumFieldName(literal), ";");
-            }
-            restartStmtBlock("} else {");
+            writeln(simpleTypeName, " value = valueMap.get(name);");
+            startConditionalBlock(CondType.IF, "value == null");            
             writeln("throw new IllegalArgumentException(");
             increaseIndent();
             writeln(
-                "\"Unknown literal name '\" + name + \"' for enumeration '",
+                QUOTE, "Unknown literal name '", QUOTE, " + name + ", QUOTE, 
+                "' for enumeration '",
                 fullyQualifiedName.toString(),
-                "'\");");
+                "'", QUOTE, ");");
             decreaseIndent();
-            endStmtBlock();
+            endBlock();
+            writeln("return value;");
             endBlock();
             newLine();
             
@@ -670,7 +692,7 @@ public class JmiTemplateHandler
         throws GenerationException
     {
         String typeName = 
-            generator.getTypeName(
+            CodeGenUtils.getTypeName(
                 ex, 
                 ex.getName().endsWith(EXCEPTION_SUFFIX) 
                     ? ""
@@ -690,7 +712,7 @@ public class JmiTemplateHandler
     public void generatePackage(MofPackage pkg)
         throws GenerationException
     {
-        String typeName = generator.getTypeName(pkg, PACKAGE_SUFFIX);
+        String typeName = CodeGenUtils.getTypeName(pkg, PACKAGE_SUFFIX);
 
         if (!isIncluded(pkg)) {
             log.fine("Skipping Excluded Package '" + typeName + "'");
@@ -721,7 +743,8 @@ public class JmiTemplateHandler
             // finally structure types.  We'll do the same so that we can
             // compare our output to Netbeans MDR output for validation.
 
-            Collection<Import> imports = contentsOfType(pkg, Import.class);
+            Collection<Import> imports = 
+                CodeGenUtils.contentsOfType(pkg, Import.class);
             for(Import imp: imports) {
                 // Import is not a Feature, so contentsOfType throws if we
                 // try to get it to filter on visibility.
@@ -744,7 +767,7 @@ public class JmiTemplateHandler
             }
             
             Collection<MofPackage> packages =
-                contentsOfType(pkg, MofPackage.class);
+                CodeGenUtils.contentsOfType(pkg, MofPackage.class);
             for(MofPackage nestedPkg: packages) {
                 writeAbstractPackageAccessor(
                     nestedPkg, 
@@ -753,7 +776,8 @@ public class JmiTemplateHandler
                     PACKAGE_SUFFIX);                    
             }
             
-            Collection<MofClass> classes = contentsOfType(pkg, MofClass.class);
+            Collection<MofClass> classes = 
+                CodeGenUtils.contentsOfType(pkg, MofClass.class);
             for(MofClass cls: classes) {
                 writeAbstractPackageAccessor(
                     cls, 
@@ -763,7 +787,7 @@ public class JmiTemplateHandler
             }
             
             Collection<Association> assocs = 
-                contentsOfType(pkg, Association.class);
+                CodeGenUtils.contentsOfType(pkg, Association.class);
             for(Association assoc: assocs) {
                 writeAbstractPackageAccessor(
                     assoc, 
@@ -773,7 +797,7 @@ public class JmiTemplateHandler
             }
             
             Collection<StructureType> structs =
-                contentsOfType(pkg, StructureType.class);
+                CodeGenUtils.contentsOfType(pkg, StructureType.class);
             if (!structs.isEmpty()) {
                 throw new UnsupportedOperationException(
                     "StructureType not yet supported");
@@ -790,7 +814,7 @@ public class JmiTemplateHandler
         StructureType struct)
         throws GenerationException
     {
-        String typeName = generator.getTypeName(struct);
+        String typeName = CodeGenUtils.getTypeName(struct);
 
         if (!isIncluded(struct)) {
             log.fine("Skipping Excluded Structure '" + typeName + "'");

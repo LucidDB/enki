@@ -36,6 +36,17 @@ import org.eigenbase.enki.util.*;
  */
 public class CodeGenUtils
 {
+    private static final Logger log = 
+        Logger.getLogger(CodeGenUtils.class.getName());
+    
+    private static final String COLLECTION_INTERFACE = 
+        Collection.class.getName();
+
+    private static final String ORDERED_COLLECTION_INTERFACE = 
+        List.class.getName();
+
+    private static final boolean enableGenerics = true;
+    
     /** 
      * Tag identifier for a custom Enki tag to override the default column 
      * length for a particular string attribute.  The tag identifier is
@@ -118,7 +129,6 @@ public class CodeGenUtils
      * Find all associations that refer to the given MofClass which are not
      * described by {@link Reference} instances.
      * 
-     * @param generator code generator
      * @param assocInfoMap map of {@link Association} to 
      *                     {@link AssociationInfo} for all associations in the 
      *                     model
@@ -132,7 +142,6 @@ public class CodeGenUtils
      * @return collection of unreferenced {@link Association} instances
      */
     public static Collection<Association> findUnreferencedAssociations(
-        Generator generator,
         Map<Association, AssociationInfo> assocInfoMap,
         MofClass cls, 
         Collection<Reference> references,
@@ -211,7 +220,7 @@ public class CodeGenUtils
                     AssociationEnd refEnd = assocInfo.getEnd(1 - endIndex);
                  
                     ReferenceInfoImpl refInfo = 
-                        new ReferenceInfoImpl(generator, assoc, refEnd);
+                        new ReferenceInfoImpl(assoc, refEnd);
                     unrefAssocRefInfoMap.put(assoc, refInfo);
                     
                     continue ASSOC_LOOP;
@@ -354,6 +363,889 @@ public class CodeGenUtils
         }
         
         return null;
+    }
+    
+    /**
+     * Iterates over contents of the entity and returns a collection 
+     * containing all contents of the given type.  Objects of any scope and 
+     * visibility are returned.  Super types are not searched.
+     * 
+     * @param <E> content type
+     * @param entity entity to search over
+     * @param cls Class for E
+     * @return collection of E that are contents of entity
+     */
+    public static <E> Collection<E> contentsOfType(
+        GeneralizableElement entity, Class<E> cls)
+    {
+        return contentsOfType(
+            entity, 
+            HierachySearchKindEnum.ENTITY_ONLY,
+            null, 
+            null,
+            cls);
+    }
+    
+    /**
+     * Iterates over contents of the entity (and possibly its super types)
+     * and returns a collection containing all contents of the given type.
+     * Objects of any scope and visibility are returned.
+     * 
+     * @param <E> content type
+     * @param entity entity to search over
+     * @param search whether to search only the entity, or include super types
+     * @param cls Class for E
+     * @return collection of E that are contents of entity
+     */
+    public static <E> Collection<E> contentsOfType(
+        GeneralizableElement entity,
+        HierachySearchKindEnum search, 
+        Class<E> cls)
+    {
+        return contentsOfType(entity, search, null, null, cls);
+    }
+    
+    /**
+     * Iterates over contents of the entity (and possibly its super types)
+     * and returns a collection containing all contents of the given type
+     * with the given scope.
+     * 
+     * @param <E> content type
+     * @param entity entity to search over
+     * @param search whether to search only the entity, or include super types
+     * @param scope content scope
+     * @param cls Class for E
+     * @return collection of E that are contents of entity
+     */
+    public static <E> Collection<E> contentsOfType(
+        GeneralizableElement entity, 
+        HierachySearchKindEnum search, 
+        ScopeKind scope,
+        Class<E> cls)
+    {
+        return contentsOfType(entity, search, null, scope, cls);
+    }
+    
+    /**
+     * Iterates over contents of the entity (and possibly its super types)
+     * and returns a collection containing all contents of the given type
+     * with the given visibility.
+     * 
+     * @param <E> content type
+     * @param entity entity to search over
+     * @param search whether to search only the entity, or include super types
+     * @param visibility content visibility
+     * @param cls Class for E
+     * @return collection of E that are contents of entity
+     */
+    public static <E> Collection<E> contentsOfType(
+        GeneralizableElement entity, 
+        HierachySearchKindEnum search, 
+        VisibilityKind visibility, 
+        Class<E> cls)
+    {
+        return contentsOfType(entity, search, visibility, null, cls);
+    }
+    
+    /**
+     * Iterates over contents of the entity (and possibly its super types)
+     * and returns a collection containing all contents of the given type
+     * with the given visibility and scope.
+     * 
+     * @param <E> content type
+     * @param entity entity to search over
+     * @param search whether to search only the entity, or include super types
+     * @param visibility content visibility
+     * @param scope content scope
+     * @param cls Class for E
+     * @return collection of E that are contents of entity
+     */
+    public static <E> Collection<E> contentsOfType(
+        GeneralizableElement entity,
+        HierachySearchKindEnum search, 
+        VisibilityKind visibility,
+        ScopeKind scope,
+        Class<E> cls)
+    {
+        // LinkedHashSet prevents duplicate entries and preserves insertion
+        // order as the iteration order, which are both desired here.
+        LinkedHashSet<E> result = new LinkedHashSet<E>();
+        
+        if (search == HierachySearchKindEnum.INCLUDE_SUPERTYPES) {
+            for(Namespace namespace: 
+                    GenericCollections.asTypedList(
+                        entity.allSupertypes(), Namespace.class))
+            {
+                result.addAll(
+                    contentsOfType(namespace, visibility, scope, cls));
+            }
+        }
+        
+        result.addAll(
+            contentsOfType(entity, visibility, scope, cls));
+
+        return result;
+    }
+
+    /**
+     * Iterates over contents of the namespace and returns a collection 
+     * containing all contents of the given type with the given visibility and
+     * scope.
+     * 
+     * @param <E> content type
+     * @param namespace namespace to search over
+     * @param visibility content visibility
+     * @param scope content scope
+     * @param cls Class for E
+     * @return collection of E that are contents of entity
+     */
+    public static <E> Collection<E> contentsOfType(
+        Namespace namespace,
+        VisibilityKind visibility,
+        ScopeKind scope,
+        Class<E> cls)
+    {
+        LinkedHashSet<E> result = new LinkedHashSet<E>();
+
+        for(Object o: namespace.getContents()) {
+            if (!cls.isInstance(o)) {
+                logDiscard(
+                    namespace, 
+                    visibility, 
+                    scope, 
+                    cls, 
+                    "wrong type", 
+                    o.getClass().getName());
+                continue;
+            }
+            
+            if (visibility != null && 
+                !((Feature)o).getVisibility().equals(visibility))
+            {
+                logDiscard(
+                    namespace, 
+                    visibility, 
+                    scope, 
+                    cls,
+                    "wrong visibility", 
+                    ((Feature)o).getVisibility().toString());
+                continue;
+            }
+            
+            if (scope != null &&
+                !((Feature)o).getScope().equals(scope))
+            {
+                logDiscard(
+                    namespace, 
+                    visibility, 
+                    scope, 
+                    cls,
+                    "wrong scope", 
+                    ((Feature)o).getScope().toString());
+                continue;
+            }
+
+            logAccept(namespace, visibility, scope, cls);
+
+            result.add(cls.cast(o));
+        }
+        
+        return result;
+    }
+
+    private static <E> void logAccept(
+        Namespace namespace,
+        VisibilityKind visibility,
+        ScopeKind scope,
+        Class<E> cls)
+    {
+        if (!log.isLoggable(Level.FINEST)) {
+            return;
+        }
+
+        log.finest(
+            "contentsOfType(" +
+            namespace.getName() + ": " +
+            (visibility == null ? "<any-vis>" : visibility.toString()) + ", " +
+            (scope == null ? "<any-scope>" : scope.toString()) + ", " +
+            cls.getName() + "): ok");
+    }
+    
+    private static void logDiscard(
+        Namespace namespace, 
+        VisibilityKind visibility, 
+        ScopeKind scope, 
+        Class<?> cls, 
+        String desc, 
+        String value)
+    {
+        if (!log.isLoggable(Level.FINEST)) {
+            return;
+        }
+        
+        log.finest(
+            "contentsOfType(" +
+            namespace.getName() + ": " +
+            (visibility == null ? "<any-vis>" : visibility.toString()) + ", " +
+            (scope == null ? "<any-scope>" : scope.toString()) + ", " +
+            cls.getName() + "): " + desc + ": " + value);
+    }
+    /**
+     * Returns a 2-element array containing the type and variable name for
+     * the given {@link ModelElement}.
+     * 
+     * @param param a ModelElement
+     * @return a 2-element array containing the type and variable name
+     */
+    public static String[] getParam(ModelElement param)
+    {
+        String[] result = new String[2];
+
+        if (param instanceof StructuralFeature) {
+            result[0] = getTypeName((StructuralFeature)param);
+        } else if (param instanceof Parameter) {
+            result[0] = getTypeName((Parameter)param);            
+        } else if (param instanceof TypedElement) {
+            result[0] = getTypeName((TypedElement)param);
+        } else {
+            assert(false);
+        }
+        
+        String name = 
+            TagUtil.getTagValue(param, TagUtil.TAGID_SUBSTITUTE_NAME);
+        if (name == null) {
+            name = param.getName();
+        }
+        
+        result[1] = 
+            StringUtil.mangleIdentifier(
+                name, StringUtil.IdentifierType.CAMELCASE_INIT_LOWER);
+        
+        return result;
+    }
+    
+    /**
+     * Returns the type name for the given {@link StructuralFeature}.  
+     * Queries the underlying type (via the {@link TypedElement} subclass)
+     * and combines it with the StructuralFeature's {@link MultiplicityType}
+     * to return the correct type name. 
+     * 
+     * @param feature StructuralFeature for which to compute a type name
+     * @return a type name string (e.g., "List&lt;a.b.Class&gt;").
+     */
+    public static String getTypeName(StructuralFeature feature)
+    {
+        return getTypeName(feature, feature.getMultiplicity());
+    }
+
+    /**
+     * Returns the type name for the given {@link StructuralFeature}.  
+     * Queries the underlying type (via the {@link TypedElement} subclass)
+     * and combines it with the StructuralFeature's {@link MultiplicityType}
+     * to return the correct type name. 
+     * 
+     * @param feature StructuralFeature for which to compute a type name
+     * @param suffix suffix for the type name
+     * @return a type name string (e.g., "List&lt;a.b.Class&gt;").
+     */
+    public static String getTypeName(StructuralFeature feature, String suffix)
+    {
+        return getTypeName(feature, feature.getMultiplicity(), suffix);
+    }
+
+    /**
+     * Returns the type name for the given {@link Parameter}.  
+     * Queries the underlying type (via the {@link TypedElement} subclass)
+     * and combines it with the Parameter's {@link MultiplicityType}
+     * to return the correct type name. 
+     * 
+     * @param param Parameter for which to compute a type name
+     * @return a type name string (e.g., "List&lt;a.b.Class&gt;").
+     */
+    public static String getTypeName(Parameter param)
+    {
+        return getTypeName(param, param.getMultiplicity());
+    }
+
+    /**
+     * Returns the type name for the given {@link TypedElement}.  
+     * Queries the underlying type and presumes multiplicity of exactly 1.
+     * 
+     * @param type TypedElement for which to compute a type name
+     * @return a type name string
+     */
+    public static String getTypeName(TypedElement type)
+    {
+        return getTypeName(type, (MultiplicityType)null);
+    }
+    
+    /**
+     * Returns the type name for the given {@link TypedElement}.  
+     * Queries the underlying type and and combines it with the given
+     * multiplicity.
+     * 
+     * @param elem TypedElement for which to compute a type name
+     * @param mult multiplicity of the element
+     * @return a type name string (e.g., "List&lt;a.b.Class&gt;").
+     */
+    public static String getTypeName(TypedElement elem, MultiplicityType mult)
+    {
+        return getTypeName(elem, mult, null);
+    }
+    
+    /**
+     * Converts a collection and element type into a single, possibly 
+     * generic type name.  For example, "java.util.List" and 
+     * "java.lang.String" are combined into one of:
+     * 
+     * <ul>
+     * <li>"java.util.List&lt;java.lang.String&gt;"</li>
+     * <li>"java.util.List/*&lt;java.lang.String&gt;*&#x2f;"</li>
+     * </ul>
+     * 
+     * depending on whether generic types are enabled or not.
+     * 
+     * @param collectionType collection type reference
+     * @param elementType element type name
+     * @return combined collection type name
+     */
+    public static String getCollectionType(
+        JavaClassReference collectionType, String elementType)
+    {
+        return getCollectionType(
+            collectionType.toString(), elementType);
+    }
+    
+    private static String getCollectionType(
+        String collectionType, String elementType)
+    {
+        StringBuffer result = new StringBuffer(collectionType);
+        if (!enableGenerics) {
+            result.append("/*");
+        }
+
+        result.append('<').append(elementType).append('>');
+
+        if (!enableGenerics) {
+            result.append("*/");
+        }
+
+        return result.toString();
+    }
+
+
+    /**
+     * Converts a map and element types into a single, possibly 
+     * generic type name.  For example, "java.util.Map", "java.lang.Integer",
+     * and "java.lang.String" are combined into one of:
+     * 
+     * <ul>
+     * <li>"java.util.Map&lt;java.lang.Integer, java.lang.String&gt;"</li>
+     * <li>"java.util.Map/*&lt;java.lang.Integer, java.lang.String&gt;*&#x2f;"</li>
+     * </ul>
+     * 
+     * depending on whether generic types are enabled or not.
+     * 
+     * @param mapType map type reference
+     * @param keyType element type name
+     * @param valueType element type name
+     * @return combined map type name
+     */
+    public static String getMapType(
+        JavaClassReference mapType, 
+        String keyType,
+        String valueType)
+    {
+        StringBuilder result = new StringBuilder(mapType.toString());
+        if (!enableGenerics) {
+            result.append("/*");
+        }
+
+        result
+            .append('<')
+            .append(keyType)
+            .append(", ")
+            .append(valueType)
+            .append('>');
+
+        if (!enableGenerics) {
+            result.append("*/");
+        }
+
+        return result.toString();
+    }
+    
+
+    /**
+     * Converts a simple ModelElement into a type name.
+     * 
+     * @param elem ModelElement for which a type name should be generated
+     * @return type name
+     */
+    public static String getTypeName(ModelElement elem)
+    {
+        return getTypeName(elem, "");
+    }
+
+    /**
+     * Converts a simple ModelElement into a type name with a given suffix.
+     * 
+     * @param elem ModelElement for which a type name should be generated
+     * @param suffix suffix for the type name
+     * @return type name
+     */
+    public static String getTypeName(ModelElement elem, String suffix)
+    {
+        String name = getSimpleTypeName(elem, suffix == null ? "" : suffix);
+        
+        if (elem instanceof PrimitiveType) {
+            // REVIEW: SWZ: 11/07/2007: I think it's nicer to leave off the
+            // extraneous "java.lang".  This differs from Netbeans MDR and
+            // could cause problems if a model has unpackaged elements with
+            // the same names as the Java primitive wrapper classes.  Note
+            // that Primitives contains entries for the bare and fully
+            // qualified versions.
+
+            return /*"java.lang." + */ name;
+        }
+        
+        return 
+            getTypePrefix(elem, new StringBuilder())
+            .append('.')
+            .append(name)
+            .toString();
+    }
+    
+    /**
+     * Converts a simple ModelElement into a type name without any package 
+     * names.
+     * 
+     * @param elem ModelElement for which a simple type name should be 
+     *             generated
+     * @return a simple (package-less) type name
+     */
+    public static String getSimpleTypeName(ModelElement elem)
+    {
+        return getSimpleTypeName(elem, "");
+    }
+
+    /**
+     * Converts a simple ModelElement into a type name without any package 
+     * names, but with the given suffix.
+     * 
+     * @param elem ModelElement for which a simple type name should be 
+     *             generated
+     * @param suffix suffix for the type name
+     * @return a simple (package-less) type name
+     */
+    public static String getSimpleTypeName(ModelElement elem, String suffix)
+    {
+        String name = TagUtil.getTagValue(elem, TagUtil.TAGID_SUBSTITUTE_NAME);
+        if (name == null) {
+            name = elem.getName();
+        }
+        
+        if (elem instanceof PrimitiveType) {
+            return name;
+        } else if (elem instanceof Constant) {
+            name = 
+                StringUtil.mangleIdentifier(
+                    name, StringUtil.IdentifierType.ALL_CAPS);
+        } else {
+            boolean initCaps = 
+                elem instanceof MofClass || 
+                elem instanceof MofPackage ||
+                elem instanceof Association || 
+                elem instanceof MofException ||
+                elem instanceof StructureType || 
+                elem instanceof EnumerationType ||
+                elem instanceof CollectionType || 
+                elem instanceof Import;
+            name = 
+                StringUtil.mangleIdentifier(
+                    name, 
+                    initCaps 
+                        ? StringUtil.IdentifierType.CAMELCASE_INIT_UPPER 
+                        : StringUtil.IdentifierType.CAMELCASE_INIT_LOWER);
+        }
+
+        // SPECIAL CASE: If the name happens to end with Exception, don't
+        // double it.
+        if (ExceptionHandler.EXCEPTION_SUFFIX.equals(suffix) &&
+            name.endsWith(suffix))
+        {
+            return name;
+        }
+        
+        return name + suffix;
+    }
+    
+    private static StringBuilder getTypePrefix(
+        ModelElement elem, StringBuilder buffer)
+    {
+        ModelElement pkg = elem;
+
+        while (!(pkg instanceof MofPackage)) {
+            pkg = pkg.getContainer();
+        }
+
+        Namespace container = pkg.getContainer();
+        if (container == null) {
+            String pkgPrefix = 
+                TagUtil.getTagValue(pkg, TagUtil.TAGID_PACKAGE_PREFIX);
+            if (pkgPrefix != null) {
+                // Package names are all-lowercase alphabetic.
+                // REVIEW: SWZ: 10/31/2007: Make sure pkgPrefix doesn't 
+                // contain non-alphabetic characters.
+                buffer.append(pkgPrefix.toLowerCase(Locale.US)).append('.');
+            }
+        } else {
+            getTypePrefix(container, buffer).append('.');
+        }
+
+        String packageName =
+            TagUtil.getTagValue(pkg, TagUtil.TAGID_SUBSTITUTE_NAME);
+        if (packageName == null) {
+            packageName = 
+                StringUtil.mangleIdentifier(pkg.getName(), StringUtil.IdentifierType.ALL_LOWER);
+        }
+
+        // Package names are all-lowercase
+        return buffer.append(packageName.toLowerCase(Locale.US));
+    }
+
+
+    /**
+     * Converts a {@link StructuralFeature} into the name of an accessor
+     * method.  Delegates to 
+     * {@link #getAccessorName(Generator, TypedElement, MultiplicityType, boolean)}
+     * with special case for booleans enabled.
+     * 
+     * @param feature StructuralFeature that requires an accessor
+     * @return accessor name
+     * @see #getAccessorName(Generator, TypedElement, MultiplicityType, boolean)
+     */
+    public static String getAccessorName(
+        Generator generator, StructuralFeature feature)
+    {
+        return getAccessorName(
+            generator, feature, feature.getMultiplicity(), true);
+    }
+
+    /**
+     * Converts a {@link TypedElement} and {@link MultiplicityType} into the 
+     * name of an accessor method.    Delegates to 
+     * {@link #getAccessorName(Generator, TypedElement, MultiplicityType, boolean)}
+     * with special case for booleans enabled.
+     *
+     * @param elem TypedElement that requires an accessor
+     * @param mult the element's multiplicity
+     * @return accessor name
+     */
+    public static String getAccessorName(
+        Generator generator, TypedElement elem, MultiplicityType mult)
+    {
+        return getAccessorName(generator, elem, mult, true);
+    }
+
+    /**
+     * Converts a {@link StructuralFeature} into the name of an accessor
+     * method.  Delegates to 
+     * {@link #getAccessorName(Generator, TypedElement, MultiplicityType, boolean)}.
+     * 
+     * @param feature StructuralFeature that requires an accessor
+     * @param specialCaseBooleans whether to manipulate boolean attribute
+     *                            accessor names
+     * @return accessor name
+     * @see #getAccessorName(Generator, TypedElement, MultiplicityType, boolean)
+     */
+    public static String getAccessorName(
+        Generator generator,
+        StructuralFeature feature,
+        boolean specialCaseBooleans)
+    {
+        return getAccessorName(
+            generator, 
+            feature, 
+            feature.getMultiplicity(), 
+            specialCaseBooleans);
+    }
+
+    /**
+     * Converts a {@link TypedElement} and {@link MultiplicityType} into the 
+     * name of an accessor method.  The TypeElements's underlying type name 
+     * (via {@link TypedElement#getType()}) is capitalized and given the 
+     * prefix "get", <b>unless</b> the following conditions are met:
+     * 
+     * <ul>
+     * <li>The <code>specialCaseBooleans</code> parameter is set to
+     *     <code>true</code>.
+     * </li>
+     * <li>The multiplicity is unspecified (null) or the multiplicity's upper
+     *     bound is 1.</li>
+     * <li>The type is boolean.</li>
+     * </ul>
+     * 
+     * If the conditions are met, the prefix "is" is prepended, unless the 
+     * type name already begins with "is", in which case it is used directly.
+     * 
+     * <p>If the multiplicity's upper bound is set to 0, this method returns
+     * null.
+     * 
+     * @param generator generator
+     * @param elem TypedElement that requires an accessor
+     * @param mult the element's multiplicity
+     * @param specialCaseBooleans if true
+     * @return accessor name
+     */
+    public static String getAccessorName(
+        Generator generator,
+        TypedElement elem, 
+        MultiplicityType mult,
+        boolean specialCaseBooleans)
+    {
+        Classifier attribType = elem.getType();
+        if (attribType instanceof AliasType) {
+            attribType = ((AliasType)attribType).getType();
+        }
+        
+        String attribName = elem.getName();
+
+        String substName = 
+            TagUtil.getTagValue(elem, TagUtil.TAGID_SUBSTITUTE_NAME);
+        if (substName != null) {
+            attribName = substName;
+        }
+
+        attribName = generator.transformIdentifier(attribName);
+            
+        String baseName = 
+            StringUtil.mangleIdentifier(
+                attribName, StringUtil.IdentifierType.CAMELCASE_INIT_UPPER);
+
+        String accessorName = null;
+
+        // Upper bound -1 means infinity.
+        if (mult == null || mult.getUpper() == 1) {
+                
+            if (specialCaseBooleans &&
+                attribType instanceof PrimitiveType && 
+                attribType.getName().equals("Boolean"))
+            {
+                
+                if (baseName.startsWith("Is")) {
+                    accessorName = "is" + baseName.substring(2);
+                } else {
+                    accessorName = "is" + baseName;
+                }
+            } else {
+                accessorName = "get" + baseName;
+            }
+            
+        } else if (mult.getUpper() != 0) {
+            accessorName = "get" + baseName;
+        }
+
+        return accessorName;
+    }
+    
+
+    /**
+     * Converts a {@link StructuralFeature} into a mutator method name.
+     * Delegates to the method
+     * {@link #getMutatorName(Generator, StructuralFeature, boolean)} with the 
+     * special base for booleans enabled. 
+     * 
+     * @param feature StructuralFeature that requires a mutator
+     * @return mutator name
+     */
+    public static String getMutatorName(
+        Generator generator, StructuralFeature feature)
+    {
+        return getMutatorName(generator, feature, true);
+    }
+
+    /**
+     * Converts a {@link StructuralFeature} into a mutator method name.
+     * This method capitalizes the feature's underlying type name 
+     * (via {@link TypedElement#getType()}) and prepends "set", unless the 
+     * type is a boolean and the special case is enabled, in which
+     * case the prefix "Is", if any, is stripped from the attribute name
+     * first.
+     * 
+     * @param generator generator
+     * @param feature StructuralFeature that requires a mutator
+     * @param specialCaseBooleans control special case for boolean attributes
+     * @return mutator name
+     * @see #getAccessorName(Generator, TypedElement, MultiplicityType, boolean)
+     */
+    public static String getMutatorName(
+        Generator generator,
+        StructuralFeature feature, 
+        boolean specialCaseBooleans)
+    {
+        Classifier attribType = feature.getType();
+        if (attribType instanceof AliasType) {
+            attribType = ((AliasType)attribType).getType();
+        }
+
+        String attribName = feature.getName();
+
+        String substName = 
+            TagUtil.getTagValue(feature, TagUtil.TAGID_SUBSTITUTE_NAME);
+        if (substName != null) {
+            attribName = substName;
+        }
+
+        attribName = generator.transformIdentifier(attribName);
+        
+        String baseName = 
+            StringUtil.mangleIdentifier(
+                attribName, StringUtil.IdentifierType.CAMELCASE_INIT_UPPER);
+            
+        String mutatorName = null;
+
+        if (feature.getMultiplicity().getUpper() == 1 &&
+            specialCaseBooleans &&
+            attribType instanceof PrimitiveType &&
+            attribType.getName().equals("Boolean") &&
+            baseName.startsWith("Is"))
+        {
+            mutatorName = "set" + baseName.substring(2);
+        } else {
+            mutatorName = "set" + baseName;
+        }
+
+        return mutatorName;
+    }
+    
+    /**
+     * Converts a literal into an enumeration field name.  Splits the literal
+     * into words wherever a non-alphanumeric character is found and then 
+     * further splits words when a CamelCase boundary is found.  The individual
+     * words are then converted to all-caps and concatenated with underscores
+     * separating the words.
+     * 
+     * <p>For example, 
+     * <table>
+     * <tr><th>Input</th>                 <th>Output</th></tr>
+     * <tr><td>MyLiteral_String Thing</td><td>MY_LITERAL_STRING_THING</td></tr>
+     * <tr><td>mixed_case_IS_okay</td>    <td>MIXED_CASE_IS_OKAY</td></tr>
+     * <tr><td>weirdTESTcase</td>         <td>WEIRD_TESTCASE</td></tr>
+     * </table>
+     * 
+     * @param literal literal to convert to an enumeration field name
+     * @return an enumeration field name for the given literal
+     */
+    public static String getEnumFieldName(String literal)
+    {
+        return StringUtil.mangleIdentifier(literal, StringUtil.IdentifierType.ALL_CAPS);
+    }
+    
+    /**
+     * Converts a literal into a class field name.  Splits the literal into
+     * words wherever a non-alphanumeric character is found and then 
+     * further splits words when a CamelCase boundary is found.  The returns
+     * field name is formed by concatenating the all-lower-case first word
+     * with the remaining upper-cased words.
+     *
+     * @param literal literal to convert to a class field name
+     * @return a class field name for the given literal
+     */
+    public static String getClassFieldName(String literal)
+    {
+        return StringUtil.mangleIdentifier(literal, StringUtil.IdentifierType.CAMELCASE_INIT_LOWER);
+    }
+    
+    /**
+     * Retrieves the two ends of the association, ignoring other contents.
+     * 
+     * @param assoc an Association
+     * @return the (exactly) two ends of the Association
+     */
+    public static AssociationEnd[] getAssociationEnds(Association assoc)
+    {
+        List<?> contents = assoc.getContents();
+
+        AssociationEnd[] ends = new AssociationEnd[2];
+        Iterator<?> endIter = contents.iterator();
+        int i = 0;
+        while(endIter.hasNext()) {
+            Object o = endIter.next();
+            if (o instanceof AssociationEnd) {
+                if (i >= 2) {
+                    throw new IllegalStateException(
+                        "Association has more than two ends");
+                }
+                
+                AssociationEnd end = (AssociationEnd)o;
+                
+                ends[i++] = end;
+            }
+        }
+        if (i != 2) {
+            throw new IllegalStateException(
+                "Association does not have exactly two ends");
+        }
+        
+        return ends;
+    }
+    
+    /**
+     * Determines the kind of association given.
+     * 
+     * @param assoc an association
+     * @return one of the {@link AssociationKindEnum} values indicating a
+     *         1-to-1, 1-to-many or many-to-many association.
+     */
+    public static AssociationKindEnum getAssociationKind(Association assoc)
+    {
+        AssociationEnd ends[] = getAssociationEnds(assoc);
+        int[] upperBounds = new int[2];
+        for(int i = 0; i < 2; i++) {
+            AssociationEnd end = (AssociationEnd)ends[i];
+                
+            upperBounds[i] = end.getMultiplicity().getUpper();
+        }
+        
+        if (upperBounds[0] == 1 && upperBounds[1] == 1) {
+            return AssociationKindEnum.ONE_TO_ONE;
+        } else if (upperBounds[0] != 1 && upperBounds[1] != 1) {
+            return AssociationKindEnum.MANY_TO_MANY;            
+        } else {
+            return AssociationKindEnum.ONE_TO_MANY;
+        }
+    }
+
+    public static String getTypeName(
+        TypedElement elem, MultiplicityType mult, String suffix)
+    {
+        ModelElement type = elem.getType();
+        if (type instanceof AliasType) {
+            type = ((AliasType)type).getType();
+        }
+        String typeName = getTypeName(type, suffix);
+        
+        String collType = null;
+        if (mult != null && (mult.getUpper() > 1 || mult.getUpper() == -1)) {
+            if (mult.isOrdered()) {
+                collType = ORDERED_COLLECTION_INTERFACE;
+            } else {
+                collType = COLLECTION_INTERFACE;
+            }
+        } else if (mult == null || mult.getLower() >= 1) {
+            String primitiveTypeName = 
+                Primitives.convertTypeNameToPrimitive(typeName);
+            if (primitiveTypeName != null) {
+                typeName = primitiveTypeName;
+            }
+        }
+        
+        if (collType != null) {
+            return getCollectionType(collType, typeName);
+        }
+
+        return typeName;
     }
 }
 

@@ -19,39 +19,24 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
-package org.eigenbase.enki.ant;
+package org.eigenbase.enki.hibernate.config;
 
-import org.eigenbase.enki.mdr.*;
-
+import java.util.*;
 
 /**
- * PrintExtentNamesSubTask prints a list of existing extent names.
- * 
- * <p>Attributes: None.
+ * ModelPluginDescriptor describes a meta-model plug-in.
  * 
  * @author Stephan Zuercher
  */
-public class PrintExtentNames extends EnkiTask.SubTask
+public class ModelPluginDescriptor extends AbstractModelDescriptor
 {
-    public PrintExtentNames(String name)
+    public ModelPluginDescriptor(String name, Properties properties)
     {
-        super(name);
+        super(name, properties);
     }
-
-    @Override
-    protected void execute()
+    
+    public boolean isPlugin()
     {
-        EnkiMDRepository repos = getMDRepository(true);
-        repos.beginSession();
-        try {
-            String[] extentNames = repos.getExtentNames();
-            for(String extentName: extentNames) {
-                System.out.println(extentName);
-            }
-        } finally {
-            repos.endSession();
-        }
+        return true;
     }
 }
-
-// End PrintExtentNames.java

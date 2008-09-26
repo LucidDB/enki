@@ -41,24 +41,24 @@ public class AssociationInfoImpl implements AssociationInfo
     private final String[] identifiers;
     private final String baseName;
     
-    public AssociationInfoImpl(Generator generator, Association assoc)
+    public AssociationInfoImpl(Association assoc)
     {
         this.assoc = assoc;
-        this.assocInterfaceName = generator.getTypeName(assoc);
-        this.kind = generator.getAssociationKind(assoc);
-        this.ends = generator.getAssociationEnds(assoc);
+        this.assocInterfaceName = CodeGenUtils.getTypeName(assoc);
+        this.kind = CodeGenUtils.getAssociationKind(assoc);
+        this.ends = CodeGenUtils.getAssociationEnds(assoc);
 
         this.identifiers = new String[] {
-            generator.getSimpleTypeName(ends[0]),
-            generator.getSimpleTypeName(ends[1]),
+            CodeGenUtils.getSimpleTypeName(ends[0]),
+            CodeGenUtils.getSimpleTypeName(ends[1]),
         };
         
         this.types = new String[] {
-            generator.getTypeName(ends[0].getType()),
-            generator.getTypeName(ends[1].getType()),
+            CodeGenUtils.getTypeName(ends[0].getType()),
+            CodeGenUtils.getTypeName(ends[1].getType()),
         };
         
-        this.baseName = generator.getSimpleTypeName(assoc);
+        this.baseName = CodeGenUtils.getSimpleTypeName(assoc);
     }
     
     /**

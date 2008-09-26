@@ -19,39 +19,49 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
-package org.eigenbase.enki.ant;
+package org.eigenbase.enki.hibernate.config;
 
-import org.eigenbase.enki.mdr.*;
-
+import java.lang.reflect.*;
+import java.util.*;
+import java.util.logging.*;
 
 /**
- * PrintExtentNamesSubTask prints a list of existing extent names.
- * 
- * <p>Attributes: None.
+ * PropertyUtil provides static utilities methods for manipulating 
+ * {@link Property} objects.
  * 
  * @author Stephan Zuercher
  */
-public class PrintExtentNames extends EnkiTask.SubTask
+public class PropertyUtil
 {
-    public PrintExtentNames(String name)
+    private PropertyUtil()
     {
-        super(name);
     }
-
-    @Override
-    protected void execute()
+    
+    public static <T> T readStorageProperty(
+        Properties storageProperties,
+        Logger log,
+        String name,
+        T defaultValue,
+        Class<T> cls)
     {
-        EnkiMDRepository repos = getMDRepository(true);
-        repos.beginSession();
-        try {
-            String[] extentNames = repos.getExtentNames();
-            for(String extentName: extentNames) {
-                System.out.println(extentName);
-            }
-        } finally {
-            repos.endSession();
+        String stringValue = storageProperties.getProperty(name);
+        if (stringValue == null) {
+            return defaultValue;
         }
-    }
+        
+        try {
+            Constructor<T> cons = cls.getConstructor(String.class);
+            
+            return cons.newInstance(stringValue);
+        } catch (Exception e) {
+            log.log(
+                Level.SEVERE, 
+                "Error parsing storage property (" + name + "=[" + stringValue
+                + "], " + cls.getName() + ")",
+                e);
+            return defaultValue;
+        }
+    }    
 }
 
-// End PrintExtentNames.java
+// End PropertyUtil.java

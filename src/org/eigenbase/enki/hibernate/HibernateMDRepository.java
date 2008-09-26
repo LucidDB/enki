@@ -23,7 +23,6 @@ package org.eigenbase.enki.hibernate;
 
 import java.lang.ref.*;
 import java.lang.reflect.*;
-import java.net.*;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.atomic.*;
@@ -31,8 +30,12 @@ import java.util.logging.*;
 
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
+import javax.naming.*;
+import javax.sql.*;
 
+import org.eigenbase.enki.codegen.*;
 import org.eigenbase.enki.hibernate.codegen.*;
+import org.eigenbase.enki.hibernate.config.*;
 import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
@@ -118,7 +121,7 @@ public class HibernateMDRepository
      * file. Stored in the <code>META-INF/enki</code> directory of an Enki 
      * model JAR file.
      */
-    public static final String CONFIG_PROPERTIES = "config.properties";
+    public static final String CONFIG_PROPERTIES = "configurator.properties";
 
     /** 
      * The name of the metamodel-specific Hibernate mapping file. Stored in 
@@ -152,6 +155,117 @@ public class HibernateMDRepository
      */
     public static final String PROPERTY_MODEL_PLUGIN = 
         "enki.model.plugin";
+
+    /**
+     * Configuration file property that specifies the table name prefix for
+     * a given model's schema.
+     */
+    public static final String PROPERTY_MODEL_TABLE_PREFIX =
+        "enki.model.tablePrefix";
+    
+    /**
+     * Storage property that configures the JNDI name of the {@link DataSource}
+     * that Enki/Hibernate should use.  If no DataSource exists with this
+     * name, Enki/Hibernate will attempt to create and bind one using the
+     * {@link #PROPERTY_STORAGE_CONNECTION_DRIVER_CLASS}, 
+     * {@link #PROPERTY_STORAGE_CONNECTION_URL}, 
+     * {@link #PROPERTY_STORAGE_CONNECTION_USERNAME},and 
+     * {@link #PROPERTY_STORAGE_CONNECTION_PASSWORD} properties. If the driver
+     * class and URLproperties are not set, Enki/Hibernate will assume that 
+     * Hibernate-specific properties have been used to configure a database
+     * connection.
+     * 
+     * Note that in the event that Enki/Hibernate creates and binds its own
+     * DataSource, following Hibernate properties will be modified or cleared:
+     * <ul>
+     * <li>hibernate.connection.datasource</li>
+     * <li>hibernate.connection.driver_class</li>
+     * <li>hibernate.connection.url</li>
+     * <li>hibernate.connection.username</li>
+     * <li>hibernate.connection.password</li>
+     * <li>hibernate.connection.pool_size</li>
+     * </ul>
+     */
+    public static final String PROPERTY_STORAGE_CONNECTION_DATASOURCE =
+        "org.eigenbase.enki.hibernate.connection.datasource";
+    
+    /**
+     * The default value for the 
+     * {@link #PROPERTY_STORAGE_CONNECTION_DATASOURCE} property is {@value}.
+     */
+    public static final String PROPERTY_STORAGE_DEFAULT_CONNECTION_DATASOURCE =
+        "java:comp/env/jdbc/ENKI_DATASOURCE";
+    
+    /**
+     * Storage property containing the name of JDBC driver class to use for 
+     * creating a {@link DataSource} object.  
+     * See {@link #PROPERTY_STORAGE_CONNECTION_DATASOURCE}.
+     */
+    public static final String PROPERTY_STORAGE_CONNECTION_DRIVER_CLASS =
+        "org.eigenbase.enki.hibernate.connection.driver_class";
+
+    /**
+     * Storage property containing the name of JDBC URL to use for 
+     * creating a {@link DataSource} object.  
+     * See {@link #PROPERTY_STORAGE_CONNECTION_DATASOURCE}.
+     */
+    public static final String PROPERTY_STORAGE_CONNECTION_URL =
+        "org.eigenbase.enki.hibernate.connection.url";
+
+    /**
+     * Storage property containing the name of JDBC username to use for 
+     * creating a {@link DataSource} object.  
+     * See {@link #PROPERTY_STORAGE_CONNECTION_DATASOURCE}.
+     */
+    public static final String PROPERTY_STORAGE_CONNECTION_USERNAME =
+        "org.eigenbase.enki.hibernate.connection.username";
+
+    /**
+     * Storage property containing the name of JDBC password to use for 
+     * creating a {@link DataSource} object.  
+     * See {@link #PROPERTY_STORAGE_CONNECTION_DATASOURCE}.
+     */
+    public static final String PROPERTY_STORAGE_CONNECTION_PASSWORD =
+        "org.eigenbase.enki.hibernate.connection.password";
+
+    /**
+     * Storage property containing the maximum number of idle connections to
+     * keep open if Enki/Hibernate constructs its own DataSource.
+     * See {@link #PROPERTY_STORAGE_CONNECTION_DATASOURCE}.
+     */
+    public static final String PROPERTY_STORAGE_CONNECTION_MAX_IDLE =
+        "org.eigenbase.enki.hibernate.connection.max_idle";
+
+    /**
+     * Storage property JNDI prefix.  When creating a {@link DataSource} any 
+     * storage properties starting with this string are used to construct
+     * a JNDI {@link InitialContext}.  These properties (excluding both
+     * {@link #PROPERTY_STORAGE_JNDI_INITIAL_CONTEXT_FACTORY_CLASS} and
+     * {@link #PROPERTY_STORAGE_JNDI_PROVIDER_URL}) are passed to the
+     * InitialContext constructor with the prefix stripped.
+     * 
+     * Note: The prefix value does not contain the substring "hibernate.jndi"
+     * because Hibernate 3.1 mistakenly uses those values, while incorrectly 
+     * assuming that "hibernate.jndi" appears at the start of the string.
+     */
+    public static final String PROPERTY_STORAGE_JNDI_PREFIX =
+        "org.eigenbase.enki.hibernatejndi.";
+    
+    /**
+     * Storage property specifying the name of the JNDI initial context factory
+     * class.  Passed to the JNDI {@link InitialContext} constructor using
+     * the property name {@value javax.naming.Context#INITIAL_CONTEXT_FACTORY}.
+     */
+    public static final String PROPERTY_STORAGE_JNDI_INITIAL_CONTEXT_FACTORY_CLASS =
+        PROPERTY_STORAGE_JNDI_PREFIX  + "initial_context_factory_class";
+
+    /**
+     * Storage property specifying the name of the JNDI provider URL. Passed 
+     * to the JNDI {@link InitialContext} constructor using the property name 
+     * {@value javax.naming.Context#PROVIDER_URL}.
+     */
+    public static final String PROPERTY_STORAGE_JNDI_PROVIDER_URL =
+        PROPERTY_STORAGE_JNDI_PREFIX  + "provider_url";
 
     /**
      * Storage property that configures the behavior of implicit sessions.
@@ -217,11 +331,11 @@ public class HibernateMDRepository
      * logging.  Larger values indicate the number of seconds between log
      * messages.  Default value is {@link #DEFAULT_PERIODIC_STATS_INTERVAL}.
      */
-    public static final String PROPERTY_PERIODIC_STATS =
+    public static final String PROPERTY_STORAGE_PERIODIC_STATS =
         "org.eigenbase.enki.hibernate.periodicStats";
     
     /**
-     * Contains the default value for {@link #PROPERTY_PERIODIC_STATS}
+     * Contains the default value for {@link #PROPERTY_STORAGE_PERIODIC_STATS}
      * storage property.  The default is {@value}.
      */
     public static final int DEFAULT_PERIODIC_STATS_INTERVAL = 0;
@@ -231,22 +345,70 @@ public class HibernateMDRepository
      * logging to include information about the size (in bytes) of Hibernate
      * caches.  Computing cache memory size requires serializing all cached
      * objects, which can be very slow.  Valid values are true or false.
-     * Defaults to {@link #DEFAULT_MEM_STATS}. {@link #PROPERTY_PERIODIC_STATS}
-     * must be enabled for memory statistics logging to occur.
+     * Defaults to {@link #DEFAULT_MEM_STATS}. 
+     * {@link #PROPERTY_STORAGE_PERIODIC_STATS} must be enabled for memory 
+     * statistics logging to occur.
      */
-    public static final String PROPERTY_MEM_STATS =
+    public static final String PROPERTY_STORAGE_MEM_STATS =
         "org.eigenbase.enki.hibernate.periodicStats.memStats";
     
     /**
-     * Contains the default value of {@link #PROPERTY_MEM_STATS}.
+     * Contains the default value of {@link #PROPERTY_STORAGE_MEM_STATS}.
      * The default is {@value}.
      */
     public static final boolean DEFAULT_MEM_STATS = false;
     
     /**
+     * Storage property that controls whether Enki/Hibernate will create the
+     * necessary schema in its database.  The following values are allowed:
+     * 
+     * <table>
+     * <tr>
+     *   <td>Value</td>
+     *   <td>Description</td>
+     * </tr>
+     * <tr>
+     *   <td>{@value #CREATE_SCHEMA_AUTO}</td>
+     *   <td>Enki/Hibernate will validate the schema and then create or update 
+     *       it as necessary to match its model definitions.</td>
+     * </tr>
+     * <tr>
+     *   <td>{@value #CREATE_SCHEMA_AUTO_VIEW}</td>
+     *   <td>Like AUTO, but all-of-class and all-of-type views are created
+     *       in addition to the storage tables.</td> 
+     * </tr>
+     * <tr>
+     *   <td>{@value #CREATE_SCHEMA_VIEW}</td>
+     *   <td>Causes all-of-class and all-of-type views to be created.</td>
+     * </tr>
+     * <tr>
+     *   <td>{@value #CREATE_SCHEMA_DISABLED}</td>
+     *   <td>Enki/Hibernate will validate the schema, and if it does not match
+     *       the model definition (extraneous tables and views are ignored), 
+     *       it will throw an exception.</td>
+     * </tr>
+     * <table>
+     * 
+     * Defaults to {@link #DEFAULT_CREATE_SCHEMA}. 
+     */
+    public static final String PROPERTY_STORAGE_CREATE_SCHEMA =
+        "org.eigenbase.enki.hibernate.createSchema";
+    
+    public static final String CREATE_SCHEMA_AUTO = "AUTO";
+    public static final String CREATE_SCHEMA_AUTO_VIEW = "AUTO_VIEW";
+    public static final String CREATE_SCHEMA_VIEW = "VIEW";
+    public static final String CREATE_SCHEMA_DISABLED = "DISABLED";
+
+    /**
+     * The default value of {@link #PROPERTY_STORAGE_CREATE_SCHEMA}.
+     * The default is {@value}.
+     */
+    public static final String DEFAULT_CREATE_SCHEMA = "DISABLED";
+    
+    /**
      * Identifier for the built-in MOF extent.
      */
-    private static final String MOF_EXTENT = "MOF";
+    public static final String MOF_EXTENT = "MOF";
     
     private static final MdrSessionStack sessionStack = new MdrSessionStack();
     
@@ -254,17 +416,14 @@ public class HibernateMDRepository
     
     private final AtomicInteger sessionIdGenerator;
     
-    /** List of all known model configuration properties files. */
-    private final List<Properties> modelPropertiesList;
-    
     /** Storage configuration properties. */
     private final Properties storageProperties;
 
+    /** Configuration generator. */
+    private final HibernateConfigurator configurator;
+    
     /** Given default class loader, if any. */
     private final ClassLoader classLoader;
-    
-    /** Map of metamodel extent names to ModelDescriptor instances. */
-    private final Map<String, ModelDescriptor> modelMap;
     
     /** Map of extent names to ExtentDescriptor instances. */
     private final Map<String, ExtentDescriptor> extentMap;
@@ -281,6 +440,10 @@ public class HibernateMDRepository
     
     private final int periodicStatsInterval;
     private final boolean logMemStats;
+    private final boolean createSchema;
+    private final boolean createViews;
+    
+    private final DataSourceConfigurator dataSourceConfigurator;
     
     private Timer periodicStatsTimer;
     
@@ -318,10 +481,8 @@ public class HibernateMDRepository
         ClassLoader classLoader)
     {
         this.log = Logger.getLogger(HibernateMDRepository.class.getName());
-        this.modelPropertiesList = modelProperties;
         this.storageProperties = storageProperties;
         this.classLoader = classLoader;
-        this.modelMap = new HashMap<String, ModelDescriptor>();
         this.extentMap = new HashMap<String, ExtentDescriptor>();
         this.thread = null;
         this.listeners = 
@@ -357,16 +518,49 @@ public class HibernateMDRepository
                 Boolean.class);
         this.periodicStatsInterval = 
             readStorageProperty(
-                PROPERTY_PERIODIC_STATS, 
+                PROPERTY_STORAGE_PERIODIC_STATS, 
                 DEFAULT_PERIODIC_STATS_INTERVAL, 
                 Integer.class);
         this.logMemStats =
             readStorageProperty(
-                PROPERTY_MEM_STATS, 
+                PROPERTY_STORAGE_MEM_STATS, 
                 DEFAULT_MEM_STATS, 
                 Boolean.class);
         
-        initModelMap();
+        String createSchemaSetting = 
+            readStorageProperty(
+                PROPERTY_STORAGE_CREATE_SCHEMA,
+                DEFAULT_CREATE_SCHEMA,
+                String.class).toUpperCase();
+        if (createSchemaSetting.equals(CREATE_SCHEMA_AUTO)) {
+            this.createSchema = true;
+            this.createViews = false;
+        } else if (createSchemaSetting.equals(CREATE_SCHEMA_AUTO_VIEW)) {
+            this.createSchema = true;
+            this.createViews = true;
+        } else if (createSchemaSetting.equals(CREATE_SCHEMA_VIEW)) {
+            this.createSchema = false;
+            this.createViews = true;
+        } else {
+            if (!createSchemaSetting.equals(CREATE_SCHEMA_DISABLED)) {
+                log.warning(
+                    "Value '" + createSchemaSetting + "' for property " 
+                    + PROPERTY_STORAGE_CREATE_SCHEMA 
+                    + " is invalid; defaulting to " + CREATE_SCHEMA_DISABLED);
+            }
+            
+            this.createSchema = false;
+            this.createViews = false;
+        }
+        
+        // Initialize our data source as necessary.
+        this.dataSourceConfigurator = 
+            new DataSourceConfigurator(storageProperties);
+        this.dataSourceConfigurator.initDataSource();
+        
+        this.configurator = 
+            new HibernateConfigurator(storageProperties, modelProperties);
+        
         initModelExtent(MOF_EXTENT, false);
         initStorage();
         
@@ -377,23 +571,12 @@ public class HibernateMDRepository
     private <T> T readStorageProperty(
         String name, T defaultValue, Class<T> cls)
     {
-        String stringValue = storageProperties.getProperty(name);
-        if (stringValue == null) {
-            return defaultValue;
-        }
-        
-        try {
-            Constructor<T> cons = cls.getConstructor(String.class);
-            
-            return cons.newInstance(stringValue);
-        } catch (Exception e) {
-            log.log(
-                Level.SEVERE, 
-                "Error parsing storage property (" + name + "=[" + stringValue
-                + "], " + cls.getName() + ")",
-                e);
-            return defaultValue;
-        }
+        return PropertyUtil.readStorageProperty(
+            storageProperties, 
+            log,
+            name,
+            defaultValue,
+            cls);
     }
     
     public MdrProvider getProviderType()
@@ -1132,6 +1315,20 @@ public class HibernateMDRepository
     
     public void delete(Collection<RefObject> objects)
     {
+        if (objects.isEmpty()) {
+            return;
+        }
+        
+        // TODO: should also check for attribute modifications
+        
+        MdrSession session = getMdrSession();
+        if (!session.mofIdCreateMap.isEmpty() ||
+            !session.mofIdDeleteSet.isEmpty())
+        {
+            throw new EnkiHibernateException(
+                "mass deletion API may not be used in transaction with pending modifications");
+        }
+        
         new HibernateMassDeletionUtil(this).massDelete(objects);
     }
 
@@ -1290,11 +1487,15 @@ public class HibernateMDRepository
                     sessionFactory.getStatistics().logSummary();
                 }
                 
-                sessionFactory.close();
-                sessionFactory = null;
-                
-                classRegistry.clear();
-                assocRegistry.clear();
+                try {
+                    sessionFactory.close();
+                    sessionFactory = null;
+                    
+                    classRegistry.clear();
+                    assocRegistry.clear();
+                } finally {
+                    dataSourceConfigurator.close();
+                }
             }
         }
     }
@@ -1851,7 +2052,8 @@ public class HibernateMDRepository
             if (modelExtentName.equals(MOF_EXTENT)) {
                 initModelExtent(extentName, false);                
             } else {
-                ModelDescriptor modelDesc = modelMap.get(modelExtentName);
+                ModelDescriptor modelDesc = 
+                    configurator.getModelMap().get(modelExtentName);
     
                 if (modelDesc == null) {
                     throw new ProviderInstantiationException(
@@ -1928,7 +2130,8 @@ public class HibernateMDRepository
                             MofPackage.class))
                 {
                     if (extentMofPkg == metaPackage) {
-                        modelDesc = modelMap.get(extentDesc.name);
+                        modelDesc = 
+                            configurator.getModelMap().get(extentDesc.name);
                         break EXTENT_SEARCH;
                     }
                 }
@@ -1957,7 +2160,9 @@ public class HibernateMDRepository
                 extentDesc.extent = modelDesc.topLevelPkgCls.newInstance();
             }
             
-            for(MetamodelInitializer init: extentDesc.pluginInitializers) {
+            for(MetamodelInitializer init: 
+                    modelExtentDesc.pluginInitializers)
+            {
                 init.stitchPackages(extentDesc.extent);
             }
         } catch (Exception e) {
@@ -1967,6 +2172,8 @@ public class HibernateMDRepository
             MetamodelInitializer.setCurrentInitializer(null);
         }
 
+        initModelViews(modelDesc, extentDesc.extent);
+        
         createExtentRecord(extentDesc.name, modelDesc.name);
         
         extentMap.put(name, extentDesc);
@@ -1987,17 +2194,11 @@ public class HibernateMDRepository
     
     private void initStorage()
     {
-        Configuration config = newConfiguration();
+        Configuration config = configurator.newConfiguration(true);
 
         initProviderStorage(config);
         
-        for(ModelDescriptor modelDesc: modelMap.values()) {
-            if (MOF_EXTENT.equals(modelDesc.name)) {
-                continue;
-            }
-
-            configureMappings(config, modelDesc);
-        }
+        configurator.addModelConfigurations(config);
         
         sessionFactory = config.buildSessionFactory();
         
@@ -2005,7 +2206,7 @@ public class HibernateMDRepository
         
         mofIdGenerator = 
             new MofIdGenerator(sessionFactory, config, storageProperties);
-        mofIdGenerator.configureTable();
+        mofIdGenerator.configureTable(createSchema);
 
         List<Extent> extents = null;
         Session session = sessionFactory.getCurrentSession();
@@ -2023,40 +2224,6 @@ public class HibernateMDRepository
         
         thread = new EnkiChangeEventThread(this);
         thread.start();
-    }
-
-    private Configuration newConfiguration()
-    {
-        return newConfiguration(true);
-    }
-    
-    private Configuration newConfiguration(boolean includeProviderMapping)
-    {
-        Configuration config = new Configuration();
-
-        // Load basic configuration.
-        config.configure(
-            "org/eigenbase/enki/hibernate/hibernate-base-config.xml");
-
-        // Override it with storage properties
-        for(Map.Entry<Object, Object> entry: storageProperties.entrySet())
-        {
-            String key = entry.getKey().toString();
-            String value = 
-                entry.getValue() == null 
-                    ? null 
-                    : entry.getValue().toString();
-            
-            config.setProperty(key, value);
-        }
-    
-        if (includeProviderMapping) {
-            URL internalConfigIUrl = 
-                getClass().getResource(HIBERNATE_STORAGE_MAPPING_XML);
-            config.addURL(internalConfigIUrl);
-        }
-        
-        return config;
     }
 
     private void initProviderStorage(Configuration config)
@@ -2108,11 +2275,17 @@ public class HibernateMDRepository
             try {
                 validator.validate();
             } catch(HibernateException e) {
-                log.log(
-                    Level.WARNING, 
-                    "Enki Hibernate provider schema validation failed", 
-                    e);
-                requiresUpdate = true;
+                if (createSchema) {
+                    log.log(
+                        Level.WARNING, 
+                        "Enki Hibernate provider database schema validation failed", 
+                        e);
+                    requiresUpdate = true;
+                } else {
+                    throw new ProviderInstantiationException(
+                        "Enki Hibernate provider database schema validation failed",
+                        e);
+                }
             }
         
             if (requiresUpdate) {
@@ -2127,6 +2300,10 @@ public class HibernateMDRepository
                         "Unable to update Enki Hibernate provider schema", e);
                 }
             }
+        } else if (!createSchema) {
+            throw new ProviderInstantiationException(
+                "Unable to query extents from database: "
+                + "invalid schema or bad connection");
         } else {
             log.info("Creating Enki Hibernate Provider schema");
         
@@ -2151,9 +2328,8 @@ public class HibernateMDRepository
         }
 
         try {
-            Configuration config = newConfiguration();
-            
-            configureMappings(config, modelDesc);
+            Configuration config = 
+                configurator.newModelConfiguration(modelDesc, true);
     
             log.info("Validating schema for model '" + modelDesc.name + "'");
     
@@ -2163,11 +2339,18 @@ public class HibernateMDRepository
                 
                 return;
             } catch(HibernateException e) {
-                log.log(
-                    Level.FINE,
-                    "Schema validation error for model '" 
-                    + modelDesc.name + "'",
-                    e);
+                if (createSchema) {
+                    log.log(
+                        Level.FINE,
+                        "Schema validation error for model '" 
+                        + modelDesc.name + "'",
+                        e);
+                } else {
+                    throw new ProviderInstantiationException(
+                        "Schema validation error for model '" 
+                        + modelDesc.name + "'",
+                        e);
+                }
             }
             
             log.info("Updating schema for model '" + modelDesc.name + "'");
@@ -2185,8 +2368,9 @@ public class HibernateMDRepository
                     "' failed (see log for errors)");
             }
             
-            config = newConfiguration(false);
-            configureIndexMappings(config, modelDesc);
+            config = 
+                configurator.newModelIndexMappingConfiguration(
+                    modelDesc, false);
             
             log.info("Updating indexes for model '" + modelDesc.name + "'");
             
@@ -2228,6 +2412,98 @@ public class HibernateMDRepository
             }
         }            
     }
+    
+    private void initModelViews(ModelDescriptor modelDesc, RefPackage pkg)
+    {
+        if (!createViews) {
+            return;
+        }
+        
+        CodeGenXmlOutputStringBuilder mappingOutput = 
+            new CodeGenXmlOutputStringBuilder();
+        
+        HibernateViewMappingUtil viewUtil = 
+            new HibernateViewMappingUtil(
+                mappingOutput,
+                new Dialect[][] { { sqlDialect }},
+                modelDesc.properties.getProperty(PROPERTY_MODEL_TABLE_PREFIX));
+
+        Set<Classifier> classes = new HashSet<Classifier>();
+        LinkedList<RefPackage> pkgs = new LinkedList<RefPackage>();
+        pkgs.add(pkg);
+        while(!pkgs.isEmpty()) {
+            RefPackage p = pkgs.removeFirst();
+            for(RefClass c: 
+                    GenericCollections.asTypedCollection(
+                        p.refAllClasses(), RefClass.class))
+            {
+                classes.add((Classifier)c.refMetaObject());
+            }
+            Collection<RefPackage> subPkgs = 
+                GenericCollections.asTypedCollection(
+                    p.refAllPackages(), RefPackage.class);
+            for(RefPackage subPkg: subPkgs) {
+                log.info("Sub-package: " + subPkg.refMofId() + " / " + subPkg.getClass());
+            }
+            pkgs.addAll(subPkgs);
+        }
+        
+        mappingOutput.writeXmlDecl();
+        mappingOutput.writeDocType(
+            "hibernate-mapping",
+            "-//Hibernate/Hibernate Mapping DTD 3.0//EN",
+            "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd");
+        mappingOutput.newLine();
+
+        try {
+            mappingOutput.startElem("hibernate-mapping");
+            viewUtil.generateViews(classes);
+            mappingOutput.endElem("hibernate-mapping");
+        } catch(GenerationException e) {
+            throw new HibernateException("Could not generate view mapping", e);
+        }
+        
+        String mapping = mappingOutput.getOutput();
+        
+        log.info(mapping);
+        
+        Configuration config = configurator.newConfiguration(false);
+        
+        config.addXML(mapping);
+        
+        log.info("Updating views for model '" + modelDesc.name + "'");
+        
+        SchemaExport export = new SchemaExport(config);
+        // execute params are:
+        //   script:     false (don't write DDL to stdout)
+        //   export:     true  (send DDL to DB)
+        //   justDrop:   true  (run only drop statements)
+        //   justCreate: false (don't run create statements)
+        export.execute(false, true, true, false);
+        
+        List<?> exceptions = export.getExceptions();
+        if (exceptions != null && !exceptions.isEmpty()) {
+            // Log drop errors, but don't abort (they'll always fail if
+            // this is the initial schema creation).
+            logDdlExceptions(exceptions, Level.FINE, "view drop error");
+        }
+
+        // execute params are:
+        //   script:     false (don't write DDL to stdout)
+        //   export:     true  (send DDL to DB)
+        //   justDrop:   false (don't run drop statements)
+        //   justCreate: true  (run only create statements)
+        export.execute(false, true, false, true);
+        
+        exceptions = export.getExceptions();
+        if (exceptions != null && !exceptions.isEmpty()) {
+            logDdlExceptions(
+                exceptions, Level.SEVERE, "index create error");
+            throw new HibernateException(
+                "View creation for model '" + modelDesc.name + 
+                "' failed (see log for errors)");
+        }
+    }
 
     private void logDdlExceptions(List<?> exceptions, Level level, String msg)
     {
@@ -2252,9 +2528,8 @@ public class HibernateMDRepository
         }
 
         try {
-            Configuration config = newConfiguration(false);
-            
-            configureMappings(config, modelDesc);
+            Configuration config = 
+                configurator.newModelConfiguration(modelDesc, false);
     
             log.info("Dropping schema for model '" + modelDesc.name + "'");
             
@@ -2276,195 +2551,18 @@ public class HibernateMDRepository
         }            
     }
     
-    private void configureMappings(
-        Configuration config, ModelDescriptor modelDesc)
-    {
-        URL mappingUrl = getModelMappingUrl(modelDesc);        
-        config.addURL(mappingUrl);
-
-        for(ModelPluginDescriptor pluginDesc: modelDesc.plugins) {
-            URL pluginMappingUrl = getModelMappingUrl(pluginDesc);
-            config.addURL(pluginMappingUrl);
-        }
-    }
-    
-    private void configureIndexMappings(
-        Configuration config, ModelDescriptor modelDesc)
-    {
-        URL indexMappingUrl = getIndexMappingUrl(modelDesc);
-        config.addURL(indexMappingUrl);
-    }
-    
-    private URL getModelMappingUrl(AbstractModelDescriptor modelDesc)
-    {
-        return getMappingUrl(modelDesc, false);
-    }
-    
-    private URL getIndexMappingUrl(AbstractModelDescriptor modelDesc)
-    {
-        return getMappingUrl(modelDesc, true);
-    }
-    
-    private URL getMappingUrl(
-        AbstractModelDescriptor modelDesc, boolean getIndexMapping)
-    {
-        if (modelDesc.mappingUrl == null) {
-            String configUrlStr = 
-                modelDesc.properties.getProperty(
-                    MDRepositoryFactory.PROPERTY_ENKI_RUNTIME_CONFIG_URL);
-            
-            log.config(
-                "Model" 
-                + (modelDesc.isPlugin() ? " Plugin" : "")
-                + ": "
-                + modelDesc.name
-                + ", Mapping URL: "
-                + configUrlStr);
-            
-            URL configUrl;
-            try {
-                configUrl = new URL(configUrlStr);
-            } catch(MalformedURLException e) {
-                throw new ProviderInstantiationException(
-                    "Cannot parse configuration URL", e);
-            }
-            
-            URL mappingUrl;
-            try {
-                mappingUrl = new URL(configUrl, MAPPING_XML);
-            } catch (MalformedURLException e) {
-                throw new ProviderInstantiationException(
-                    "Cannot parse mapping URL", e);
-            }
-    
-            URL indexMappingUrl;
-            try {
-                indexMappingUrl = new URL(configUrl, INDEX_MAPPING_XML);
-            } catch (MalformedURLException e) {
-                throw new ProviderInstantiationException(
-                    "Cannot parse index mapping URL", e);
-            }
-            
-            modelDesc.mappingUrl = mappingUrl;
-            modelDesc.indexMappingUrl = indexMappingUrl;
-        }
-        
-        if (getIndexMapping) {
-            return modelDesc.indexMappingUrl;
-        } else {
-            return modelDesc.mappingUrl;
-        }
-    }
-    
-    private void initModelMap()
-    {
-        Class<? extends RefPackage> mofPkgCls =
-            org.eigenbase.enki.jmi.model.ModelPackage.class;
-        
-        ModelDescriptor mofModelDesc =
-            new ModelDescriptor(
-                MOF_EXTENT, mofPkgCls, null, new Properties());
-        modelMap.put(MOF_EXTENT, mofModelDesc);
-        
-        log.info("Initializing Model Descriptor: " + MOF_EXTENT);
-        
-        List<Properties> sortedModelPropertiesList = 
-            new ArrayList<Properties>(modelPropertiesList);
-        Collections.sort(
-            sortedModelPropertiesList, new ModelPropertiesComparator());
-        
-        for(Properties modelProperties: sortedModelPropertiesList) {
-            String name = 
-                modelProperties.getProperty(
-                    MDRepositoryFactory.PROPERTY_ENKI_EXTENT);
-            if (name == null) {
-                throw new ProviderInstantiationException(
-                    "Extent name missing from model properties");
-            }
-            
-            if (isPlugin(modelProperties)) {
-                String pluginName = 
-                    modelProperties.getProperty(PROPERTY_MODEL_INITIALIZER);
-                if (pluginName != null) {
-                    int pos = pluginName.indexOf(".init");
-                    if (pos > 0) {
-                        pluginName = pluginName.substring(0, pos);
-                    }
-                } else {
-                    pluginName = name;
-                }
-                ModelPluginDescriptor modelPluginDesc =
-                    new ModelPluginDescriptor(pluginName, modelProperties);
-
-                ModelDescriptor modelDesc = modelMap.get(name);
-                
-                modelDesc.plugins.add(modelPluginDesc);
-                
-                log.info(
-                    "Initialized Model Plugin Descriptor: " + pluginName + 
-                    " (" + name + ")");
-                
-            } else {
-                String topLevelPkg = 
-                    modelProperties.getProperty(
-                        MDRepositoryFactory.PROPERTY_ENKI_TOP_LEVEL_PKG);
-                if (topLevelPkg == null) {
-                    throw new ProviderInstantiationException(
-                        "Top-level package name missing from model properties");
-                }
-
-                Class<?> cls;
-                try {
-                    cls = 
-                        Class.forName(
-                            topLevelPkg,
-                            true, 
-                            Thread.currentThread().getContextClassLoader());
-                } catch (ClassNotFoundException e) {
-                    throw new ProviderInstantiationException(
-                        "Top-level package '" + topLevelPkg + "' not found",
-                        e);
-                }
-
-                Class<? extends RefPackage> topLevelPkgCls =
-                    cls.asSubclass(RefPackage.class);
-                    
-                Constructor<? extends RefPackage> topLevelPkgCons;
-                try {
-                    topLevelPkgCons = 
-                        topLevelPkgCls.getConstructor(RefPackage.class);
-                } catch (NoSuchMethodException e) {
-                    throw new ProviderInstantiationException(
-                        "Cannot find constructor for top-level package class '"
-                        + topLevelPkgCls.getName() + "'",
-                        e);
-                }
-                
-                ModelDescriptor modelDesc =
-                    new ModelDescriptor(
-                        name, 
-                        topLevelPkgCls,
-                        topLevelPkgCons, 
-                        modelProperties);
-                
-                modelMap.put(name, modelDesc);
-                
-                log.fine("Initialized Model Descriptor: " + name);
-            }
-        }
-    }
-    
     private void initModelExtent(String name, boolean isNew)
     {
         boolean isMof = name.equals(MOF_EXTENT);
 
-        ModelDescriptor modelDesc = modelMap.get(name);
+        ModelDescriptor modelDesc = configurator.getModelMap().get(name);
         if (modelDesc == null) {
             throw new InternalMdrError(
                 "Unknown metamodel extent '" + name + "'");
         }
+        
         ModelDescriptor mofDesc = 
-            isMof ? null : modelMap.get(MOF_EXTENT);
+            isMof ? null : configurator.getModelMap().get(MOF_EXTENT);
         
         log.info("Initializing Extent Descriptor: " + name);
         
@@ -2560,12 +2658,6 @@ public class HibernateMDRepository
         log.log(level, msg, t);
     }
     
-    private static boolean isPlugin(Properties modelProps)
-    {
-        return Boolean.parseBoolean(
-            modelProps.getProperty(PROPERTY_MODEL_PLUGIN, "false"));
-    }
-    
     private void startPeriodicStats()
     {
         if (periodicStatsInterval <= 0) {
@@ -2623,78 +2715,19 @@ public class HibernateMDRepository
         periodicStatsTimer.cancel();
     }
     
-    protected static abstract class AbstractModelDescriptor
-    {
-        protected final String name;
-        protected final Properties properties;        
-        protected URL mappingUrl;
-        protected URL indexMappingUrl;
-        
-        protected AbstractModelDescriptor(String name, Properties properties)
-        {
-            this.name = name;
-            this.properties = properties;
-        }
-        
-        protected abstract boolean isPlugin();
-    }
-    
-    /**
-     * ModelDescriptor describes a meta-model.
-     */
-    protected static class ModelDescriptor extends AbstractModelDescriptor
-    {
-        protected final Class<? extends RefPackage> topLevelPkgCls;
-        protected final Constructor<? extends RefPackage> topLevelPkgCons;
-        protected final List<ModelPluginDescriptor> plugins;
-        
-        protected ModelDescriptor(
-            String name,
-            Class<? extends RefPackage> topLevelPkgCls,
-            Constructor<? extends RefPackage> topLevelPkgCons,
-            Properties properties)
-        {
-            super(name, properties);
-            this.topLevelPkgCls = topLevelPkgCls;
-            this.topLevelPkgCons = topLevelPkgCons;
-            this.plugins = new ArrayList<ModelPluginDescriptor>();
-        }
-        
-        protected boolean isPlugin()
-        {
-            return false;
-        }
-    }    
-    
-    /**
-     * ModelPluginDescriptor describes a meta-model plug-in
-     */
-    protected static class ModelPluginDescriptor extends AbstractModelDescriptor
-    {
-        protected ModelPluginDescriptor(String name, Properties properties)
-        {
-            super(name, properties);
-        }
-        
-        protected boolean isPlugin()
-        {
-            return true;
-        }
-    }
-    
     /**
      * ExtentDescriptor describes an instantiated model extent.
      */
-    private static class ExtentDescriptor
+    protected static class ExtentDescriptor
     {
-        private final String name;
-        private ModelDescriptor modelDescriptor;
-        private RefPackage extent;
-        private MetamodelInitializer initializer;
-        private List<MetamodelInitializer> pluginInitializers;
-        private boolean builtIn;
+        protected final String name;
+        protected ModelDescriptor modelDescriptor;
+        protected RefPackage extent;
+        protected MetamodelInitializer initializer;
+        protected List<MetamodelInitializer> pluginInitializers;
+        protected boolean builtIn;
         
-        private ExtentDescriptor(String name)
+        public ExtentDescriptor(String name)
         {
             this.name = name;
             this.pluginInitializers = new ArrayList<MetamodelInitializer>();
@@ -2850,33 +2883,7 @@ public class HibernateMDRepository
             this.isImplicit = isImplicit;
             this.isCommitter = isCommitter;
         }
-    }
-    
-    /**
-     * ModelPropertiesComparator sorts model {@link Properties} objects by
-     * their plug-in flag.  All non-plug-in model property sets come first, 
-     * followed by those for plug-in models.  The relative ordering of the
-     * two groups remains stable if the sorting algorithm is stable.
-     */
-    private static class ModelPropertiesComparator
-        implements Comparator<Properties>
-    {
-        public int compare(Properties modelProps1, Properties modelProps2)
-        {
-            boolean isPlugin1 = isPlugin(modelProps1);
-            boolean isPlugin2 = isPlugin(modelProps2);
-            
-            if (isPlugin1 == isPlugin2) {
-                return 0;
-            }
-            
-            if (isPlugin1) {
-                return 1;
-            }
-            
-            return -1;
-        }
-    }
+    }    
 }
 
 // End HibernateMDRepository.java

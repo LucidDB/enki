@@ -319,6 +319,13 @@ public class EnkiTask
         mapJavaSubTask.setTask(this);
         return mapJavaSubTask;
     }
+
+    public void add(EnkiSubTask enkiSubTask)
+    {
+        SubTask providerSpecificSubTask = (SubTask)enkiSubTask;
+        subTasks.add(providerSpecificSubTask);
+        providerSpecificSubTask.setTask(this);
+    }
     
     void setMDRepository(EnkiMDRepository mdr)
     {
@@ -530,7 +537,7 @@ public class EnkiTask
      * SubTask is an abstract base class for sub-tasks nested with an outer
      * {@link EnkiTask}.
      */
-    abstract static class SubTask
+    public abstract static class SubTask implements EnkiSubTask
     {
         private final String name;
         private EnkiTask task;
@@ -540,7 +547,7 @@ public class EnkiTask
             this.name = name;
         }
         
-        abstract void execute() throws BuildException;
+        protected abstract void execute() throws BuildException;
         
         void setTask(EnkiTask task)
         {
@@ -572,9 +579,42 @@ public class EnkiTask
             return task.getMDRepository(create);
         }
         
+        protected Properties getStorageProperties()
+        {
+            return task.getStorageProperties(true);
+        }
+        
         protected void verbose(String msg)
         {
             task.log(msg, Project.MSG_VERBOSE);
+        }
+    }
+    
+    public static class DuplicateProviderSpecificSubTaskException 
+        extends RuntimeException
+    {
+        private static final long serialVersionUID = -1087481338333794155L;
+
+        private final String name;
+        private final Class<? extends SubTask> oldType;
+        private final Class<? extends SubTask> newType;
+        
+        public DuplicateProviderSpecificSubTaskException(
+            String name, 
+            Class<? extends SubTask> oldType, 
+            Class<? extends SubTask> newType)
+        {
+            this.name = name;
+            this.oldType = oldType;
+            this.newType = newType;
+        }
+        
+        public String getMessage()
+        {
+            return 
+                "duplicate provider-specific sub-task named '" + name 
+                + "'; old class: " + oldType.getName() 
+                + ", new class: " + newType.getName();
         }
     }
 }

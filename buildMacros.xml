@@ -75,6 +75,8 @@
   <!-- properties for thirdparty libraries -->
   <property name="commons-collections.dir" location="${thirdparty.dir}/commons-collections"/>
   <property name="commons-logging.dir" location="${thirdparty.dir}/commons-logging"/>
+  <property name="commons-dbcp.dir" location="${thirdparty.dir}/commons-dbcp"/>
+  <property name="commons-pool.dir" location="${thirdparty.dir}/commons-pool"/>
   <property name="hibernate.dir" location="${thirdparty.dir}/hibernate-3.1"/>
   <property name="ehcache.dir" location="${thirdparty.dir}/ehcache"/>
   <property name="hsqldb.dir" location="${thirdparty.dir}/hsqldb"/>
@@ -82,6 +84,7 @@
   <property name="ant.dir" location="${thirdparty.dir}/ant"/>
   <property name="jgrapht.dir" location="${thirdparty.dir}/jgrapht"/>
   <property name="findbugs.dir" location="${thirdparty.dir}/findbugs"/>
+  <property name="simplejndi.dir" location="${thirdparty.dir}/simple-jndi"/>
 
   <property name="enki.javasrc.version" value="1.5"/>
 
@@ -137,6 +140,9 @@
       <include name="findbugs.jar"/>
       <include name="bcel.jar"/>
     </fileset>
+    <fileset dir="${commons-dbcp.dir}" includes="*.jar"/>
+    <fileset dir="${commons-pool.dir}" includes="*.jar"/>
+    <fileset dir="${simplejndi.dir}" includes="*.jar"/>
   </path>
   <property name="enki.3p.build.classpath" refid="enki.3p.build.classpath"/>
 
@@ -283,6 +289,12 @@
     <taskdef 
       name="enki.mdr.task" 
       classname="org.eigenbase.enki.ant.EnkiTask"
+      classpathref="enki.run.classpath"/>
+
+    <!-- Enki provider-specific sub tasks. -->
+    <typedef 
+      name="exportSchema"
+      classname="org.eigenbase.enki.hibernate.ant.ExportSchemaSubTask"
       classpathref="enki.run.classpath"/>
 
     <path id="empty.ref.id"/>

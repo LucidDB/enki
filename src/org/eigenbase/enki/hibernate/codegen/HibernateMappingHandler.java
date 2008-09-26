@@ -29,7 +29,6 @@ import javax.jmi.model.*;
 
 import org.eigenbase.enki.codegen.*;
 import org.eigenbase.enki.hibernate.*;
-import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 import org.hibernate.dialect.*;
@@ -46,7 +45,7 @@ import org.hibernate.dialect.*;
 public class HibernateMappingHandler
     extends XmlHandlerBase
     implements ClassInstanceHandler, AssociationHandler, PackageHandler, 
-               EnumerationClassHandler, MofInitHandler.SubordinateHandler
+               MofInitHandler.SubordinateHandler
 {
     /** Suffix for the cache region used by a particular metamodel. */ 
     public static final String CACHE_REGION_SUFFIX = "ENKI";
@@ -55,13 +54,10 @@ public class HibernateMappingHandler
     public static final String CACHE_REGION_QUERY_SUFFIX = "_QUERY";
     
     /** Name of the column that stores an entity's MOF ID. */
-    private static final String MOF_ID_COLUMN_NAME = "mofId";
+    public static final String MOF_ID_COLUMN_NAME = "mofId";
 
     /** Name of the object property that stores an entity's MOF ID. */
     private static final String MOF_ID_PROPERTY_NAME = "mofId";
-
-    /** Suffix for enumeration type defs. */
-    private static final String TYPEDEF_SUFFIX = "Type";
 
     /** Name of the type property for association. */
     private static final String ASSOC_TYPE_PROPERTY = "type";
@@ -73,11 +69,11 @@ public class HibernateMappingHandler
     public static final String ASSOC_ONE_TO_ONE_LAZY_TABLE = "AssocOneToOneLazy";
     private static final String ASSOC_ONE_TO_ONE_PARENT_TYPE_COLUMN = 
         "parentType";
-    private static final String ASSOC_ONE_TO_ONE_PARENT_ID_COLUMN =
+    static final String ASSOC_ONE_TO_ONE_PARENT_ID_COLUMN =
         "parentId";
     private static final String ASSOC_ONE_TO_ONE_CHILD_TYPE_COLUMN = 
         "childType";
-    private static final String ASSOC_ONE_TO_ONE_CHILD_ID_COLUMN =
+    static final String ASSOC_ONE_TO_ONE_CHILD_ID_COLUMN =
         "childId";
 
     public static final String ASSOC_ONE_TO_MANY_LAZY_TABLE = 
@@ -86,7 +82,7 @@ public class HibernateMappingHandler
         "AssocOneToManyLazyOrdered";    
     private static final String ASSOC_ONE_TO_MANY_PARENT_TYPE_COLUMN = 
         "parentType";
-    private static final String ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN =
+    static final String ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN =
         "parentId";
     public static final String ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY = 
         "children";
@@ -149,9 +145,6 @@ public class HibernateMappingHandler
     public static final String QUERY_PREFIX_ASSOC_DELETE_MEMBER_BY_MOFIDS = 
         "EnkiAssociation.deleteMember.";
 
-    private static final JavaClassReference ENUM_USER_TYPE_CLASS =
-        new JavaClassReference(EnumUserType.class, false);
-
     /**
      * Controls when the mapping switches from Hibernate's "string" type to
      * the "text" type.  The distinction is that the "text" type uses 
@@ -161,6 +154,25 @@ public class HibernateMappingHandler
      */
     private static final int STRING_TEXT_CROSSOVER = 32768;
 
+    private static final int ENUM_COLUMN_LENGTH = 128;
+
+    private static final Dialect[][] dialectSet = new Dialect[][] {
+        {
+            DialectFactory.buildDialect(MySQLDialect.class.getName()),
+            DialectFactory.buildDialect(MySQLInnoDBDialect.class.getName()),
+            DialectFactory.buildDialect(MySQLMyISAMDialect.class.getName()),
+        },
+        {
+            // REVIEW: SWZ: 2008-08-26: If we only use the exemplar (first)
+            // dialect for quoting, this is fine as HSQLDB uses the SQL 
+            // standard double-quotes. If we actually need to check dialect 
+            // features, this will not do.
+            DialectFactory.buildDialect(HSQLDialect.class.getName())
+        }
+    };
+    
+
+    
     private Set<Classifier> allTypes;
     
     /** Maps a component type to a list of references to it. */
@@ -177,6 +189,7 @@ public class HibernateMappingHandler
     
     private String tablePrefix;
     private int defaultStringLength;
+    private boolean generateViews;
     
     private String initializerName;
 
@@ -199,7 +212,7 @@ public class HibernateMappingHandler
         this.componentAttribMap = 
             new HashMap<Classifier, List<ComponentInfo>>();
         
-        this.defaultStringLength = CodeGenUtils.DEFAULT_STRING_LENGTH;
+        this.defaultStringLength = CodeGenUtils.DEFAULT_STRING_LENGTH;        
     }
 
     public void setExtentName(String extentName)
@@ -212,6 +225,11 @@ public class HibernateMappingHandler
         this.tablePrefix = tablePrefix;
     }
 
+    public void setGenerateViews(boolean generateViews)
+    {
+        this.generateViews = generateViews;
+    }
+    
     /**
     * Configures a default string column length, measured in characters.  
     * If left unspecified, the value of
@@ -338,7 +356,7 @@ public class HibernateMappingHandler
         close();
         
         if (!throwing) {
-            if (!pluginMode) {
+            if (!pluginMode || generateViews) {
                 File enkiIndexMappingFile = 
                     new File(
                         metaInfEnkiDir, 
@@ -346,7 +364,15 @@ public class HibernateMappingHandler
                 
                 open(enkiIndexMappingFile);
                 startMapping();
-                writeIndexDefinitions();
+                
+                if (!pluginMode) {
+                    writeIndexDefinitions();
+                }
+                
+                if (generateViews) {
+                    writeViews();
+                }
+                                
                 endMapping();
                 close();
             }
@@ -379,6 +405,11 @@ public class HibernateMappingHandler
             writeln(
                 HibernateMDRepository.PROPERTY_MODEL_PLUGIN, "=",
                 pluginMode);
+            if (tablePrefix != null) {
+                writeln(
+                    HibernateMDRepository.PROPERTY_MODEL_TABLE_PREFIX, "=",
+                    tablePrefix);
+            }
             close();
         }
         
@@ -735,7 +766,7 @@ public class HibernateMappingHandler
     private void generateAllOfTypeQueries() throws GenerationException
     {
         for(Classifier cls: allTypes) {
-            String interfaceName = generator.getTypeName(cls);
+            String interfaceName = CodeGenUtils.getTypeName(cls);
 
             String queryName = interfaceName + "." + QUERY_NAME_ALLOFTYPE;
             
@@ -753,6 +784,18 @@ public class HibernateMappingHandler
         }
     }
     
+    /**
+     * Generate joinable all-of-type views for all classes, abstract or 
+     * otherwise. 
+     */
+    private void writeViews() throws GenerationException
+    {
+        HibernateViewMappingUtil viewMappingUtil = 
+            new HibernateViewMappingUtil(this, dialectSet, tablePrefix);
+        
+        viewMappingUtil.generateViews(allTypes);
+    }
+
     private void writeIndexDefinitions() throws GenerationException
     {
         generateIndexDefinition(
@@ -771,39 +814,40 @@ public class HibernateMappingHandler
     
     private void generateIndexDefinition(String table, String... columns) 
         throws GenerationException
-    {        
-        startElem("database-object");
-        startElem("create");
-        writeText(
-            "create index ", indexName(table), " on ", tableName(table), " (");
-        increaseIndent();
-        for(int i = 0; i < columns.length; i++) {
-            String c = columns[i];
-            if (i + 1 < columns.length) {
-                writeText(hibernateQuote(c), ",");
-            } else {
-                writeText(hibernateQuote(c), ")");
+    {
+        for(Dialect[] dialects: dialectSet) {
+            Dialect exemplar = dialects[0];
+            
+            startElem("database-object");
+            startElem("create");
+            writeText(
+                "create index ", indexName(table, exemplar), " on ", 
+                tableName(table, exemplar), " (");
+            increaseIndent();
+            for(int i = 0; i < columns.length; i++) {
+                String c = columns[i];
+                if (i + 1 < columns.length) {
+                    writeText(quote(c, exemplar), ",");
+                } else {
+                    writeText(quote(c, exemplar), ")");
+                }
             }
-        }
-        decreaseIndent();
-        endElem("create");
+            decreaseIndent();
+            endElem("create");
 
-        // Dropping the table will take care of the indexes.
-        startElem("drop");
-        writeText(
-            "alter table ", tableName(table), 
-            " drop index ", indexName(table));
-        endElem("drop");
-        writeEmptyElem(
-            "dialect-scope", 
-            "name", MySQLDialect.class.getName());
-        writeEmptyElem(
-            "dialect-scope", 
-            "name", MySQLInnoDBDialect.class.getName());
-        writeEmptyElem(
-            "dialect-scope", 
-            "name", MySQLMyISAMDialect.class.getName());
-        endElem("database-object");
+            startElem("drop");
+            writeText(
+                "alter table ", tableName(table, exemplar), 
+                " drop index ", indexName(table, exemplar));
+            endElem("drop");
+            
+            for(Dialect dialect: dialects) {
+                writeEmptyElem(
+                    "dialect-scope", 
+                    "name", dialect.getClass().getName());
+            }
+            endElem("database-object");            
+        }
     }
     
     public void generateClassInstance(MofClass cls)
@@ -826,7 +870,7 @@ public class HibernateMappingHandler
         if (getPassIndex() == 0) {
             if (!cls.isAbstract()) {
                 Collection<Attribute> instanceAttributes =
-                    contentsOfType(
+                    CodeGenUtils.contentsOfType(
                         cls,
                         HierachySearchKindEnum.ENTITY_ONLY, 
                         VisibilityKindEnum.PUBLIC_VIS,
@@ -843,17 +887,16 @@ public class HibernateMappingHandler
                     
                     addComponentAttrib(
                         attrib.getType(), 
-                        new ComponentInfo(
-                            generator, cls, attrib, false));
+                        new ComponentInfo(cls, attrib, false));
                 }
             }
             return;
         }
         
         String typeName = 
-            generator.getTypeName(cls, HibernateJavaHandler.IMPL_SUFFIX);
+            CodeGenUtils.getTypeName(cls, HibernateJavaHandler.IMPL_SUFFIX);
         
-        String tableName = generator.getSimpleTypeName(cls);
+        String tableName = CodeGenUtils.getSimpleTypeName(cls);
         
         allTypes.add(cls);
         
@@ -886,7 +929,7 @@ public class HibernateMappingHandler
         
         // Attributes
         Collection<Attribute> instanceAttributes =
-            contentsOfType(
+            CodeGenUtils.contentsOfType(
                 cls,
                 HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                 VisibilityKindEnum.PUBLIC_VIS,
@@ -899,7 +942,7 @@ public class HibernateMappingHandler
             }
             
             String fieldName = attrib.getName();
-            fieldName = generator.getClassFieldName(fieldName);
+            fieldName = CodeGenUtils.getClassFieldName(fieldName);
             
             String propertyName = fieldName + HibernateJavaHandler.IMPL_SUFFIX;
             
@@ -908,23 +951,17 @@ public class HibernateMappingHandler
                 getMappingType(attribType, attrib.getMultiplicity());
             switch (mappingType) {
             case ENUMERATION:
-                {
-                    // Enumeration type; use a custom type definition
-                    String typedefName = generator.getSimpleTypeName(
-                        attrib.getType(),
-                        TYPEDEF_SUFFIX);
-    
-                    writeEmptyElem(
-                        "property",
-                        "name", propertyName,
-                        "column", hibernateQuote(fieldName),
-                        "type", typedefName);
-                }
+                writeEmptyElem(
+                    "property",
+                    "name", propertyName,
+                    "column", hibernateQuote(fieldName),
+                    "type", "string",
+                    "length", ENUM_COLUMN_LENGTH);
                 break;
             
             case CLASS:
                 componentInfos.add(
-                    new ComponentInfo(generator, cls, attrib, true));
+                    new ComponentInfo(cls, attrib, true));
                 break;
 
             case STRING:
@@ -1001,13 +1038,13 @@ public class HibernateMappingHandler
 
         // References
         Collection<Reference> instanceReferences =
-            contentsOfType(
+            CodeGenUtils.contentsOfType(
                 cls,
                 HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                 VisibilityKindEnum.PUBLIC_VIS,
                 Reference.class);
         for(Reference ref: instanceReferences) {
-            ReferenceInfo refInfo = new ReferenceInfoImpl(generator, ref);
+            ReferenceInfo refInfo = new ReferenceInfoImpl(ref);
 
             generateAssociationField(refInfo);                
         }
@@ -1018,7 +1055,6 @@ public class HibernateMappingHandler
         
         Collection<Association> unreferencedAssociations = 
             CodeGenUtils.findUnreferencedAssociations(
-                generator,
                 assocInfoMap,
                 cls,
                 instanceReferences, 
@@ -1107,7 +1143,8 @@ public class HibernateMappingHandler
     private void generateAssociationField(ReferenceInfo refInfo)
         throws GenerationException
     {
-        String fieldName = refInfo.getFieldName();
+        String fieldName = 
+            generator.transformIdentifier(refInfo.getFieldName());
 
         // NOTE: Cannot specify not-null=true here because Hibernate
         // may try to insert the object without the association and
@@ -1128,6 +1165,16 @@ public class HibernateMappingHandler
         return "`" + fieldName + "`";
     }
     
+    private String quote(String name, Dialect dialect)
+    {
+        StringBuilder b = new StringBuilder();
+        b
+            .append(dialect.openQuote())
+            .append(name)
+            .append(dialect.closeQuote());
+        return b.toString();
+    }
+    
     private String tableName(String tableName)
     {
         if (tablePrefix != null) {
@@ -1137,16 +1184,25 @@ public class HibernateMappingHandler
         return hibernateQuote(tableName);
     }
     
-    private String indexName(String tableName)
+    private String tableName(String tableName, Dialect dialect)
     {
         if (tablePrefix != null) {
             tableName = tablePrefix + tableName;
         }
         
-        return hibernateQuote(tableName + "Index");
+        return quote(tableName, dialect);
     }
     
-    private MappingType getMappingType(
+    private String indexName(String tableName, Dialect dialect)
+    {
+        if (tablePrefix != null) {
+            tableName = tablePrefix + tableName;
+        }
+        
+        return quote(tableName + "Index", dialect);
+    }
+    
+    protected static MappingType getMappingType(
         Classifier type, MultiplicityType multiplicity)
     {
         if (type instanceof PrimitiveType) {
@@ -1223,37 +1279,9 @@ public class HibernateMappingHandler
         throws GenerationException
     {
         if (getPassIndex() == 0) {
-            AssociationInfo assocInfo = 
-                new AssociationInfoImpl(generator, assoc);
+            AssociationInfo assocInfo = new AssociationInfoImpl(assoc);
             assocInfoMap.put(assoc, assocInfo);
         }
-    }
-
-    public void generateEnumerationClass(EnumerationType enumType)
-        throws GenerationException
-    {
-        if (!isIncluded(enumType)) {
-            log.fine(
-                "Skipping Excluded Enumeration Mapping for '" 
-                + enumType.getName() + "'");
-            return;
-        }
-        
-        if (getPassIndex() != 0) {
-            return;
-        }
-
-        String typeName = generator.getTypeName(enumType, ENUM_CLASS_SUFFIX);
-
-        String typedefName = 
-            generator.getSimpleTypeName(enumType, TYPEDEF_SUFFIX);
-        
-        startElem(
-            "typedef", "name", typedefName, "class", ENUM_USER_TYPE_CLASS);
-        writeSimpleElem(
-            "param", typeName, "name", EnumUserType.ENUM_CLASS_PARAM);
-        endElem("typedef");
-        newLine();
     }
 
     public void generatePackage(MofPackage pkg)
@@ -1274,7 +1302,7 @@ public class HibernateMappingHandler
             // TODO: reinstate
 //            assert(topLevelPackage == null);
             topLevelPackage =
-                generator.getTypeName(
+                CodeGenUtils.getTypeName(
                     pkg, PACKAGE_SUFFIX + HibernateJavaHandler.IMPL_SUFFIX);
         }
     }
@@ -1348,12 +1376,12 @@ public class HibernateMappingHandler
             return null;
         }
     }
-
+    
     /**
      * MappingType distinguishes between several ways that an {@link Attribute}
      * may be mapped to a database column.
      */
-    private enum MappingType
+    enum MappingType
     {
         /** Boolean value. */
         BOOLEAN,

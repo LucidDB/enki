@@ -85,7 +85,7 @@ public class CreateExtentSubTask extends EnkiTask.SubTask
     }
     
     @Override
-    void execute() throws BuildException
+    protected void execute() throws BuildException
     {
         if (extentName == null) {
             throw new BuildException(

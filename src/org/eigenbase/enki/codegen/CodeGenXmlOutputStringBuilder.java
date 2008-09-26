@@ -19,39 +19,41 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
-package org.eigenbase.enki.ant;
+package org.eigenbase.enki.codegen;
 
-import org.eigenbase.enki.mdr.*;
-
+import java.io.*;
 
 /**
- * PrintExtentNamesSubTask prints a list of existing extent names.
- * 
- * <p>Attributes: None.
+ * CodeGenXmlOutputStringBuilder implements {@link CodeGenXmlOutput} and
+ * stores the generated XML output as a string.
  * 
  * @author Stephan Zuercher
  */
-public class PrintExtentNames extends EnkiTask.SubTask
+public class CodeGenXmlOutputStringBuilder
+    extends AbstractCodeGenXmlOutput
+    implements CodeGenXmlOutput
 {
-    public PrintExtentNames(String name)
+    private final StringWriter stringWriter;
+    
+    public CodeGenXmlOutputStringBuilder()
     {
-        super(name);
+        super();
+        
+        this.stringWriter = new StringWriter();
+        
+        setOutput(new PrintWriter(stringWriter));
+        setEncoding("UTF-8");
     }
-
-    @Override
-    protected void execute()
+    
+    public String getOutput()
     {
-        EnkiMDRepository repos = getMDRepository(true);
-        repos.beginSession();
-        try {
-            String[] extentNames = repos.getExtentNames();
-            for(String extentName: extentNames) {
-                System.out.println(extentName);
-            }
-        } finally {
-            repos.endSession();
-        }
+        return stringWriter.toString();
+    }
+    
+    public void clearOutput()
+    {
+        stringWriter.getBuffer().setLength(0);
     }
 }
 
-// End PrintExtentNames.java
+// End CodeGenXmlOutputStringBuilder.java

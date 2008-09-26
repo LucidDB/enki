@@ -587,8 +587,7 @@ public class HibernateJavaHandler
                 "Skipping Excluded Association '" + assoc.getName() + "'");
             
             if (getPassIndex() == 0) {
-                AssociationInfo assocInfo = 
-                    new AssociationInfoImpl(generator, assoc);
+                AssociationInfo assocInfo = new AssociationInfoImpl(assoc);
                 assocInfoMap.put(assoc, assocInfo);
             }
             return;
@@ -606,13 +605,13 @@ public class HibernateJavaHandler
             return;
         }
         
-        String interfaceName = generator.getTypeName(assoc);
+        String interfaceName = CodeGenUtils.getTypeName(assoc);
         
         String typeName = interfaceName + IMPL_SUFFIX;
 
         log.fine("Generating Association Implementation '" + typeName + "'");
 
-        AssociationInfo assocInfo = new AssociationInfoImpl(generator, assoc);
+        AssociationInfo assocInfo = new AssociationInfoImpl(assoc);
         assocInfoMap.put(assoc, assocInfo);
         
         open(typeName);
@@ -724,7 +723,7 @@ public class HibernateJavaHandler
                 String returnTypeName = 
                     assocInfo.isSingle(0)
                         ? assocInfo.getEndType(0)
-                        : generator.getCollectionType(
+                        : CodeGenUtils.getCollectionType(
                             ordered 
                                 ? JmiTemplateHandler.ORDERED_COLLECTION_CLASS
                                 : JmiTemplateHandler.COLLECTION_CLASS,
@@ -732,7 +731,8 @@ public class HibernateJavaHandler
                 startGenericMethodBlock(
                     assoc,
                     returnTypeName,
-                    generator.getAccessorName(assocInfo.getEnd(0), null),
+                    CodeGenUtils.getAccessorName(
+                        generator, assocInfo.getEnd(0), null),
                     new String[] { assocInfo.getEndType(1) },
                     new String[] { assocInfo.getEndIdentifier(1) });
                 switch(assocInfo.getKind()) {
@@ -786,7 +786,7 @@ public class HibernateJavaHandler
                 String returnTypeName = 
                     assocInfo.isSingle(1) 
                         ? assocInfo.getEndType(1)
-                        : generator.getCollectionType(
+                        : CodeGenUtils.getCollectionType(
                             ordered 
                                 ? JmiTemplateHandler.ORDERED_COLLECTION_CLASS
                                 : JmiTemplateHandler.COLLECTION_CLASS,
@@ -794,7 +794,7 @@ public class HibernateJavaHandler
                 startGenericMethodBlock(
                     assoc,
                     returnTypeName,
-                    generator.getAccessorName(assocInfo.getEnd(1), null),
+                    CodeGenUtils.getAccessorName(generator, assocInfo.getEnd(1), null),
                     new String[] { assocInfo.getEndType(0) },
                     new String[] { assocInfo.getEndIdentifier(0) });
                 switch(assocInfo.getKind()) {
@@ -929,7 +929,7 @@ public class HibernateJavaHandler
             ? HierachySearchKindEnum.ENTITY_ONLY
             : HierachySearchKindEnum.INCLUDE_SUPERTYPES;
         Collection<Attribute> instanceAttributes =
-            contentsOfType(
+            CodeGenUtils.contentsOfType(
                 cls,
                 includeSupertypes, 
                 VisibilityKindEnum.PUBLIC_VIS,
@@ -956,7 +956,7 @@ public class HibernateJavaHandler
             for(Attribute attrib: nonDataTypeAttribs) {
                 addComponentAttrib(
                     attrib.getType(), 
-                    new ComponentInfo(generator, cls, attrib, false));
+                    new ComponentInfo(cls, attrib, false));
             }
         }
         
@@ -964,7 +964,7 @@ public class HibernateJavaHandler
             return;
         }
         
-        String interfaceName = generator.getTypeName(cls);
+        String interfaceName = CodeGenUtils.getTypeName(cls);
         
         String typeName = interfaceName + IMPL_SUFFIX;
 
@@ -978,7 +978,7 @@ public class HibernateJavaHandler
             "Generating Class Instance Implementation '" + typeName + "'");
 
         Collection<Reference> instanceReferences =
-            contentsOfType(
+            CodeGenUtils.contentsOfType(
                 cls,
                 includeSupertypes, 
                 VisibilityKindEnum.PUBLIC_VIS,
@@ -992,7 +992,6 @@ public class HibernateJavaHandler
 
         Collection<Association> unreferencedAssociations = 
             CodeGenUtils.findUnreferencedAssociations(
-                generator,
                 assocInfoMap,
                 cls,
                 instanceReferences, 
@@ -1044,7 +1043,8 @@ public class HibernateJavaHandler
                             IMPL_SUFFIX,
                             PROTECTED_SCOPE, 
                             false, 
-                            false);
+                            false,
+                            true);
                     nonDerivedAttribNames.put(attrib, fieldName);
                 }
             }
@@ -1058,7 +1058,8 @@ public class HibernateJavaHandler
                     
                     writeField(
                         makeType(refInfo),
-                        refInfo.getFieldName() + IMPL_SUFFIX, 
+                        generator.transformIdentifier(refInfo.getFieldName())
+                            + IMPL_SUFFIX, 
                         PROTECTED_SCOPE, 
                         false,
                         false);
@@ -1077,7 +1078,8 @@ public class HibernateJavaHandler
                     
                     writeField(
                         makeType(refInfo),
-                        refInfo.getFieldName() + IMPL_SUFFIX,
+                        generator.transformIdentifier(refInfo.getFieldName())
+                            + IMPL_SUFFIX,
                         PROTECTED_SCOPE,
                         false,
                         false);
@@ -1190,7 +1192,7 @@ public class HibernateJavaHandler
         for(Attribute attrib: nonDataTypeAttribs) {
             componentInfoMap.put(
                 attrib,
-                new ComponentInfo(generator, cls, attrib, true));
+                new ComponentInfo(cls, attrib, true));
         }
         return componentInfoMap;
     }
@@ -1202,7 +1204,7 @@ public class HibernateJavaHandler
         Map<Reference, ReferenceInfo> refInfoMap =
             new HashMap<Reference, ReferenceInfo>();
         for(Reference ref: instanceReferences) {
-            ReferenceInfo refInfo = new ReferenceInfoImpl(generator, ref);
+            ReferenceInfo refInfo = new ReferenceInfoImpl(ref);
             refInfoMap.put(ref, refInfo);
         }
         return refInfoMap;
@@ -1263,7 +1265,7 @@ public class HibernateJavaHandler
                     getReferenceAccessorName(refInfo), "() != null");
                 write(
                     "return ", 
-                    generator.getAccessorName(refInfo.getReference()), "()");
+                    CodeGenUtils.getAccessorName(generator, refInfo.getReference()), "()");
                 if (!refInfo.isSingle()) {
                     if (refInfo.isOrdered()) {
                         write(".get(0)");
@@ -1530,7 +1532,8 @@ public class HibernateJavaHandler
                 {
                     String columnName = 
                         StringUtil.toInitialLower(
-                            refInfo.getReferencedEndBaseName());
+                            generator.transformIdentifier(
+                                refInfo.getReferencedEndBaseName()));
                     writeln(
                         "return ", 
                         QUOTE, columnName, QUOTE, ";");
@@ -2059,7 +2062,10 @@ public class HibernateJavaHandler
             " ",
             getReferenceAccessorName(refInfo),
             "()");
-        writeln("return ", refInfo.getFieldName(), IMPL_SUFFIX, ";");
+        writeln(
+            "return ", 
+            generator.transformIdentifier(refInfo.getFieldName()), IMPL_SUFFIX,
+            ";");
         endBlock();
         
         newLine();
@@ -2070,7 +2076,10 @@ public class HibernateJavaHandler
             "(",
             makeType(refInfo),
             " newValue)");
-        writeln("this.", refInfo.getFieldName(), IMPL_SUFFIX, " = newValue;");
+        writeln(
+            "this.", 
+            generator.transformIdentifier(refInfo.getFieldName()), IMPL_SUFFIX,
+            " = newValue;");
         endBlock();
     }
 
@@ -2092,7 +2101,7 @@ public class HibernateJavaHandler
 
         writeln(
             "logJmi(", 
-            QUOTE, generator.getAccessorName(ref), QUOTE, ");");
+            QUOTE, CodeGenUtils.getAccessorName(generator, ref), QUOTE, ");");
 
         writeln(
             makeType(refInfo), " assoc = ", 
@@ -2116,7 +2125,7 @@ public class HibernateJavaHandler
             
             writeln(
                 "logJmi(", 
-                QUOTE, generator.getMutatorName(ref), QUOTE, ");");
+                QUOTE, CodeGenUtils.getMutatorName(generator, ref), QUOTE, ");");
             
             writeln(
                 "super.associationSetSingle(", 
@@ -2147,7 +2156,7 @@ public class HibernateJavaHandler
 
         writeln(
             "logJmi(", 
-            QUOTE, generator.getAccessorName(ref), QUOTE, ");");
+            QUOTE, CodeGenUtils.getAccessorName(generator, ref), QUOTE, ");");
 
         boolean hasParent = ref.getMultiplicity().getUpper() == 1;
         if (hasParent) {
@@ -2204,7 +2213,7 @@ public class HibernateJavaHandler
             
             writeln(
                 "logJmi(", 
-                QUOTE, generator.getMutatorName(ref), QUOTE, ");");
+                QUOTE, CodeGenUtils.getMutatorName(generator, ref), QUOTE, ");");
             
             writeln(
                 "super.associationSetSingle(", 
@@ -2233,7 +2242,7 @@ public class HibernateJavaHandler
 
         writeln(
             "logJmi(", 
-            QUOTE, generator.getAccessorName(ref), QUOTE, ");");
+            QUOTE, CodeGenUtils.getAccessorName(generator, ref), QUOTE, ");");
 
         String listElemType = 
             getReferenceEndType(refInfo, true);
@@ -2284,7 +2293,7 @@ public class HibernateJavaHandler
         
         writeln(
             "logJmi(", 
-            QUOTE, generator.getAccessorName(attrib), QUOTE, ");");
+            QUOTE, CodeGenUtils.getAccessorName(generator, attrib), QUOTE, ");");
 
         startConditionalBlock(
             CondType.IF,
@@ -2307,7 +2316,7 @@ public class HibernateJavaHandler
             
         writeln(
             "logJmi(", 
-            QUOTE, generator.getMutatorName(attrib), QUOTE, ");");
+            QUOTE, CodeGenUtils.getMutatorName(generator, attrib), QUOTE, ");");
         
         writeln(
             "super.attributeSetSingle(", 
@@ -2335,7 +2344,7 @@ public class HibernateJavaHandler
 
         writeln(
             "logJmi(", 
-            QUOTE, generator.getAccessorName(attrib), QUOTE, ");");
+            QUOTE, CodeGenUtils.getAccessorName(generator, attrib), QUOTE, ");");
         
         boolean hasParent = compInfo.isSingle(compInfo.getReferencedEndIndex());
         if (hasParent) {
@@ -2391,7 +2400,7 @@ public class HibernateJavaHandler
 
             writeln(
                 "logJmi(", 
-                QUOTE, generator.getMutatorName(attrib), QUOTE, ");");
+                QUOTE, CodeGenUtils.getMutatorName(generator, attrib), QUOTE, ");");
             
             writeln(
                 "super.attributeSetSingle(", 
@@ -2442,16 +2451,16 @@ public class HibernateJavaHandler
                     continue;
                 }
                 
-                String elemTypeName = generator.getTypeName(attrib.getType());
+                String elemTypeName = CodeGenUtils.getTypeName(attrib.getType());
                 
                 String collTypeName;
                 if (mult.isOrdered()) {
                     collTypeName = 
-                        generator.getCollectionType(
+                        CodeGenUtils.getCollectionType(
                             ORDERED_COLLECTION_IMPL_CLASS, elemTypeName);
                 } else {
                     collTypeName = 
-                        generator.getCollectionType(
+                        CodeGenUtils.getCollectionType(
                             COLLECTION_IMPL_CLASS, elemTypeName);
                 }
                 
@@ -2486,7 +2495,7 @@ public class HibernateJavaHandler
         }
         for(Attribute attrib: nonDerivedAttribs) {
             String fieldName = nonDerivedAttribNames.get(attrib);
-            String[] paramInfo = generator.getParam(attrib);
+            String[] paramInfo = CodeGenUtils.getParam(attrib);
             if (nonDataTypeAttribs.contains(attrib)) {
                 ComponentInfo componentInfo = componentInfoMap.get(attrib);
                     
@@ -2531,12 +2540,15 @@ public class HibernateJavaHandler
                         paramInfo[1],
                         "); }");
                 } else {
-                    writeln(
-                        "this.",
-                        fieldName,
-                        " = ",
-                        paramInfo[1],
-                        ";");
+                    String valueExpr = paramInfo[1];
+                    if (attrib.getType() instanceof EnumerationType) {
+                        valueExpr = 
+                            valueExpr 
+                            + " != null ? " 
+                            + valueExpr 
+                            + ".toString() : null";                    }
+                    
+                    writeln("this.", fieldName, " = ", valueExpr, ";");
                 }
             }       
         }
@@ -2572,12 +2584,19 @@ public class HibernateJavaHandler
             }
 
             boolean primitiveConversionRequired = false;
-            String internalTypeName = generator.getTypeName(attrib);
-            if (Primitives.isPrimitiveType(internalTypeName)) {
-                internalTypeName = 
-                    Primitives.convertPrimitiveToTypeName(
-                        internalTypeName, true);
-                primitiveConversionRequired = true;
+            boolean enumerationConversionRequired = false;
+            String internalTypeName;
+            if (attrib.getType() instanceof EnumerationType) {
+                internalTypeName = "String";
+                enumerationConversionRequired = true;
+            } else {
+                internalTypeName = CodeGenUtils.getTypeName(attrib);
+                if (Primitives.isPrimitiveType(internalTypeName)) {
+                    internalTypeName = 
+                        Primitives.convertPrimitiveToTypeName(
+                            internalTypeName, true);
+                    primitiveConversionRequired = true;
+                }
             }
             
             // Hibernate accessor
@@ -2587,7 +2606,7 @@ public class HibernateJavaHandler
                 "public ",
                 internalTypeName,
                 " ",
-                generator.getAccessorName(attrib, false),
+                CodeGenUtils.getAccessorName(generator, attrib, false),
                 IMPL_SUFFIX,
                 "()");
             writeln("return ", fieldName, ";");
@@ -2601,7 +2620,7 @@ public class HibernateJavaHandler
             writeln("// Internal use only");
             startBlock(
                 "public void ",
-                generator.getMutatorName(attrib, false), IMPL_SUFFIX,
+                CodeGenUtils.getMutatorName(generator, attrib, false), IMPL_SUFFIX,
                 "(", internalTypeName, " newValue)");
             writeln("this.", fieldName, " = newValue;");
             endBlock();
@@ -2614,12 +2633,12 @@ public class HibernateJavaHandler
 
                 writeln(
                     "logJmi(", 
-                    QUOTE, generator.getAccessorName(attrib), QUOTE, ");");
+                    QUOTE, CodeGenUtils.getAccessorName(generator, attrib), QUOTE, ");");
                 
                 if (primitiveConversionRequired) {
                     writeln(
                         internalTypeName, " value = ", 
-                        generator.getAccessorName(attrib, false), 
+                        CodeGenUtils.getAccessorName(generator, attrib, false), 
                         IMPL_SUFFIX, 
                         "();");
                     startConditionalBlock(CondType.IF, "value == null");
@@ -2633,10 +2652,26 @@ public class HibernateJavaHandler
                     endBlock();
                     // let the JVM unbox it
                     writeln("return value;");
+                } else if (enumerationConversionRequired) {
+                    writeln(
+                        internalTypeName, " value = ",
+                        CodeGenUtils.getAccessorName(generator, attrib, false),
+                        IMPL_SUFFIX,
+                        "();");
+                    startConditionalBlock(CondType.IF, "value == null");
+                    writeln("return null;");
+                    endBlock();
+                    
+                    // look up the literal's object
+                    writeln(
+                        "return ", 
+                        CodeGenUtils.getTypeName(
+                            attrib, EnumerationClassHandler.ENUM_CLASS_SUFFIX),
+                        ".forName(value);");
                 } else {
                     writeln(
                         "return ", 
-                        generator.getAccessorName(attrib, false), 
+                        CodeGenUtils.getAccessorName(generator, attrib, false), 
                         IMPL_SUFFIX,
                         "();");
                 }
@@ -2649,19 +2684,26 @@ public class HibernateJavaHandler
                     
                     writeln(
                         "logJmi(", 
-                        QUOTE, generator.getMutatorName(attrib), QUOTE, ");");
+                        QUOTE, CodeGenUtils.getMutatorName(generator, attrib), QUOTE, ");");
 
                     // Fire event using the value from the API method so that
-                    // un-set primitives are converted to numbers. 
+                    // primitive and enumeration conversions are done and we
+                    // pass the converted value in the event.
                     writeln(
                         "super.fireAttributeSetEvent(",
                         QUOTE, attrib.getName(), QUOTE, ", ",
-                        generator.getAccessorName(attrib, true), 
+                        CodeGenUtils.getAccessorName(generator, attrib, true), 
                         "(), newValue);");
+                    
+                    String newValueExp = "newValue";
+                    if (enumerationConversionRequired) {
+                        newValueExp = 
+                            "newValue != null ? newValue.toString() : null";
+                    }
                     writeln(
-                        generator.getMutatorName(attrib, false), 
+                        CodeGenUtils.getMutatorName(generator, attrib, false), 
                         IMPL_SUFFIX,
-                        "(newValue);");
+                        "(", newValueExp, ");");
                     endBlock();
                 }
             } else {
@@ -2676,27 +2718,27 @@ public class HibernateJavaHandler
 
                 writeln(
                     "logJmi(", 
-                    QUOTE, generator.getAccessorName(attrib), QUOTE, ");");
+                    QUOTE, CodeGenUtils.getAccessorName(generator, attrib), QUOTE, ");");
 
                 if (attrib.isChangeable()) {
                     if (isOrdered) {
                         writeln(
                             "return new ",
                             ATTRIB_LIST_WRAPPER_CLASS,
-                            "<", generator.getTypeName(attrib.getType()), ">",
+                            "<", CodeGenUtils.getTypeName(attrib.getType()), ">",
                             "(this, ", 
                             QUOTE, attrib.getName(), QUOTE, ", ",
-                            generator.getAccessorName(attrib, false), 
+                            CodeGenUtils.getAccessorName(generator, attrib, false), 
                             IMPL_SUFFIX, 
                             "());");
                     } else {
                         writeln(
                             "return new ",
                             ATTRIB_COLLECTION_WRAPPER_CLASS,
-                            "<", generator.getTypeName(attrib.getType()), ">",
+                            "<", CodeGenUtils.getTypeName(attrib.getType()), ">",
                             "(this, ", 
                             QUOTE, attrib.getName(), QUOTE, ", ",
-                            generator.getAccessorName(attrib, false), 
+                            CodeGenUtils.getAccessorName(generator, attrib, false), 
                             IMPL_SUFFIX, 
                             "());");
                     }
@@ -2706,7 +2748,7 @@ public class HibernateJavaHandler
                             "return ", 
                             JAVA_UTIL_COLLECTIONS_CLASS, 
                             ".unmodifiableList(", 
-                            generator.getAccessorName(attrib, false),
+                            CodeGenUtils.getAccessorName(generator, attrib, false),
                             IMPL_SUFFIX,
                             "());");
                     } else {
@@ -2714,7 +2756,7 @@ public class HibernateJavaHandler
                             "return ",
                             JAVA_UTIL_COLLECTIONS_CLASS, 
                             ".unmodifiableSet(",
-                            generator.getAccessorName(attrib, false),
+                            CodeGenUtils.getAccessorName(generator, attrib, false),
                             IMPL_SUFFIX,
                             "());");                            
                     }
@@ -2752,7 +2794,7 @@ public class HibernateJavaHandler
                 
                 startConditionalBlock(
                     CondType.IF, 
-                    generator.getAccessorName(attrib, false), 
+                    CodeGenUtils.getAccessorName(generator, attrib, false), 
                     suffix, 
                     "() == null");
             } else if (upper != 1 && lower > 0) {
@@ -2760,7 +2802,7 @@ public class HibernateJavaHandler
                 // bound
                 startConditionalBlock(
                     CondType.IF, 
-                    generator.getAccessorName(attrib, false), "().size() < ",
+                    CodeGenUtils.getAccessorName(generator, attrib, false), "().size() < ",
                     lower);
             } else {
                 continue;
@@ -2787,13 +2829,13 @@ public class HibernateJavaHandler
                 // Check that required single-value attribute has a value.
                 startConditionalBlock(
                     CondType.IF, 
-                    generator.getAccessorName(ref), "() == null");
+                    CodeGenUtils.getAccessorName(generator, ref), "() == null");
             } else if (upper != 1 && lower > 0) {
                 // Check that lower-bounded multi-value attribute meets lower
                 // bound
                 startConditionalBlock(
                     CondType.IF, 
-                    generator.getAccessorName(ref), "().size() < ", lower);
+                    CodeGenUtils.getAccessorName(generator, ref), "().size() < ", lower);
             } else {
                 continue;
             }
@@ -2845,12 +2887,12 @@ public class HibernateJavaHandler
             return;
         }
         
-        String interfaceName = generator.getTypeName(cls, CLASS_PROXY_SUFFIX);
+        String interfaceName = CodeGenUtils.getTypeName(cls, CLASS_PROXY_SUFFIX);
         
         String typeName = interfaceName + IMPL_SUFFIX;
 
-        String instanceInterfaceTypeName = generator.getTypeName(cls);
-        String instanceImplTypeName = generator.getTypeName(cls, IMPL_SUFFIX);
+        String instanceInterfaceTypeName = CodeGenUtils.getTypeName(cls);
+        String instanceImplTypeName = CodeGenUtils.getTypeName(cls, IMPL_SUFFIX);
         
         log.fine("Generating Class Proxy Implementation '" + typeName + "'");
 
@@ -2877,7 +2919,7 @@ public class HibernateJavaHandler
             String queryCacheRegion = 
                 HibernateMappingHandler.CACHE_REGION_SUFFIX + 
                 HibernateMappingHandler.CACHE_REGION_QUERY_SUFFIX;
-            String tableName = generator.getSimpleTypeName(cls);
+            String tableName = CodeGenUtils.getSimpleTypeName(cls);
             if (tablePrefix != null) {
                 queryCacheRegion = tablePrefix + queryCacheRegion;
                 tableName = tablePrefix + tableName;
@@ -2923,7 +2965,7 @@ public class HibernateJavaHandler
                 generateInstanceEventCall(null);
                 
                 String entityImplName = 
-                    generator.getSimpleTypeName(cls, IMPL_SUFFIX);
+                    CodeGenUtils.getSimpleTypeName(cls, IMPL_SUFFIX);
                 writeln(
                     entityImplName,
                     " obj = new ", instanceImplTypeName, "();");
@@ -2935,7 +2977,7 @@ public class HibernateJavaHandler
                 endBlock();
                 
                 Collection<Attribute> allAttributes =
-                    contentsOfType(
+                    CodeGenUtils.contentsOfType(
                         cls, 
                         HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                         ScopeKindEnum.INSTANCE_LEVEL,
@@ -2961,7 +3003,7 @@ public class HibernateJavaHandler
 
                     ArrayList<String> paramNames = new ArrayList<String>();
                     for(Attribute attrib: allAttributes) {
-                        String[] paramInfo = generator.getParam(attrib);
+                        String[] paramInfo = CodeGenUtils.getParam(attrib);
                         paramNames.add(paramInfo[1]);
                     }
 
@@ -3012,7 +3054,7 @@ public class HibernateJavaHandler
             // TODO: collect this information once (rather than recomputing
             // for each class in instance and proxy generation)
             Collection<Reference> instanceReferences =
-                contentsOfType(
+                CodeGenUtils.contentsOfType(
                     cls,
                     HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                     VisibilityKindEnum.PUBLIC_VIS,
@@ -3026,14 +3068,13 @@ public class HibernateJavaHandler
 
             Collection<Association> unreferencedAssociations = 
                 CodeGenUtils.findUnreferencedAssociations(
-                    generator,
                     assocInfoMap,
                     cls,
                     instanceReferences, 
                     unrefAssocRefInfoMap);
             
             Collection<Attribute> instanceAttributes =
-                contentsOfType(
+                CodeGenUtils.contentsOfType(
                     cls,
                     HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                     VisibilityKindEnum.PUBLIC_VIS,
@@ -3150,7 +3191,7 @@ public class HibernateJavaHandler
         }
         
         String interfaceName = 
-            generator.getTypeName(pkg, PACKAGE_SUFFIX);
+            CodeGenUtils.getTypeName(pkg, PACKAGE_SUFFIX);
         
         String typeName = interfaceName + IMPL_SUFFIX;
 
@@ -3172,12 +3213,13 @@ public class HibernateJavaHandler
             
             ArrayList<String> packageFieldNames = new ArrayList<String>();
             Collection<MofPackage> packages =
-                contentsOfType(pkg, MofPackage.class);
+                CodeGenUtils.contentsOfType(pkg, MofPackage.class);
             
             Collection<MofPackage>
                 aliasedPackages = new ArrayList<MofPackage>();
 
-            Collection<Import> imports = contentsOfType(pkg, Import.class);
+            Collection<Import> imports = 
+                CodeGenUtils.contentsOfType(pkg, Import.class);
             for(Import imp: imports) {
                 // Import is not a Feature, so contentsOfType throws if we
                 // try to get it to filter on visibility.
@@ -3222,7 +3264,8 @@ public class HibernateJavaHandler
             }
             
             ArrayList<String> classFieldNames = new ArrayList<String>();
-            Collection<MofClass> classes = contentsOfType(pkg, MofClass.class);
+            Collection<MofClass> classes = 
+                CodeGenUtils.contentsOfType(pkg, MofClass.class);
             boolean hasClasses = !classes.isEmpty();
             if (hasClasses) {
                 if (hasPackages) {
@@ -3239,7 +3282,7 @@ public class HibernateJavaHandler
             
             ArrayList<String> assocFieldNames = new ArrayList<String>();
             Collection<Association> assocs = 
-                contentsOfType(pkg, Association.class);
+                CodeGenUtils.contentsOfType(pkg, Association.class);
             boolean hasAssocs = !assocs.isEmpty();
             if (hasAssocs) {
                 if (hasPackages || hasClasses) {
@@ -3257,7 +3300,7 @@ public class HibernateJavaHandler
             // constructor (initializes fields)       
             startBlock(
                 "public ",
-                generator.getSimpleTypeName(pkg, PACKAGE_SUFFIX + IMPL_SUFFIX),
+                CodeGenUtils.getSimpleTypeName(pkg, PACKAGE_SUFFIX + IMPL_SUFFIX),
                 "(",
                 REF_PACKAGE_CLASS.toString(), " container)");
             writeln("super(container);");
@@ -3283,7 +3326,7 @@ public class HibernateJavaHandler
                     "this.",
                     fieldName,
                     " = new ",
-                    generator.getTypeName(
+                    CodeGenUtils.getTypeName(
                         nestedPkg, PACKAGE_SUFFIX + IMPL_SUFFIX),
                     "(this);");
                 writeln(
@@ -3322,7 +3365,7 @@ public class HibernateJavaHandler
                     "this.",
                     fieldName,
                     " = new ",
-                    generator.getTypeName(
+                    CodeGenUtils.getTypeName(
                         nestedCls, CLASS_PROXY_SUFFIX + IMPL_SUFFIX),
                     "(this);");
                 writeln(
@@ -3348,7 +3391,7 @@ public class HibernateJavaHandler
                     "this.",
                     fieldName,
                     " = new ",
-                    generator.getTypeName(assoc, IMPL_SUFFIX),
+                    CodeGenUtils.getTypeName(assoc, IMPL_SUFFIX),
                     "(this);");
                 writeln(
                     "super.addAssociation(", 
@@ -3423,7 +3466,7 @@ public class HibernateJavaHandler
                 // refOutermostPackage will give us the root
                 write(
                     "return (",
-                    generator.getTypeName(nestedPkg, PACKAGE_SUFFIX),
+                    CodeGenUtils.getTypeName(nestedPkg, PACKAGE_SUFFIX),
                     ") refOutermostPackage().");
 
                 // now walk down from the root along the path
@@ -3474,7 +3517,7 @@ public class HibernateJavaHandler
                 writeln(
                     "super.addPackage(", 
                     QUOTE, nestedPkg.getName(), QUOTE, 
-                    ", this.get", generator.getSimpleTypeName(nestedPkg),
+                    ", this.get", CodeGenUtils.getSimpleTypeName(nestedPkg),
                     "());");
             }
             endBlock();
@@ -3769,12 +3812,18 @@ public class HibernateJavaHandler
     
     private String getReferenceAccessorName(ReferenceInfo refInfo)
     {
-        return "get" + refInfo.getReferencedEndBaseName() + IMPL_SUFFIX;
+        return 
+            "get" + 
+            generator.transformIdentifier(refInfo.getReferencedEndBaseName()) +
+            IMPL_SUFFIX;
     }
 
     private String getReferenceMutatorName(ReferenceInfo refInfo)
     {
-        return "set" + refInfo.getReferencedEndBaseName() + IMPL_SUFFIX;
+        return 
+            "set" + 
+            generator.transformIdentifier(refInfo.getReferencedEndBaseName()) +
+            IMPL_SUFFIX;
     }
     
     /**

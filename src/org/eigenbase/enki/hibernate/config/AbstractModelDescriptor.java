@@ -19,39 +19,31 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
-package org.eigenbase.enki.ant;
+package org.eigenbase.enki.hibernate.config;
 
-import org.eigenbase.enki.mdr.*;
-
+import java.net.*;
+import java.util.*;
 
 /**
- * PrintExtentNamesSubTask prints a list of existing extent names.
- * 
- * <p>Attributes: None.
+ * AbstractModelDescriptor is an abstract base class describing a metamodel
+ * or metamodel plugin.
  * 
  * @author Stephan Zuercher
  */
-public class PrintExtentNames extends EnkiTask.SubTask
+public abstract class AbstractModelDescriptor
 {
-    public PrintExtentNames(String name)
+    public final String name;
+    public final Properties properties;        
+    public URL mappingUrl;
+    public URL indexMappingUrl;
+    
+    protected AbstractModelDescriptor(String name, Properties properties)
     {
-        super(name);
+        this.name = name;
+        this.properties = properties;
     }
-
-    @Override
-    protected void execute()
-    {
-        EnkiMDRepository repos = getMDRepository(true);
-        repos.beginSession();
-        try {
-            String[] extentNames = repos.getExtentNames();
-            for(String extentName: extentNames) {
-                System.out.println(extentName);
-            }
-        } finally {
-            repos.endSession();
-        }
-    }
+    
+    public abstract boolean isPlugin();
 }
 
-// End PrintExtentNames.java
+// End AbstractModelDescriptor.java

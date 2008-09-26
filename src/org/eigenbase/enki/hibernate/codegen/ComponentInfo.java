@@ -41,12 +41,10 @@ public class ComponentInfo implements ReferenceInfo
     private final String[] types;
     private final int exposedEndIndex;
     private final int referencedEndIndex;
-    private final String accessorName;
     private final String fieldName;
     private final String referencedEndBaseName;
     
     public ComponentInfo(
-        Generator generator,
         MofClass cls,
         Attribute attrib,
         boolean componentReferenced)
@@ -65,14 +63,14 @@ public class ComponentInfo implements ReferenceInfo
         }
         
         this.types = new String[] {
-            generator.getTypeName(cls),
-            generator.getTypeName(attribBaseType)
+            CodeGenUtils.getTypeName(cls),
+            CodeGenUtils.getTypeName(attribBaseType)
         };
         
         this.baseName = 
-            StringUtil.toInitialUpper(generator.getSimpleTypeName(attrib))
+            StringUtil.toInitialUpper(CodeGenUtils.getSimpleTypeName(attrib))
             + "$Comp"
-            + "$" + generator.getSimpleTypeName(attrib.getContainer());
+            + "$" + CodeGenUtils.getSimpleTypeName(attrib.getContainer());
         
         if (componentReferenced) {
             this.exposedEndIndex = 0;
@@ -82,8 +80,6 @@ public class ComponentInfo implements ReferenceInfo
             this.referencedEndIndex = 0;
         }
         
-        this.accessorName = 
-            generator.getAccessorName(attrib) + HibernateJavaHandler.IMPL_SUFFIX;
         this.fieldName = StringUtil.toInitialLower(baseName);
         this.referencedEndBaseName = baseName;
     }
@@ -180,9 +176,11 @@ public class ComponentInfo implements ReferenceInfo
         return true;
     }
 
-    public String getAccessorName()
+    public String getAccessorName(Generator generator)
     {
-        return accessorName;
+        return 
+            CodeGenUtils.getAccessorName(generator, attrib) + 
+            HibernateJavaHandler.IMPL_SUFFIX;
     }
 
     public int getExposedEndIndex()

@@ -90,6 +90,13 @@ import org.eigenbase.enki.codegen.*;
  *     Optional.
  *   </td>
  * </tr>
+ * <tr>
+ *   <td align="left">{@value #GENERATE_VIEWS_OPTION}</td>
+ *   <td align="left">
+ *     Boolean flag to control whether joinable all-of-type views are generated
+ *     for each model type.  Defaults to false.  Optional.
+ *   </td>
+ * </tr>
  * </table>
  * 
  * @author Stephan Zuercher
@@ -121,6 +128,12 @@ public class HibernateGenerator extends MdrGenerator
     /** The name of the plug-in mode option. */
     public static final String PLUGIN_OPTION = "plugin";
     
+    /** 
+     *  The name of the generator option for generating join-able all-of-type
+     *  views for all classes.
+     */
+    public static final String GENERATE_VIEWS_OPTION = "generateViews";
+    
     /** Prefix for all table names in this metamodel. */
     private String tablePrefix;
     
@@ -143,6 +156,9 @@ public class HibernateGenerator extends MdrGenerator
     
     /** Plug-in flag. */
     private boolean pluginMode;
+    
+    /** Generate views flag. */
+    private boolean generateViews;
     
     public HibernateGenerator()
     {
@@ -193,6 +209,11 @@ public class HibernateGenerator extends MdrGenerator
         if (pluginModeValue != null) {
             pluginMode = Boolean.parseBoolean(pluginModeValue);
         }
+        
+        String generateViewsValue = options.get(GENERATE_VIEWS_OPTION);
+        if (generateViewsValue != null) {
+            generateViews = Boolean.parseBoolean(generateViewsValue);
+        }
     }
     
     /**
@@ -218,6 +239,7 @@ public class HibernateGenerator extends MdrGenerator
         mappingHandler.setTablePrefix(tablePrefix);
         mappingHandler.setIncludes(includedPackageList);
         mappingHandler.setPluginMode(pluginMode);
+        mappingHandler.setGenerateViews(generateViews);
         if (defaultStringLength != -1) {
             mappingHandler.setDefaultStringLength(defaultStringLength);
         }

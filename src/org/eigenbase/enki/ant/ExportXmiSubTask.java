@@ -92,7 +92,7 @@ public class ExportXmiSubTask extends EnkiTask.SubTask
     }
     
     @Override
-    void execute()
+    protected void execute()
     {
         if (file == null) {
             throw new BuildException("Missing \"file\" attribute");

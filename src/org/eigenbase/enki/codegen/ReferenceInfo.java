@@ -30,8 +30,8 @@ import javax.jmi.model.*;
  * Note: This class also supports situations where an Association exists 
  * between two classes, but there is no corresponding Reference.  The name
  * of this class is, therefore, misleading.  
- * (See {@link ReferenceInfoImpl#ReferenceInfoImpl(
- *                 Generator, Association, AssociationEnd)}.)
+ * (See 
+ * {@link ReferenceInfoImpl#ReferenceInfoImpl(Association, AssociationEnd)}.)
  * 
  * @author Stephan Zuercher
  */
@@ -70,8 +70,10 @@ public interface ReferenceInfo extends AssociationInfo
      * Retrieves the name of the accessor (getter) method used to retrieve
      * the reference's value(s) from a 
      * {@link javax.jmi.reflect.RefAssociation}.
+     * 
+     * @param generator generator
      */
-    public String getAccessorName();
+    public String getAccessorName(Generator generator);
     
     /**
      * Tests whether the referenced end of the association has an upper

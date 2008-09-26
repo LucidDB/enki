@@ -84,31 +84,50 @@ public class MofIdGenerator
         
         this.querySql = 
             "select "
-            + COLUMN_NAME
+            + dialect.quote(COLUMN_NAME)
             + " from "
             + dialect.appendLockHint(LockMode.UPGRADE, tableName)
             + dialect.getForUpdateString();
         
         this.updateSql = 
             "update "
-            + tableName 
+            + dialect.quote(tableName) 
             + " set "
-            + COLUMN_NAME
+            + dialect.quote(COLUMN_NAME)
             + " = ? where "
-            + COLUMN_NAME
+            + dialect.quote(COLUMN_NAME)
             + " = ?";
 
-        this.createDdl = 
-            "create table " + tableName +
-            " (" + COLUMN_NAME + " " + dialect.getTypeName(Types.BIGINT) + ")";
+        this.createDdl = generateCreateDdl(enkiProps, dialect);
         
-        this.dropDdl = "drop table " + tableName;
+        this.dropDdl = "drop table " + dialect.quote(tableName);
         
-        this.initSql = "insert into " + tableName + " values (0)";
+        this.initSql = generateInsertDml(enkiProps, dialect);
         
         // Load block on first call to nextMofId()
         this.nextMofId = 0;
         this.lastMofId = 0;
+    }
+    
+    public static String generateCreateDdl(
+        Properties storageProps, Dialect dialect)
+    {
+        String tableName = 
+            storageProps.getProperty(PROPERTY_TABLE_NAME, DEFAULT_TABLE_NAME);
+        
+        return 
+            "create table " + dialect.quote(tableName) +
+            " (" + COLUMN_NAME + " " + dialect.getTypeName(Types.BIGINT) + ")"
+            + dialect.getTableTypeString();
+    }
+    
+    public static String generateInsertDml(
+        Properties storageProps, Dialect dialect)
+    {
+        String tableName = 
+            storageProps.getProperty(PROPERTY_TABLE_NAME, DEFAULT_TABLE_NAME);
+        
+        return "insert into " + dialect.quote(tableName) + " values (0)";
     }
     
     public Validity isGeneratorTableValid(Connection conn)
@@ -150,7 +169,7 @@ public class MofIdGenerator
         }
     }
    
-    public void configureTable()
+    public void configureTable(boolean createTable)
     {
         StatelessSession session = sessionFactory.openStatelessSession();
         
@@ -187,11 +206,17 @@ public class MofIdGenerator
                 throw new AssertionError("Internal error: missing enum case");
             }
 
+            if (!createTable) {
+                throw new HibernateException(
+                    "MOF ID generator table is missing");
+            }
+            
             try {
                 Statement stmt = conn.createStatement();
                 try {
                     stmt.execute(createDdl);
                     stmt.executeUpdate(initSql);
+                    conn.commit();
                 }
                 finally {
                     stmt.close();
@@ -224,6 +249,7 @@ public class MofIdGenerator
                 Statement stmt = conn.createStatement();
                 try {
                     stmt.execute(dropDdl);
+                    conn.commit();
                 }
                 finally {
                     stmt.close();

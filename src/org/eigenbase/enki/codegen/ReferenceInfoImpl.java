@@ -32,7 +32,7 @@ import org.eigenbase.enki.util.*;
  * Note: This class also supports situations where an Association exists 
  * between two classes, but there is no corresponding Reference.  The name
  * of this class is, therefore, misleading.  
- * (See {@link #ReferenceInfoImpl(Generator, Association, AssociationEnd)}.)
+ * (See {@link #ReferenceInfoImpl(Association, AssociationEnd)}.)
  * 
  * @author Stephan Zuercher
  */
@@ -50,15 +50,13 @@ public class ReferenceInfoImpl
     
     private final String referenceEndBaseName;
     private final String fieldName;
-    private final String accessorName;
     
     private final boolean isReferenceEndFirst;
     
-    public ReferenceInfoImpl(Generator generator, Reference ref)
+    public ReferenceInfoImpl(Reference ref)
             throws GenerationException
     {
         this(
-            generator,
             ref,
             (Association)ref.getExposedEnd().getContainer(),
             ref.getReferencedEnd(),
@@ -70,31 +68,28 @@ public class ReferenceInfoImpl
      * are associated, but do not reference each other.  When this
      * constructor is used, {@link #getReference()} returns null.
      * 
-     * @param generator code generator instance
      * @param assoc the association
      * @param referencedEnd the end of the association that should be treated
      *                      as the referenced end
      */
-    public ReferenceInfoImpl(
-        Generator generator, Association assoc, AssociationEnd referencedEnd)
+    public ReferenceInfoImpl(Association assoc, AssociationEnd referencedEnd)
     {
-        this(generator, null, assoc, referencedEnd, true);
+        this(null, assoc, referencedEnd, true);
     }
 
     private ReferenceInfoImpl(
-        Generator generator,
         Reference ref,
         Association assoc,
         AssociationEnd referencedEnd,
         boolean prefixWithAssocName)
     {
-        super(generator, assoc);
+        super(assoc);
         
         this.ref = ref;
         this.referencedEnd = referencedEnd;
         this.referencedType = referencedEnd.getType();
         this.referencedTypeName = 
-            generator.getTypeName(referencedType);
+            CodeGenUtils.getTypeName(referencedType);
         
         String baseName;
         if (prefixWithAssocName) {
@@ -114,11 +109,8 @@ public class ReferenceInfoImpl
             fieldName = StringUtil.toInitialLower(referencedEnd.getName());
         }
 
-        baseName = generator.transformIdentifier(baseName);
         this.referenceEndBaseName = baseName;
-        fieldName = generator.transformIdentifier(fieldName);
         this.fieldName = fieldName;
-        this.accessorName = generator.getAccessorName(referencedEnd, null);
         
         this.isReferenceEndFirst = (getEnd(0) == referencedEnd);
         
@@ -173,9 +165,9 @@ public class ReferenceInfoImpl
      * the reference's value(s) from a 
      * {@link javax.jmi.reflect.RefAssociation}.
      */
-    public final String getAccessorName()
+    public final String getAccessorName(Generator generator)
     {
-        return accessorName;
+        return CodeGenUtils.getAccessorName(generator, referencedEnd, null);
     }
     
     /**

@@ -13,9 +13,6 @@
         <!-- no batching -->
         <property name="jdbc.batch_size">0</property>
 
-        <!-- JDBC connection pool (use the built-in) -->
-        <property name="connection.pool_size">2</property>
-
         <!-- Enable Hibernate's automatic session context management -->
         <property name="current_session_context_class">thread</property>
 

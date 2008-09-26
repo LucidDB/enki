@@ -21,37 +21,15 @@
 */
 package org.eigenbase.enki.ant;
 
-import org.eigenbase.enki.mdr.*;
-
-
 /**
- * PrintExtentNamesSubTask prints a list of existing extent names.
- * 
- * <p>Attributes: None.
- * 
+ * EnkiSubTask represents a sub-task of {@link EnkiTask}.  It is exists only
+ * to allow Ant to add these sub-tasks to an EnkiTask instance. All sub-tasks 
+ * should extend {@link EnkiTask.SubTask}.
+ *  
  * @author Stephan Zuercher
  */
-public class PrintExtentNames extends EnkiTask.SubTask
+public interface EnkiSubTask
 {
-    public PrintExtentNames(String name)
-    {
-        super(name);
-    }
-
-    @Override
-    protected void execute()
-    {
-        EnkiMDRepository repos = getMDRepository(true);
-        repos.beginSession();
-        try {
-            String[] extentNames = repos.getExtentNames();
-            for(String extentName: extentNames) {
-                System.out.println(extentName);
-            }
-        } finally {
-            repos.endSession();
-        }
-    }
 }
 
-// End PrintExtentNames.java
+// End EnkiSubTask.java

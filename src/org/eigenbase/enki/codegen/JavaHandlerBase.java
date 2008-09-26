@@ -590,9 +590,9 @@ public abstract class JavaHandlerBase
         String suffix,
         boolean isAbstract)
     {
-        String typeName = generator.getTypeName(entity);
+        String typeName = CodeGenUtils.getTypeName(entity);
 
-        String entityName = generator.getSimpleTypeName(entity);
+        String entityName = CodeGenUtils.getSimpleTypeName(entity);
 
         if (comment != null) {
             writeMethodJavaDoc(
@@ -663,10 +663,10 @@ public abstract class JavaHandlerBase
         boolean isAbstract,
         boolean returnSimpleType)
     {
-        String entityName = generator.getSimpleTypeName(entity);
+        String entityName = CodeGenUtils.getSimpleTypeName(entity);
         String returnTypeName = entityName;
         if (!returnSimpleType) {
-            returnTypeName = generator.getTypeName(entity);
+            returnTypeName = CodeGenUtils.getTypeName(entity);
         }
         
         if (comment != null) {
@@ -698,7 +698,7 @@ public abstract class JavaHandlerBase
                 "(");
             increaseIndent();
             for(int i = 0; i < params.length; i++) {
-                String[] paramInfo = generator.getParam(params[i]);
+                String[] paramInfo = CodeGenUtils.getParam(params[i]);
                 writeln(
                     paramInfo[0],
                     " ",
@@ -785,12 +785,12 @@ public abstract class JavaHandlerBase
         String typeSuffix,
         boolean useJavaUtilImport)
     {
-        String typeName = generator.getTypeName(feature, typeSuffix);
+        String typeName = CodeGenUtils.getTypeName(feature, typeSuffix);
         if (useJavaUtilImport && typeName.startsWith("java.util.")) {
             typeName = typeName.substring(10);
         }
         
-        String methodName = generator.getAccessorName(feature);
+        String methodName = CodeGenUtils.getAccessorName(generator, feature);
         if (methodName == null) {
             // will happen if upper multiplicity bound == 0
             return;
@@ -808,7 +808,7 @@ public abstract class JavaHandlerBase
                 returnDescription,
                 null,
                 null,
-                new String[] { generator.getTypeName(feature.getType()) });
+                new String[] { CodeGenUtils.getTypeName(feature.getType()) });
         }
         
         writeln(
@@ -894,7 +894,7 @@ public abstract class JavaHandlerBase
             null,
             null,
             null, 
-            generator.getSimpleTypeName(entity, suffix),
+            CodeGenUtils.getSimpleTypeName(entity, suffix),
             paramTypes,
             paramNames,
             null,
@@ -921,7 +921,7 @@ public abstract class JavaHandlerBase
         String[] paramTypes = new String[params.length];
         String[] paramNames = new String[params.length];
         for(int i = 0; i < params.length; i++) {
-            String[] paramInfo = generator.getParam(params[i]);
+            String[] paramInfo = CodeGenUtils.getParam(params[i]);
             paramTypes[i] = paramInfo[0];
             paramNames[i] = paramInfo[1];
         }
@@ -1029,18 +1029,18 @@ public abstract class JavaHandlerBase
         String methodSuffix,
         String typeSuffix)
     {
-        String typeName = generator.getTypeName(feature);
+        String typeName = CodeGenUtils.getTypeName(feature);
         if (typeSuffix != null) {
             typeName += typeSuffix;
         }
         
-        String methodName = generator.getMutatorName(feature);
+        String methodName = CodeGenUtils.getMutatorName(generator, feature);
         
         if (methodSuffix != null) {
             methodName += methodSuffix;
         }
         
-        String accessorName = generator.getAccessorName(feature);
+        String accessorName = CodeGenUtils.getAccessorName(generator, feature);
         
         if (comment != null) {
             writeMethodJavaDoc(
@@ -1123,7 +1123,7 @@ public abstract class JavaHandlerBase
             
             for(int i = 0; i < args.length; i++) {
                 ModelElement arg = args[i];
-                argNames[i] = generator.getParam(arg)[1];
+                argNames[i] = CodeGenUtils.getParam(arg)[1];
                 argDescriptions[i] = arg.getAnnotation();
             }
         }
@@ -1219,7 +1219,7 @@ public abstract class JavaHandlerBase
         boolean isStatic)
     {
         String name = feature.getName();
-        name = generator.getClassFieldName(name);
+        name = CodeGenUtils.getClassFieldName(name);
         
         writeField(
             feature, 
@@ -1228,6 +1228,7 @@ public abstract class JavaHandlerBase
             isFinal,
             isStatic,
             null,
+            false,
             false);
         
         return name;
@@ -1242,6 +1243,8 @@ public abstract class JavaHandlerBase
      * @param scope the field's scope
      * @param isFinal controls whether field is final
      * @param isStatic controls whether field is static
+     * @param useStringsForEnums controls whether enums are generated as
+     *                           String or typed fields
      * @return the field's name
      */
     protected String writeField(
@@ -1249,10 +1252,11 @@ public abstract class JavaHandlerBase
         String fieldNameSuffix,
         String scope, 
         boolean isFinal, 
-        boolean isStatic)
+        boolean isStatic,
+        boolean useStringsForEnums)
     {
         String fieldName = feature.getName();
-        fieldName = generator.getClassFieldName(fieldName);
+        fieldName = CodeGenUtils.getClassFieldName(fieldName);
         if (fieldNameSuffix != null) {
             fieldName += fieldNameSuffix;
         }
@@ -1264,7 +1268,8 @@ public abstract class JavaHandlerBase
             isFinal,
             isStatic,
             null,
-            false);
+            false,
+            useStringsForEnums);
         
         return fieldName;
     }
@@ -1288,7 +1293,7 @@ public abstract class JavaHandlerBase
         boolean isStatic)
     {
         String name = feature.getName();
-        name = generator.getClassFieldName(name);
+        name = CodeGenUtils.getClassFieldName(name);
         
         writeField(
             type, 
@@ -1317,8 +1322,8 @@ public abstract class JavaHandlerBase
         boolean isFinal, 
         boolean isStatic, String typeSuffix)
     {
-        String fieldName = generator.getSimpleTypeName(type, typeSuffix);
-        fieldName = generator.getClassFieldName(fieldName);
+        String fieldName = CodeGenUtils.getSimpleTypeName(type, typeSuffix);
+        fieldName = CodeGenUtils.getClassFieldName(fieldName);
         
         writeField(
             type, 
@@ -1327,7 +1332,8 @@ public abstract class JavaHandlerBase
             isFinal,
             isStatic,
             typeSuffix,
-            true);
+            true,
+            false);
         
         return fieldName;
     }
@@ -1342,6 +1348,7 @@ public abstract class JavaHandlerBase
      * @param isStatic controls whether field is static
      * @param typeSuffix suffix for the type name
      * @param usePrimitiveTypes use primitive types
+     * @param useStringsForEnums use String type for enums
      */
     private void writeField(
         ModelElement type, 
@@ -1349,14 +1356,27 @@ public abstract class JavaHandlerBase
         String scope, 
         boolean isFinal, 
         boolean isStatic,
-        String typeSuffix, boolean usePrimitiveTypes)
+        String typeSuffix, 
+        boolean usePrimitiveTypes,
+        boolean useStringsForEnums)
     {
         String fieldType;
+        
+        ModelElement baseType = type;
         if (type instanceof StructuralFeature) {
             fieldType = 
-                generator.getTypeName((StructuralFeature)type, typeSuffix);
+                CodeGenUtils.getTypeName((StructuralFeature)type, typeSuffix);
+            baseType = ((StructuralFeature)type).getType();
         } else {
-            fieldType = generator.getTypeName(type, typeSuffix);
+            fieldType = CodeGenUtils.getTypeName(type, typeSuffix);
+        }
+        
+        if (baseType instanceof AliasType) {
+            baseType = ((AliasType)baseType).getType();
+        }
+        
+        if (baseType instanceof EnumerationType && useStringsForEnums) {
+            fieldType = "String";
         }
         
         if (!usePrimitiveTypes && Primitives.isPrimitiveType(fieldType)) {

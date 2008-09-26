@@ -94,7 +94,7 @@ public class MapJavaSubTask extends EnkiTask.SubTask
         super(name);
     }
     
-    void execute() throws BuildException
+    protected void execute() throws BuildException
     {
         if (xmiFile == null) {
             throw new BuildException("missing file attribute");

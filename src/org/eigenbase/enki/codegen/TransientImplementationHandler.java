@@ -168,7 +168,7 @@ public abstract class TransientImplementationHandler
     public void generateAssociation(Association assoc)
         throws GenerationException
     {
-        String interfaceName = generator.getTypeName(assoc);
+        String interfaceName = CodeGenUtils.getTypeName(assoc);
         
         String typeName = convertToTypeName(interfaceName);
 
@@ -181,7 +181,7 @@ public abstract class TransientImplementationHandler
         
         log.fine("Generating Association Implementation '" + typeName + "'");
 
-        AssociationInfo assocInfo = new AssociationInfoImpl(generator, assoc);
+        AssociationInfo assocInfo = new AssociationInfoImpl(assoc);
         
         String baseClass = REF_ASSOC_IMPL_CLASS.toString();
         if (!assocInfo.isChangeable(0) && !assocInfo.isChangeable(1)) {
@@ -217,7 +217,7 @@ public abstract class TransientImplementationHandler
             // constructor
             startBlock(
                 "public ",
-                generator.getSimpleTypeName(assoc, computeSuffix("")),
+                CodeGenUtils.getSimpleTypeName(assoc, computeSuffix("")),
                 "(", REF_PACKAGE_CLASS, " container)");
             writeln(
                 "super(");
@@ -312,12 +312,13 @@ public abstract class TransientImplementationHandler
                 assoc,
                 getEndSingle 
                     ? assocInfo.getEndType(getIndex)
-                    : generator.getCollectionType(
+                    : CodeGenUtils.getCollectionType(
                         ordered 
                             ? ORDERED_COLLECTION_CLASS
                             : COLLECTION_CLASS,
                         assocInfo.getEndType(getIndex)),
-                generator.getAccessorName(assocInfo.getEnd(getIndex), null),
+                CodeGenUtils.getAccessorName(
+                    generator, assocInfo.getEnd(getIndex), null),
                 new String[] { assocInfo.getEndType(fromIndex) },
                 new String[] { assocInfo.getEndIdentifier(fromIndex) });
             if (getEndSingle) {
@@ -355,7 +356,7 @@ public abstract class TransientImplementationHandler
     public void generateClassInstance(MofClass cls)
         throws GenerationException
     {
-        String interfaceName = generator.getTypeName(cls);
+        String interfaceName = CodeGenUtils.getTypeName(cls);
         
         String typeName = convertToTypeName(interfaceName);
 
@@ -376,7 +377,7 @@ public abstract class TransientImplementationHandler
             "Generating Class Instance Implementation '" + typeName + "'");
 
         Collection<Reference> instanceReferences =
-            contentsOfType(
+            CodeGenUtils.contentsOfType(
                 cls,
                 HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                 VisibilityKindEnum.PUBLIC_VIS,
@@ -398,7 +399,7 @@ public abstract class TransientImplementationHandler
             // fields
             writeln("// Attribute Fields");
             Collection<Attribute> instanceAttributes =
-                contentsOfType(
+                CodeGenUtils.contentsOfType(
                     cls,
                     HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                     VisibilityKindEnum.PUBLIC_VIS,
@@ -434,11 +435,11 @@ public abstract class TransientImplementationHandler
                 new HashMap<Reference, ReferenceInfo>();
             
             for(Reference ref: instanceReferences) {
-                ReferenceInfo refInfo = new ReferenceInfoImpl(generator, ref);
+                ReferenceInfo refInfo = new ReferenceInfoImpl(ref);
 
                 writeField(
                     refInfo.getAssocInterfaceName(),
-                    refInfo.getFieldName(), 
+                    generator.transformIdentifier(refInfo.getFieldName()),
                     "private", 
                     false, 
                     false);
@@ -465,16 +466,16 @@ public abstract class TransientImplementationHandler
                     String fieldName = nonDerivedAttribNames.get(attrib);
 
                     String elemTypeName = 
-                        generator.getTypeName(attrib.getType());
+                        CodeGenUtils.getTypeName(attrib.getType());
                     
                     String collTypeName;
                     if (mult.isOrdered()) {
                         collTypeName = 
-                            generator.getCollectionType(
+                            CodeGenUtils.getCollectionType(
                                 ORDERED_COLLECTION_IMPL_CLASS, elemTypeName);
                     } else {
                         collTypeName = 
-                            generator.getCollectionType(
+                            CodeGenUtils.getCollectionType(
                                 COLLECTION_IMPL_CLASS, elemTypeName);
                     }
                     
@@ -494,7 +495,7 @@ public abstract class TransientImplementationHandler
 
                     writeln(
                         "this.",
-                        refInfo.getFieldName(),
+                        generator.transformIdentifier(refInfo.getFieldName()),
                         " = (", refInfo.getAssocInterfaceName(), 
                         ")refImmediatePackage().refAssociation(",
                         QUOTE, refInfo.getAssoc().getName(), QUOTE,
@@ -517,7 +518,7 @@ public abstract class TransientImplementationHandler
                 paramTypes[0] = REF_CLASS_CLASS.toSimple();
                 paramNames[0] = "refClass";
                 for(int i = 0; i < params.length; i++) {
-                    String[] paramInfo = generator.getParam(params[i]);
+                    String[] paramInfo = CodeGenUtils.getParam(params[i]);
                     paramTypes[i + 1] = paramInfo[0];
                     paramNames[i + 1] = paramInfo[1];
                 }
@@ -527,7 +528,7 @@ public abstract class TransientImplementationHandler
                 newLine();
                 for(Attribute attrib: nonDerivedAttribs) {
                     String fieldName = nonDerivedAttribNames.get(attrib);
-                    String[] paramInfo = generator.getParam(attrib);
+                    String[] paramInfo = CodeGenUtils.getParam(attrib);
                     MultiplicityType mult = attrib.getMultiplicity();
                     int upper = mult.getUpper();
                     if (upper == -1 || upper > 1) {
@@ -566,7 +567,7 @@ public abstract class TransientImplementationHandler
                     startAccessorBlock(attrib, true);
                     writeln(
                         "return super.", 
-                        generator.getAccessorName(attrib), 
+                        CodeGenUtils.getAccessorName(generator, attrib), 
                         "();");
                     endBlock();
                     
@@ -633,9 +634,9 @@ public abstract class TransientImplementationHandler
                 startAccessorBlock(ref, true);
                 writeln(
                     "return ",
-                    refInfo.getFieldName(),
+                    generator.transformIdentifier(refInfo.getFieldName()),
                     ".",
-                    refInfo.getAccessorName(), "(this);");
+                    refInfo.getAccessorName(generator), "(this);");
                 endBlock();
                 
                 if (refInfo.isSingle() && refInfo.isChangeable()) {
@@ -643,11 +644,13 @@ public abstract class TransientImplementationHandler
                     startMutatorBlock(ref);
                     if (refInfo.isReferencedEndFirst()) {
                         writeln(
-                            refInfo.getFieldName(),
+                            generator.transformIdentifier(
+                                refInfo.getFieldName()),
                             ".add(newValue, this);");
                     } else {
                         writeln(
-                            refInfo.getFieldName(),
+                            generator.transformIdentifier(
+                                refInfo.getFieldName()),
                             ".add(this, newValue);");                        
                     }
                     endBlock();
@@ -658,7 +661,7 @@ public abstract class TransientImplementationHandler
             // NOTE: MOF operations do not use generic types, so we can't emit
             // methods that use them here.
             Collection<Operation> operations =
-                contentsOfType(
+                CodeGenUtils.contentsOfType(
                     cls, 
                     HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                     VisibilityKindEnum.PUBLIC_VIS, 
@@ -671,7 +674,8 @@ public abstract class TransientImplementationHandler
                 newLine();
 
                 Collection<Parameter> parameters =
-                    contentsOfType(op, null, null, Parameter.class);
+                    CodeGenUtils.contentsOfType(
+                        op, null, null, Parameter.class);
                 List<Parameter> args = new ArrayList<Parameter>();
                 Parameter returnType = null;
                 boolean suppressedWarnings = false;
@@ -696,7 +700,7 @@ public abstract class TransientImplementationHandler
                 
                 String returnTypeName = "void";
                 if (returnType != null) {
-                    returnTypeName = generator.getTypeName(returnType);
+                    returnTypeName = CodeGenUtils.getTypeName(returnType);
                 }
 
                 write(
@@ -723,7 +727,7 @@ public abstract class TransientImplementationHandler
                             arrayBrackets = "[] ";
                         }
 
-                        String[] paramInfo = generator.getParam(arg);
+                        String[] paramInfo = CodeGenUtils.getParam(arg);
                         write(paramInfo[0], arrayBrackets, paramInfo[1]);                        
                     }
                     decreaseIndent();
@@ -745,7 +749,7 @@ public abstract class TransientImplementationHandler
                         }
 
                         write(
-                            generator.getTypeName(
+                            CodeGenUtils.getTypeName(
                                 ex, ExceptionHandler.EXCEPTION_SUFFIX));
                     }
                 }
@@ -764,7 +768,7 @@ public abstract class TransientImplementationHandler
                         } else {
                             first = false;
                         }
-                        String[] paramInfo = generator.getParam(arg);
+                        String[] paramInfo = CodeGenUtils.getParam(arg);
                         write(paramInfo[1]);
                     }
                     decreaseIndent();
@@ -800,14 +804,15 @@ public abstract class TransientImplementationHandler
             if (lower == 1 && upper == 1) {
                 startConditionalBlock(
                     CondType.IF,
-                    generator.getClassFieldName(attrib.getName()),
+                    CodeGenUtils.getClassFieldName(attrib.getName()),
                     " == null");
             } else if (upper != 1 && lower > 0) {
                 // Check that lower-bounded multi-value attribute meets lower
                 // bound
                 startConditionalBlock(
                     CondType.IF, 
-                    generator.getAccessorName(attrib, false), "().size() < ",
+                    CodeGenUtils.getAccessorName(generator, attrib, false), 
+                    "().size() < ",
                     lower);
             } else {
                 continue;
@@ -833,13 +838,15 @@ public abstract class TransientImplementationHandler
                 // Check that required single-value attribute has a value.
                 startConditionalBlock(
                     CondType.IF, 
-                    generator.getAccessorName(ref), "() == null");
+                    CodeGenUtils.getAccessorName(generator, ref), 
+                    "() == null");
             } else if (upper != 1 && lower > 0) {
                 // Check that lower-bounded multi-value attribute meets lower
                 // bound
                 startConditionalBlock(
                     CondType.IF, 
-                    generator.getAccessorName(ref), "().size() < ", lower);
+                    CodeGenUtils.getAccessorName(generator, ref), 
+                    "().size() < ", lower);
             } else {
                 continue;
             }
@@ -873,7 +880,7 @@ public abstract class TransientImplementationHandler
     public void generateClassProxy(MofClass cls)
         throws GenerationException
     {
-        String interfaceName = generator.getTypeName(cls, CLASS_PROXY_SUFFIX);
+        String interfaceName = CodeGenUtils.getTypeName(cls, CLASS_PROXY_SUFFIX);
         
         String typeName = convertToTypeName(interfaceName);
 
@@ -885,7 +892,7 @@ public abstract class TransientImplementationHandler
         }
         
         String instImplTypeName = 
-            convertToTypeName(generator.getTypeName(cls));
+            convertToTypeName(CodeGenUtils.getTypeName(cls));
         
         log.fine("Generating Class Proxy Implementation '" + typeName + "'");
 
@@ -919,7 +926,7 @@ public abstract class TransientImplementationHandler
                 endBlock();
                 
                 Collection<Attribute> allAttributes =
-                    contentsOfType(
+                    CodeGenUtils.contentsOfType(
                         cls, 
                         HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                         ScopeKindEnum.INSTANCE_LEVEL,
@@ -963,7 +970,7 @@ public abstract class TransientImplementationHandler
                     {
                         Attribute attrib = i.next();
                         
-                        String[] paramInfo = generator.getParam(attrib);
+                        String[] paramInfo = CodeGenUtils.getParam(attrib);
 
                         writeln(paramInfo[1], i.hasNext() ? "," : ");");
                     }
@@ -1003,7 +1010,7 @@ public abstract class TransientImplementationHandler
         // generate an addAliasedPackages() method.
         
         String interfaceName = 
-            generator.getTypeName(pkg, PACKAGE_SUFFIX);
+            CodeGenUtils.getTypeName(pkg, PACKAGE_SUFFIX);
         
         String typeName = convertToTypeName(interfaceName);
 
@@ -1031,7 +1038,7 @@ public abstract class TransientImplementationHandler
 
             ArrayList<String> packageFieldNames = new ArrayList<String>();
             Collection<MofPackage> packages =
-                contentsOfType(pkg, MofPackage.class);
+                CodeGenUtils.contentsOfType(pkg, MofPackage.class);
             boolean hasPackages = !packages.isEmpty();
             if (hasPackages) {
                 writeln("// Packages");
@@ -1044,7 +1051,8 @@ public abstract class TransientImplementationHandler
             }
             
             ArrayList<String> classFieldNames = new ArrayList<String>();
-            Collection<MofClass> classes = contentsOfType(pkg, MofClass.class);
+            Collection<MofClass> classes = 
+                CodeGenUtils.contentsOfType(pkg, MofClass.class);
             boolean hasClasses = !classes.isEmpty();
             if (hasClasses) {
                 if (hasPackages) {
@@ -1061,7 +1069,7 @@ public abstract class TransientImplementationHandler
             
             ArrayList<String> assocFieldNames = new ArrayList<String>();
             Collection<Association> assocs = 
-                contentsOfType(pkg, Association.class);
+                CodeGenUtils.contentsOfType(pkg, Association.class);
             boolean hasAssocs = !assocs.isEmpty();
             if (hasAssocs) {
                 if (hasPackages || hasClasses) {
@@ -1081,14 +1089,14 @@ public abstract class TransientImplementationHandler
             if (isContained) {
                 startBlock(
                     "public ",
-                    generator.getSimpleTypeName(
+                    CodeGenUtils.getSimpleTypeName(
                         pkg, computeSuffix(PACKAGE_SUFFIX)),
                     "(", REF_PACKAGE_CLASS, " container)");
                 writeln("super(container);");
             } else {
                 startBlock(
                     "public ",
-                    generator.getSimpleTypeName(
+                    CodeGenUtils.getSimpleTypeName(
                         pkg, computeSuffix(PACKAGE_SUFFIX)),
                     "()");
                 writeln("super(null);");
@@ -1112,7 +1120,7 @@ public abstract class TransientImplementationHandler
                     "this.",
                     fieldName,
                     " = new ",
-                    generator.getSimpleTypeName(
+                    CodeGenUtils.getSimpleTypeName(
                         nestedPkg, computeSuffix(PACKAGE_SUFFIX)),
                     "(this);");
                 writeln(
@@ -1138,7 +1146,7 @@ public abstract class TransientImplementationHandler
                     "this.",
                     fieldName,
                     " = new ",
-                    generator.getSimpleTypeName(
+                    CodeGenUtils.getSimpleTypeName(
                         nestedCls, computeSuffix(CLASS_PROXY_SUFFIX)),
                     "(this);");
                 writeln(
@@ -1164,7 +1172,7 @@ public abstract class TransientImplementationHandler
                     "this.",
                     fieldName,
                     " = new ",
-                    generator.getSimpleTypeName(assoc, computeSuffix("")),
+                    CodeGenUtils.getSimpleTypeName(assoc, computeSuffix("")),
                     "(this);");
                 writeln(
                     "super.addAssociation(", 
@@ -1244,7 +1252,7 @@ public abstract class TransientImplementationHandler
 
             // structure type factory methods
             Collection<StructureType> structs = 
-                contentsOfType(
+                CodeGenUtils.contentsOfType(
                     pkg, 
                     HierachySearchKindEnum.ENTITY_ONLY, 
                     StructureType.class);
@@ -1258,7 +1266,7 @@ public abstract class TransientImplementationHandler
             }
             for(StructureType struct: structs) {
                 Collection<StructureField> structFields = 
-                    contentsOfType(
+                    CodeGenUtils.contentsOfType(
                         struct, 
                         HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                         StructureField.class);
@@ -1267,7 +1275,7 @@ public abstract class TransientImplementationHandler
                     structFields.toArray(
                         new ModelElement[structFields.size()]);
                 startCreatorBlock(struct, args, false, "");
-                write("return new ", generator.getSimpleTypeName(struct), "(");
+                write("return new ", CodeGenUtils.getSimpleTypeName(struct), "(");
                 if (!structFields.isEmpty()) {
                     newLine();
                     increaseIndent();
@@ -1279,7 +1287,7 @@ public abstract class TransientImplementationHandler
                             first = false;
                         }
                         
-                        String[] paramInfo = generator.getParam(field);
+                        String[] paramInfo = CodeGenUtils.getParam(field);
                         write(paramInfo[1]);
                     }
                     writeln(");");
@@ -1306,7 +1314,7 @@ public abstract class TransientImplementationHandler
     public void generateStructure(StructureType struct)
         throws GenerationException
     {
-        String interfaceName = generator.getTypeName(struct);
+        String interfaceName = CodeGenUtils.getTypeName(struct);
         
         String typeName = convertToTypeName(interfaceName);
 
@@ -1321,7 +1329,7 @@ public abstract class TransientImplementationHandler
             "Generating Structure Implementation '" + typeName + "'");
 
         Collection<StructureField> fields =
-            contentsOfType(
+            CodeGenUtils.contentsOfType(
                 struct,
                 HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                 StructureField.class);
@@ -1348,9 +1356,9 @@ public abstract class TransientImplementationHandler
             // fields
             writeln("// Fields");
             for(StructureField field: fields) {
-                String fieldTypeName = generator.getTypeName(field);
+                String fieldTypeName = CodeGenUtils.getTypeName(field);
                 String fieldName = 
-                    generator.getClassFieldName(field.getName());
+                    CodeGenUtils.getClassFieldName(field.getName());
                 
                 crc.update(fieldTypeName.getBytes());
                 crc.update(fieldName.getBytes());
@@ -1372,7 +1380,7 @@ public abstract class TransientImplementationHandler
             newLine();
             
             for(ModelElement arg: args) {
-                String fieldName = generator.getClassFieldName(arg.getName());
+                String fieldName = CodeGenUtils.getClassFieldName(arg.getName());
                 writeln("this.", fieldName, " = ", fieldName, ";");
             }
             
@@ -1384,14 +1392,14 @@ public abstract class TransientImplementationHandler
                 newLine();
                 startBlock(
                     "public ",
-                    generator.getTypeName(field),
+                    CodeGenUtils.getTypeName(field),
                     " ", 
-                    generator.getAccessorName(field, null), 
+                    CodeGenUtils.getAccessorName(generator, field, null), 
                     "() throws ",
                     JMI_EXCEPTION_CLASS);
                 writeln(
                     "return ",
-                    generator.getClassFieldName(field.getName()),
+                    CodeGenUtils.getClassFieldName(field.getName()),
                     ";");
                 endBlock();
             }

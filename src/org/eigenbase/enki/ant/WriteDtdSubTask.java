@@ -76,7 +76,7 @@ public class WriteDtdSubTask extends SubTask
     }
     
     @Override
-    void execute() throws BuildException
+    protected void execute() throws BuildException
     {
         if (file == null) {
             throw new BuildException("Missing \"file\" attribute");

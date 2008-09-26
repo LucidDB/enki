@@ -108,7 +108,7 @@ public class HibernateMofInitHandler extends MofInitHandler
                 
                 psd.packageName = pkg.getName();
                 psd.packageTypeName = 
-                    generator.getTypeName(
+                    CodeGenUtils.getTypeName(
                         pkg, 
                         PackageHandler.PACKAGE_SUFFIX 
                         + HibernateJavaHandler.IMPL_SUFFIX);
@@ -141,7 +141,7 @@ public class HibernateMofInitHandler extends MofInitHandler
         }
         
         Collection<Attribute> instanceAttributes =
-            contentsOfType(
+            CodeGenUtils.contentsOfType(
                 cls,
                 HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                 VisibilityKindEnum.PUBLIC_VIS,
@@ -178,7 +178,7 @@ public class HibernateMofInitHandler extends MofInitHandler
             return;
         }
         
-        for(AssociationEnd end: generator.getAssociationEnds(assoc)) {
+        for(AssociationEnd end: CodeGenUtils.getAssociationEnds(assoc)) {
             Classifier type = end.getType();
             if (type instanceof AliasType) {
                 type = ((AliasType)type).getType();
@@ -205,9 +205,9 @@ public class HibernateMofInitHandler extends MofInitHandler
                 continue;
             }
 
-            String simpleTypeName = generator.getSimpleTypeName(subtype);
+            String simpleTypeName = CodeGenUtils.getSimpleTypeName(subtype);
             String implTypeName = 
-                generator.getTypeName(subtype) + 
+                CodeGenUtils.getTypeName(subtype) + 
                 HibernateJavaHandler.IMPL_SUFFIX;
             
             typeMap.put(implTypeName, simpleTypeName);

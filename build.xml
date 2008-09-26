@@ -77,6 +77,9 @@
     location="${sample.catalog.dir}/xmi/${sample.metamodel.name}.xmi"/>
   <property name="sample.jar" location="${sample.dir}/sample.jar"/>
   <property name="sample.dtd" location="${sample.catalog.dir}/xmi/sample.dtd"/>
+  <property 
+    name="sample.model.sql" 
+    location="${sample.catalog.dir}/xmi/${sample.metamodel.name}.sql"/>
 
   <!-- umlm2 Catalog properties -->
   <property name="umlm2.dir" location="${test.dir}/umlm2"/>
@@ -109,6 +112,9 @@
     location="${sample.catalog.dir}/xmi/EnkiSamplePluginMetamodel.xmi"/>
   <property name="sample.plugin.jar" location="${sample.dir}/sample-plugin.jar"/>
   <property name="sample.plugin.dtd" location="${sample.catalog.dir}/xmi/sample-plugin.dtd"/>
+  <property 
+    name="sample.plugin.model.sql" 
+    location="${sample.catalog.dir}/xmi/EnkiSamplePluginMetamodel.sql"/>
 
   <!-- classpath for Sample plugin model implementation JAR -->
   <path id="sample.plugin.mdr.classpath">
@@ -424,6 +430,30 @@
   </target>
 
   <target name="forked_importSampleMetamodel" depends="enki_mdr.taskdef">
+    <if>
+      <equals arg1="${enki.impl}" arg2="hibernate"/>
+      <then>
+        <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
+          <mdr-tasks>
+            <exportSchema
+              extent="SampleMetamodel"
+              file="${sample.model.sql}"/>
+          </mdr-tasks>
+        </enki.mdr>
+
+        <property 
+          file="${test.dir}/TestStorage.properties" 
+          prefix="genSampleSchema"/>
+
+        <sql
+          driver="${genSampleSchema.org.eigenbase.enki.hibernate.connection.driver_class}"
+          url="${genSampleSchema.org.eigenbase.enki.hibernate.connection.url}" 
+          userid="${genSampleSchema.org.eigenbase.enki.hibernate.connection.username}"
+          password="${genSampleSchema.org.eigenbase.enki.hibernate.connection.password}"
+          src="${sample.model.sql}"/>
+      </then>
+    </if>
+
     <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
       <mdr-tasks>
         <createExtent name="SampleMetamodel"/>
@@ -445,6 +475,30 @@
   </target>
 
   <target name="forked_importSamplePluginMetamodel" depends="enki_mdr.taskdef">
+    <if>
+      <equals arg1="${enki.impl}" arg2="hibernate"/>
+      <then>
+        <enki.mdr propertiesFile="${test.dir}/TestPluginStorage.properties">
+          <mdr-tasks>
+            <exportSchema
+              extent="SampleMetamodel"
+              file="${sample.plugin.model.sql}"/>
+          </mdr-tasks>
+        </enki.mdr>
+
+        <property 
+          file="${test.dir}/TestPluginStorage.properties" 
+          prefix="genSamplePluginSchema"/>
+
+        <sql
+          driver="${genSamplePluginSchema.org.eigenbase.enki.hibernate.connection.driver_class}"
+          url="${genSamplePluginSchema.org.eigenbase.enki.hibernate.connection.url}" 
+          userid="${genSamplePluginSchema.org.eigenbase.enki.hibernate.connection.username}"
+          password="${genSamplePluginSchema.org.eigenbase.enki.hibernate.connection.password}"
+          src="${sample.plugin.model.sql}"/>
+      </then>
+    </if>
+
     <enki.mdr propertiesFile="${test.dir}/TestPluginStorage.properties">
       <mdr-tasks>
         <createExtent name="SampleMetamodel"/>
@@ -596,6 +650,10 @@
       </tarfileset>
     </tar>
 
+    <!-- N.B.: Library JARs typically require that a license file be included
+         with their binary distributions.  These JAR files all include said
+         license file within the JAR file. If you add a JAR that doesn't do
+         so, you'll need to make sure it gets into the tar ball. -->
     <tar destfile="${enki.lib.dist.tarball}" compression="gzip">
       <tarfileset dir="${hibernate.dir}" prefix="${enki.dist.prefix}">
         <include name="*.jar"/>
@@ -612,6 +670,15 @@
       <tarfileset dir="${commons-collections.dir}" prefix="${enki.dist.prefix}">
         <include name="*.jar"/>
         <exclude name="*testframework*.jar"/>
+      </tarfileset>
+      <tarfileset dir="${commons-dbcp.dir}" prefix="${enki.dist.prefix}">
+        <include name="*.jar"/>
+      </tarfileset>
+      <tarfileset dir="${commons-pool.dir}" prefix="${enki.dist.prefix}">
+        <include name="*.jar"/>
+      </tarfileset>
+      <tarfileset dir="${simplejndi.dir}" prefix="${enki.dist.prefix}">
+        <include name="*.jar"/>
       </tarfileset>
     </tar>
   </target>

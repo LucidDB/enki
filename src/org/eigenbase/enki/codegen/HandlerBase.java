@@ -35,20 +35,12 @@ import org.eigenbase.enki.util.*;
  * 
  * @author Stephan Zuercher
  */
-public abstract class HandlerBase implements Handler
+public abstract class HandlerBase
+    extends AbstractCodeGenOutput
+    implements Handler, CodeGenOutput
 {
-    /** Indent string. */
-    public static final String INDENT = "    ";
-    
     public static final String[] EMPTY_STRING_ARRAY = new String[0];
 
-    public static final String QUOTE = "\"";
-    
-    /** 
-     * Default wrapping column for {@link #writeWrapped(String, Object...)}.
-     */
-    protected static final int WRAP_WIDTH = 78;
-    
     protected Generator generator;
     
     /** Output directory. */
@@ -57,24 +49,12 @@ public abstract class HandlerBase implements Handler
     /** Current output file. */
     protected File currentFile;
     
-    /** Print stream for the current output file. */
-    private PrintStream output;
-    
     /** List of included packages. */
     private Set<String> includedPackages;
-    
-    /** Current output encoding. */
-    protected String encoding;
-    
-    /** Current indent level. */
-    private int indentLevel;
     
     /** Extra information to print at the start of each file. */
     protected String commonHeader;
 
-    /** Flag indicating whether we're at the start of a line or not. */
-    private boolean startOfLine;
-    
     /** {@link #close()} can store an exception here to be thrown later. */
     private GenerationException pendingEx;
     
@@ -190,7 +170,7 @@ public abstract class HandlerBase implements Handler
             return true;
         }
         
-        String typeName = generator.getTypeName(elem);
+        String typeName = CodeGenUtils.getTypeName(elem);
         
         int lastDot;
         while((lastDot = typeName.lastIndexOf('.')) > 0) {
@@ -216,7 +196,7 @@ public abstract class HandlerBase implements Handler
     
     protected void open(File file, String encoding) throws GenerationException
     {
-        if (output != null) {
+        if (hasOutput()) {
             throw new GenerationException(
                 "internal: previous file was not closed");
         }
@@ -224,11 +204,12 @@ public abstract class HandlerBase implements Handler
         checkPendingException();
         
         currentFile = file;
-        FileOutputStream stream;
         try {
-            stream = new FileOutputStream(currentFile);
-            this.encoding = encoding;
-            output = new PrintStream(stream, false, encoding);
+            Writer writer = 
+                new OutputStreamWriter(
+                    new FileOutputStream(currentFile), encoding);
+            setEncoding(encoding);
+            setOutput(new PrintWriter(writer, false));
             
             log.fine("Opened '" + currentFile.toString() + "'");
         } catch (IOException e) {
@@ -259,18 +240,17 @@ public abstract class HandlerBase implements Handler
      */
     protected void close() throws GenerationException
     {
-        if (output != null) {
-            if (indentLevel != 0 && pendingEx == null) {
+        if (hasOutput()) {
+            if (getIndentLevel() != 0 && pendingEx == null) {
                 pendingEx = 
                     new GenerationException(
                         "Unbalanced indents in '" + currentFile + "'");
             }
             resetIndent();
             
-            output.close();
-            output = null;
+            closeOutput();
 
-            log.fine("Closeed '" + currentFile.toString() + "'");
+            log.fine("Closed '" + currentFile.toString() + "'");
         }
     }
     
@@ -324,7 +304,7 @@ public abstract class HandlerBase implements Handler
         String[] result = new String[entities.size()];
         int i = 0;
         for(ModelElement entity: entities) {
-            result[i++] = generator.getTypeName(entity, suffix);
+            result[i++] = CodeGenUtils.getTypeName(entity, suffix);
         }
         return result;
     }
@@ -337,443 +317,8 @@ public abstract class HandlerBase implements Handler
         String[] result = new String[entities.size()];
         int i = 0;
         for(E entity: GenericCollections.asTypedList(entities, cls)) {
-            result[i++] = generator.getTypeName(entity, suffix);
+            result[i++] = CodeGenUtils.getTypeName(entity, suffix);
         }
         return result;
-    }
-    
-    /**
-     * Writes the given objects to the output as strings.  Presumes that
-     * the result of each object's {@link #toString()} method is the 
-     * desired output.  If the output is currently at the start of a line,
-     * makes a call to {@link #indent()} before writing the strings.
-     * 
-     * @param strings objects to write to the output
-     * @throws NullPointerException if any object in strings is null
-     */
-    protected void write(Object... strings)
-    {
-        if (startOfLine) {
-            indent();
-            startOfLine = false;
-        }
-
-        for(Object s: strings) {
-            if (s == null) {
-                throw new NullPointerException();
-            }
-            
-            output.print(s.toString());
-        }
-    }
-    
-    /**
-     * Writes the given objects to the output and starts a new line.
-     * Equivalent to calling {@link #write(Object...)} followed by
-     * {@link #newLine()}.
-     * 
-     * @param strings objects to conver to strings and write to the output
-     */
-    protected void writeln(Object... strings)
-    {
-        write(strings);
-        output.println();
-        startOfLine = true;
-    }
-    
-    /**
-     * Starts a new line of output.
-     */
-    protected void newLine()
-    {
-        output.println();
-        startOfLine = true;
-    }
-    
-    /**
-     * Emits {@link #INDENT} once for each indent level.
-     */
-    protected void indent()
-    {
-        for(int i = 0; i < indentLevel; i++) {
-            output.print(INDENT);
-        }
-    }
-    
-    /**
-     * Returns the current indent level.
-     * @return the current indent level.
-     */
-    protected int getIndentLevel()
-    {
-        return indentLevel;
-    }
-    
-    /**
-     * Increases the current indent by one level.
-     */
-    protected void increaseIndent()
-    {
-        indentLevel++;
-    }
-    
-    /**
-     * Decreases the indent by one level.  The indent cannot be reduced
-     * below zero.
-     */
-    protected void decreaseIndent()
-    {
-        indentLevel--;
-        if (indentLevel < 0) {
-            assert(false);
-            indentLevel = 0;
-        }
-    }
-    
-    /**
-     * Resets the indent level to 0.
-     */
-    protected void resetIndent()
-    {
-        indentLevel = 0;
-    }
-    
-    /**
-     * Writes the given objects as strings wrapping long lines.  Wrapping is
-     * achieved by converting the given objects to strings and concatenating
-     * them.  The result is then split into lines if there are any embedded
-     * new line characters.  Each line is then wrapped to a width of
-     * {@link #WRAP_WIDTH}, taking into account the given prefix and current
-     * indent level.
-     * 
-     * <p>This method converts consecutive spaces into single spaces.  It 
-     * converts consecutive blank lines (e.g., multiple new lines separated
-     * with nothing but tabs or spaces) into a single blank line.  A blank
-     * space is emitted after the prfix.
-     * 
-     * @param prefix wrapped-line prefix (e.g., " *" for multi-line Java-style
-     *               comments
-     * @param strings zero of more objects to be converted to strings and
-     *                wrapped 
-     *                
-     */
-    protected void writeWrapped(String prefix, Object... strings)
-    {
-        StringBuilder buffer = new StringBuilder();
-        for(Object s: strings) {
-            buffer.append(s.toString());
-        }
-        
-        String s = buffer.toString();
-        if (s.length() == 0) {
-            return;
-        }
-        
-        String[] lines = s.split("\\r*\\n");
-
-        final int wrapWidth = 
-            WRAP_WIDTH - (INDENT.length() * indentLevel) - prefix.length() - 1;
-        
-        int consecutiveBlank = 0;
-        buffer.setLength(0);
-        for(String line: lines) {
-            StringBuilder indent = new StringBuilder();
-            int indentEnd = 0;
-            
-            // Put beginning-of-line indent into indent and trim it from line.
-            while(indentEnd < line.length())
-            {
-                char ch = line.charAt(indentEnd);
-                if (ch != '\t' && ch != ' ') {
-                    break;
-                }
-
-                indentEnd++;
-                if (ch == '\t') {
-                    indent.append(INDENT);
-                } else {
-                    indent.append(' ');
-                }
-            }
-            line = line.trim();
-            
-            // Collapse consecutive blank lines.
-            if (line.length() == 0) {
-                if (consecutiveBlank < 1) {
-                    writeln(prefix);
-                    consecutiveBlank++;
-                }
-                continue;
-            }
-            consecutiveBlank = 0;
-            
-            String[] words = line.split(" +");
-
-            if (indent.length() > 0) {
-                buffer.append(indent);
-            } else {
-                // prefix is written directly, but we place a space after it
-                buffer.append(' ');
-            }
-            boolean justIndent = true;
-            for(String word: words) {
-                int len = buffer.length();
-
-                if (!justIndent) {
-                    if (len + word.length() >= wrapWidth) {
-                        writeln(prefix, buffer.toString());
-                        buffer.setLength(0);
-                        len = 0;
-                    }
-
-                    buffer.append(' ');
-                }
-                buffer.append(word);
-                justIndent = false;
-            }
-            if (buffer.length() > 0) {
-                writeln(prefix, buffer.toString());
-                buffer.setLength(0);
-            }
-        }
-    }
-    
-    /**
-     * Iterates over contents of the entity and returns a collection 
-     * containing all contents of the given type.  Objects of any scope and 
-     * visibility are returned.  Super types are not searched.
-     * 
-     * @param <E> content type
-     * @param entity entity to search over
-     * @param cls Class for E
-     * @return collection of E that are contents of entity
-     */
-    protected <E> Collection<E> contentsOfType(
-        GeneralizableElement entity, Class<E> cls)
-    {
-        return contentsOfType(
-            entity, 
-            HierachySearchKindEnum.ENTITY_ONLY,
-            null, 
-            null,
-            cls);
-    }
-    
-    /**
-     * Iterates over contents of the entity (and possibly its super types)
-     * and returns a collection containing all contents of the given type.
-     * Objects of any scope and visibility are returned.
-     * 
-     * @param <E> content type
-     * @param entity entity to search over
-     * @param search whether to search only the entity, or include super types
-     * @param cls Class for E
-     * @return collection of E that are contents of entity
-     */
-    protected <E> Collection<E> contentsOfType(
-        GeneralizableElement entity,
-        HierachySearchKindEnum search, 
-        Class<E> cls)
-    {
-        return contentsOfType(entity, search, null, null, cls);
-    }
-    
-    /**
-     * Iterates over contents of the entity (and possibly its super types)
-     * and returns a collection containing all contents of the given type
-     * with the given scope.
-     * 
-     * @param <E> content type
-     * @param entity entity to search over
-     * @param search whether to search only the entity, or include super types
-     * @param scope content scope
-     * @param cls Class for E
-     * @return collection of E that are contents of entity
-     */
-    protected <E> Collection<E> contentsOfType(
-        GeneralizableElement entity, 
-        HierachySearchKindEnum search, 
-        ScopeKind scope,
-        Class<E> cls)
-    {
-        return contentsOfType(entity, search, null, scope, cls);
-    }
-    
-    /**
-     * Iterates over contents of the entity (and possibly its super types)
-     * and returns a collection containing all contents of the given type
-     * with the given visibility.
-     * 
-     * @param <E> content type
-     * @param entity entity to search over
-     * @param search whether to search only the entity, or include super types
-     * @param visibility content visibility
-     * @param cls Class for E
-     * @return collection of E that are contents of entity
-     */
-    protected <E> Collection<E> contentsOfType(
-        GeneralizableElement entity, 
-        HierachySearchKindEnum search, 
-        VisibilityKind visibility, 
-        Class<E> cls)
-    {
-        return contentsOfType(entity, search, visibility, null, cls);
-    }
-    
-    /**
-     * Iterates over contents of the entity (and possibly its super types)
-     * and returns a collection containing all contents of the given type
-     * with the given visibility and scope.
-     * 
-     * @param <E> content type
-     * @param entity entity to search over
-     * @param search whether to search only the entity, or include super types
-     * @param visibility content visibility
-     * @param scope content scope
-     * @param cls Class for E
-     * @return collection of E that are contents of entity
-     */
-    protected <E> Collection<E> contentsOfType(
-        GeneralizableElement entity,
-        HierachySearchKindEnum search, 
-        VisibilityKind visibility,
-        ScopeKind scope,
-        Class<E> cls)
-    {
-        // LinkedHashSet prevents duplicate entries and preserves insertion
-        // order as the iteration order, which are both desired here.
-        LinkedHashSet<E> result = new LinkedHashSet<E>();
-        
-        if (search == HierachySearchKindEnum.INCLUDE_SUPERTYPES) {
-            for(Namespace namespace: 
-                    GenericCollections.asTypedList(
-                        entity.allSupertypes(), Namespace.class))
-            {
-                result.addAll(
-                    contentsOfType(namespace, visibility, scope, cls));
-            }
-        }
-        
-        result.addAll(
-            contentsOfType(entity, visibility, scope, cls));
-
-        return result;
-    }
-
-    /**
-     * Iterates over contents of the namespace and returns a collection 
-     * containing all contents of the given type with the given visibility and
-     * scope.
-     * 
-     * @param <E> content type
-     * @param namespace namespace to search over
-     * @param visibility content visibility
-     * @param scope content scope
-     * @param cls Class for E
-     * @return collection of E that are contents of entity
-     */
-    protected <E> Collection<E> contentsOfType(
-        Namespace namespace,
-        VisibilityKind visibility,
-        ScopeKind scope,
-        Class<E> cls)
-    {
-        LinkedHashSet<E> result = new LinkedHashSet<E>();
-
-        for(Object o: namespace.getContents()) {
-            if (!cls.isInstance(o)) {
-                logDiscard(
-                    namespace, 
-                    visibility, 
-                    scope, 
-                    cls, 
-                    "wrong type", 
-                    o.getClass().getName());
-                continue;
-            }
-            
-            if (visibility != null && 
-                !((Feature)o).getVisibility().equals(visibility))
-            {
-                logDiscard(
-                    namespace, 
-                    visibility, 
-                    scope, 
-                    cls,
-                    "wrong visibility", 
-                    ((Feature)o).getVisibility().toString());
-                continue;
-            }
-            
-            if (scope != null &&
-                !((Feature)o).getScope().equals(scope))
-            {
-                logDiscard(
-                    namespace, 
-                    visibility, 
-                    scope, 
-                    cls,
-                    "wrong scope", 
-                    ((Feature)o).getScope().toString());
-                continue;
-            }
-
-            logAccept(namespace, visibility, scope, cls);
-
-            result.add(cls.cast(o));
-        }
-        
-        return result;
-    }
-
-    private <E> void logAccept(
-        Namespace namespace,
-        VisibilityKind visibility,
-        ScopeKind scope,
-        Class<E> cls)
-    {
-        if (!log.isLoggable(Level.FINEST)) {
-            return;
-        }
-
-        log.finest(
-            "contentsOfType(" +
-            namespace.getName() + ": " +
-            (visibility == null ? "<any-vis>" : visibility.toString()) + ", " +
-            (scope == null ? "<any-scope>" : scope.toString()) + ", " +
-            cls.getName() + "): ok");
-    }
-    
-    private void logDiscard(
-        Namespace namespace, 
-        VisibilityKind visibility, 
-        ScopeKind scope, 
-        Class<?> cls, 
-        String desc, 
-        String value)
-    {
-        if (!log.isLoggable(Level.FINEST)) {
-            return;
-        }
-        
-        log.finest(
-            "contentsOfType(" +
-            namespace.getName() + ": " +
-            (visibility == null ? "<any-vis>" : visibility.toString()) + ", " +
-            (scope == null ? "<any-scope>" : scope.toString()) + ", " +
-            cls.getName() + "): " + desc + ": " + value);
-    }
-    
-    /**
-     * HierarchySearchKindEnum is used as a flag to control methods that may
-     * either search only a given entity or the entity and its super types.
-     */
-    protected static enum HierachySearchKindEnum
-    {
-        /** Search only the given entity, ignoring super types. */
-        ENTITY_ONLY,
-        
-        /** Search the given entity, followed by all of its super types. */
-        INCLUDE_SUPERTYPES;
     }    
 }
