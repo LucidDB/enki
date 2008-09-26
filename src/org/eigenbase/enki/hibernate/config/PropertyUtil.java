@@ -27,7 +27,7 @@ import java.util.logging.*;
 
 /**
  * PropertyUtil provides static utilities methods for manipulating 
- * {@link Property} objects.
+ * {@link Properties} objects.
  * 
  * @author Stephan Zuercher
  */

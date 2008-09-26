@@ -228,6 +228,7 @@
         <jvmargs/>
         <arg value="${enki.forkOutputStyle}"/>
         <arg value="${enki.forkVerbosity}"/>
+        <arg value="-Denki.impl=${enki.impl}"/>
         <arg value="@{target}"/>
       </java>
     </sequential>
