@@ -653,7 +653,7 @@ public class HibernateMDRepository
         }
 
         Session session = sessionFactory.openSession();
-        session.setFlushMode(FlushMode.COMMIT);
+        session.setFlushMode(FlushMode.AUTO);
         
         MdrSession mdrSession = new MdrSession(session, implicit, sessionId);
         mdrSession.refCount++;
