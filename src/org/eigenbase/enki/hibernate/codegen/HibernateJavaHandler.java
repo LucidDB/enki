@@ -2919,7 +2919,8 @@ public class HibernateJavaHandler
             String queryCacheRegion = 
                 HibernateMappingHandler.CACHE_REGION_SUFFIX + 
                 HibernateMappingHandler.CACHE_REGION_QUERY_SUFFIX;
-            String tableName = CodeGenUtils.getSimpleTypeName(cls);
+            String tableName =
+                HibernateMappingHandler.computeBaseTableName(cls);
             if (tablePrefix != null) {
                 queryCacheRegion = tablePrefix + queryCacheRegion;
                 tableName = tablePrefix + tableName;

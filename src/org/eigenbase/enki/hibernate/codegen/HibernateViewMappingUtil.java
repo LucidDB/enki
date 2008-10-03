@@ -82,7 +82,8 @@ public class HibernateViewMappingUtil
         for(Dialect[] dialects: dialectSet) {
             Dialect exemplar = dialects[0];
             
-            String tableName = CodeGenUtils.getSimpleTypeName(cls);
+            String tableName = 
+                HibernateMappingHandler.computeBaseTableName(cls);
             String viewName = viewName(tableName, exemplar, true);
 
             output.startElem("database-object");
@@ -135,7 +136,8 @@ public class HibernateViewMappingUtil
         Dialect dialect)
     throws GenerationException
     {
-        String tableName = CodeGenUtils.getSimpleTypeName(cls);
+        String tableName = 
+            HibernateMappingHandler.computeBaseTableName(cls);
 
         List<ReferenceInfo> refInfos = new ArrayList<ReferenceInfo>();
         
@@ -316,7 +318,8 @@ public class HibernateViewMappingUtil
         for(Dialect[] dialects: dialectSet) {
             Dialect exemplar = dialects[0];
             
-            String tableName = CodeGenUtils.getSimpleTypeName(cls);
+            String tableName = 
+                HibernateMappingHandler.computeBaseTableName(cls);
             String viewName = viewName(tableName, exemplar, false);
 
             output.startElem("database-object");
@@ -389,7 +392,8 @@ public class HibernateViewMappingUtil
         Dialect dialect)
     throws GenerationException
     {
-        String tableName = CodeGenUtils.getSimpleTypeName(subtype);
+        String tableName = 
+            HibernateMappingHandler.computeBaseTableName(subtype);
 
         List<ReferenceInfo> refInfos = new ArrayList<ReferenceInfo>();
         

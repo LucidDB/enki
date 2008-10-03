@@ -896,7 +896,7 @@ public class HibernateMappingHandler
         String typeName = 
             CodeGenUtils.getTypeName(cls, HibernateJavaHandler.IMPL_SUFFIX);
         
-        String tableName = CodeGenUtils.getSimpleTypeName(cls);
+        String tableName = computeBaseTableName(cls);
         
         allTypes.add(cls);
         
@@ -1094,7 +1094,7 @@ public class HibernateMappingHandler
         endElem("class");
         newLine();
     }
-    
+
     private void writeStringTypeElement(
         Classifier cls,
         Attribute attribute, 
@@ -1191,6 +1191,27 @@ public class HibernateMappingHandler
         }
         
         return quote(tableName, dialect);
+    }
+    
+    static String computeBaseTableName(Classifier cls)
+    {
+        MofPackage owner = (MofPackage)cls.getContainer();
+        
+        String packageName =
+            TagUtil.getTagValue(owner, TagUtil.TAGID_SUBSTITUTE_NAME);
+        if (packageName == null) {
+            packageName = 
+                StringUtil.mangleIdentifier(
+                    owner.getName(), 
+                    StringUtil.IdentifierType.CAMELCASE_INIT_UPPER);
+        }
+
+        String className = 
+            StringUtil.mangleIdentifier(
+                cls.getName(), StringUtil.IdentifierType.CAMELCASE_INIT_UPPER);
+        
+        String tableName = packageName + "_" + className;
+        return tableName;
     }
     
     private String indexName(String tableName, Dialect dialect)
