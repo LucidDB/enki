@@ -586,6 +586,10 @@ public class HibernateMDRepository
     
     public EnkiMDSession detachSession()
     {
+        if (sessionStack.isEmpty()) {
+            return null;
+        }
+        
         MdrSession mdrSession = sessionStack.pop();
         return mdrSession;
     }
@@ -609,12 +613,6 @@ public class HibernateMDRepository
         }
         
         sessionStack.push((MdrSession)session);
-    }
-
-    public void endDetachedSession(EnkiMDSession session)
-    {
-        reattachSession(session);
-        endSession();
     }
 
     public void beginSession()
@@ -2433,6 +2431,11 @@ public class HibernateMDRepository
         pkgs.add(pkg);
         while(!pkgs.isEmpty()) {
             RefPackage p = pkgs.removeFirst();
+            
+            if (CodeGenUtils.isTransient((MofPackage)p.refMetaObject())) {
+                continue;
+            }
+            
             for(RefClass c: 
                     GenericCollections.asTypedCollection(
                         p.refAllClasses(), RefClass.class))
@@ -2859,6 +2862,11 @@ public class HibernateMDRepository
         public void push(MdrSession session)
         {
             tls.get().addFirst(session);
+        }
+        
+        public boolean isEmpty()
+        {
+            return tls.get().isEmpty();
         }
     }
     

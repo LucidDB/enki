@@ -108,21 +108,6 @@ public interface EnkiMDRepository extends MDRepository
     public void reattachSession(EnkiMDSession session);
 
     /**
-     * Ends a detached repository session.
-     *
-     * <p>The effect is similar to calling {@link #reattachSession} followed
-     * by {@link #endSession}, except that there is not an error if there is
-     * a current session.
-     *
-     * <p>Useful when the session to be closed was detached by a different
-     * thread and the current thread already has a session open.
-     *
-     * @param session an {@link EnkiMDSession} previously detached via
-     *                {@link #detachSession()}
-     */
-    public void endDetachedSession(EnkiMDSession session);
-
-    /**
      * Looks up a {@link RefObject} with the given MOF ID and type.  Some
      * repositories may perform this operation more efficiently than the
      * less specific {@link MDRepository#getByMofId(String)}.
