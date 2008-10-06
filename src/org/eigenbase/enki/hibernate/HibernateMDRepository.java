@@ -749,7 +749,7 @@ public class HibernateMDRepository
         LinkedList<Context> contexts = mdrSession.context;
         
         // Nested txns are okay, but the outermost txn is the only one that
-        // commits/rollsback.
+        // commits/rollsback.  So bar writes nested in explicit reads.
         boolean isCommitter = false;
         boolean beginTrans = false;
         if (contexts.isEmpty()) {
@@ -759,6 +759,15 @@ public class HibernateMDRepository
             isCommitter = contexts.getLast().isImplicit;
         }
         
+        if (write && !isCommitter && !isNestedWriteTransaction(mdrSession)) {
+            throw new HibernateException(
+                "cannot start write transaction within read transaction");
+        }
+
+        if (!write && isCommitter && !contexts.isEmpty()) {
+            mdrSession.session.setFlushMode(FlushMode.COMMIT);
+        }
+
         Transaction trans;
         if (beginTrans) {
             trans = mdrSession.session.beginTransaction();
