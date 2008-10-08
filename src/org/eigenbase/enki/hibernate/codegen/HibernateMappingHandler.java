@@ -1208,7 +1208,7 @@ public class HibernateMappingHandler
 
         String className = 
             StringUtil.mangleIdentifier(
-                cls.getName(), StringUtil.IdentifierType.CAMELCASE_INIT_UPPER);
+                cls.getName(), StringUtil.IdentifierType.SIMPLE);
         
         String tableName = packageName + "_" + className;
         return tableName;

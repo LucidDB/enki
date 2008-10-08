@@ -176,64 +176,6 @@ public interface EnkiMDRepository extends MDRepository
     public boolean supportsPreviewRefDelete();
     
     /**
-     * Finds a {@link RefObject} of the given type (including its subclasses) 
-     * with the given value for the given feature.  If multiple matching 
-     * RefObject instances are found, only one is returned.  The feature's 
-     * type must be a simple Java type and not a RefObject. 
-     * 
-     * @param cls {@link RefClass} describing the object's type
-     * @param featureName name of the feature to search on
-     * @param value value to search for
-     * @return an object matching the search criteria or null if none found
-     */
-    public RefObject findAllOfType(
-        RefClass cls, String featureName, Object value);
-    
-    /**
-     * Finds a {@link RefObject} of the given type (including its subclasses) 
-     * with the given value for the given feature.  If multiple matching 
-     * RefObject instances are found, only one is returned.  The feature's 
-     * type must be a simple Java type and not a RefObject. 
-     * 
-     * @param cls {@link RefClass} describing the object's type
-     * @param feature object describing the feature to search on
-     * @param value value to search for
-     * @return an object matching the search criteria or null if none found
-     */
-    public RefObject findAllOfType(
-        RefClass cls, RefObject feature, Object value);
-    
-    /**
-     * Finds a {@link RefObject} of the given type with the given value for 
-     * the given feature.  If multiple matching RefObject instances are found,
-     * only one is returned.  The feature's type must be a simple Java type
-     * and not a RefObject.  The {@link RefClass} may not be abstract.
-     * Subclasses of the given class are not considered. 
-     * 
-     * @param cls {@link RefClass} describing the object's type
-     * @param featureName name of the feature to search on
-     * @param value value to search for
-     * @return an object matching the search criteria or null if none found
-     */
-    public RefObject findAllOfClass(
-        RefClass cls, String featureName, Object value);
-    
-    /**
-     * Finds a {@link RefObject} of the given type with the given value for 
-     * the given feature.  If multiple matching RefObject instances are found,
-     * only one is returned.  The feature's type must be a simple Java type
-     * and not a RefObject.  The {@link RefClass} may not be abstract.
-     * Subclasses of the given class are not considered. 
-     * 
-     * @param cls {@link RefClass} describing the object's type
-     * @param feature object describing the feature to search on
-     * @param value value to search for
-     * @return an object matching the search criteria or null if none found
-     */
-    public RefObject findAllOfClass(
-        RefClass cls, RefObject feature, Object value);
-    
-    /**
      * Tests whether the named extent is built into this repository.  Built-in
      * extents cannot be imported or deleted.
      * 

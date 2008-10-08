@@ -174,6 +174,10 @@ public class StringUtil
                     mangledIdent.append(subword.toLowerCase(Locale.US));
                     break;
                     
+                case SIMPLE:
+                    mangledIdent.append(subword);
+                    break;
+                    
                 default:
                     throw new IllegalArgumentException(
                         "unknown identifier type");
@@ -188,15 +192,76 @@ public class StringUtil
     
 
     /**
-     * Identifies various types of identifiers based on how their names
-     * are mangled.
+     * Identifies various types of identifier mangling, based on how the input 
+     * is modified.  Word boundaries for identifiers are CamelCase case
+     * transitions and non-alphanumeric characters.
      */
     public enum IdentifierType
     {
+        /**
+         * Converts strings to upper case identifiers with underscores 
+         * separating words.
+         */
         ALL_CAPS,
+        
+        /**
+         * Converts strings to lower case identifiers with no word separation.
+         */
+        ALL_LOWER,
+        
+        /**
+         * Converts strings to CamelCase identifiers with the first word 
+         * starting in lower case.  Examples:
+         * <table>
+         * <tr>
+         *   <th>Original</th>
+         *   <th>Mangled Output</th>
+         * </tr>
+         * <tr>
+         *   <td>SQL2003</td>
+         *   <td>sql2003</td>
+         * </tr>
+         * <tr>
+         *   <td>SQL2003Spec</td>
+         *   <td>sql2003spec</td>
+         * </tr>
+         * <tr>
+         *   <td>SQL2003spec</td>
+         *   <td>sql2003spec</td>
+         * </tr>
+         * <tr>
+         *   <td>originalSQLData</td>
+         *   <td>originalSqldata</td>
+         * </tr>
+         * <tr>
+         *   <td>one two three</td>
+         *   <td>oneTwoThree</td>
+         * </tr>
+         * <tr>
+         *   <td>MetaDataRepository</td>
+         *   <td>metaDataRepository</td>
+         * </tr>
+         * <tr>
+         *   <td>abc-xyz</td>
+         *   <td>abcXyz</td>
+         * </tr>
+         * </table>
+         */
         CAMELCASE_INIT_LOWER,
+        
+        /**
+         * Converts strings to CamelCase identifiers with the first word 
+         * starting in upper case.  Examples are the same as for 
+         * {@link #CAMELCASE_INIT_LOWER}, with the exception that the first
+         * letter is always capitalized.
+         */
         CAMELCASE_INIT_UPPER,
-        ALL_LOWER;
+        
+        /**
+         * Converts strings to identifiers by removing word non-alphanumeric
+         * word separators. Capitalization is unmodified.
+         */
+        SIMPLE;
     }
 }
 

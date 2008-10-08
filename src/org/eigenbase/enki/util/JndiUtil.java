@@ -105,8 +105,8 @@ public class JndiUtil
         }
         
         // Up to us to configure things.  Use the Simple-JNDI memory context
-        // and specific system properties so that no params are needed for
-        // constructing an InitialContext.
+        // and update the storage properties with the necessary JNDI
+        // environment.
         storageProps.setProperty(
             initialContextFactoryProperty, 
             MemoryContextFactory.class.getName());
@@ -319,7 +319,7 @@ public class JndiUtil
             {
                 String strippedKey = key.substring(len);
                 Object value = props.get(key);
-                log.info("JNDI prop: " + strippedKey + " = " + value);
+                log.fine("JNDI prop: " + strippedKey + " = " + value);
                 jndiProps.put(strippedKey, value);
             }
         }
@@ -328,13 +328,22 @@ public class JndiUtil
             String jndiClass = 
                 props.getProperty(initialContextFactoryProperty);
             if (jndiClass != null) {
-                log.info("JNDI prop: " + Context.INITIAL_CONTEXT_FACTORY + " = " + jndiClass);
+                log.fine(
+                    "JNDI prop: " 
+                    + Context.INITIAL_CONTEXT_FACTORY 
+                    + " = " 
+                    + jndiClass);
                 jndiProps.setProperty(
                     Context.INITIAL_CONTEXT_FACTORY, jndiClass);
             }
             
             String jndiUrl = props.getProperty(providerUrlProperty);
             if (jndiUrl != null) {
+                log.fine(
+                    "JNDI prop: " 
+                    + Context.PROVIDER_URL 
+                    + " = " 
+                    + jndiUrl);
                 jndiProps.setProperty(Context.PROVIDER_URL, jndiUrl);
             }
         }

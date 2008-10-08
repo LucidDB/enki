@@ -834,6 +834,12 @@ public class HibernateMDRepository
         }
 
         if (!context.isCommitter) {
+            // If any txn in the nested stack rolled back, then the outermost
+            // txn rolls back even if the user requests commit.
+            if (rollback || context.forceRollback) {
+                contexts.getLast().forceRollback = true;
+            }
+            
             return mdrSession;
         }
         
@@ -845,7 +851,7 @@ public class HibernateMDRepository
         
         // Note that even if "commit" is requested, we'll rollback if no 
         // writing was possible.
-        if (rollback) {
+        if (rollback || context.forceRollback) {
             txn.rollback();
             
             fireCanceledChanges(mdrSession);
@@ -853,6 +859,12 @@ public class HibernateMDRepository
             if (mdrSession.containsWrites) {
                 mdrSession.session.clear();
                 mdrSession.reset();
+            }
+            
+            // Throw this after the rollback has happened.
+            if (rollback && !context.isWrite) {
+                throw new EnkiHibernateException(
+                    "Cannot rollback read transactions");
             }
         } else {
             try {
@@ -946,7 +958,6 @@ public class HibernateMDRepository
             if (contexts.size() != 1) {
                 throw new InternalMdrError(
                     "ended nested txn with multiple containers");
-
             }
                 
             Context implicitContext = contexts.getFirst();
@@ -1359,56 +1370,6 @@ public class HibernateMDRepository
         return previewDelete;
     }
     
-    public RefObject findAllOfType(
-        RefClass cls, String featureName, Object value)
-    {
-        HibernateRefClass hibRefCls = (HibernateRefClass)cls;
-        
-        String propertyName = 
-            StringUtil.mangleIdentifier(
-                featureName, StringUtil.IdentifierType.CAMELCASE_INIT_LOWER)
-            + HibernateJavaHandler.IMPL_SUFFIX;
-        
-        Criteria criteria = 
-            getCurrentSession().createCriteria(hibRefCls.getInterfaceClass())
-                .add(Restrictions.eq(propertyName, value))
-                .setCacheable(true);
-        
-        return (RefObject)criteria.uniqueResult();
-    }
-    
-    public RefObject findAllOfType(
-        RefClass cls, RefObject feature, Object value)
-    {
-        ModelElement featureElem = (ModelElement)feature;
-        return findAllOfType(cls, featureElem.getName(), value);
-    }
-    
-    public RefObject findAllOfClass(
-        RefClass cls, String featureName, Object value)
-    {
-        HibernateRefClass hibRefCls = (HibernateRefClass)cls;
-        
-        String propertyName = 
-            StringUtil.mangleIdentifier(
-                featureName, StringUtil.IdentifierType.CAMELCASE_INIT_LOWER)
-            + HibernateJavaHandler.IMPL_SUFFIX;
-        
-        Criteria criteria = 
-            getCurrentSession().createCriteria(hibRefCls.getInstanceClass())
-                .add(Restrictions.eq(propertyName, value))
-                .setCacheable(true);
-        
-        return (RefObject)criteria.uniqueResult();
-    }
-    
-    public RefObject findAllOfClass(
-        RefClass cls, RefObject feature, Object value)
-    {
-        ModelElement featureElem = (ModelElement)feature;
-        return findAllOfClass(cls, featureElem.getName(), value);
-    }
-    
     public void deleteExtentDescriptor(RefPackage refPackage)
     {
         synchronized(extentMap) {
@@ -1624,19 +1585,15 @@ public class HibernateMDRepository
     public void checkTransaction(boolean requireWrite)
     {
         if (requireWrite) {
-            if (!isWriteTransaction()) {
+            MdrSession session = getMdrSession();
+            if (!isNestedWriteTransaction(session)) {
                 throw new EnkiHibernateException(
-                    "Operation required write transaction");
+                    "Operation requires write transaction");
             }
         } else {
             // Make sure a txn exists.
             getContext();
         }
-    }
-    
-    public boolean isWriteTransaction()
-    {
-        return getContext().isWrite;
     }
     
     private boolean isNestedWriteTransaction(MdrSession session) 
@@ -2888,6 +2845,7 @@ public class HibernateMDRepository
         private boolean isWrite;
         private boolean isImplicit;
         private boolean isCommitter;
+        private boolean forceRollback;
         
         private Context(
             Transaction transaction, 
@@ -2899,6 +2857,7 @@ public class HibernateMDRepository
             this.isWrite = isWrite;
             this.isImplicit = isImplicit;
             this.isCommitter = isCommitter;
+            this.forceRollback = false;
         }
     }    
 }

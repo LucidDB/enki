@@ -98,65 +98,6 @@ public class MdrApiTest extends SampleModelTestBase
         }
     }
     
-    @Test
-    public void testFindAllOfClass()
-    {
-        // Create some additional cars that don't match our search.
-        getRepository().beginTrans(true);
-        try {
-            getSamplePackage().getCar().createCar("Ford", "Mustang", 2);
-            getSamplePackage().getCar().createCar("Masserati", "MC12", 2);            
-        } finally {
-            getRepository().endTrans(false);
-        }
-        
-        // Find the 4-door.
-        getRepository().beginTrans(false);
-        try {
-            Car car = 
-                (Car)getRepository().findAllOfClass(
-                    getSamplePackage().getCar(), "doors", 4);
-            Assert.assertEquals(carMofId, car.refMofId());
-        } finally {
-            getRepository().endTrans();
-        }
-    }
-    
-    @Test
-    public void testFindAllOfType()
-    {
-        String hayabusaMofId;
-        
-        // Create some additional vehicles
-        getRepository().beginTrans(true);
-        try {
-            getSamplePackage().getBus().createBus(
-                "MCI", "E2000", 3);
-            Vehicle hayabusa =
-                getSamplePackage().getVehicle().createVehicle(
-                    "Suzuki", "Hayabusa");            
-            hayabusaMofId = hayabusa.refMofId();
-        } finally {
-            getRepository().endTrans(false);
-        }
-        
-        // Find the Sumo
-        getRepository().beginTrans(false);
-        try {
-            Vehicle vehicle = 
-                (Vehicle)getRepository().findAllOfType(
-                    getSamplePackage().getVehicle(), "model", "Sumo");
-            Assert.assertEquals(carMofId, vehicle.refMofId());
-
-            vehicle = 
-                (Vehicle)getRepository().findAllOfType(
-                    getSamplePackage().getVehicle(), "make", "Suzuki");
-            Assert.assertEquals(hayabusaMofId, vehicle.refMofId());
-        } finally {
-            getRepository().endTrans();
-        }
-    }
-    
     private Car findCar()
     {
         Car car = null;
