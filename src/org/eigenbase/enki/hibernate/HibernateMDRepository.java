@@ -194,7 +194,7 @@ public class HibernateMDRepository
      * {@link #PROPERTY_STORAGE_CONNECTION_DATASOURCE} property is {@value}.
      */
     public static final String PROPERTY_STORAGE_DEFAULT_CONNECTION_DATASOURCE =
-        "java:comp/env/jdbc/ENKI_DATASOURCE";
+        "java:ENKI_DATASOURCE";
     
     /**
      * Storage property containing the name of JDBC driver class to use for 

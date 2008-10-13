@@ -122,7 +122,7 @@ public class DataSourceConfigurator
         JndiUtil jndiUtil = newJndiUtil();
         try {
             // First check if JNDI is configured
-            jndiUtil.initJndi(storageProperties);
+            boolean internalJndi = jndiUtil.initJndi(storageProperties);
             
             String datasourceName = getDataSourceName();
             String driverClass = getDriverClass();
@@ -131,8 +131,26 @@ public class DataSourceConfigurator
             InitialContext context = 
                 jndiUtil.newInitialContext(storageProperties);
             
-            DataSource datasource =
-                JndiUtil.lookup(context, datasourceName, DataSource.class);
+            log.fine(
+                "Datasource Name: " + 
+                datasourceName + 
+                "; self-configured JNDI: " + 
+                (internalJndi ? "yes" : "no"));
+
+            DataSource datasource;
+            try {
+                datasource =
+                    JndiUtil.lookup(
+                        context, datasourceName, DataSource.class);
+            } catch(NamingException e) {
+                log.log(
+                    Level.WARNING, 
+                    "Could not find datasource '" + datasourceName + "'", 
+                    e);
+                dumpProperties("JNDI props during error: ", storageProperties);
+
+                datasource = null;
+            }
             
             if (datasource == null) {
                 if (driverClass == null || jdbcUrl == null) {
@@ -345,7 +363,12 @@ public class DataSourceConfigurator
     
     private void dumpProperties(String prefix, Properties props)
     {
-        if (!log.isLoggable(Level.FINER)) {
+        dumpProperties(Level.FINER, prefix, props);
+    }
+    
+    private void dumpProperties(Level level, String prefix, Properties props)
+    {
+        if (!log.isLoggable(level)) {
             return;
         }
         
@@ -356,7 +379,8 @@ public class DataSourceConfigurator
             }
             b.append(prefix + key + " = " + props.get(key));
         }
-        log.log(Level.FINER, b.toString());
+        
+        log.log(level, b.toString());
     }
 }
 
