@@ -77,7 +77,9 @@ public class HibernateMappingHandler
         "childId";
 
     public static final String ASSOC_ONE_TO_MANY_LAZY_TABLE = 
-        "AssocOneToManyLazy";    
+        "AssocOneToManyLazy";
+    public static final String ASSOC_ONE_TO_MANY_LAZY_HC_TABLE = 
+        "AssocOneToManyLazyHC";    
     public static final String ASSOC_ONE_TO_MANY_LAZY_ORDERED_TABLE = 
         "AssocOneToManyLazyOrdered";    
     private static final String ASSOC_ONE_TO_MANY_PARENT_TYPE_COLUMN = 
@@ -93,6 +95,8 @@ public class HibernateMappingHandler
 
     public static final String ASSOC_ONE_TO_MANY_LAZY_CHILDREN_TABLE =
         "AssocOneToManyLazyChildren";
+    public static final String ASSOC_ONE_TO_MANY_LAZY_HC_CHILDREN_TABLE =
+        "AssocOneToManyLazyHCChildren";
     public static final String ASSOC_ONE_TO_MANY_LAZY_ORDERED_CHILDREN_TABLE =
         "AssocOneToManyLazyOrderedChildren";
     private static final String ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN = 
@@ -126,6 +130,7 @@ public class HibernateMappingHandler
         ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN;
 
     private static final String ASSOC_ONE_TO_MANY_LAZY_FETCH_TYPE = "join";
+    private static final String ASSOC_ONE_TO_MANY_LAZY_HC_FETCH_TYPE = "select";
     private static final String ASSOC_MANY_TO_MANY_LAZY_FETCH_TYPE = "join";
     
     // Association HQL query names and named parameters.
@@ -197,6 +202,7 @@ public class HibernateMappingHandler
 
     private JavaClassReference assocOneToOneLazyClass;
     private JavaClassReference assocOneToManyLazyClass;
+    private JavaClassReference assocOneToManyLazyHighCardinalityClass;
     private JavaClassReference assocOneToManyLazyOrderedClass;
     private JavaClassReference assocManyToManyLazyClass;
     private JavaClassReference assocManyToManyLazyOrderedClass;
@@ -275,6 +281,10 @@ public class HibernateMappingHandler
             new JavaClassReference(
                 packageName,
                 HibernateJavaHandler.ASSOCIATION_ONE_TO_MANY_LAZY_BASE.toSimple());
+        assocOneToManyLazyHighCardinalityClass = 
+            new JavaClassReference(
+                packageName,
+                HibernateJavaHandler.ASSOCIATION_ONE_TO_MANY_LAZY_HIGH_CARDINALITY_NAME);
         assocOneToManyLazyOrderedClass = 
             new JavaClassReference(
                 packageName,
@@ -336,7 +346,10 @@ public class HibernateMappingHandler
                 writeOneToOneLazyMapping();
                 newLine();
     
-                writeOneToManyLazyMapping();
+                writeOneToManyLazyMapping(false);
+                newLine();
+    
+                writeOneToManyLazyMapping(true);
                 newLine();
     
                 writeOneToManyLazyOrderedMapping();
@@ -466,13 +479,22 @@ public class HibernateMappingHandler
         endElem("class");
     }
 
-    private void writeOneToManyLazyMapping() throws GenerationException
+    private void writeOneToManyLazyMapping(boolean isHighCardinality)
+    throws GenerationException
     {
-        startElem(
-            "class",
-            "name", assocOneToManyLazyClass,
-            "table", tableName(ASSOC_ONE_TO_MANY_LAZY_TABLE),
-            "lazy", "true");
+        if (isHighCardinality) {
+            startElem(
+                "class",
+                "name", assocOneToManyLazyHighCardinalityClass,
+                "table", tableName(ASSOC_ONE_TO_MANY_LAZY_HC_TABLE),
+                "lazy", "true");
+        } else {
+            startElem(
+                "class",
+                "name", assocOneToManyLazyClass,
+                "table", tableName(ASSOC_ONE_TO_MANY_LAZY_TABLE),
+                "lazy", "true");
+        }
         
         writeCacheElement();
         
@@ -497,13 +519,23 @@ public class HibernateMappingHandler
             "property",
             "name", ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN);
         
-        startElem(
-            "set",
-            "name", ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY,
-            "table", tableName(ASSOC_ONE_TO_MANY_LAZY_CHILDREN_TABLE),
-            "cascade", "save-update,evict",
-            "lazy", "true",
-            "fetch", ASSOC_ONE_TO_MANY_LAZY_FETCH_TYPE);
+        if (isHighCardinality) {
+            startElem(
+                "set",
+                "name", ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY,
+                "table", tableName(ASSOC_ONE_TO_MANY_LAZY_HC_CHILDREN_TABLE),
+                "cascade", "save-update,evict",
+                "lazy", "true",
+                "fetch", ASSOC_ONE_TO_MANY_LAZY_HC_FETCH_TYPE);
+        } else {
+            startElem(
+                "set",
+                "name", ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY,
+                "table", tableName(ASSOC_ONE_TO_MANY_LAZY_CHILDREN_TABLE),
+                "cascade", "save-update,evict",
+                "lazy", "true",
+                "fetch", ASSOC_ONE_TO_MANY_LAZY_FETCH_TYPE);
+        }
         writeCacheElement();
         writeEmptyElem(
             "key", 
@@ -529,10 +561,17 @@ public class HibernateMappingHandler
             "name", QUERY_NAME_ALLLINKS,
             "cacheable", "true",
             "cache-region", getCacheRegion(true));
-        writeCData(
-            "from ", 
-            assocOneToManyLazyClass,
-            " where type = :", QUERY_PARAM_ALLLINKS_TYPE);
+        if (isHighCardinality) {
+            writeCData(
+                "from ", 
+                assocOneToManyLazyHighCardinalityClass,
+                " where type = :", QUERY_PARAM_ALLLINKS_TYPE);
+        } else {
+            writeCData(
+                "from ", 
+                assocOneToManyLazyClass,
+                " where type = :", QUERY_PARAM_ALLLINKS_TYPE);
+        }
         endElem("query");
         endElem("class");
     }
@@ -800,6 +839,9 @@ public class HibernateMappingHandler
     {
         generateIndexDefinition(
             ASSOC_ONE_TO_MANY_LAZY_CHILDREN_TABLE, 
+            ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN);
+        generateIndexDefinition(
+            ASSOC_ONE_TO_MANY_LAZY_HC_CHILDREN_TABLE, 
             ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN);
         generateIndexDefinition(
             ASSOC_ONE_TO_MANY_LAZY_ORDERED_CHILDREN_TABLE, 

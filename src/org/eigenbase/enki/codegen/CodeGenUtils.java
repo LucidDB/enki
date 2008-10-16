@@ -75,20 +75,21 @@ public class CodeGenUtils
      */
     public static final String TRANSIENT_PKG_TAG_NAME = 
         "org.eigenbase.enki.transientPackage";
-    
+
     /**
      * Tag identifier for a custom Enki tag to control whether an association
-     * is loaded lazily.  The tag identifier is {@value}.
+     * should anticipate a large number of members.  The tag identifier is
+     * {@value}.
      */
-    public static final String LAZY_ASSOCIATION_TAG_NAME =
-        "org.eigenbase.enki.lazyAssociation";
+    public static final String HIGH_CARDINALITY_ASSOCIATION_TAG_NAME =
+        "org.eigenbase.enki.highCardinalityAssociation";
     
     private CodeGenUtils()
     {
     }
 
     /**
-     * Determine whether the given {@link ModelElement} is transient.  Only
+     * Determines whether the given {@link ModelElement} is transient.  Only
      * {@link MofPackage} instances may be transient.  A MofPackage is 
      * considered transient if it (or one of its containers) contains a 
      * {@link Tag} identified by {@value #TRANSIENT_PKG_TAG_NAME}.  The Tag's
@@ -115,16 +116,42 @@ public class CodeGenUtils
         }
     }
 
-    public static boolean isLazyAssociation(Association assoc)
+    /**
+     * Determines whether the given {@link Association} is labeled as a
+     * high-cardinality association.
+     * 
+     * @param assoc the association to test for the tag
+     * @return true if the tag is present and has a value of "true"
+     */
+    public static boolean isHighCardinalityAssociation(Association assoc)
     {
-        String value = TagUtil.getTagValue(assoc, LAZY_ASSOCIATION_TAG_NAME);
+        return isHighCardinalityAssociationImpl(assoc);
+    }
+
+    /**
+     * Determines whether the given {@link Attribute} is labeled as a
+     * high-cardinality association.  The high-cardinality tag is only
+     * appropriate if the Attribute references another model element.
+     * 
+     * @param attrib the attribute to test for the tag
+     * @return true if the tag is present and has a value of "true"
+     */
+    public static boolean isHighCardinalityAssociation(Attribute attrib)
+    {
+        return isHighCardinalityAssociationImpl(attrib);
+    }
+    
+    private static boolean isHighCardinalityAssociationImpl(ModelElement elem)
+    {
+        String value = TagUtil.getTagValue(
+            elem, HIGH_CARDINALITY_ASSOCIATION_TAG_NAME);
         if (value == null) {
             return false;
         }
         
         return Boolean.valueOf(value);
     }
-    
+
     /**
      * Find all associations that refer to the given MofClass which are not
      * described by {@link Reference} instances.

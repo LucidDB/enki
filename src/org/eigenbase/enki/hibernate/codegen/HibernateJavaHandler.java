@@ -142,7 +142,14 @@ public class HibernateJavaHandler
         new JavaClassReference(HibernateOneToManyLazyAssociation.class, false);
     
     /**
-     * Name of the base class for lazy one-to-many associations.
+     * Name for the model-specific high fan-out version of 
+     * {@link #ASSOCIATION_ONE_TO_MANY_LAZY_BASE}.
+     */
+    public static final String ASSOCIATION_ONE_TO_MANY_LAZY_HIGH_CARDINALITY_NAME =
+        "HibernateOneToManyLazyHighCardinalityAssociation";
+
+    /**
+     * Name of the base class for one-to-many associations.
      */
     public static final JavaClassReference ASSOCIATION_ONE_TO_MANY_LAZY_ORDERED_BASE = 
         new JavaClassReference(
@@ -311,6 +318,13 @@ public class HibernateJavaHandler
 
     /** 
      * Reference to the model-specific, generated subclass of 
+     * {@link HibernateOneToManyLazyAssociation} configured for high
+     * fan-out associations.
+     */
+    private JavaClassReference assocOneToManyLazyHighCardinalityClass;
+
+    /** 
+     * Reference to the model-specific, generated subclass of 
      * {@link HibernateOneToManyLazyOrderedAssociation}.
      */    
     private JavaClassReference assocOneToManyLazyOrderedClass;
@@ -445,6 +459,10 @@ public class HibernateJavaHandler
             new JavaClassReference(
                 packageName,
                 ASSOCIATION_ONE_TO_MANY_LAZY_BASE.toSimple());
+        assocOneToManyLazyHighCardinalityClass = 
+            new JavaClassReference(
+                packageName,
+                ASSOCIATION_ONE_TO_MANY_LAZY_HIGH_CARDINALITY_NAME);
         assocOneToManyLazyOrderedClass = 
             new JavaClassReference(
                 packageName,
@@ -476,6 +494,12 @@ public class HibernateJavaHandler
                 AssociationKindEnum.ONE_TO_MANY,
                 HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_TABLE,
                 HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_CHILDREN_TABLE);
+            generateAssociationStorageSubclass(
+                assocOneToManyLazyHighCardinalityClass,
+                ASSOCIATION_ONE_TO_MANY_LAZY_BASE,
+                AssociationKindEnum.ONE_TO_MANY,
+                HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_HC_TABLE,
+                HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_HC_CHILDREN_TABLE);
             generateAssociationStorageSubclass(
                 assocOneToManyLazyOrderedClass, 
                 ASSOCIATION_ONE_TO_MANY_LAZY_ORDERED_BASE,
@@ -650,7 +674,11 @@ public class HibernateJavaHandler
                     implClass = assocOneToManyLazyOrderedClass;
                     implKind = HibernateAssociation.Kind.ONE_TO_MANY_ORDERED;
                 } else {
-                    implClass = assocOneToManyLazyClass;
+                    if (isHighCardinalityAssociation(assocInfo)) {
+                        implClass = assocOneToManyLazyHighCardinalityClass;
+                    } else {
+                        implClass = assocOneToManyLazyClass;
+                    }
                     implKind = HibernateAssociation.Kind.ONE_TO_MANY;
                 }
                 break;
@@ -3738,6 +3766,8 @@ public class HibernateJavaHandler
         case ONE_TO_MANY:
             if (isEitherOrdered) {
                 return assocOneToManyLazyOrderedClass.toString();
+            } else if (isHighCardinalityAssociation(refInfo)) {
+                return assocOneToManyLazyHighCardinalityClass.toString();
             } else {
                 return assocOneToManyLazyClass.toString();
             }
@@ -3888,6 +3918,23 @@ public class HibernateJavaHandler
         result.add(cls);
     }
     
+    public static boolean isHighCardinalityAssociation(
+        AssociationInfo assocInfo)
+    {
+        if (assocInfo.getKind() != AssociationKindEnum.ONE_TO_MANY) {
+            return false;
+        }
+        
+        if (assocInfo instanceof ComponentInfo) {
+            // Tag, if any, is on Attribute instance
+            return CodeGenUtils.isHighCardinalityAssociation(
+                ((ComponentInfo)assocInfo).getOwnerAttribute());
+        } else {
+            return CodeGenUtils.isHighCardinalityAssociation(
+                assocInfo.getAssoc());
+        }
+    }
+
     /**
      * AssocMethodGenerator generates code for association methods within
      * a class instance implementation.

@@ -53,7 +53,7 @@
             name="Sample.todo" />
     <historyfile name="" />
   </argo>
-<XMI xmi.version = '1.2' xmlns:UML = 'org.omg.xmi.namespace.UML' timestamp = 'Thu Jul 10 10:13:51 PDT 2008'>
+<XMI xmi.version = '1.2' xmlns:UML = 'org.omg.xmi.namespace.UML' timestamp = 'Wed Oct 15 15:33:18 PDT 2008'>
   <XMI.header>    <XMI.documentation>
       <XMI.exporter>ArgoUML (using Netbeans XMI Writer version 1.0)</XMI.exporter>
       <XMI.exporterVersion>0.24(5) revised on $Date: 2006-11-06 19:55:22 +0100 (Mon, 06 Nov 2006) $ </XMI.exporterVersion>
@@ -622,6 +622,15 @@
                     <UML:Association xmi.id = '127-0-0-1-340ad736:116823ca8fe:-8000:0000000000000891'
                       name = 'HasEntity13s' isSpecification = 'false' isRoot = 'false' isLeaf = 'false'
                       isAbstract = 'false'>
+                      <UML:ModelElement.taggedValue>
+                        <UML:TaggedValue xmi.id = '127-0-0-1--ef9f28d:11d02a28752:-8000:00000000000009E3'
+                          isSpecification = 'false'>
+                          <UML:TaggedValue.dataValue>true</UML:TaggedValue.dataValue>
+                          <UML:TaggedValue.type>
+                            <UML:TagDefinition xmi.idref = '127-0-0-1--ef9f28d:11d02a28752:-8000:00000000000009DA'/>
+                          </UML:TaggedValue.type>
+                        </UML:TaggedValue>
+                      </UML:ModelElement.taggedValue>
                       <UML:Association.connection>
                         <UML:AssociationEnd xmi.id = '127-0-0-1-340ad736:116823ca8fe:-8000:0000000000000892'
                           name = 'Entity12' visibility = 'public' isSpecification = 'false' isNavigable = 'true'
@@ -2022,15 +2031,6 @@
                     <UML:Association xmi.id = '127-0-0-1--6f1ce3a7:11a032e0ddb:-8000:00000000000009BD'
                       name = 'LazyOwnership' isSpecification = 'false' isRoot = 'false' isLeaf = 'false'
                       isAbstract = 'false'>
-                      <UML:ModelElement.taggedValue>
-                        <UML:TaggedValue xmi.id = '127-0-0-1--4d2f7bdc:11a0336deff:-8000:00000000000009DB'
-                          isSpecification = 'false'>
-                          <UML:TaggedValue.dataValue>true</UML:TaggedValue.dataValue>
-                          <UML:TaggedValue.type>
-                            <UML:TagDefinition xmi.idref = '127-0-0-1--4d2f7bdc:11a0336deff:-8000:00000000000009D4'/>
-                          </UML:TaggedValue.type>
-                        </UML:TaggedValue>
-                      </UML:ModelElement.taggedValue>
                       <UML:Association.connection>
                         <UML:AssociationEnd xmi.id = '127-0-0-1--6f1ce3a7:11a032e0ddb:-8000:00000000000009BE'
                           name = 'LazyOwner' visibility = 'public' isSpecification = 'false' isNavigable = 'true'
@@ -2366,25 +2366,17 @@
             </UML:Multiplicity>
           </UML:TagDefinition.multiplicity>
         </UML:TagDefinition>
-        <UML:TagDefinition xmi.id = '127-0-0-1--4d2f7bdc:11a0336deff:-8000:00000000000009D4'
-          name = 'org.eigenbase.enki.lazyAssociation' isSpecification = 'false' tagType = 'String'>
+        <UML:TagDefinition xmi.id = '127-0-0-1--ef9f28d:11d02a28752:-8000:00000000000009DA'
+          name = 'org.eigenbase.enki.highCardinalityAssociation' isSpecification = 'false'
+          tagType = 'String'>
           <UML:TagDefinition.multiplicity>
-            <UML:Multiplicity xmi.id = '127-0-0-1--4d2f7bdc:11a0336deff:-8000:00000000000009DF'>
+            <UML:Multiplicity xmi.id = '127-0-0-1--ef9f28d:11d02a28752:-8000:00000000000009E2'>
               <UML:Multiplicity.range>
-                <UML:MultiplicityRange xmi.id = '127-0-0-1--4d2f7bdc:11a0336deff:-8000:00000000000009DE'
+                <UML:MultiplicityRange xmi.id = '127-0-0-1--ef9f28d:11d02a28752:-8000:00000000000009E1'
                   lower = '0' upper = '1'/>
               </UML:Multiplicity.range>
             </UML:Multiplicity>
           </UML:TagDefinition.multiplicity>
-          <UML:ModelElement.taggedValue>
-            <UML:TaggedValue xmi.id = '127-0-0-1--4d2f7bdc:11a0336deff:-8000:00000000000009D7'
-              isSpecification = 'false'>
-              <UML:TaggedValue.dataValue></UML:TaggedValue.dataValue>
-              <UML:TaggedValue.type>
-                <UML:TagDefinition xmi.idref = '127-0-0-1--4d2f7bdc:11a0336deff:-8000:00000000000009D4'/>
-              </UML:TaggedValue.type>
-            </UML:TaggedValue>
-          </UML:ModelElement.taggedValue>
         </UML:TagDefinition>
       </UML:Namespace.ownedElement>
     </UML:Model>
@@ -10923,7 +10915,7 @@
       fill="1"
       fillcolor="white"
       stroke="0"
-      strokecolor="0 255 255"
+      strokecolor="black"
     />
     <group name="Fig42.1"
          description="org.argouml.uml.diagram.ui.FigStereotypesCompartment[1168, 392, 90, 2]"

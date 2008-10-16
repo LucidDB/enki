@@ -25,6 +25,7 @@ import java.util.*;
 
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.util.*;
 import org.junit.*;
 
@@ -427,18 +428,17 @@ public class MassDeletionTest extends SampleModelTestBase
         }
     }
 
-    // REVIEW jvs 14-Sept-2008:  This test is currently disabled until
-    // it is optimized.  It may want to move to some separate performance
-    // suite.
-    public void _disabledTestHighFanOutUnordered()
+    // REVIEW SWZ 16-Oct-2008:  This test may want to move to some separate 
+    // performance suite.
+    @Test
+    public void testHighFanOutUnordered()
     {
-        // REVIEW jvs 14-Sept-2008: This test can be used for checking whether
-        // deletion from high fanout associations is being optimized.  When
-        // optimized, it runs in about 8 seconds on my laptop.  When not
-        // optimized, it takes 150-some seconds.  To optimize it,
-        // edit the META-INF/enki/mapping.xml in enki/test/sample/sample.jar,
-        // changing fetch="join" to fetch="select" for
-        // SMPL_AssocOneToManyLazyChildren.
+        // JVS: This test can be used for checking whether deletion from high 
+        // fanout associations is being optimized.  When optimized, it runs in 
+        // about 8 seconds on my laptop.  When not optimized, it takes 150-some
+        // seconds.
+        // SWZ: Test is presently optimized (HasEntity13 is marked as a
+        // high cardinality association).
 
         // For the LucidDB drop scenarios, I also had to disable
         // hibernate.default_batch_fetch_size to optimize it, but that
@@ -476,11 +476,8 @@ public class MassDeletionTest extends SampleModelTestBase
         }
     }
 
-    // REVIEW jvs 14-Sept-2008:  This test exhibits a bug
-    // in the mass-deletion API.  If you change the delete call to
-    // a normal obj.refDelete(), the test passes, but using the
-    // mass-deletion API, the assertNotNull fails.
-    public void _disabledTestDeleteNotLastWithinTxn()
+    @Test
+    public void testDeleteNotLastWithinTxn()
     {
         String id1, id2;
         
@@ -491,6 +488,12 @@ public class MassDeletionTest extends SampleModelTestBase
             id1 = e12.refMofId();
             e12 = getSimplePackage().getEntity12().createEntity12();
             id2 = e12.refMofId();
+        } finally {
+            getRepository().endTrans(false);
+        }
+        
+        getRepository().beginTrans(true);
+        try {
             RefObject obj =
                 (RefObject) (getRepository().getByMofId(id1));
             getRepository().delete(Collections.singletonList(obj));
@@ -499,6 +502,38 @@ public class MassDeletionTest extends SampleModelTestBase
             Assert.assertNotNull(obj);
         } finally {
             getRepository().endTrans(false);
+        }
+    }
+    
+    @Test
+    public void testMassDeleteWithPendingChanges()
+    {
+        String e12aMofId;
+        getRepository().beginTrans(true);
+        try {
+            Entity12 e12a = 
+                getSimplePackage().getEntity12().createEntity12();
+            e12aMofId = e12a.refMofId();
+        } finally {
+            getRepository().endTrans(false);
+        }
+            
+        getRepository().beginTrans(true);
+        try {
+            RefObject e12a = (RefObject)getRepository().getByMofId(e12aMofId);
+            
+            Entity12 e12b = 
+                getSimplePackage().getEntity12().createEntity12();
+
+            getRepository().delete(Collections.singletonList(e12a));
+            
+            // Expecting an exception since there are pending changes in the
+            // txn.
+            Assert.fail("missing expected exception");
+        } catch(EnkiHibernateException e) {
+            // Expected exception
+        } finally {
+            getRepository().endTrans(true);
         }
     }
     

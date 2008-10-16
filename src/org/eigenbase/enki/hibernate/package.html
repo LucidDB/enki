@@ -40,11 +40,12 @@
         </td>
       </tr>
       <tr class="TableRowColor">
-        <td align="left">org.eigenbase.enki.lazyAssociation</td>
+        <td align="left">org.eigenbase.enki.highCardinalityAssociation</td>
         <td align="left">
-          Controls whether an association is loaded via Enki's lazy association
-          mechanism.  This differs from normal Hibernate laziness and is useful
-          for especially large collections.
+          Controls whether an association is presumed to contain a very large
+          number of elements.  Such associations are loaded fetched using
+          separate select statements to reduce the amount of data retrieved
+          for simple operations.  Normal associations are loaded by joins.
         </td>
       </tr>
     </table>
