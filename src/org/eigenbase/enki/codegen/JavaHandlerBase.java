@@ -1440,11 +1440,16 @@ public abstract class JavaHandlerBase
     
     protected void writeCheckConstraints()
     {
+        startCheckConstraints();
+        endBlock();
+    }
+    
+    protected void startCheckConstraints()
+    {
         startBlock(
             "protected void checkConstraints(",
             JAVA_UTIL_LIST, "<", JMI_EXCEPTION_CLASS, "> errors, ",
             "boolean deepVerify)");
-        endBlock();
     }
     
     

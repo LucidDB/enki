@@ -1110,7 +1110,11 @@ public class HibernateMDRepository
         if (mofIds.isEmpty()) {
             return Collections.emptyList();
         } else if (mofIds.size() == 1) {
-            return Collections.singletonList(getByMofId(mofIds.get(0), cls));
+            RefObject obj = getByMofId(mofIds.get(0), cls);
+            if (obj == null) {
+                return Collections.emptyList();
+            }
+            return Collections.singletonList(obj);
         }
         
         HibernateRefClass hibRefCls = (HibernateRefClass)cls;
@@ -1418,7 +1422,7 @@ public class HibernateMDRepository
         }
     }
 
-    Dialect getSqlDialect()
+    public Dialect getSqlDialect()
     {
         return sqlDialect;
     }
@@ -2411,9 +2415,6 @@ public class HibernateMDRepository
             Collection<RefPackage> subPkgs = 
                 GenericCollections.asTypedCollection(
                     p.refAllPackages(), RefPackage.class);
-            for(RefPackage subPkg: subPkgs) {
-                log.info("Sub-package: " + subPkg.refMofId() + " / " + subPkg.getClass());
-            }
             pkgs.addAll(subPkgs);
         }
         
@@ -2433,8 +2434,6 @@ public class HibernateMDRepository
         }
         
         String mapping = mappingOutput.getOutput();
-        
-        log.info(mapping);
         
         Configuration config = configurator.newConfiguration(false);
         

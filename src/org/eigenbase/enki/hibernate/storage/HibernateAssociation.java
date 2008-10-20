@@ -136,6 +136,7 @@ public interface HibernateAssociation extends HibernateIdentifiable
     public enum Kind {
         ONE_TO_ONE,
         ONE_TO_MANY,
+        ONE_TO_MANY_HIGH_CARDINALITY,
         ONE_TO_MANY_ORDERED,
         MANY_TO_MANY,
         MANY_TO_MANY_ORDERED;

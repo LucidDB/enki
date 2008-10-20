@@ -125,6 +125,7 @@ class HibernateMassDeletionUtil
         new HashSet<HibernateAssociation>();
 
     private boolean indiscriminateOneToManyDelete;
+    private boolean indiscriminateOneToManyHighCardinalityDelete;
 
     HibernateMassDeletionUtil(HibernateMDRepository repos)
     {
@@ -169,8 +170,8 @@ class HibernateMassDeletionUtil
         Connection conn = session.connection();
 
         try {
-            // iterate over objects that reference associations to be deleted and
-            // remove references
+            // iterate over objects that reference associations to be deleted
+            // and remove references
             for(Map.Entry<HibernateRefClass, HashMultiMap<String, Long>> e: 
                     assocDerefMap.entrySet()) {
                 HibernateRefClass hrc = e.getKey();
@@ -262,7 +263,7 @@ class HibernateMassDeletionUtil
             delMap.put(hrc.getClassIdentifier(), mofId);
             evictionSet.add(new Eviction(hrc.getInstanceClass(), mofId));
             
-            // Find composites (2)
+            // Find composites
             for(HibernateAssociation assoc: hro.getComposingAssociations()) {
                 Collection<HibernateAssociable> composingObjects = 
                     assoc.get((HibernateAssociable)hro);
@@ -280,7 +281,7 @@ class HibernateMassDeletionUtil
     
     private void computeAssociationMaps()
     {
-        HibernateAssociation[] exemplars = new HibernateAssociation[5];
+        HibernateAssociation[] exemplars = new HibernateAssociation[6];
         
         for(HibernateAssociation assoc: assocs) {
             switch(assoc.getKind()) {
@@ -296,22 +297,28 @@ class HibernateMassDeletionUtil
                 exemplars[1] = assoc;
                 break;
                 
+            case ONE_TO_MANY_HIGH_CARDINALITY:
+                computeAssociationMaps(
+                    (HibernateOneToManyLazyAssociationBase)assoc, false);
+                exemplars[2] = assoc;
+                break;
+                
             case ONE_TO_MANY_ORDERED:
                 computeAssociationMaps(
                     (HibernateOneToManyLazyAssociationBase)assoc, true);
-                exemplars[2] = assoc;
+                exemplars[3] = assoc;
                 break;
                 
             case MANY_TO_MANY:
                 computeAssociationMaps(
                     (HibernateManyToManyLazyAssociationBase)assoc, false);
-                exemplars[3] = assoc;
+                exemplars[4] = assoc;
                 break;
                 
             case MANY_TO_MANY_ORDERED:
                 computeAssociationMaps(
                     (HibernateManyToManyLazyAssociationBase)assoc, true);
-                exemplars[4] = assoc;
+                exemplars[5] = assoc;
                 break;
                 
             default:    
@@ -420,13 +427,28 @@ class HibernateMassDeletionUtil
             // instances have to be tolerated, and must behave the same as if
             // the association instance no longer existed.
             if (!isOrdered) {
-                if (indiscriminateOneToManyDelete) {
-                    // If we've already done this for some other association,
-                    // no need to waste cycles doing it again; assocRemoveMap
-                    // doesn't track association, only association kind.
-                    return;
+                boolean isHighCard =                         
+                    assocKind == 
+                        HibernateAssociation.Kind.ONE_TO_MANY_HIGH_CARDINALITY;
+
+                if (isHighCard) {
+                    if (indiscriminateOneToManyHighCardinalityDelete) {
+                        // If we've already done this for some other
+                        // association, no need to waste cycles doing it again;
+                        // assocRemoveMap doesn't track association, only 
+                        // association kind.
+                        return;
+                    }
+                    indiscriminateOneToManyHighCardinalityDelete = true;
+                } else {
+                    assert(assocKind == HibernateAssociation.Kind.ONE_TO_MANY);
+                    if (indiscriminateOneToManyDelete) {
+                        // Same situation, but for normal 1-to-many
+                        return;
+                    }
+                    indiscriminateOneToManyDelete = true;
                 }
-                indiscriminateOneToManyDelete = true;
+                
                 for (Long mofId : delMap.values()) {
                     assocRemoveMap.put(assocKind, mofId);
                 }

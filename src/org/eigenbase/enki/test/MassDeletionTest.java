@@ -26,6 +26,7 @@ import java.util.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 import org.junit.*;
 
@@ -508,6 +509,12 @@ public class MassDeletionTest extends SampleModelTestBase
     @Test
     public void testMassDeleteWithPendingChanges()
     {
+        if (getMdrProvider() == MdrProvider.NETBEANS_MDR) {
+            // Netbeans places no restrictions on the mass deletion API, since
+            // it is simply converted to a series of single object deletions.
+            return;
+        }
+        
         String e12aMofId;
         getRepository().beginTrans(true);
         try {
@@ -524,7 +531,8 @@ public class MassDeletionTest extends SampleModelTestBase
             
             Entity12 e12b = 
                 getSimplePackage().getEntity12().createEntity12();
-
+            Assert.assertNotNull(e12b);
+            
             getRepository().delete(Collections.singletonList(e12a));
             
             // Expecting an exception since there are pending changes in the

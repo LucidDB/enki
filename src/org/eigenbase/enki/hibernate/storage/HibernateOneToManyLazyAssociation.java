@@ -233,7 +233,7 @@ public abstract class HibernateOneToManyLazyAssociation
         }
     }
     
-    public final Kind getKind()
+    public Kind getKind()
     {
         return Kind.ONE_TO_MANY;
     }

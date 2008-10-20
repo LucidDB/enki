@@ -66,25 +66,25 @@ public class HibernateMappingHandler
     private static final String ASSOC_REVERSE_POLARITY_PROPERTY = 
         "reversed";
 
-    public static final String ASSOC_ONE_TO_ONE_LAZY_TABLE = "AssocOneToOneLazy";
+    public static final String ASSOC_ONE_TO_ONE_LAZY_TABLE = "AssocOneToOne";
     private static final String ASSOC_ONE_TO_ONE_PARENT_TYPE_COLUMN = 
         "parentType";
-    static final String ASSOC_ONE_TO_ONE_PARENT_ID_COLUMN =
+    public static final String ASSOC_ONE_TO_ONE_PARENT_ID_COLUMN =
         "parentId";
     private static final String ASSOC_ONE_TO_ONE_CHILD_TYPE_COLUMN = 
         "childType";
-    static final String ASSOC_ONE_TO_ONE_CHILD_ID_COLUMN =
+    public static final String ASSOC_ONE_TO_ONE_CHILD_ID_COLUMN =
         "childId";
 
     public static final String ASSOC_ONE_TO_MANY_LAZY_TABLE = 
-        "AssocOneToManyLazy";
+        "AssocOneToMany";
     public static final String ASSOC_ONE_TO_MANY_LAZY_HC_TABLE = 
-        "AssocOneToManyLazyHC";    
+        "AssocOneToManyHC";    
     public static final String ASSOC_ONE_TO_MANY_LAZY_ORDERED_TABLE = 
-        "AssocOneToManyLazyOrdered";    
+        "AssocOneToManyOrdered";    
     private static final String ASSOC_ONE_TO_MANY_PARENT_TYPE_COLUMN = 
         "parentType";
-    static final String ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN =
+    public static final String ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN =
         "parentId";
     public static final String ASSOC_ONE_TO_MANY_CHILDREN_PROPERTY = 
         "children";
@@ -94,29 +94,29 @@ public class HibernateMappingHandler
         "ordinal";
 
     public static final String ASSOC_ONE_TO_MANY_LAZY_CHILDREN_TABLE =
-        "AssocOneToManyLazyChildren";
+        "AssocOneToManyChildren";
     public static final String ASSOC_ONE_TO_MANY_LAZY_HC_CHILDREN_TABLE =
-        "AssocOneToManyLazyHCChildren";
+        "AssocOneToManyHCChildren";
     public static final String ASSOC_ONE_TO_MANY_LAZY_ORDERED_CHILDREN_TABLE =
-        "AssocOneToManyLazyOrderedChildren";
+        "AssocOneToManyOrderedChildren";
     private static final String ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN = 
         "childType";
-    private static final String ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN = 
+    public static final String ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN = 
         "childId";
     
     public static final String ASSOC_MANY_TO_MANY_LAZY_TABLE = 
-        "AssocManyToManyLazy";
+        "AssocManyToMany";
     public static final String ASSOC_MANY_TO_MANY_LAZY_ORDERED_TABLE = 
-        "AssocManyToManyLazyOrdered";
+        "AssocManyToManyOrdered";
     private static final String ASSOC_MANY_TO_MANY_SOURCE_TYPE_COLUMN = 
         "sourceType";
-    private static final String ASSOC_MANY_TO_MANY_SOURCE_ID_COLUMN =
+    public static final String ASSOC_MANY_TO_MANY_SOURCE_ID_COLUMN =
         "sourceId";
     public static final String ASSOC_MANY_TO_MANY_TARGET_PROPERTY = "target";
     public static final String ASSOC_MANY_TO_MANY_LAZY_TARGET_TABLE = 
-        "AssocManyToManyLazyTarget";
+        "AssocManyToManyTarget";
     public static final String ASSOC_MANY_TO_MANY_LAZY_ORDERED_TARGET_TABLE = 
-        "AssocManyToManyLazyOrderedTarget";
+        "AssocManyToManyOrderedTarget";
     private static final String ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN = 
         "mofId";
     private static final String ASSOC_MANY_TO_MANY_TARGET_ORDINAL_COLUMN = 
@@ -126,7 +126,7 @@ public class HibernateMappingHandler
     // Element class across lazy associations.
     private static final String ASSOC_MANY_TO_MANY_TARGET_TYPE_COLUMN = 
         ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN;
-    private static final String ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN = 
+    public static final String ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN = 
         ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN;
 
     private static final String ASSOC_ONE_TO_MANY_LAZY_FETCH_TYPE = "join";
@@ -284,7 +284,7 @@ public class HibernateMappingHandler
         assocOneToManyLazyHighCardinalityClass = 
             new JavaClassReference(
                 packageName,
-                HibernateJavaHandler.ASSOCIATION_ONE_TO_MANY_LAZY_HIGH_CARDINALITY_NAME);
+                HibernateJavaHandler.ASSOCIATION_ONE_TO_MANY_LAZY_HIGH_CARDINALITY_BASE.toSimple());
         assocOneToManyLazyOrderedClass = 
             new JavaClassReference(
                 packageName,

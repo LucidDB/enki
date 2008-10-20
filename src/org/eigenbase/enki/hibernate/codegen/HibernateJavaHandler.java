@@ -142,12 +142,12 @@ public class HibernateJavaHandler
         new JavaClassReference(HibernateOneToManyLazyAssociation.class, false);
     
     /**
-     * Name for the model-specific high fan-out version of 
-     * {@link #ASSOCIATION_ONE_TO_MANY_LAZY_BASE}.
+     * Name of the base class for lazy, high cardinality one-to-many 
+     * associations.
      */
-    public static final String ASSOCIATION_ONE_TO_MANY_LAZY_HIGH_CARDINALITY_NAME =
-        "HibernateOneToManyLazyHighCardinalityAssociation";
-
+    public static final JavaClassReference ASSOCIATION_ONE_TO_MANY_LAZY_HIGH_CARDINALITY_BASE = 
+        new JavaClassReference(HibernateOneToManyLazyHighCardinalityAssociation.class, false);
+    
     /**
      * Name of the base class for one-to-many associations.
      */
@@ -259,6 +259,10 @@ public class HibernateJavaHandler
     private static final JavaClassReference CREATE_INSTANCE_EVENT_CLASS =
         new JavaClassReference(CreateInstanceEvent.class, true);
     
+    /** Reference to {@link HibernateConstraintChecker}. */
+    private static final JavaClassReference CONSTRAINT_CHECKER_CLASS =
+        new JavaClassReference(HibernateConstraintChecker.class, false);
+    
     /** References to import into class instance implementations. */
     private static final JavaClassReference[] CLASS_INSTANCE_REFS = {
         OBJECT_IMPL_CLASS,
@@ -318,8 +322,8 @@ public class HibernateJavaHandler
 
     /** 
      * Reference to the model-specific, generated subclass of 
-     * {@link HibernateOneToManyLazyAssociation} configured for high
-     * fan-out associations.
+     * {@link HibernateOneToManyLazyHighCardinalityAssociation} configured for
+     * high fan-out associations.
      */
     private JavaClassReference assocOneToManyLazyHighCardinalityClass;
 
@@ -462,7 +466,7 @@ public class HibernateJavaHandler
         assocOneToManyLazyHighCardinalityClass = 
             new JavaClassReference(
                 packageName,
-                ASSOCIATION_ONE_TO_MANY_LAZY_HIGH_CARDINALITY_NAME);
+                ASSOCIATION_ONE_TO_MANY_LAZY_HIGH_CARDINALITY_BASE.toSimple());
         assocOneToManyLazyOrderedClass = 
             new JavaClassReference(
                 packageName,
@@ -496,7 +500,7 @@ public class HibernateJavaHandler
                 HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_CHILDREN_TABLE);
             generateAssociationStorageSubclass(
                 assocOneToManyLazyHighCardinalityClass,
-                ASSOCIATION_ONE_TO_MANY_LAZY_BASE,
+                ASSOCIATION_ONE_TO_MANY_LAZY_HIGH_CARDINALITY_BASE,
                 AssociationKindEnum.ONE_TO_MANY,
                 HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_HC_TABLE,
                 HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_HC_CHILDREN_TABLE);
@@ -573,6 +577,7 @@ public class HibernateJavaHandler
                 writeConstant(
                     "String", "_collectionTable", "null", true);
             }
+            newLine();
             
             startBlock("public ", classRef.toSimple(), "()");
             writeln("super();");
@@ -673,12 +678,12 @@ public class HibernateJavaHandler
                 if (ordered) {
                     implClass = assocOneToManyLazyOrderedClass;
                     implKind = HibernateAssociation.Kind.ONE_TO_MANY_ORDERED;
+                } else if (isHighCardinalityAssociation(assocInfo)) {
+                    implClass = assocOneToManyLazyHighCardinalityClass;
+                    implKind = 
+                        HibernateAssociation.Kind.ONE_TO_MANY_HIGH_CARDINALITY;
                 } else {
-                    if (isHighCardinalityAssociation(assocInfo)) {
-                        implClass = assocOneToManyLazyHighCardinalityClass;
-                    } else {
-                        implClass = assocOneToManyLazyClass;
-                    }
+                    implClass = assocOneToManyLazyClass;
                     implKind = HibernateAssociation.Kind.ONE_TO_MANY;
                 }
                 break;
@@ -3597,7 +3602,14 @@ public class HibernateJavaHandler
             }
             
             newLine();
-            writeCheckConstraints();
+            startCheckConstraints();
+            writeln(
+                CONSTRAINT_CHECKER_CLASS, 
+                " cc = new ", 
+                CONSTRAINT_CHECKER_CLASS, 
+                "(getHibernateRepository());");
+            writeln("cc.verifyConstraints(this, errors, deepVerify);");
+            endBlock();
             
             writeEntityFooter();
         }

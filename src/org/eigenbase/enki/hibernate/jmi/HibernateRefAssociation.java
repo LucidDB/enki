@@ -377,4 +377,14 @@ public abstract class HibernateRefAssociation
      *         association
      */
     public abstract HibernateAssociation.Kind getKind();
+    
+    @Override
+    protected void checkConstraints(List<JmiException> errors, boolean deep)
+    {
+        super.checkConstraints(errors, deep);
+        
+        HibernateConstraintChecker cc = 
+            new HibernateConstraintChecker(getHibernateRepository());
+        cc.verifyConstraints(this, errors);
+    }
 }

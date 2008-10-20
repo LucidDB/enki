@@ -218,11 +218,18 @@ public class HibernateViewMappingUtil
                     
                 case ONE_TO_MANY:
                     boolean isOrdered = 
-                        refInfo.isOrdered(0) || refInfo.isOrdered(1); 
-                    table = 
-                        isOrdered
-                            ? HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_ORDERED_TABLE
-                            : HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_TABLE;
+                        refInfo.isOrdered(0) || refInfo.isOrdered(1);
+                    if (isOrdered) {
+                        table = 
+                            HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_ORDERED_TABLE;
+                    } else if (HibernateJavaHandler.isHighCardinalityAssociation(
+                                   refInfo)) {
+                        table =
+                            HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_HC_TABLE;
+                    } else {
+                        table = 
+                            HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_TABLE;
+                    }
                     column = HibernateMappingHandler.ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN;
                     break;
                     
