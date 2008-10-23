@@ -26,6 +26,7 @@ import java.lang.reflect.*;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
 import java.util.logging.*;
 
 import javax.jmi.model.*;
@@ -412,6 +413,8 @@ public class HibernateMDRepository
     
     private static final MdrSessionStack sessionStack = new MdrSessionStack();
     
+    private final ReadWriteLock txnLock;
+    
     private final AtomicInteger sessionCount;
     
     private final AtomicInteger sessionIdGenerator;
@@ -481,6 +484,7 @@ public class HibernateMDRepository
         ClassLoader classLoader)
     {
         this.log = Logger.getLogger(HibernateMDRepository.class.getName());
+        this.txnLock = new ReentrantReadWriteLock();
         this.storageProperties = storageProperties;
         this.classLoader = classLoader;
         this.extentMap = new HashMap<String, ExtentDescriptor>();
@@ -651,7 +655,7 @@ public class HibernateMDRepository
         }
 
         Session session = sessionFactory.openSession();
-        session.setFlushMode(FlushMode.AUTO);
+        session.setFlushMode(FlushMode.COMMIT);
         
         MdrSession mdrSession = new MdrSession(session, implicit, sessionId);
         mdrSession.refCount++;
@@ -763,13 +767,14 @@ public class HibernateMDRepository
             throw new HibernateException(
                 "cannot start write transaction within read transaction");
         }
-
-        if (!write && isCommitter && !contexts.isEmpty()) {
-            mdrSession.session.setFlushMode(FlushMode.COMMIT);
-        }
-
+        
         Transaction trans;
         if (beginTrans) {
+            if (write) {
+                mdrSession.obtainWriteLock();
+            } else {
+                mdrSession.obtainReadLock();
+            }
             trans = mdrSession.session.beginTransaction();
         } else {
             trans = contexts.getLast().transaction;
@@ -849,111 +854,115 @@ public class HibernateMDRepository
             enqueueEndTransEvent(mdrSession);
         }
         
-        // Note that even if "commit" is requested, we'll rollback if no 
-        // writing was possible.
-        if (rollback || context.forceRollback) {
-            txn.rollback();
-            
-            fireCanceledChanges(mdrSession);
-            
-            if (mdrSession.containsWrites) {
-                mdrSession.session.clear();
-                mdrSession.reset();
-            }
-            
-            // Throw this after the rollback has happened.
-            if (rollback && !context.isWrite) {
-                throw new EnkiHibernateException(
-                    "Cannot rollback read transactions");
-            }
-        } else {
-            try {
-                Session session = mdrSession.session;
+        try {
+            // Note that even if "commit" is requested, we'll rollback if no 
+            // writing was possible.
+            if (rollback || context.forceRollback) {
+                txn.rollback();
+                
+                fireCanceledChanges(mdrSession);
+                
                 if (mdrSession.containsWrites) {
-                    session.flush();
-                    
-                    if (!mdrSession.mofIdDeleteSet.isEmpty()) {
-                        // Update enki type mapping
-                        Query query = 
-                            session.getNamedQuery("TypeMappingDeleteByMofId");
-                        
-                        // Do this in chunks or else feel the wrath of
-                        // http://opensource.atlassian.com/projects/hibernate/browse/HHH-766
-                        int flushSize = typeLookupFlushSize;
-                        if (flushSize <= 0) {
-                            flushSize = 100;
-                        }
-                        List<Long> chunk = new ArrayList<Long>();
-                        for(Long mofId: mdrSession.mofIdDeleteSet) {
-                            chunk.add(mofId);
-                            if (chunk.size() >= flushSize) {
-                                query.setParameterList("mofIds", chunk);
-                                query.executeUpdate();
-                                chunk.clear();
-                            }
-                        }
-                        if (!chunk.isEmpty()) {
-                            query.setParameterList("mofIds", chunk);
-                            query.executeUpdate();                            
-                            chunk.clear();
-                        }
-                        
-                        mdrSession.mofIdCreateMap.keySet().removeAll(
-                            mdrSession.mofIdDeleteSet);
-                        
-                        mdrSession.mofIdDeleteSet.clear();
-                    }
-                    
-                    if (!mdrSession.mofIdCreateMap.isEmpty()) {
-                        int i = 0;
-                        int flushSize = typeLookupFlushSize;
-                        boolean flush = flushSize > 0;
-                        for(Map.Entry<Long, Class<? extends RefObject>> entry:
-                                mdrSession.mofIdCreateMap.entrySet())
-                        {
-                            if (flush && i++ % flushSize == 0) {
-                                session.flush();
-                                session.clear();
-                            }
-                            MofIdTypeMapping mapping = new MofIdTypeMapping();
-                            mapping.setMofId(entry.getKey());
-                            mapping.setTypeName(entry.getValue().getName());
-                            mdrSession.session.save(mapping);
-                        }
-                        
-                        mdrSession.mofIdCreateMap.clear();
-                    }
+                    mdrSession.session.clear();
+                    mdrSession.reset();
                 }
                 
-                // TODO: check for constraint violations
-                if (false) {
-                    ArrayList<String> constraintErrors = 
-                        new ArrayList<String>();
-                    boolean foundConstraintError = false;
-        
-                    if (foundConstraintError) {
-                        txn.rollback();
+                // Throw this after the rollback has happened.
+                if (rollback && !context.isWrite) {
+                    throw new EnkiHibernateException(
+                        "Cannot rollback read transactions");
+                }
+            } else {
+                try {
+                    Session session = mdrSession.session;
+                    if (mdrSession.containsWrites) {
+                        session.flush();
                         
-                        throw new HibernateConstraintViolationException(
-                            constraintErrors);
+                        if (!mdrSession.mofIdDeleteSet.isEmpty()) {
+                            // Update enki type mapping
+                            Query query = 
+                                session.getNamedQuery("TypeMappingDeleteByMofId");
+                            
+                            // Do this in chunks or else feel the wrath of
+                            // http://opensource.atlassian.com/projects/hibernate/browse/HHH-766
+                            int flushSize = typeLookupFlushSize;
+                            if (flushSize <= 0) {
+                                flushSize = 100;
+                            }
+                            List<Long> chunk = new ArrayList<Long>();
+                            for(Long mofId: mdrSession.mofIdDeleteSet) {
+                                chunk.add(mofId);
+                                if (chunk.size() >= flushSize) {
+                                    query.setParameterList("mofIds", chunk);
+                                    query.executeUpdate();
+                                    chunk.clear();
+                                }
+                            }
+                            if (!chunk.isEmpty()) {
+                                query.setParameterList("mofIds", chunk);
+                                query.executeUpdate();                            
+                                chunk.clear();
+                            }
+                            
+                            mdrSession.mofIdCreateMap.keySet().removeAll(
+                                mdrSession.mofIdDeleteSet);
+                            
+                            mdrSession.mofIdDeleteSet.clear();
+                        }
+                        
+                        if (!mdrSession.mofIdCreateMap.isEmpty()) {
+                            int i = 0;
+                            int flushSize = typeLookupFlushSize;
+                            boolean flush = flushSize > 0;
+                            for(Map.Entry<Long, Class<? extends RefObject>> entry:
+                                    mdrSession.mofIdCreateMap.entrySet())
+                            {
+                                if (flush && i++ % flushSize == 0) {
+                                    session.flush();
+                                    session.clear();
+                                }
+                                MofIdTypeMapping mapping = new MofIdTypeMapping();
+                                mapping.setMofId(entry.getKey());
+                                mapping.setTypeName(entry.getValue().getName());
+                                mdrSession.session.save(mapping);
+                            }
+                            
+                            mdrSession.mofIdCreateMap.clear();
+                        }
                     }
-                }
+                    
+                    // TODO: check for constraint violations
+                    if (false) {
+                        ArrayList<String> constraintErrors = 
+                            new ArrayList<String>();
+                        boolean foundConstraintError = false;
             
-                if (!mdrSession.containsWrites) {
-                    txn.rollback();
-                } else {
-                    txn.commit();
+                        if (foundConstraintError) {
+                            txn.rollback();
+                            
+                            throw new HibernateConstraintViolationException(
+                                constraintErrors);
+                        }
+                    }
+                
+                    if (!mdrSession.containsWrites) {
+                        txn.rollback();
+                    } else {
+                        txn.commit();
+                    }
+    
+                    fireChanges(mdrSession);
+                } catch(HibernateException e) {
+                    fireCanceledChanges(mdrSession);
+                    throw e;
+                } finally {
+                    mdrSession.reset();
                 }
-
-                fireChanges(mdrSession);
-            } catch(HibernateException e) {
-                fireCanceledChanges(mdrSession);
-                throw e;
-            } finally {
-                mdrSession.reset();
             }
+        } finally {
+            mdrSession.releaseLock();
         }
-
+        
         if (!contexts.isEmpty()) {
             if (contexts.size() != 1) {
                 throw new InternalMdrError(
@@ -2705,6 +2714,7 @@ public class HibernateMDRepository
     private class MdrSession implements EnkiMDSession
     {
         private Session session;
+        private Lock lock;
         private boolean containsWrites;
         private boolean isImplicit;
         private int refCount;
@@ -2737,6 +2747,40 @@ public class HibernateMDRepository
             this.isImplicit = isImplicit;
             this.refCount = 0;
             this.sessionId = sessionId;
+        }
+        
+        private void obtainWriteLock()
+        {
+            if (lock != null) {
+                throw new EnkiHibernateException("already locked");
+            }
+            
+            lock = txnLock.writeLock();
+            lock.lock();
+        }
+        
+        private void obtainReadLock()
+        {
+            if (lock != null) {
+                throw new EnkiHibernateException("already locked");
+            }
+            
+            Lock l = txnLock.readLock();
+            l.lock();
+            lock = l;
+        }
+        
+        private void releaseLock()
+        {
+            if (lock == null) {
+                log.warning(
+                    "Request to release non-existent transaction lock");
+                return;
+            }
+            
+            Lock l = lock;
+            lock = null;
+            l.unlock();
         }
         
         private MofIdGenerator getMofIdGenerator()
