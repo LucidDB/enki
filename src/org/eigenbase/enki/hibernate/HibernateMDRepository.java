@@ -1131,11 +1131,6 @@ public class HibernateMDRepository
         Class<? extends RefObject> instanceClass = 
             hibRefCls.getInstanceClass();
         
-        Criteria criteria = 
-            getCurrentSession().createCriteria(instanceClass)
-                .add(Restrictions.in("id", mofIds))
-                .setCacheable(true);
-
         MdrSession mdrSession = getMdrSession();
         
         // We use a set here because certain types of objects (those with
@@ -1143,25 +1138,45 @@ public class HibernateMDRepository
         // return duplicate results. It performs a left outer join to load
         // the objects with their collections and fails to return each
         // instance only once.  Probably a Hibernate bug.
-        
         Set<RefObject> result = new HashSet<RefObject>();
-        for(RefObjectBase refObj: 
-                GenericCollections.asTypedList(
-                    criteria.list(), RefObjectBase.class))
-        {
-            if (!mdrSession.mofIdDeleteSet.contains(refObj.getMofId())) {
-                result.add(refObj);
+        
+        List<Long> criteriaMofIdList = new ArrayList<Long>();
+        for(Long mofId: mofIds) {
+            // Ignore deleted objects.
+            if (mdrSession.mofIdDeleteSet.contains(mofId)) {
+                continue;
             }
-        }
 
-        if (mofIds.size() > result.size()) {
-            for(Long queryMofId: mofIds) {
-                Class<? extends RefObject> c = 
-                    mdrSession.mofIdCreateMap.get(queryMofId);
-                if (c != null) {
-                    result.add(getByMofId(mdrSession, queryMofId, c));
-                }
+            // Handle cached objects: this may find some objects that are
+            // also known to mdrSession.mofIdCreateMap, but should be faster.
+            RefObject obj = (RefObject)lookupByMofId(mdrSession, mofId);
+            if (obj != null) {
+                result.add(obj);
+                continue;
             }
+            
+            // Handle objects that are new in this txn
+            Class<? extends RefObject> c = 
+                mdrSession.mofIdCreateMap.get(mofId);
+            if (c != null) {
+                result.add(getByMofId(mdrSession, mofId, c));
+                continue;
+            }
+            
+            // Depend on Hibernate to only query for those objects that are
+            // not already in the session.
+            criteriaMofIdList.add(mofId);
+        }
+        
+        if (!criteriaMofIdList.isEmpty()) {
+            Criteria criteria = 
+                getCurrentSession().createCriteria(instanceClass)
+                    .add(Restrictions.in("id", criteriaMofIdList))
+                    .setCacheable(true);
+
+            result.addAll(
+                GenericCollections.asTypedList(
+                    criteria.list(), RefObjectBase.class));
         }
         
         return result;
