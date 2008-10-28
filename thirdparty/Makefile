@@ -1,7 +1,8 @@
 # $Id$
 
 all: ant commons-collections commons-logging hibernate hsqldb mdrlibs junit \
-	jgrapht ehcache findbugs simple-jndi commons-pool commons-dbcp
+	jgrapht ehcache findbugs simple-jndi commons-pool commons-dbcp \
+	mysql-connector
 
 clean:
 	-rm -rf ant commons-logging commons-collections hsqldb \
@@ -81,4 +82,10 @@ simple-jndi: simple-jndi-0.11.4.1.tar.gz
 	-rm -rf $@
 	tar xfz $<
 	mv simple-jndi-0.11.4.1 simple-jndi
+	touch $@
+
+mysql-connector: mysql-connector-java-3.1.14.zip
+	-rm -rf mysql-connector-java-3.1.14 $@
+	unzip -o $<
+	mv mysql-connector-java-3.1.14 $@
 	touch $@

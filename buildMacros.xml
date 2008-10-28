@@ -85,6 +85,7 @@
   <property name="jgrapht.dir" location="${thirdparty.dir}/jgrapht"/>
   <property name="findbugs.dir" location="${thirdparty.dir}/findbugs"/>
   <property name="simplejndi.dir" location="${thirdparty.dir}/simple-jndi"/>
+  <property name="mysql.driver.dir" location="${thirdparty.dir}/mysql-connector"/>
 
   <property name="enki.javasrc.version" value="1.5"/>
 

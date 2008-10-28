@@ -1,7 +1,4 @@
 # Sample customBuild.properties file.
 
-# Location of mysql driver (required for Hibernate tests)
-mysql.driver.dir=/home/szuercher/depot/platform/main/thirdparty/mysql-connector
-
 # Default test subsystem.  Possible values: hibernate, netbeans
 enki.impl.default=hibernate
