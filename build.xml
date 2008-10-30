@@ -600,10 +600,18 @@
   </target>
 
   <target name="dist" depends="createSampleRepository,javadoc">
-    <fail unless="package.name"/>
-    <fail unless="product.version.major"/>
-    <fail unless="product.version.minor"/>
-    <fail unless="product.version.point"/>
+    <fail message="Missing release properties; see ${release.props.file}">
+      <condition>
+        <not>
+          <and>
+            <isset property="package.name"/>
+            <isset property="product.version.major"/>
+            <isset property="product.version.minor"/>
+            <isset property="product.version.point"/>
+          </and>
+        </not>
+      </condition>
+    </fail>
 
     <jar jarfile="${enki.dist.jar}" compress="true">
       <fileset dir="${enki.dir}">

@@ -28,9 +28,10 @@ import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.hibernate.storage.*;
-import org.eigenbase.enki.util.*;
+import org.eigenbase.enki.util.GenericCollections;
+import org.eigenbase.enki.util.HashMultiMap;
 import org.hibernate.*;
-import org.hibernate.dialect.*;
+import org.hibernate.dialect.Dialect;
 
 /**
  * HibernateMassDeletionUtil is a utility class that implements deleting 
@@ -134,7 +135,7 @@ class HibernateMassDeletionUtil
         this.quotedMofId = quote("mofId");
     }
     
-    public void massDelete(Collection<RefObject> objects)
+    void massDelete(Collection<RefObject> objects)
     {
         if (objects.isEmpty()) {
             return;
@@ -242,6 +243,134 @@ class HibernateMassDeletionUtil
         
         repos.recordObjectDeletions(delMap.values());
     }
+
+    /**
+     * Deletes all extent objects as quickly as possible.  Note this method
+     * does not modify any of HibernateMDRepository's session information, such
+     * as all of type or class caches.  It's intended use is to implement
+     * dropExtent only.
+     *
+     * @param session a Hibernate session object
+     * @param pkg the RefPackage (extent root) to delete objects from
+     */
+    void massDeleteAll(Session session, RefPackage pkg)
+    {
+        Map<String, String> instanceClassMap = new HashMap<String, String>();
+        Set<Class<?>> evictionSet = new HashSet<Class<?>>();
+        
+        List<String> assocTables = new ArrayList<String>();
+
+        // Make map of this extent's instance class names to class ids
+        LinkedList<RefPackage> pkgQueue = new LinkedList<RefPackage>();
+        pkgQueue.add(pkg);
+        while(!pkgQueue.isEmpty()) {
+            RefPackage p = pkgQueue.removeFirst();
+            
+            pkgQueue.addAll(
+                GenericCollections.asTypedCollection(
+                    p.refAllPackages(), RefPackage.class));
+            
+            for(RefClass rc:
+                    GenericCollections.asTypedCollection(
+                        p.refAllClasses(), RefClass.class))
+            {
+                // Transient classes are not be HibernateRefClass instances.
+                if (rc instanceof HibernateRefClass) {
+                    HibernateRefClass hrc = (HibernateRefClass)rc;
+
+                    Class<?> cls = hrc.getInstanceClass();
+                    if (cls != null) {
+                        instanceClassMap.put(
+                            cls.getName(), hrc.getClassIdentifier());
+                        evictionSet.add(cls);
+                    }
+                }
+            }
+            
+            for(RefAssociation ra:
+                GenericCollections.asTypedCollection(
+                    p.refAllAssociations(), RefAssociation.class))
+            {
+                // Transient associations are not be HibernateRefAssociation
+                // instances.
+                if (ra instanceof HibernateRefAssociation) {
+                    HibernateRefAssociation hra = (HibernateRefAssociation)ra;
+                    // Tables deleted in the order added, so add collection
+                    // tables first to remove their foreign key ref to assoc
+                    // table.
+                    String collectionTable = hra.getCollectionTable();
+                    if (collectionTable != null) {
+                        assocTables.add(collectionTable);
+                    }
+                    
+                    assocTables.add(hra.getTable());
+                }
+            }
+        }
+        
+        // Generate multi-map of class identifier to MOF IDs pending deletion.
+        // If a class is not present in the instanceClassMap, it must not
+        // belong to this extent.
+        Query query = session.getNamedQuery("AllTypeMappings");
+        List<?> allTypeMappings = query.list();
+        for(MofIdTypeMapping m: 
+                GenericCollections.asTypedList(
+                    allTypeMappings, MofIdTypeMapping.class))
+        {
+            String classId = instanceClassMap.get(m.getTypeName());
+            if (classId == null) {
+                continue;
+            }
+
+            delMap.put(classId, m.getMofId());
+        }
+        
+        session.clear();
+        
+        // Evict all instance of the deleted types from the second level cache.
+        SessionFactory sessionFactory = session.getSessionFactory();
+        for(Class<?> cls: evictionSet) {
+            sessionFactory.evict(cls);
+        }
+        sessionFactory.evictQueries();
+        
+        Connection conn = session.connection();
+        
+        // Perform deletions
+        try {
+            // Delete the actual objects first (removing their foreign key
+            // references to assoc tables).
+            for(String hrcId: delMap.keySet()) {
+                HibernateRefClass hrc = repos.findRefClass(hrcId);
+    
+                Collection<Long> delMofIds = delMap.getValues(hrcId);
+                
+                executeInSql(
+                    conn, delMofIds,
+                    "delete from ", quote(hrc.getTable()), 
+                    " where ", quotedMofId, " in (", IN_PARAMS, ")");
+            }
+            
+            // Delete association objects (collection tables first, see above).
+            Statement stmt = conn.createStatement();
+            try {
+                for(String table: assocTables) {
+                    stmt.executeUpdate("delete from " + quote(table));
+                }
+            } finally {
+                stmt.close();
+            }
+            
+            // Clean up the type lookup map.
+            executeInSql(
+                conn, delMap.values(),
+                "delete from ", quote("ENKI_TYPE_LOOKUP"), 
+                " where ", quotedMofId, " in (", IN_PARAMS, ")");
+        } catch(SQLException e) {
+            throw new HibernateException(e);
+        }
+    }
+
     
     /**
      * Iterate over the given objects and add them to the {@link #delMap}.

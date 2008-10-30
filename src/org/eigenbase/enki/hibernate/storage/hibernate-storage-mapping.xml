@@ -53,4 +53,8 @@
         delete from org.eigenbase.enki.hibernate.storage.MofIdTypeMapping
         where mofId in (:mofIds)
     </query>
+    
+    <query name="AllTypeMappings" cacheable="false">
+        from org.eigenbase.enki.hibernate.storage.MofIdTypeMapping 
+    </query>    
 </hibernate-mapping>

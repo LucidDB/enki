@@ -46,7 +46,10 @@
   <property name="trace.dir" location="trace"/>
 
   <property name="dist.dir" location="${enki.dir}/dist"/>
-  <property file="${dist.dir}/EnkiRelease.properties"/>
+  <property
+      name="release.props.file" 
+      location="${dist.dir}/EnkiRelease.properties"/>
+  <property file="${release.props.file}"/>
   <property 
       name="release.version"
       value="${product.version.major}.${product.version.minor}.${product.version.point}"/>

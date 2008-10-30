@@ -78,6 +78,7 @@ public class ExportSchemaSubTask
     private String file;
     private String delimiter;
     private boolean includeProviderSchema;
+    private boolean update;
     
     public ExportSchemaSubTask()
     {
@@ -85,6 +86,7 @@ public class ExportSchemaSubTask
         
         this.delimiter = DEFAULT_DELIMITER;
         this.includeProviderSchema = true;
+        this.update = false;
     }
 
     public void setExtent(String extent)
@@ -105,6 +107,11 @@ public class ExportSchemaSubTask
     public void setIncludeProviderSchema(boolean includeProviderSchema)
     {
         this.includeProviderSchema = includeProviderSchema;
+    }
+    
+    public void setUpdate(boolean update)
+    {
+        this.update = update;
     }
     
     @Override
@@ -145,16 +152,36 @@ public class ExportSchemaSubTask
             
             verbose("Exporting DDL for: " + extent);
             verbose("Exporting DDL to: " + file);
+            verbose("Exporting DDL: " + (update ? "updates-only" : "full"));
             
-            SchemaExport exporter = new SchemaExport(config);
-            exporter.setDelimiter(delimiter);
-            exporter.setOutputFile(file);
+            if (update) {
+                // Brutal hack: SchemaUpdate doesn't support file output.
+                // Redirect System.out and do our own delimiter insertion.
+                SchemaUpdate updater = new SchemaUpdate(config);
+                
+                DdlPrintStream ps = new DdlPrintStream(file, delimiter);
+                
+                PrintStream originalPs = redirectSystemOut(ps);
+                try {
+                    updater.execute(true, false);
+                } finally  {
+                    redirectSystemOut(originalPs);
+                }
+            } else {
+                SchemaExport exporter = new SchemaExport(config);
+                exporter.setDelimiter(delimiter);
+                exporter.setOutputFile(file);
+                
+                exporter.execute(false, false, false, true);
+            }
             
-            exporter.execute(false, false, false, true);
-
             // Append the MOF ID generator table, if we're writing provider's
             // schema as well.
-            if (includeProviderSchema) {
+            
+            // TODO: This is not strictly correct.  If we're asked to update
+            // a completely empty schema we should generate this table.
+            // For now, assume that update means the provider tables exist.
+            if (includeProviderSchema && !update) {
                 BufferedWriter writer = 
                     new BufferedWriter(new FileWriter(file, true));
                 writer.write(
@@ -176,6 +203,41 @@ public class ExportSchemaSubTask
             throw new BuildException("error generating schema", e);
         } finally {
             dsConfigurator.close();
+        }
+    }
+    
+    private PrintStream redirectSystemOut(PrintStream ps)
+    {
+        PrintStream originalPs = System.out;
+        
+        System.setOut(ps);
+        
+        return originalPs;
+    }
+    
+    static class DdlPrintStream extends PrintStream
+    {
+        private final String delimiter;
+        
+        public DdlPrintStream(String file, String delimiter)
+        throws FileNotFoundException
+        {
+            super(file);
+            
+            this.delimiter = delimiter;
+        }
+        
+        @Override
+        public void println(String s)
+        {
+            super.print(s);
+            super.println(delimiter);
+        }
+        
+        @Override
+        public void println()
+        {
+            super.println(delimiter);
         }
     }
 }

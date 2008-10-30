@@ -432,7 +432,7 @@ public class HibernateMDRepository
     private final Map<String, ExtentDescriptor> extentMap;
     
     /** Value of {@link #PROPERTY_STORAGE_TYPE_LOOKUP_FLUSH_SIZE}. */
-    private final int typeLookupFlushSize;
+    final int typeLookupFlushSize;
 
     /** Value of hibernate.default.batch_fetch_size. */
     private final int defaultBatchFetchSize;
@@ -1077,12 +1077,17 @@ public class HibernateMDRepository
         Transaction trans = session.beginTransaction();
         boolean rollback = true;
         try {
+            HibernateMassDeletionUtil msdu = 
+                new HibernateMassDeletionUtil(this);
+            
+            msdu.massDeleteAll(session, extentDesc.extent);
+            
             Query query = session.getNamedQuery("ExtentByName");
             query.setString(0, extentDesc.name);
             
             Extent dbExtent = (Extent)query.uniqueResult();
             session.delete(dbExtent);
-            
+
             trans.commit();
             rollback = false;
         } catch(HibernateException e) {
@@ -1094,7 +1099,11 @@ public class HibernateMDRepository
             }
         }
         
-        dropModelStorage(extentDesc.modelDescriptor);
+        if (createSchema) {
+            // If we're in charge of schema creation, we also do schema 
+            // deletion.
+            dropModelStorage(extentDesc.modelDescriptor);
+        }
     }
     
     public int getBatchSize()

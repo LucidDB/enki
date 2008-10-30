@@ -69,6 +69,9 @@ public abstract class HibernateRefAssociation
 
     protected abstract String getAssociationIdentifier();
     
+    public abstract String getTable();
+    public abstract String getCollectionTable();
+    
     public Collection<?> refAllLinks()
     {
         logJmi("refAllLinks");

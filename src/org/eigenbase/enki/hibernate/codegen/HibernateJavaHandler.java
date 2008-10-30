@@ -665,26 +665,42 @@ public class HibernateJavaHandler
             
             JavaClassReference implClass;
             HibernateAssociation.Kind implKind;
+            String table = null;
+            String collectionTable = null;
             switch(assocInfo.getKind()) {
             default:
                 assert(false);
             case ONE_TO_ONE:
                 implClass = assocOneToOneLazyClass;
                 implKind = HibernateAssociation.Kind.ONE_TO_ONE;
+                table = HibernateMappingHandler.ASSOC_ONE_TO_ONE_LAZY_TABLE;
                 break;
+                
             case ONE_TO_MANY:
                 boolean ordered = 
                     assocInfo.isOrdered(0) || assocInfo.isOrdered(1);
                 if (ordered) {
                     implClass = assocOneToManyLazyOrderedClass;
                     implKind = HibernateAssociation.Kind.ONE_TO_MANY_ORDERED;
+                    table = 
+                        HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_ORDERED_TABLE;
+                    collectionTable = 
+                        HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_ORDERED_CHILDREN_TABLE;
                 } else if (isHighCardinalityAssociation(assocInfo)) {
                     implClass = assocOneToManyLazyHighCardinalityClass;
                     implKind = 
                         HibernateAssociation.Kind.ONE_TO_MANY_HIGH_CARDINALITY;
+                    table = 
+                        HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_HC_TABLE;
+                    collectionTable = 
+                        HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_HC_CHILDREN_TABLE;
                 } else {
                     implClass = assocOneToManyLazyClass;
                     implKind = HibernateAssociation.Kind.ONE_TO_MANY;
+                    table = 
+                        HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_TABLE;
+                    collectionTable = 
+                        HibernateMappingHandler.ASSOC_ONE_TO_MANY_LAZY_CHILDREN_TABLE;
                 }
                 break;
             case MANY_TO_MANY:
@@ -692,9 +708,17 @@ public class HibernateJavaHandler
                 if (assocInfo.isOrdered(0)) {
                     implClass = assocManyToManyLazyOrderedClass;
                     implKind = HibernateAssociation.Kind.MANY_TO_MANY_ORDERED;
+                    table = 
+                        HibernateMappingHandler.ASSOC_MANY_TO_MANY_LAZY_ORDERED_TABLE;
+                    collectionTable =
+                        HibernateMappingHandler.ASSOC_MANY_TO_MANY_LAZY_ORDERED_TARGET_TABLE;
                 } else {
                     implClass = assocManyToManyLazyClass;
                     implKind = HibernateAssociation.Kind.MANY_TO_MANY;
+                    table = 
+                        HibernateMappingHandler.ASSOC_MANY_TO_MANY_LAZY_TABLE;
+                    collectionTable =
+                        HibernateMappingHandler.ASSOC_MANY_TO_MANY_LAZY_TARGET_TABLE;
                 }
                 break;
             }
@@ -705,6 +729,29 @@ public class HibernateJavaHandler
             writeConstant(
                 "String", "_allLinksQueryName", 
                 QUOTE + allLinksQueryName + QUOTE, true);
+            newLine();
+
+            if (tablePrefix != null) {
+                table = tablePrefix + table;
+            }
+            
+            if (tablePrefix != null && collectionTable != null) {
+                collectionTable = tablePrefix + collectionTable;
+            }
+            
+            writeConstant(
+                "String", "_table", QUOTE + table + QUOTE, true);
+            if (collectionTable == null) {
+                writeConstant(
+                    "String", 
+                    "_collectionTable", 
+                    "null", true);                
+            } else {
+                writeConstant(
+                    "String", 
+                    "_collectionTable", 
+                    QUOTE + collectionTable + QUOTE, true);
+            }
             newLine();
             
             startConstructorBlock(
@@ -929,6 +976,16 @@ public class HibernateJavaHandler
             newLine();
             startBlock("protected String getAllLinksQueryName()");
             writeln("return _allLinksQueryName;");
+            endBlock();
+            
+            newLine();
+            startBlock("public String getTable()");
+            writeln("return _table;");
+            endBlock();
+            
+            newLine();
+            startBlock("public String getCollectionTable()");
+            writeln("return _collectionTable;");
             endBlock();
             
             writeEntityFooter();
