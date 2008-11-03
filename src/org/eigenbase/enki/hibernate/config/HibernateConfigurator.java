@@ -179,6 +179,20 @@ public final class HibernateConfigurator
                     "Extent name missing from model properties");
             }
             
+            String packageVersion = 
+                modelProperties.getProperty(
+                    HibernateMDRepository.PROPERTY_MODEL_PACKAGE_VERSION);
+            if (!packageVersion.equals(HibernateMDRepository.PACKAGE_VERSION))
+            {
+                log.severe(
+                    "Ignoring model descriptor '" 
+                    + name 
+                    + "': unsupported package version '" 
+                    + packageVersion 
+                    + "'");
+                continue;
+            }
+            
             if (isPlugin(modelProperties)) {
                 String pluginName = 
                     modelProperties.getProperty(
@@ -195,6 +209,15 @@ public final class HibernateConfigurator
                     new ModelPluginDescriptor(pluginName, modelProperties);
 
                 ModelDescriptor modelDesc = modelMap.get(name);
+                if (modelDesc == null) {
+                    log.severe(
+                        "Ignoring plugin model '" 
+                        + pluginName 
+                        + "': missing model '" 
+                        + name 
+                        + "'");
+                    continue;
+                }
                 
                 modelDesc.plugins.add(modelPluginDesc);
                 

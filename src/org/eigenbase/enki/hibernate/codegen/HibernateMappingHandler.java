@@ -423,6 +423,11 @@ public class HibernateMappingHandler
                     HibernateMDRepository.PROPERTY_MODEL_TABLE_PREFIX, "=",
                     tablePrefix);
             }
+            
+            writeln(
+                HibernateMDRepository.PROPERTY_MODEL_PACKAGE_VERSION, "=",
+                HibernateMDRepository.PACKAGE_VERSION);
+            
             close();
         }
         

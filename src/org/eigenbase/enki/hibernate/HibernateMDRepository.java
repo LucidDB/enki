@@ -165,6 +165,19 @@ public class HibernateMDRepository
         "enki.model.tablePrefix";
     
     /**
+     * Configuration file property that specifies a packaging version for
+     * the model's schema.  This value may change from release to release.
+     * Compatibility between versions will be documented elsewhere.  
+     */
+    public static final String PROPERTY_MODEL_PACKAGE_VERSION =
+        "enki.model.packageVersion";
+    
+    /**
+     * Current packaging version.  The current packaging version is {@value}.
+     */
+    public static final String PACKAGE_VERSION = "1.0";
+    
+    /**
      * Storage property that configures the JNDI name of the {@link DataSource}
      * that Enki/Hibernate should use.  If no DataSource exists with this
      * name, Enki/Hibernate will attempt to create and bind one using the
