@@ -33,6 +33,23 @@ import org.hibernate.dialect.*;
  * HibernateViewMappingUtil generates all-of-type and all-of-class views
  * for MOF Classifier objects.
  * 
+ * <p>HibernateViewMappingUtil supports the generation of views for the 
+ * following Hibernate SQL dialects:
+ * <ul>
+ * <li>MySQL (MyISAM and InnoDB)</li>
+ * <li>HSQLDB (<b>WARNING: untested</b>)</li>
+ * <li>PostgreSQL (<b>WARNING: untested</b>)</li>
+ * </ul>
+ * 
+ * To add a new dialect, modify {@link #getMofIdConversion(String, Dialect)}
+ * to support conversion from the integer MOF ID stored in the database to
+ * a MOF ID string.  The result must be equivalent to calling 
+ * {@link MofIdUtil#makeMofIdStr(long)} in Java.  Note that the dialect set
+ * is divided in groups and only the exemplar (first element in each group) is
+ * used to generate SQL.  If you add your Dialect to an existing group, the 
+ * output of {@link #getMofIdConversion(String, Dialect)} for the exemplar
+ * must be valid for your dialect. 
+ * 
  * @author Stephan Zuercher
  */
 public class HibernateViewMappingUtil
@@ -292,21 +309,27 @@ public class HibernateViewMappingUtil
     {
         StringBuilder b = new StringBuilder();
         if (dialect instanceof MySQLDialect) {
+            // e.g., concat('j:', lpad(hex(c), 16, '0'))
             b
                 .append("concat('j:', lpad(hex(")
                 .append(mofIdColumn)
                 .append("), 16 ,'0'))");
             return b.toString();
         } else if (dialect instanceof HSQLDialect) {
+            // REVIEW: SWZ: 2008-08-28: This is untested.
+            // e.g., "org.eigenbase.enki.util.MofIdUtil.makeMofIdStr"(c)
             b
                 .append('"')
                 .append(MofIdUtil.class.getName())
+                .append('.')
+                .append("makeMofIdStr")
                 .append("\"(")
                 .append(mofIdColumn)
                 .append(")");
             return b.toString();
         } else if (dialect instanceof PostgreSQLDialect) {
             // REVIEW: SWZ: 2008-08-28: This is untested.
+            // e.g., 'j:' || lpad(upper(to_hex(c)), 16, '0')
             b
                 .append("'j:' || lpad(upper(to_hex(")
                 .append(mofIdColumn)

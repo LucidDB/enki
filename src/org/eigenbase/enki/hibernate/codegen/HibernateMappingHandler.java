@@ -40,6 +40,14 @@ import org.hibernate.dialect.*;
  * typedef declarations for enumerations.  The second pass generates Hibernate
  * class declarations for persistent entities.
  * 
+ * <p>Presently, HibernateMappingHandler and the related 
+ * {@link HibernateViewMappingUtil} only support MySQL and HSQLDB SQL dialects.
+ * Note that HibernateViewMappingUtil has some dialect-specific coding.
+ * See the {@link #dialectSet} member for information on adding new dialects.
+ * The dialects are used to generate indexes that cannot be described in
+ * Hibernate's configuration mappings and to generate all-of-class and
+ * all-of-type views. 
+ * 
  * @author Stephan Zuercher
  */
 public class HibernateMappingHandler
@@ -161,6 +169,14 @@ public class HibernateMappingHandler
 
     private static final int ENUM_COLUMN_LENGTH = 128;
 
+    /**
+     * Groups of dialects for which DDL is generated.  Distinct DDL is 
+     * generated for each <code>Dialect[]</code> contained in the dialectSet
+     * and the Dialects within each array are used to emit database-scope
+     * elements in the Hibernate mapping document. Therefore, if a new 
+     * dialect's DDL exactly matches that used for, say, HSQLDB, it is 
+     * sufficient to include it in the same group as HSQLDB.
+     */
     private static final Dialect[][] dialectSet = new Dialect[][] {
         {
             DialectFactory.buildDialect(MySQLDialect.class.getName()),
@@ -168,10 +184,6 @@ public class HibernateMappingHandler
             DialectFactory.buildDialect(MySQLMyISAMDialect.class.getName()),
         },
         {
-            // REVIEW: SWZ: 2008-08-26: If we only use the exemplar (first)
-            // dialect for quoting, this is fine as HSQLDB uses the SQL 
-            // standard double-quotes. If we actually need to check dialect 
-            // features, this will not do.
             DialectFactory.buildDialect(HSQLDialect.class.getName())
         }
     };
