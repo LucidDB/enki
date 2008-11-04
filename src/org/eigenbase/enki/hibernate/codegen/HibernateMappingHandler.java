@@ -1083,10 +1083,22 @@ public class HibernateMappingHandler
 
             case BOOLEAN:
             case OTHER_DATA_TYPE:
-                writeEmptyElem(
-                    "property",
-                    "name", propertyName,
-                    "column", hibernateQuote(fieldName));
+                if (attrib.getMultiplicity().getLower() != 0) {
+                    // Force default value.
+                    startElem(
+                        "property",
+                        "name", propertyName);
+                    writeEmptyElem(
+                        "column", 
+                        "name", hibernateQuote(fieldName),
+                        "default", getDefaultValue(mappingType));
+                    endElem("property");
+                } else {
+                    writeEmptyElem(
+                        "property",
+                        "name", propertyName,
+                        "column", hibernateQuote(fieldName));
+                }
                 break;
 
             default:
@@ -1308,6 +1320,23 @@ public class HibernateMappingHandler
             return getMappingType(((AliasType)type).getType(), multiplicity);
         } else {
             return MappingType.OTHER_DATA_TYPE;
+        }
+    }
+    
+    private String getDefaultValue(MappingType mappingType)
+        throws GenerationException
+    {
+        switch(mappingType) {
+        case OTHER_DATA_TYPE:
+            return "0";
+            
+        case BOOLEAN:
+            return "false";
+            
+        default:
+            throw new GenerationException(
+                "Cannot produce default value for mapping type " 
+                + mappingType);
         }
     }
     

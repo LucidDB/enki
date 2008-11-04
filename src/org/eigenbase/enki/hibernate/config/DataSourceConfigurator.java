@@ -275,7 +275,7 @@ public class DataSourceConfigurator
         int maxIdle =
             readStorageProperty(
                 HibernateMDRepository.PROPERTY_STORAGE_CONNECTION_MAX_IDLE,
-                1,
+                HibernateMDRepository.DEFAULT_CONNECTION_MAX_IDLE,
                 Integer.class);
         if (maxIdle < 1) {
             maxIdle = 1;

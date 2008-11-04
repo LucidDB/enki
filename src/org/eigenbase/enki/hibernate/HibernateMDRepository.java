@@ -251,6 +251,12 @@ public class HibernateMDRepository
         "org.eigenbase.enki.hibernate.connection.max_idle";
 
     /**
+     * Default setting for the {@link #PROPERTY_STORAGE_CONNECTION_MAX_IDLE}
+     * storage property.  The default value is {@value}.
+     */
+    public static final int DEFAULT_CONNECTION_MAX_IDLE = 1;
+    
+    /**
      * Storage property JNDI prefix.  When creating a {@link DataSource} any 
      * storage properties starting with this string are used to construct
      * a JNDI {@link InitialContext}.  These properties (excluding both
