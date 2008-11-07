@@ -599,7 +599,14 @@
     </enki.mdr>
   </target>
 
-  <target name="dist" depends="createSampleRepository,javadoc">
+  <target name="distCheckConfig">
+    <fail message="Must set dist.build.details -- preferably via distBuild.sh">
+      <condition>
+        <not>
+          <isset property="dist.build.details"/>
+        </not>
+      </condition>
+    </fail>
     <fail message="Missing release properties; see ${release.props.file}">
       <condition>
         <not>
@@ -612,11 +619,14 @@
         </not>
       </condition>
     </fail>
+  </target>
 
+  <target name="dist" depends="distCheckConfig,createSampleRepository,javadoc">
     <jar jarfile="${enki.dist.jar}" compress="true">
       <fileset dir="${enki.dir}">
         <include name="LICENSE"/>
       </fileset>
+      <fileset file="${dist.build.details}"/>
       <fileset dir="${classes.dir}">
         <include name="**/*.class"/>
       </fileset>
@@ -629,6 +639,7 @@
       <fileset dir="${enki.dir}">
         <include name="LICENSE"/>
       </fileset>
+      <fileset file="${dist.build.details}"/>
       <fileset dir="${src.dir}">
         <include name="**/*"/>
       </fileset>
@@ -638,12 +649,17 @@
       <fileset dir="${enki.dir}">
         <include name="LICENSE"/>
       </fileset>
+      <fileset file="${dist.build.details}"/>
       <fileset dir="${doc.dir}">
         <include name="**/*"/>
       </fileset>
     </jar>
 
     <jar jarfile="${enki.dist.findbugs.jar}" compress="true">
+      <fileset dir="${enki.dir}">
+        <include name="LICENSE"/>
+      </fileset>
+      <fileset file="${dist.build.details}"/>
       <fileset dir="${src.dir}/org/eigenbase/enki/tools/findbugs">
         <include name="*.xml"/>
       </fileset>
@@ -656,6 +672,7 @@
       <tarfileset dir="${dist.dir}" prefix="${enki.dist.prefix}">
         <include name="*.jar"/>
       </tarfileset>
+      <tarfileset file="${dist.build.details}" prefix="${enki.dist.prefix}"/>
     </tar>
 
     <!-- N.B.: Library JARs typically require that a license file be included
@@ -663,6 +680,7 @@
          license file within the JAR file. If you add a JAR that doesn't do
          so, you'll need to make sure it gets into the tar ball. -->
     <tar destfile="${enki.lib.dist.tarball}" compression="gzip">
+      <tarfileset file="${dist.build.details}" prefix="${enki.dist.prefix}"/>
       <tarfileset dir="${hibernate.dir}" prefix="${enki.dist.prefix}">
         <include name="*.jar"/>
       </tarfileset>
