@@ -78,12 +78,13 @@ EOD
     check_continue
 fi
 
+BRANCH=`p4 have ./build.xml | sed -e "s@\(.*\)/build.xml#.*@\1@"`
 
 DIST_DIR="$ENKI_DIR/dist"
 
 DETAIL_FILE="$DIST_DIR/LAST_CHANGE"
 
-echo >"$DETAIL_FILE" $LAST_SYNCED
+echo >"$DETAIL_FILE" ${BRANCH}@${LAST_SYNCED}
 echo >>"$DETAIL_FILE" "--"
 
 p4 describe -s $LAST_SYNCED >>"$DETAIL_FILE"
