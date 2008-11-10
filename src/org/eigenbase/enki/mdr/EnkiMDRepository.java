@@ -176,6 +176,23 @@ public interface EnkiMDRepository extends MDRepository
     public boolean supportsPreviewRefDelete();
     
     /**
+     * Retrieves the annotation for the given extent.  Must be executed in
+     * a repository write transaction.
+     * 
+     * @param extentName extent name
+     * @return the extent's annotation, or null if non was set.
+     */
+    public String getAnnotation(String extentName);
+
+    /**
+     * Annotates the given extent.
+     * 
+     * @param extentName name of the extent to annotate
+     * @param annotation the annotation (may be null)
+     */
+    public void setAnnotation(String extentName, String annotation);
+    
+    /**
      * Tests whether the named extent is built into this repository.  Built-in
      * extents cannot be imported or deleted.
      * 

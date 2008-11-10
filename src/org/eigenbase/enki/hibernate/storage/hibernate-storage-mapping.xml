@@ -22,6 +22,10 @@
           length="255"
           not-null="true"
           unique="true"/>
+        <property
+          name="annotation"
+          type="string"
+          length="255"/>
     </class>
     
     <class 
@@ -42,6 +46,12 @@
     
     <query name="ExtentByName">
         from org.eigenbase.enki.hibernate.storage.Extent where extentName = ?
+    </query>
+    
+    <query name="ExtentSetAnnotation">
+        update org.eigenbase.enki.hibernate.storage.Extent 
+        set annotation = :annotation
+        where extentName = :extentName
     </query>
     
     <query name="TypeMappingByMofId" cacheable="true">

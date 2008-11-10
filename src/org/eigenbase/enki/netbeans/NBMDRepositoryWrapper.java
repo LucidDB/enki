@@ -24,6 +24,7 @@ package org.eigenbase.enki.netbeans;
 import java.util.*;
 import java.util.logging.*;
 
+import javax.jmi.model.MofPackage;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.mdr.*;
@@ -355,6 +356,22 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
         {
             return new SessionContext();
         }
+    }
+    
+    // Implement EnkiMDRepository
+    public String getAnnotation(String extentName)
+    {
+        MofPackage pkg = (MofPackage)getExtent(extentName).refMetaObject();
+        
+        return pkg.getAnnotation();
+    }
+    
+    // Implement EnkiMDRepository
+    public void setAnnotation(String extentName, String annotation)
+    {
+        MofPackage pkg = (MofPackage)getExtent(extentName).refMetaObject();
+
+        pkg.setAnnotation(annotation);
     }
     
     private static class SessionContext implements EnkiMDSession

@@ -1591,6 +1591,45 @@ public class HibernateMDRepository
     }
     
     // Implement EnkiMDRepository
+    public String getAnnotation(String extentName)
+    {
+        synchronized(extentMap) {
+            ExtentDescriptor extentDesc = extentMap.get(extentName);
+            if (extentDesc == null) {
+                return null;
+            }
+            
+            return extentDesc.annotation;
+        }
+    }
+    
+    // Implement EnkiMDRepository
+    public void setAnnotation(String extentName, String annotation)
+    {
+        checkTransaction(true);
+        
+        synchronized(extentMap) {
+            ExtentDescriptor extentDesc = extentMap.get(extentName);
+            if (extentDesc == null) {
+                throw new EnkiHibernateException(
+                    "No such extent: " + extentName);
+            }
+            
+            extentDesc.annotation = annotation;
+            
+            Query q = 
+                getMdrSession().session.getNamedQuery("ExtentSetAnnotation");
+            q.setString("annotation", annotation);
+            q.setString("extentName", extentName);
+            int rows = q.executeUpdate();
+            if (rows != 1) {
+                throw new EnkiHibernateException(
+                    "incorrect row count on extent update: " + rows);
+            }
+        }
+    }
+    
+    // Implement EnkiMDRepository
     public ClassLoader getDefaultClassLoader()
     {
         return classLoader;
@@ -2068,7 +2107,8 @@ public class HibernateMDRepository
         for(Extent extent: extents) {
             String extentName = extent.getExtentName();
             String modelExtentName = extent.getModelExtentName();
-
+            String annotation = extent.getAnnotation();
+            
             if (modelExtentName.equals(MOF_EXTENT)) {
                 initModelExtent(extentName, false);                
             } else {
@@ -2098,7 +2138,8 @@ public class HibernateMDRepository
                 
                 ExtentDescriptor extentDesc = new ExtentDescriptor(extentName);
                 extentDesc.modelDescriptor = modelDesc;
-    
+                extentDesc.annotation = annotation;
+
                 MetamodelInitializer.setCurrentInitializer(
                     modelExtentDesc.initializer);
                 try {
@@ -2208,6 +2249,7 @@ public class HibernateMDRepository
         Extent extentDbObj = new Extent();
         extentDbObj.setExtentName(extentName);
         extentDbObj.setModelExtentName(modelExtentName);
+        extentDbObj.setAnnotation(null);
         
         session.save(extentDbObj);
     }
@@ -2746,6 +2788,7 @@ public class HibernateMDRepository
         protected MetamodelInitializer initializer;
         protected List<MetamodelInitializer> pluginInitializers;
         protected boolean builtIn;
+        protected String annotation;
         
         public ExtentDescriptor(String name)
         {

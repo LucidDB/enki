@@ -31,6 +31,7 @@ public class Extent
     private long id;
     private String extentName;
     private String modelExtentName;
+    private String annotation;
     
     public Extent()
     {
@@ -64,6 +65,16 @@ public class Extent
     public void setModelExtentName(String modelExtentName)
     {
         this.modelExtentName = modelExtentName;
+    }
+    
+    public String getAnnotation()
+    {
+        return annotation;
+    }
+    
+    public void setAnnotation(String annotation)
+    {
+        this.annotation = annotation;
     }
 }
 

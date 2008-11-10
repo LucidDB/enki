@@ -164,6 +164,19 @@ public abstract class ModelTestBase
         }        
     }
 
+    protected static void bounceRepository()
+    {
+        tearDownTestClass();
+        
+        Assert.assertNull(repos);
+        Assert.assertNull(pkg);
+        
+        getPackage();
+        
+        repos.beginSession();
+    }
+    
+    
     protected <E> E findEntity(String refMofId, Class<E> cls)
     {
         RefBaseObject refBaseObject = repos.getByMofId(refMofId);
