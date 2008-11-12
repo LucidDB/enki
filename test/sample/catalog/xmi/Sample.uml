@@ -53,7 +53,7 @@
             name="Sample.todo" />
     <historyfile name="" />
   </argo>
-<XMI xmi.version = '1.2' xmlns:UML = 'org.omg.xmi.namespace.UML' timestamp = 'Wed Oct 15 15:33:18 PDT 2008'>
+<XMI xmi.version = '1.2' xmlns:UML = 'org.omg.xmi.namespace.UML' timestamp = 'Tue Nov 11 12:19:38 PST 2008'>
   <XMI.header>    <XMI.documentation>
       <XMI.exporter>ArgoUML (using Netbeans XMI Writer version 1.0)</XMI.exporter>
       <XMI.exporterVersion>0.24(5) revised on $Date: 2006-11-06 19:55:22 +0100 (Mon, 06 Nov 2006) $ </XMI.exporterVersion>
@@ -2154,6 +2154,162 @@
                         </UML:AssociationEnd>
                       </UML:Association.connection>
                     </UML:Association>
+                    <UML:Class xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009D2'
+                      name = 'Cornucopia' visibility = 'public' isSpecification = 'false' isRoot = 'false'
+                      isLeaf = 'false' isAbstract = 'false' isActive = 'false'>
+                      <UML:Classifier.feature>
+                        <UML:Attribute xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009D4'
+                          name = 'floatA' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
+                          changeability = 'changeable' targetScope = 'instance'>
+                          <UML:StructuralFeature.multiplicity>
+                            <UML:Multiplicity xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009D8'>
+                              <UML:Multiplicity.range>
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009D7'
+                                  lower = '1' upper = '1'/>
+                              </UML:Multiplicity.range>
+                            </UML:Multiplicity>
+                          </UML:StructuralFeature.multiplicity>
+                          <UML:StructuralFeature.type>
+                            <UML:DataType xmi.idref = '127-0-0-1-59bd95bc:1163621754d:-8000:0000000000000827'/>
+                          </UML:StructuralFeature.type>
+                        </UML:Attribute>
+                        <UML:Attribute xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009D9'
+                          name = 'floatB' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
+                          changeability = 'changeable' targetScope = 'instance'>
+                          <UML:StructuralFeature.multiplicity>
+                            <UML:Multiplicity xmi.id = '127-0-0-1-2bbf5b6b:11d8d350e14:-8000:00000000000009F8'>
+                              <UML:Multiplicity.range>
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1-2bbf5b6b:11d8d350e14:-8000:00000000000009F7'
+                                  lower = '0' upper = '1'/>
+                              </UML:Multiplicity.range>
+                            </UML:Multiplicity>
+                          </UML:StructuralFeature.multiplicity>
+                          <UML:StructuralFeature.type>
+                            <UML:DataType xmi.idref = '127-0-0-1-59bd95bc:1163621754d:-8000:0000000000000827'/>
+                          </UML:StructuralFeature.type>
+                        </UML:Attribute>
+                        <UML:Attribute xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009E4'
+                          name = 'doubleA' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
+                          changeability = 'changeable' targetScope = 'instance'>
+                          <UML:StructuralFeature.multiplicity>
+                            <UML:Multiplicity xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009E8'>
+                              <UML:Multiplicity.range>
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009E7'
+                                  lower = '1' upper = '1'/>
+                              </UML:Multiplicity.range>
+                            </UML:Multiplicity>
+                          </UML:StructuralFeature.multiplicity>
+                          <UML:StructuralFeature.type>
+                            <UML:DataType xmi.idref = '127-0-0-1-59bd95bc:1163621754d:-8000:0000000000000826'/>
+                          </UML:StructuralFeature.type>
+                        </UML:Attribute>
+                        <UML:Attribute xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009E9'
+                          name = 'doubleB' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
+                          changeability = 'changeable' targetScope = 'instance'>
+                          <UML:StructuralFeature.multiplicity>
+                            <UML:Multiplicity xmi.id = '127-0-0-1-2bbf5b6b:11d8d350e14:-8000:00000000000009FA'>
+                              <UML:Multiplicity.range>
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1-2bbf5b6b:11d8d350e14:-8000:00000000000009F9'
+                                  lower = '0' upper = '1'/>
+                              </UML:Multiplicity.range>
+                            </UML:Multiplicity>
+                          </UML:StructuralFeature.multiplicity>
+                          <UML:StructuralFeature.type>
+                            <UML:DataType xmi.idref = '127-0-0-1-59bd95bc:1163621754d:-8000:0000000000000826'/>
+                          </UML:StructuralFeature.type>
+                        </UML:Attribute>
+                        <UML:Attribute xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:0000000000000A09'
+                          name = 'integerA' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
+                          changeability = 'changeable' targetScope = 'instance'>
+                          <UML:StructuralFeature.multiplicity>
+                            <UML:Multiplicity xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:0000000000000A0D'>
+                              <UML:Multiplicity.range>
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:0000000000000A0C'
+                                  lower = '1' upper = '1'/>
+                              </UML:Multiplicity.range>
+                            </UML:Multiplicity>
+                          </UML:StructuralFeature.multiplicity>
+                          <UML:StructuralFeature.type>
+                            <UML:DataType xmi.idref = '127-0-0-1-59bd95bc:1163621754d:-8000:0000000000000828'/>
+                          </UML:StructuralFeature.type>
+                        </UML:Attribute>
+                        <UML:Attribute xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:0000000000000A0E'
+                          name = 'integerB' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
+                          changeability = 'changeable' targetScope = 'instance'>
+                          <UML:StructuralFeature.multiplicity>
+                            <UML:Multiplicity xmi.id = '127-0-0-1-2bbf5b6b:11d8d350e14:-8000:00000000000009FC'>
+                              <UML:Multiplicity.range>
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1-2bbf5b6b:11d8d350e14:-8000:00000000000009FB'
+                                  lower = '0' upper = '1'/>
+                              </UML:Multiplicity.range>
+                            </UML:Multiplicity>
+                          </UML:StructuralFeature.multiplicity>
+                          <UML:StructuralFeature.type>
+                            <UML:DataType xmi.idref = '127-0-0-1-59bd95bc:1163621754d:-8000:0000000000000828'/>
+                          </UML:StructuralFeature.type>
+                        </UML:Attribute>
+                        <UML:Attribute xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009F1'
+                          name = 'longA' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
+                          changeability = 'changeable' targetScope = 'instance'>
+                          <UML:StructuralFeature.multiplicity>
+                            <UML:Multiplicity xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009F5'>
+                              <UML:Multiplicity.range>
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009F4'
+                                  lower = '1' upper = '1'/>
+                              </UML:Multiplicity.range>
+                            </UML:Multiplicity>
+                          </UML:StructuralFeature.multiplicity>
+                          <UML:StructuralFeature.type>
+                            <UML:DataType xmi.idref = '127-0-0-1-59bd95bc:1163621754d:-8000:0000000000000829'/>
+                          </UML:StructuralFeature.type>
+                        </UML:Attribute>
+                        <UML:Attribute xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009F6'
+                          name = 'longB' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
+                          changeability = 'changeable' targetScope = 'instance'>
+                          <UML:StructuralFeature.multiplicity>
+                            <UML:Multiplicity xmi.id = '127-0-0-1-2bbf5b6b:11d8d350e14:-8000:00000000000009FE'>
+                              <UML:Multiplicity.range>
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1-2bbf5b6b:11d8d350e14:-8000:00000000000009FD'
+                                  lower = '0' upper = '1'/>
+                              </UML:Multiplicity.range>
+                            </UML:Multiplicity>
+                          </UML:StructuralFeature.multiplicity>
+                          <UML:StructuralFeature.type>
+                            <UML:DataType xmi.idref = '127-0-0-1-59bd95bc:1163621754d:-8000:0000000000000829'/>
+                          </UML:StructuralFeature.type>
+                        </UML:Attribute>
+                        <UML:Attribute xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009FD'
+                          name = 'booleanA' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
+                          changeability = 'changeable' targetScope = 'instance'>
+                          <UML:StructuralFeature.multiplicity>
+                            <UML:Multiplicity xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:0000000000000A01'>
+                              <UML:Multiplicity.range>
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:0000000000000A00'
+                                  lower = '1' upper = '1'/>
+                              </UML:Multiplicity.range>
+                            </UML:Multiplicity>
+                          </UML:StructuralFeature.multiplicity>
+                          <UML:StructuralFeature.type>
+                            <UML:DataType xmi.idref = '127-0-0-1-59bd95bc:1163621754d:-8000:0000000000000825'/>
+                          </UML:StructuralFeature.type>
+                        </UML:Attribute>
+                        <UML:Attribute xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:0000000000000A02'
+                          name = 'booleanB' visibility = 'public' isSpecification = 'false' ownerScope = 'instance'
+                          changeability = 'changeable' targetScope = 'instance'>
+                          <UML:StructuralFeature.multiplicity>
+                            <UML:Multiplicity xmi.id = '127-0-0-1-2bbf5b6b:11d8d350e14:-8000:0000000000000A00'>
+                              <UML:Multiplicity.range>
+                                <UML:MultiplicityRange xmi.id = '127-0-0-1-2bbf5b6b:11d8d350e14:-8000:00000000000009FF'
+                                  lower = '0' upper = '1'/>
+                              </UML:Multiplicity.range>
+                            </UML:Multiplicity>
+                          </UML:StructuralFeature.multiplicity>
+                          <UML:StructuralFeature.type>
+                            <UML:DataType xmi.idref = '127-0-0-1-59bd95bc:1163621754d:-8000:0000000000000825'/>
+                          </UML:StructuralFeature.type>
+                        </UML:Attribute>
+                      </UML:Classifier.feature>
+                    </UML:Class>
                   </UML:Namespace.ownedElement>
                 </UML:Package>
                 <UML:Package xmi.id = '127-0-0-1--b8824aa:1189f2fa512:-8000:0000000000000B5B'
@@ -2350,6 +2506,9 @@
                   isAbstract = 'false' isActive = 'false'/>
                 <UML:Class xmi.id = '127-0-0-1--51510177:117fa65aaa5:-8000:000000000000092A'
                   name = 'Integer' isSpecification = 'false' isRoot = 'false' isLeaf = 'false'
+                  isAbstract = 'false' isActive = 'false'/>
+                <UML:Class xmi.id = '127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009F0'
+                  name = 'Double' isSpecification = 'false' isRoot = 'false' isLeaf = 'false'
                   isAbstract = 'false' isActive = 'false'/>
               </UML:Namespace.ownedElement>
             </UML:Package>
@@ -11060,6 +11219,236 @@
       <lineto x="1168"
               y="424" />
     </path>
+  </group>
+  <group name="Fig44"
+       description="org.argouml.uml.diagram.static_structure.ui.FigClass[1104, 32, 101, 182]pathVisible=false;operationsVisible=true;attributesVisible=true"
+       href="127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009D2"
+       fill="1"
+       fillcolor="white"
+       stroke="1"
+       strokecolor="black"
+  >
+    <private>
+    </private>
+    
+    <rectangle name="Fig44.0"
+      x="1104"
+      y="32"
+      width="101"
+      height="182"
+      fill="1"
+      fillcolor="white"
+      stroke="0"
+      strokecolor="black"
+    />
+    <group name="Fig44.1"
+         description="org.argouml.uml.diagram.ui.FigStereotypesCompartment[1104, 32, 101, 2]"
+         href="127-0-0-1-6555aaad:11d8d277855:-8000:00000000000009D2"
+         fill="1"
+         fillcolor="white"
+         stroke="1"
+         strokecolor="black"
+    >
+      <private>
+      </private>
+      
+      <rectangle name="Fig44.1.0"
+        x="1104"
+        y="32"
+        width="101"
+        height="2"
+        fill="1"
+        fillcolor="white"
+        stroke="1"
+        strokecolor="black"
+      />
+    </group>
+    <text name="Fig44.2"
+      x="1104"
+      y="34"
+      fill="1"
+      fillcolor="white"
+      stroke="0"
+      strokecolor="red"
+      font="Dialog"
+      textsize="10"
+    >Cornucopia</text>
+    <group name="Fig44.3"
+         description="org.argouml.uml.diagram.ui.FigOperationsCompartment[1105, 194, 100, 20]"
+         fill="1"
+         fillcolor="white"
+         stroke="0"
+         strokecolor="black"
+    >
+      <private>
+      </private>
+      
+      <rectangle name="Fig44.3.0"
+        x="1105"
+        y="194"
+        width="100"
+        height="20"
+        fill="1"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+      />
+      <path name="Fig44.3.1"
+        description="org.argouml.uml.diagram.ui.FigFeaturesCompartment$FigSeperator"
+        fill="1"
+        fillcolor="white"
+        stroke="1"
+        strokecolor="black"
+      >
+        <moveto x="1105"
+                y="194" />
+        <lineto x="1205"
+                y="194" />
+      </path>
+    </group>
+    <group name="Fig44.4"
+         description="org.argouml.uml.diagram.ui.FigAttributesCompartment[1105, 55, 100, 138]"
+         fill="1"
+         fillcolor="white"
+         stroke="0"
+         strokecolor="black"
+    >
+      <private>
+      </private>
+      
+      <rectangle name="Fig44.4.0"
+        x="1105"
+        y="55"
+        width="100"
+        height="138"
+        fill="1"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+      />
+      <path name="Fig44.4.1"
+        description="org.argouml.uml.diagram.ui.FigFeaturesCompartment$FigSeperator"
+        fill="1"
+        fillcolor="white"
+        stroke="1"
+        strokecolor="black"
+      >
+        <moveto x="1105"
+                y="55" />
+        <lineto x="1205"
+                y="55" />
+      </path>
+      <text name="Fig44.4.2"
+        x="1105"
+        y="56"
+        fill="0"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+        font="Dialog"
+        textsize="10"
+      >floatA : Float</text>
+      <text name="Fig44.4.3"
+        x="1105"
+        y="69"
+        fill="0"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+        font="Dialog"
+        textsize="10"
+      >floatB : Float</text>
+      <text name="Fig44.4.4"
+        x="1105"
+        y="82"
+        fill="0"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+        font="Dialog"
+        textsize="10"
+      >doubleA : Double</text>
+      <text name="Fig44.4.5"
+        x="1105"
+        y="95"
+        fill="0"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+        font="Dialog"
+        textsize="10"
+      >doubleB : Double</text>
+      <text name="Fig44.4.6"
+        x="1105"
+        y="108"
+        fill="0"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+        font="Dialog"
+        textsize="10"
+      >integerA : Integer</text>
+      <text name="Fig44.4.7"
+        x="1105"
+        y="121"
+        fill="0"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+        font="Dialog"
+        textsize="10"
+      >integerB : Integer</text>
+      <text name="Fig44.4.8"
+        x="1105"
+        y="134"
+        fill="0"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+        font="Dialog"
+        textsize="10"
+      >longA : Long</text>
+      <text name="Fig44.4.9"
+        x="1105"
+        y="147"
+        fill="0"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+        font="Dialog"
+        textsize="10"
+      >longB : Long</text>
+      <text name="Fig44.4.10"
+        x="1105"
+        y="160"
+        fill="0"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+        font="Dialog"
+        textsize="10"
+      >booleanA : Boolean</text>
+      <text name="Fig44.4.11"
+        x="1105"
+        y="173"
+        fill="0"
+        fillcolor="white"
+        stroke="0"
+        strokecolor="black"
+        font="Dialog"
+        textsize="10"
+      >booleanB : Boolean</text>
+    </group>
+    <rectangle name="Fig44.5"
+      x="1104"
+      y="32"
+      width="101"
+      height="182"
+      fill="0"
+      fillcolor="white"
+      stroke="1"
+      strokecolor="black"
+    />
   </group>
 </pgml>
 <pgml description="org.argouml.uml.diagram.static_structure.ui.UMLClassDiagram|127-0-0-1--b8824aa:1189f2fa512:-8000:0000000000000B5B"
