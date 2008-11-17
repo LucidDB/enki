@@ -1202,9 +1202,14 @@ public class HibernateMDRepository
                     .add(Restrictions.in("id", criteriaMofIdList))
                     .setCacheable(true);
 
-            result.addAll(
-                GenericCollections.asTypedList(
-                    criteria.list(), RefObjectBase.class));
+            for(RefObjectBase rob: 
+                    GenericCollections.asTypedList(
+                        criteria.list(), RefObjectBase.class))
+            {
+                result.add(rob);
+                
+                storeByMofId(mdrSession, rob.getMofId(), rob);
+            }
         }
         
         return result;
