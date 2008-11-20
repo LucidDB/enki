@@ -29,6 +29,7 @@ import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 import org.junit.*;
+import org.junit.runner.*;
 
 import eem.sample.simple.*;
 import eem.sample.special.*;
@@ -38,6 +39,7 @@ import eem.sample.special.*;
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class MassDeletionTest extends SampleModelTestBase
 {
     private List<String> createObjects()

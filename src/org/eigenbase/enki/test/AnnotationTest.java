@@ -25,12 +25,14 @@ import java.util.Date;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.*;
 
 /**
  * AnnotationTest tests the extent annotation API.
  * 
  * @author Stephan Zuercher
  */
+@RunWith(LoggingTestRunner.class)
 public class AnnotationTest extends SampleModelTestBase
 {
     @Test
