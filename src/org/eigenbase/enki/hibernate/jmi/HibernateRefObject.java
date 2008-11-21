@@ -301,12 +301,6 @@ public abstract class HibernateRefObject
         return null;
     }
     
-    public final String getAssociationColumnName(
-        String assocType, boolean firstEnd)
-    {
-        return getHibernateRepository().findRefClass(getClassIdentifier()).getAssociationColumnName(assocType, firstEnd);
-    }
-    
     @Override
     public EnkiMDRepository getRepository()
     {

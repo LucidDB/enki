@@ -266,10 +266,9 @@ public class HibernateGenerator extends MdrGenerator
         }
         return identifier;
     }
-
-    // REVIEW jvs 30-Jun-2008:  without Any what?
+    
     /**
-     * Provides an entry point for testing without Any.
+     * Provides an entry point for testing without Ant.
      * 
      * @param args
      */

@@ -110,6 +110,11 @@ public abstract class ModelTestBase
        }
     }
     
+    protected void resetMetaModel()
+    {
+        pkg = getRepository().getExtent(getTestExtentName());
+    }
+    
     private static void delete(RefPackage pkg)
     {
         for(RefClass cls: 

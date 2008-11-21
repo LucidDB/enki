@@ -19,34 +19,25 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
-package org.eigenbase.enki.hibernate.config;
-
-import java.net.*;
-import java.util.*;
+package org.eigenbase.enki.mdr;
 
 /**
- * AbstractModelDescriptor is an abstract base class describing a metamodel
- * or metamodel plugin.
+ * EnkiRestoreFailedException represents a repository extent restore failure.
  * 
  * @author Stephan Zuercher
  */
-public abstract class AbstractModelDescriptor
+public class EnkiRestoreFailedException
+    extends Exception
 {
-    public final String name;
-    public final Properties properties;        
-    public URL mappingUrl;
-    public URL indexMappingUrl;
-    public URL createDdl;
-    public URL dropDdl;
-    public URL providerDdl;
+    private static final long serialVersionUID = -2166771627982299964L;
 
-    protected AbstractModelDescriptor(String name, Properties properties)
+    public EnkiRestoreFailedException(String msg)
     {
-        this.name = name;
-        this.properties = properties;
+        super(msg);
     }
     
-    public abstract boolean isPlugin();
+    public EnkiRestoreFailedException(Throwable thrown)
+    {
+        super(thrown);
+    }
 }
-
-// End AbstractModelDescriptor.java

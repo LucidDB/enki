@@ -117,7 +117,7 @@ public abstract class HibernateRefClass
     }
     
     /**
-     * Retrieves the name of the column that stores a reference to this
+     * Retrieves the name of the column that stores a reference to an
      * association for this type.
      * 
      * @param type name of the type of association
@@ -128,4 +128,13 @@ public abstract class HibernateRefClass
      */
     public abstract String getAssociationColumnName(
         String type, boolean firstEnd);
+    
+    /**
+     * Retrieves the names of all columns that store a reference to any
+     * association.
+     *
+     * @return the names of all column that hold an association reference
+     * @throws UnsupportedOperationException if this RefClass is abstract
+     */
+    public abstract Collection<String> getAssociationColumnNames();
 }

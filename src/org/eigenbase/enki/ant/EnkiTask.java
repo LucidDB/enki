@@ -137,6 +137,7 @@ public class EnkiTask
         modifyLogManager();
 
         try {
+            boolean modifiedClassLoader = false;
             ClassLoader oldClassLoader = null;
             if (modelPathRef != null) {
                 Path path = (Path)modelPathRef.getReferencedObject();
@@ -144,6 +145,7 @@ public class EnkiTask
                 ArrayList<URL> urls = new ArrayList<URL>();
                 for(String pathMember: path.list()) {
                     try {
+                        log("Path: " + pathMember, Project.MSG_VERBOSE);
                         urls.add(new File(pathMember).toURL());
                     } catch (MalformedURLException e) {
                         throw new BuildException(e);
@@ -158,6 +160,7 @@ public class EnkiTask
                         getClass().getClassLoader());
                 
                 Thread.currentThread().setContextClassLoader(modelClassLoader);
+                modifiedClassLoader = true;
             }
             
             try {
@@ -166,7 +169,7 @@ public class EnkiTask
                     subTask.execute();
                 }
             } finally {
-                if (oldClassLoader != null) {
+                if (modifiedClassLoader) {
                     Thread.currentThread().setContextClassLoader(
                         oldClassLoader);                
                 }

@@ -294,13 +294,15 @@
     <taskdef 
       name="enki.mdr.task" 
       classname="org.eigenbase.enki.ant.EnkiTask"
-      classpathref="enki.run.classpath"/>
+      classpathref="enki.run.classpath"
+      loaderRef="mdr_loader"/>
 
     <!-- Enki provider-specific sub tasks. -->
     <typedef 
       name="exportSchema"
       classname="org.eigenbase.enki.hibernate.ant.ExportSchemaSubTask"
-      classpathref="enki.run.classpath"/>
+      classpathref="enki.run.classpath"
+      loaderRef="mdr_loader"/>
 
     <path id="empty.ref.id"/>
 

@@ -22,10 +22,12 @@
 package org.eigenbase.enki.hibernate.ant;
 
 import java.io.*;
+import java.net.*;
 import java.util.*;
 
 import org.apache.tools.ant.*;
 import org.eigenbase.enki.ant.*;
+import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.hibernate.config.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.mdr.*;
@@ -34,7 +36,13 @@ import org.hibernate.dialect.*;
 import org.hibernate.tool.hbm2ddl.*;
 
 /**
- * ExportSchemaSubTask implements exporting a schema creation script.
+ * ExportSchemaSubTask exports schema-related scripts.  It operates in one of
+ * three modes.  In model mode it generates the necessary DDL scripts for 
+ * Enki/Hibernate backup/restore.  In model-plugin mode it does the same but
+ * generates DDL only for model plugins, excluding the model's oridinal DDL.
+ * In update mode it generates a script to update the named extent in database
+ * specified by the storage properties to the current model's definition,
+ * including tables associated with any plugins.
  * 
  * <p>Attributes:
  * <table border="1">
@@ -49,20 +57,27 @@ import org.hibernate.tool.hbm2ddl.*;
  *   <td>Yes</td>
  * </tr>
  * <tr>
- *   <td>file</td>
- *   <td>Location of output DDL script.</td>
+ *   <td>mode</td>
+ *   <td>Sets the script generation mode.  Valid values are "model", 
+ *       "model-plugin", or "update".</td>
  *   <td>Yes</td>
  * </tr>
  * <tr>
- *   <td>delimiter</td>
- *   <td>Sets the delimiter used, in addition to a newline, at the end of each 
- *       DDL statement. Defaults to ";" (semicolon).</td>
- *   <td>No</td>
+ *   <td>dir</td>
+ *   <td>Model output directory.</td>
+ *   <td>If mode is "model" or "model-plugin"</td>
+ * </tr>
+ * <tr>
+ *   <td>file</td>
+ *   <td>Location of output DDL script for update mode script generation.</td>
+ *   <td>If mode is "update"</td>
  * </tr>
  * <tr>
  *   <td>includeProviderSchema</td>
  *   <td>Boolean flag controlling the generation of DDL for the Enki/Hibernate 
- *       provider. Defaults to <code>true</code>.</td>
+ *       provider in update mode script generation. Ignored in "model" and
+ *       "model-plugin" modes.
+ *       Defaults to <code>true</code>.</td>
  *   <td>No</td>
  * </tr>
  * </table>
@@ -72,21 +87,22 @@ import org.hibernate.tool.hbm2ddl.*;
 public class ExportSchemaSubTask
     extends EnkiTask.SubTask
 {
-    public static final String DEFAULT_DELIMITER = ";";
+    public static final String DELIMITER = ";";
     
     private String extent;
+    private String dir;
     private String file;
-    private String delimiter;
-    private boolean includeProviderSchema;
     private boolean update;
+    private boolean plugin;
+    private boolean includeProviderSchema;
     
     public ExportSchemaSubTask()
     {
         super("exportSchema/Hibernate");
-        
-        this.delimiter = DEFAULT_DELIMITER;
-        this.includeProviderSchema = true;
+
         this.update = false;
+        this.plugin = false;
+        this.includeProviderSchema = true;
     }
 
     public void setExtent(String extent)
@@ -99,9 +115,9 @@ public class ExportSchemaSubTask
         this.file = file.getPath();
     }
     
-    public void setDelimiter(String delimiter)
+    public void setDir(File dir)
     {
-        this.delimiter = delimiter;
+        this.dir = dir.getPath();
     }
     
     public void setIncludeProviderSchema(boolean includeProviderSchema)
@@ -109,9 +125,20 @@ public class ExportSchemaSubTask
         this.includeProviderSchema = includeProviderSchema;
     }
     
-    public void setUpdate(boolean update)
+    public void setMode(String mode) throws BuildException
     {
-        this.update = update;
+        if ("update".equals(mode)) {
+            this.update = true;
+            this.plugin = false;
+        } else if ("model".equals(mode)) {
+            this.update = false;
+            this.plugin = false;
+        } else if ("model-plugin".equals(mode)) {
+            this.update = false;
+            this.plugin = true;
+        } else {
+            throw new BuildException("invalid mode '" + mode + "'");
+        }
     }
     
     @Override
@@ -121,8 +148,24 @@ public class ExportSchemaSubTask
             throw new BuildException("Missing extent attribute");
         }
         
-        if (file == null) {
-            throw new BuildException("Missing file attribute");
+        if (update) {
+            if (file == null) {
+                throw new BuildException("update requires file attribute");
+            }
+            
+            if (dir != null) {
+                throw new BuildException(
+                    "update is mutually exclusive with dir attribute");                
+            }
+        } else {
+            if (dir == null) {
+                throw new BuildException("missing required dir attribute");
+            }
+            
+            if (file != null) {
+                throw new BuildException(
+                    "file attribute may only be used when update is true");
+            }
         }
         
         Properties storageProps = getStorageProperties();
@@ -144,22 +187,24 @@ public class ExportSchemaSubTask
             try {
                 config = 
                     configurator.newModelConfiguration(
-                        extent, includeProviderSchema);
+                        extent, update && includeProviderSchema);
+                
+                configurator.addModelIndexConfiguration(config, extent);
             } catch(NoSuchElementException e) {
                 throw new BuildException(
                     "Model extent '" + extent + "' not found");
             }
             
-            verbose("Exporting DDL for: " + extent);
-            verbose("Exporting DDL to: " + file);
-            verbose("Exporting DDL: " + (update ? "updates-only" : "full"));
+            verbose("Export DDL mode: " + (update ? "update" : "model"));
+            verbose("Export DDL for: " + extent);
+            verbose("Export DDL to: " + (update ? file : dir));
             
             if (update) {
                 // Brutal hack: SchemaUpdate doesn't support file output.
                 // Redirect System.out and do our own delimiter insertion.
                 SchemaUpdate updater = new SchemaUpdate(config);
                 
-                DdlPrintStream ps = new DdlPrintStream(file, delimiter);
+                DdlPrintStream ps = new DdlPrintStream(file, DELIMITER);
                 
                 PrintStream originalPs = redirectSystemOut(ps);
                 try {
@@ -167,34 +212,53 @@ public class ExportSchemaSubTask
                 } finally  {
                     redirectSystemOut(originalPs);
                 }
-            } else {
-                SchemaExport exporter = new SchemaExport(config);
-                exporter.setDelimiter(delimiter);
-                exporter.setOutputFile(file);
                 
-                exporter.execute(false, false, false, true);
-            }
-            
-            // Append the MOF ID generator table, if we're writing provider's
-            // schema as well.
-            
-            // TODO: This is not strictly correct.  If we're asked to update
-            // a completely empty schema we should generate this table.
-            // For now, assume that update means the provider tables exist.
-            if (includeProviderSchema && !update) {
+                // TODO: If we're asked to update a completely empty schema 
+                // we should generate the MOF ID table. For now, assume that 
+                // update means the MOF ID table exists.
+            } else {
+                File metaInfEnkiDir = 
+                    new File(dir, MDRepositoryFactory.META_INF_ENKI_DIR);
+                File providerFile =
+                    new File(
+                        metaInfEnkiDir, HibernateMDRepository.PROVIDER_DDL);
+                File createFile = 
+                    new File(
+                        metaInfEnkiDir,
+                        HibernateMDRepository.MODEL_CREATE_DDL);
+                File dropFile =
+                    new File(
+                        metaInfEnkiDir, HibernateMDRepository.MODEL_DROP_DDL);
+                
+                if (plugin) {
+                    ModelDescriptor modelDesc = 
+                        configurator.getModelMap().get(extent);
+                    
+                    export(config, createFile, true, modelDesc.createDdl);
+                    export(config, dropFile, false, modelDesc.dropDdl);
+                } else {
+                    export(config, createFile, true);
+                    export(config, dropFile, false);
+                }
+                
+                // Generate provider schema
+                config = configurator.newConfiguration(true);
+                export(config, providerFile, true);
+                
+                // Append the MOF ID generator table.
                 BufferedWriter writer = 
-                    new BufferedWriter(new FileWriter(file, true));
+                    new BufferedWriter(new FileWriter(providerFile, true));
                 writer.write(
                     MofIdGenerator.generateCreateDdl(
                         storageProps, 
                         Dialect.getDialect(config.getProperties())));
-                writer.write(delimiter);
+                writer.write(DELIMITER);
                 writer.newLine();
                 writer.write(
                     MofIdGenerator.generateInsertDml(
                         storageProps, 
                         Dialect.getDialect(config.getProperties())));
-                writer.write(delimiter);
+                writer.write(DELIMITER);
                 writer.newLine();
                 writer.flush();
                 writer.close();
@@ -203,6 +267,122 @@ public class ExportSchemaSubTask
             throw new BuildException("error generating schema", e);
         } finally {
             dsConfigurator.close();
+        }
+    }
+
+    private void export(Configuration config, File file, boolean create)
+    {
+        SchemaExport exporter = new SchemaExport(config);
+        exporter.setDelimiter(DELIMITER);
+        exporter.setOutputFile(file.getPath());
+        exporter.execute(false, false, !create, create);
+    }
+    
+    /**
+     * Export DDL for the given Hibernate Configuration, stripping out DDL
+     * already present in baseDdl.  This is useful for generating DDL to
+     * create additional tables for a model plugin.
+     * 
+     * @param config Hibernate configuration
+     * @param file final output file
+     * @param create if true generate create statements, else drop
+     * @param baseDdl previously created DDL (matching create or drop) to 
+     *                filter
+     * @throws IOException if there's an error generating the SQL
+     */
+    private void export(
+        Configuration config, 
+        File file, 
+        boolean create, 
+        URL baseDdl)
+    throws IOException
+    {
+        File tempFile = File.createTempFile("enkiCodeGenerator", ".sql");
+        
+        try {
+            // Export all the DDL
+            export(config, tempFile, create);
+            
+            // Process base create SQL and strip these tables out of plugin's
+            // SQL.
+            List<String> prefixes = new ArrayList<String>();
+            BufferedReader rdr = 
+                new BufferedReader(
+                    new InputStreamReader(
+                        baseDdl.openStream(), "UTF-8"));
+            try {
+                String line;
+                boolean startOfStmt = true;
+                while((line = rdr.readLine()) != null) {
+                    if (startOfStmt) {
+                        // N.B.: Sometimes Hibernate re-orders columns.  Assume
+                        // everything is okay and ignore lines based on data
+                        // up to the first left paren.
+                        String prefix = line.split("\\(")[0];
+                        
+                        prefixes.add(prefix);
+                        startOfStmt = false;
+                    } 
+                    
+                    if (line.trim().endsWith(DELIMITER)) {
+                        startOfStmt = true;
+                    }
+                }
+            } finally {
+                rdr.close();
+            }
+            
+            BufferedWriter out = 
+                new BufferedWriter(
+                    new OutputStreamWriter(
+                        new FileOutputStream(file), "UTF-8"));
+            try {
+                BufferedReader in =
+                    new BufferedReader(
+                        new InputStreamReader(
+                            new FileInputStream(tempFile), "UTF-8"));
+                try {
+                    String line;
+                    boolean startOfStmt = true;
+                    boolean ignoringStmt = false;
+                    while((line = in.readLine()) != null) {
+                        if (startOfStmt) {
+                            Iterator<String> iter = prefixes.iterator();
+                            while(iter.hasNext()) {
+                                String prefix = iter.next();
+                                
+                                if (line.startsWith(prefix)) {
+                                    // Ignore remainder of statement's lines
+                                    // and stop looking for this prefix.
+                                    ignoringStmt = true;
+                                    iter.remove();
+                                    break;
+                                }
+                            }
+                            
+                            startOfStmt = false;
+                        }
+                        
+                        if (!ignoringStmt) {
+                            out.write(line);
+                            out.newLine();
+                        }
+                        
+                        if (line.trim().endsWith(DELIMITER)) {
+                            startOfStmt = true;
+                            ignoringStmt = false;
+                        }
+                    }
+                    
+                    out.flush();
+                } finally {
+                    in.close();
+                }
+            } finally {
+                out.close();
+            }
+        } finally {
+            tempFile.delete();
         }
     }
     

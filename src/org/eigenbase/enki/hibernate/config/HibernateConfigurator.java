@@ -44,16 +44,41 @@ public final class HibernateConfigurator
 
     private final Properties storageProperties;
     private final List<Properties> modelPropertiesList;
-
+    private final boolean lenient;
+    
     /** Map of metamodel extent names to ModelDescriptor instances. */
     private Map<String, ModelDescriptor> modelMap;
     
+    /** 
+     * Constructs a strict HibernateConfigurator with the given storage and 
+     * model properties objects.
+     * 
+     * @param storageProperties repository storage properties
+     * @param modelPropertiesList list of available model configurations
+     */
     public HibernateConfigurator(
         Properties storageProperties,
         List<Properties> modelPropertiesList)
     {
+        this(storageProperties, modelPropertiesList, false);
+    }
+    
+    /** 
+     * Constructs a HibernateConfigurator with the given storage and model
+     * properties objects and leniency.
+     * 
+     * @param storageProperties repository storage properties
+     * @param modelPropertiesList list of available model configurations
+     * @param lenient if true, ignores missing top level package
+     */
+    public HibernateConfigurator(
+        Properties storageProperties,
+        List<Properties> modelPropertiesList,
+        boolean lenient)
+    {
         this.storageProperties = storageProperties;
         this.modelPropertiesList = modelPropertiesList;
+        this.lenient = lenient;
     }
     
     public Configuration newConfiguration(boolean includeProviderMappings)
@@ -114,6 +139,7 @@ public final class HibernateConfigurator
         if (modelDesc == null) {
             throw new NoSuchElementException();
         }
+        
         return newModelConfiguration(modelDesc, includeProviderMappings);
     }
     
@@ -127,6 +153,17 @@ public final class HibernateConfigurator
         return config;
     }
    
+    public void addModelIndexConfiguration(
+        Configuration config, String modelExtentName)
+    {
+        ModelDescriptor modelDesc = getModelMap().get(modelExtentName);
+        if (modelDesc == null) {
+            throw new NoSuchElementException();
+        }
+        
+        configureIndexMappings(config, modelDesc);
+    }
+    
     public void addModelConfigurations(Configuration config)
     {
         for(ModelDescriptor modelDesc: getModelMap().values()) {
@@ -234,7 +271,8 @@ public final class HibernateConfigurator
                         "Top-level package name missing from model properties");
                 }
 
-                Class<?> cls;
+                boolean failed = false;
+                Class<?> cls = null;
                 try {
                     cls = 
                         Class.forName(
@@ -242,23 +280,29 @@ public final class HibernateConfigurator
                             true, 
                             Thread.currentThread().getContextClassLoader());
                 } catch (ClassNotFoundException e) {
-                    throw new ProviderInstantiationException(
-                        "Top-level package '" + topLevelPkg + "' not found",
-                        e);
+                    if (!lenient) {
+                        throw new ProviderInstantiationException(
+                            "Top-level package '" + topLevelPkg + "' not found",
+                            e);
+                    }
+                    
+                    failed = true;
                 }
 
-                Class<? extends RefPackage> topLevelPkgCls =
-                    cls.asSubclass(RefPackage.class);
-                    
-                Constructor<? extends RefPackage> topLevelPkgCons;
-                try {
-                    topLevelPkgCons = 
-                        topLevelPkgCls.getConstructor(RefPackage.class);
-                } catch (NoSuchMethodException e) {
-                    throw new ProviderInstantiationException(
-                        "Cannot find constructor for top-level package class '"
-                        + topLevelPkgCls.getName() + "'",
-                        e);
+                Class<? extends RefPackage> topLevelPkgCls = null;
+                Constructor<? extends RefPackage> topLevelPkgCons = null;
+                if (!failed) {
+                    topLevelPkgCls = cls.asSubclass(RefPackage.class);
+                        
+                    try {
+                        topLevelPkgCons = 
+                            topLevelPkgCls.getConstructor(RefPackage.class);
+                    } catch (NoSuchMethodException e) {
+                        throw new ProviderInstantiationException(
+                            "Cannot find constructor for top-level package class '"
+                            + topLevelPkgCls.getName() + "'",
+                            e);
+                    }
                 }
                 
                 ModelDescriptor modelDesc =
@@ -336,33 +380,57 @@ public final class HibernateConfigurator
                     "Cannot parse configuration URL", e);
             }
             
-            URL mappingUrl;
-            try {
-                mappingUrl = 
-                    new URL(configUrl, HibernateMDRepository.MAPPING_XML);
-            } catch (MalformedURLException e) {
-                throw new ProviderInstantiationException(
-                    "Cannot parse mapping URL", e);
-            }
+            URL mappingUrl = 
+                relativeURL(
+                    configUrl,
+                    HibernateMDRepository.MAPPING_XML, 
+                    "mapping URL");
     
-            URL indexMappingUrl;
-            try {
-                indexMappingUrl = 
-                    new URL(
-                        configUrl, HibernateMDRepository.INDEX_MAPPING_XML);
-            } catch (MalformedURLException e) {
-                throw new ProviderInstantiationException(
-                    "Cannot parse index mapping URL", e);
-            }
+            URL indexMappingUrl =
+                relativeURL(
+                    configUrl,
+                    HibernateMDRepository.INDEX_MAPPING_XML,
+                    "index mapping URL");
+
+            URL createSqlUrl = 
+                relativeURL(
+                    configUrl,
+                    HibernateMDRepository.MODEL_CREATE_DDL,
+                    "create SQL URL");
             
+            URL dropSqlUrl = 
+                relativeURL(
+                    configUrl,
+                    HibernateMDRepository.MODEL_DROP_DDL,
+                    "drop SQL URL");
+
+            URL providerSqlUrl = 
+                relativeURL(
+                    configUrl,
+                    HibernateMDRepository.PROVIDER_DDL,
+                    "provider SQL URL");
+
             modelDesc.mappingUrl = mappingUrl;
             modelDesc.indexMappingUrl = indexMappingUrl;
+            modelDesc.createDdl = createSqlUrl;
+            modelDesc.dropDdl = dropSqlUrl;
+            modelDesc.providerDdl = providerSqlUrl;
         }
         
         if (getIndexMapping) {
             return modelDesc.indexMappingUrl;
         } else {
             return modelDesc.mappingUrl;
+        }
+    }
+
+    private URL relativeURL(URL base, String name, String type)
+    {
+        try {
+            return new URL(base, name);
+        } catch (MalformedURLException e) {
+            throw new ProviderInstantiationException(
+                "Cannot parse " + type, e);
         }
     }
     

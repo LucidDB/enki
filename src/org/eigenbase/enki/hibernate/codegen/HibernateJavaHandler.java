@@ -1598,15 +1598,17 @@ public class HibernateJavaHandler
 
     /**
      * Generates an implementation of 
-     * {@link HibernateAssociable#getAssociation(String, boolean)} for the
-     * described references.  Delegates to 
+     * {@link HibernateRefClass#getAssociationColumnName(String, boolean)} 
+     * for the described references.  Delegates to 
      * {@link #generateGenericAssociationMethod(List, AssocMethodGenerator)}.
      * 
+     * @param cls MofClass describing the class
      * @param refInfos descriptions of {@link Reference} instances which must
      *                 be handled by the generated method
      * @throws GenerationException if there's an error generating the method
      */
     private void generateGetAssociationColumnNameMethod(
+        MofClass cls,
         List<ReferenceInfo> refInfos)
     throws GenerationException
     {
@@ -1614,22 +1616,69 @@ public class HibernateJavaHandler
         startBlock(
             "public String getAssociationColumnName(String type, boolean firstEnd)");
 
-        generateGenericAssociationMethod(
-            refInfos,
-            new AssocMethodGenerator() {
-                public void generate(ReferenceInfo refInfo)
-                    throws GenerationException
-                {
-                    String columnName = 
-                        StringUtil.toInitialLower(
-                            generator.transformIdentifier(
-                                refInfo.getReferencedEndBaseName()));
-                    writeln(
-                        "return ", 
-                        QUOTE, columnName, QUOTE, ";");
-                }                
-            });
+        if (cls.isAbstract() || refInfos.isEmpty()) {
+            writeln("throw new UnsupportedOperationException();");
+        } else {
+            generateGenericAssociationMethod(
+                refInfos,
+                new AssocMethodGenerator() {
+                    public void generate(ReferenceInfo refInfo)
+                        throws GenerationException
+                    {
+                        String columnName = 
+                            StringUtil.toInitialLower(
+                                generator.transformIdentifier(
+                                    refInfo.getReferencedEndBaseName()));
+                        writeln(
+                            "return ", 
+                            QUOTE, columnName, QUOTE, ";");
+                    }                
+                });
+        }
         
+        endBlock();
+    }
+    
+    /**
+     * Generates an implementation of 
+     * {@link HibernateRefClass#getAssociationColumnNames()} for the 
+     * described references.
+     *  
+     * @param cls MofClass describing the class
+     * @param refInfos descriptions of {@link Reference} instances which must
+     *                 be handled by the generated method
+     * @throws GenerationException if there's an error generating the method
+     */
+    private void generateGetAssociationColumnNamesMethod(
+        MofClass cls,
+        List<ReferenceInfo> refInfos)
+    throws GenerationException
+    {
+        startBlock(
+            "public ",
+            JAVA_UTIL_COLLECTION_CLASS,
+            "<String> getAssociationColumnNames()");
+
+        if (cls.isAbstract()) {
+            writeln("throw new UnsupportedOperationException();");
+        } else {
+            writeln("return ", JAVA_UTIL_ARRAYS_CLASS, ".asList(");
+            increaseIndent();
+            writeln("new String[] {");
+            increaseIndent();
+        
+            for(ReferenceInfo refInfo: refInfos) {
+                String columnName = 
+                    StringUtil.toInitialLower(
+                        generator.transformIdentifier(
+                            refInfo.getReferencedEndBaseName()));
+                writeln(QUOTE, columnName, QUOTE, ",");
+            }
+        
+            decreaseIndent();
+            writeln("});");
+            decreaseIndent();
+        }
         endBlock();
     }
     
@@ -3195,14 +3244,9 @@ public class HibernateJavaHandler
                     unreferencedAssociations, unrefAssocRefInfoMap,
                     componentInfoMap);
 
-            if (cls.isAbstract() || refInfos.isEmpty()) {
-                startBlock(
-                    "public String getAssociationColumnName(String assocType, boolean firstEnd)");
-                writeln("throw new UnsupportedOperationException();");
-                endBlock();
-            } else {
-                generateGetAssociationColumnNameMethod(refInfos);
-            }
+            generateGetAssociationColumnNameMethod(cls, refInfos);
+            newLine();
+            generateGetAssociationColumnNamesMethod(cls, refInfos);
             
             writeEntityFooter();
         }

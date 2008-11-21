@@ -16,6 +16,13 @@ public abstract class SampleModelTestBase
 {
     private static EemPackage eemPkg;
     
+    protected void resetMetaModel()
+    {
+        super.resetMetaModel();
+        
+        eemPkg = null;
+    }
+    
     protected static EemPackage getEemPackage()
     {
         if (eemPkg == null) {

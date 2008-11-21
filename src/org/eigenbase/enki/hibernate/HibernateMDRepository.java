@@ -21,6 +21,7 @@
 */
 package org.eigenbase.enki.hibernate;
 
+import java.io.*;
 import java.lang.ref.*;
 import java.lang.reflect.*;
 import java.sql.*;
@@ -136,6 +137,27 @@ public class HibernateMDRepository
      */
     public static final String INDEX_MAPPING_XML = "indexMapping.xml";
     
+    /** 
+     * The name of the HibernateMDRepository metamodel provider DDL file. 
+     * Stored in the <code>META-INF/enki</code> directory of an Enki 
+     * model JAR file.
+     */
+    public static final String PROVIDER_DDL = "provider.sql";
+    
+    /** 
+     * The name of the HibernateMDRepository metamodel creation DDL file. 
+     * Stored in the <code>META-INF/enki</code> directory of an Enki 
+     * model JAR file.
+     */
+    public static final String MODEL_CREATE_DDL = "create.sql";
+
+    /** 
+     * The name of the HibernateMDRepository metamodel deletion DDL file. 
+     * Stored in the <code>META-INF/enki</code> directory of an Enki 
+     * model JAR file.
+     */
+    public static final String MODEL_DROP_DDL = "drop.sql";
+
     /**
      * Path to the resource that contains a Hibernate mapping file for
      * persistent entities used across metamodels. 
@@ -1638,6 +1660,71 @@ public class HibernateMDRepository
     public ClassLoader getDefaultClassLoader()
     {
         return classLoader;
+    }
+    
+    // Implement EnkiMDRepository
+    public void backupExtent(String extentName, OutputStream stream) 
+        throws EnkiBackupFailedException
+    {
+        checkTransaction(true);
+        
+        ExtentDescriptor extentDesc;
+        synchronized(extentMap) {
+            extentDesc = extentMap.get(extentName);
+            if (extentDesc == null) {
+                throw new EnkiBackupFailedException(
+                    "No such extent: " + extentName);
+            }
+        }
+
+        new HibernateBackupRestoreUtil(this).backup(extentDesc, stream);
+    }
+    
+    // Implement EnkiMDRepository
+    public void restoreExtent(
+        String extentName,
+        String metaPackageExtentName,
+        String metaPackageName,
+        InputStream stream) 
+    throws EnkiRestoreFailedException
+    {
+        checkTransaction(true);
+
+        ExtentDescriptor extentDesc;
+        synchronized (extentMap) {
+            extentDesc = extentMap.get(extentName);
+        
+            if (extentDesc != null) {
+                if (!extentDesc.modelDescriptor.name.equals(metaPackageExtentName))
+                {
+                    throw new EnkiRestoreFailedException(
+                        "Extent '" 
+                        + extentName 
+                        + "' already exists but has a different metamodel extent: "
+                        + extentDesc.modelDescriptor.name);
+                }
+            } else {
+                RefPackage metaPackage = getExtent(metaPackageExtentName);
+                try {
+                    createExtent(extentName, metaPackage.refMetaObject());
+                } catch(CreationFailedException e) {
+                    throw new EnkiRestoreFailedException(e);
+                }
+                
+                extentDesc = extentMap.get(extentName);
+                assert(extentDesc != null);
+            }
+        }
+        
+        new HibernateBackupRestoreUtil(this).restore(
+            extentDesc, 
+            stream);
+    }
+
+    // Implement EnkiMDRepository
+    public void setRestoreExtentXmiFilter(Class<? extends InputStream> cls)
+    {
+        // Ignored
     }
     
     public SessionFactory getSessionFactory()

@@ -77,9 +77,6 @@
     location="${sample.catalog.dir}/xmi/${sample.metamodel.name}.xmi"/>
   <property name="sample.jar" location="${sample.dir}/sample.jar"/>
   <property name="sample.dtd" location="${sample.catalog.dir}/xmi/sample.dtd"/>
-  <property 
-    name="sample.model.sql" 
-    location="${sample.catalog.dir}/xmi/${sample.metamodel.name}.sql"/>
 
   <!-- umlm2 Catalog properties -->
   <property name="umlm2.dir" location="${test.dir}/umlm2"/>
@@ -112,9 +109,6 @@
     location="${sample.catalog.dir}/xmi/EnkiSamplePluginMetamodel.xmi"/>
   <property name="sample.plugin.jar" location="${sample.dir}/sample-plugin.jar"/>
   <property name="sample.plugin.dtd" location="${sample.catalog.dir}/xmi/sample-plugin.dtd"/>
-  <property 
-    name="sample.plugin.model.sql" 
-    location="${sample.catalog.dir}/xmi/EnkiSamplePluginMetamodel.sql"/>
 
   <!-- classpath for Sample plugin model implementation JAR -->
   <path id="sample.plugin.mdr.classpath">
@@ -364,11 +358,32 @@
       classpathref="enki.test.build.classpath">
       <include name="**/*.java"/>
     </enki.javac>
+
+    <if>
+      <equals arg1="${enki.impl}" arg2="hibernate"/>
+      <then>
+        <path id="sql_gen_path">
+          <pathelement path="${sample.catalog.dir}/java"/>
+        </path>
+        <enki.mdr 
+            propertiesFile="${test.dir}/TestStorage.properties"
+            modelPathRef="sql_gen_path">
+          <mdr-tasks>
+            <exportSchema
+              extent="SampleMetamodel"
+              mode="model"
+              dir="${sample.catalog.dir}/java"/>
+          </mdr-tasks>
+        </enki.mdr>
+      </then>
+    </if>
+
     <jar jarfile="${sample.jar}">
       <fileset dir="${sample.catalog.dir}/java">
         <include name="**/*.java"/>
         <include name="**/*.class"/>
         <include name="**/*.xml"/>
+        <include name="**/*.sql"/>
         <include name="**/*.properties"/>
       </fileset>
     </jar>
@@ -414,11 +429,33 @@
       </classpath>
       <include name="**/*.java"/>
     </enki.javac>
+
+    <if>
+      <equals arg1="${enki.impl}" arg2="hibernate"/>
+      <then>
+        <path id="plugin_sql_gen_path">
+          <pathelement path="${sample.catalog.dir}/java"/>
+          <pathelement path="${sample.catalog.dir}/plugin/java"/>
+        </path>
+        <enki.mdr 
+            propertiesFile="${test.dir}/TestPluginStorage.properties"
+            modelPathRef="plugin_sql_gen_path">
+          <mdr-tasks>
+            <exportSchema
+              extent="SampleMetamodel"
+              mode="model-plugin"
+              dir="${sample.catalog.dir}/plugin/java"/>
+          </mdr-tasks>
+        </enki.mdr>
+      </then>
+    </if>
+
     <jar jarfile="${sample.plugin.jar}">
       <fileset dir="${sample.catalog.dir}/plugin/java">
         <include name="**/*.java"/>
         <include name="**/*.class"/>
         <include name="**/*.xml"/>
+        <include name="**/*.sql"/>
         <include name="**/*.properties"/>
       </fileset>
     </jar>
@@ -433,14 +470,6 @@
     <if>
       <equals arg1="${enki.impl}" arg2="hibernate"/>
       <then>
-        <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
-          <mdr-tasks>
-            <exportSchema
-              extent="SampleMetamodel"
-              file="${sample.model.sql}"/>
-          </mdr-tasks>
-        </enki.mdr>
-
         <property 
           file="${test.dir}/TestStorage.properties" 
           prefix="genSampleSchema"/>
@@ -449,8 +478,16 @@
           driver="${genSampleSchema.org.eigenbase.enki.hibernate.connection.driver_class}"
           url="${genSampleSchema.org.eigenbase.enki.hibernate.connection.url}" 
           userid="${genSampleSchema.org.eigenbase.enki.hibernate.connection.username}"
-          password="${genSampleSchema.org.eigenbase.enki.hibernate.connection.password}"
-          src="${sample.model.sql}"/>
+          password="${genSampleSchema.org.eigenbase.enki.hibernate.connection.password}">
+          <path>
+            <fileset dir="${sample.catalog.dir}/java">
+              <include name="**/provider.sql"/>
+            </fileset>
+            <fileset dir="${sample.catalog.dir}/java">
+              <include name="**/create.sql"/>
+            </fileset>
+          </path>
+        </sql>
       </then>
     </if>
 
@@ -478,14 +515,6 @@
     <if>
       <equals arg1="${enki.impl}" arg2="hibernate"/>
       <then>
-        <enki.mdr propertiesFile="${test.dir}/TestPluginStorage.properties">
-          <mdr-tasks>
-            <exportSchema
-              extent="SampleMetamodel"
-              file="${sample.plugin.model.sql}"/>
-          </mdr-tasks>
-        </enki.mdr>
-
         <property 
           file="${test.dir}/TestPluginStorage.properties" 
           prefix="genSamplePluginSchema"/>
@@ -494,8 +523,19 @@
           driver="${genSamplePluginSchema.org.eigenbase.enki.hibernate.connection.driver_class}"
           url="${genSamplePluginSchema.org.eigenbase.enki.hibernate.connection.url}" 
           userid="${genSamplePluginSchema.org.eigenbase.enki.hibernate.connection.username}"
-          password="${genSamplePluginSchema.org.eigenbase.enki.hibernate.connection.password}"
-          src="${sample.plugin.model.sql}"/>
+          password="${genSamplePluginSchema.org.eigenbase.enki.hibernate.connection.password}">
+          <path>
+            <fileset dir="${sample.catalog.dir}/java">
+              <include name="**/provider.sql"/>
+            </fileset>
+            <fileset dir="${sample.catalog.dir}/java">
+              <include name="**/create.sql"/>
+            </fileset>
+            <fileset dir="${sample.catalog.dir}/plugin/java">
+              <include name="**/create.sql"/>
+            </fileset>
+          </path>
+        </sql>
       </then>
     </if>
 

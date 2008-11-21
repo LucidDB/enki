@@ -21,15 +21,19 @@
 */
 package org.eigenbase.enki.netbeans;
 
+import java.io.*;
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.logging.*;
 
-import javax.jmi.model.MofPackage;
+import javax.jmi.model.*;
 import javax.jmi.reflect.*;
+import javax.jmi.xmi.*;
 
 import org.eigenbase.enki.mdr.*;
 import org.netbeans.api.mdr.*;
 import org.netbeans.api.mdr.events.*;
+import org.netbeans.api.xmi.*;
 import org.netbeans.mdr.*;
 import org.netbeans.mdr.handlers.*;
 import org.netbeans.mdr.persistence.*;
@@ -92,6 +96,8 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     public final int id;
     
     private final NBMDRepositoryImpl impl;
+    
+    private Class<? extends InputStream> filterStreamCls;
     
     public NBMDRepositoryWrapper(NBMDRepositoryImpl impl)
     {
@@ -372,6 +378,106 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
         MofPackage pkg = (MofPackage)getExtent(extentName).refMetaObject();
 
         pkg.setAnnotation(annotation);
+    }
+    
+    // Implement EnkiMDRepository
+    public void backupExtent(String extentName, OutputStream stream) 
+        throws EnkiBackupFailedException
+    {
+        try {
+            RefPackage refPackage = getExtent(extentName);
+            XmiWriter xmiWriter = XMIWriterFactory.getDefault().createXMIWriter();
+            xmiWriter.write(stream, refPackage, "1.2");
+        } catch(IOException e) {
+            throw new EnkiBackupFailedException(e);
+        }
+    }
+    
+    // Implement EnkiMDRepository
+    public void restoreExtent(
+        String extentName,
+        String metaPackageExtentName,
+        String metaPackageName,
+        InputStream stream) 
+    throws EnkiRestoreFailedException
+    {
+        beginTrans(true);
+        boolean rollback = true;
+        try {
+            RefPackage extent = getExtent(extentName);
+            if (extent != null) {
+                extent.refDelete();
+                extent = null;
+            }
+            
+            ModelPackage modelPackage =
+                (ModelPackage)getExtent(metaPackageExtentName);
+            if (modelPackage == null) {
+                throw new EnkiRestoreFailedException(
+                    "Must create metamodel extent '" 
+                    + metaPackageExtentName 
+                    + "' before restoring backup");
+            }
+            
+            MofPackage metaPackage = null;
+            for (Object o: modelPackage.getMofPackage().refAllOfClass()) {
+                MofPackage result = (MofPackage) o;
+                if (result.getName().equals(metaPackageName)) {
+                    metaPackage = result;
+                    break;
+                }
+            }
+            
+            if (metaPackage == null) {
+                throw new EnkiRestoreFailedException(
+                    "Could not find metamodel package '" 
+                    + metaPackageName 
+                    + "' in extent '" 
+                    + metaPackageExtentName 
+                    + "'");
+            }
+
+            try {
+                extent = createExtent(extentName, metaPackage);
+                
+                XmiReader xmiReader = 
+                    XMIReaderFactory.getDefault().createXMIReader();
+        
+                InputStream filter;
+                if (filterStreamCls == null) {
+                    filter = stream;
+                } else {
+                    filter = makeXmiFilterStream(stream);
+                }
+                
+                xmiReader.read(
+                    filter,
+                    null,
+                    extent);
+            } catch(Exception e) {
+                throw new EnkiRestoreFailedException(e);
+            }
+            
+            rollback = false;
+        } finally {
+            endTrans(rollback);
+        }        
+    }
+    
+    private InputStream makeXmiFilterStream(InputStream stream) 
+        throws Exception
+    {
+        Constructor<? extends InputStream> cons = 
+            filterStreamCls.getConstructor(InputStream.class);
+        
+        InputStream filterStream = cons.newInstance(stream);
+        
+        return filterStream;
+    }
+    
+    public void setRestoreExtentXmiFilter(Class<? extends InputStream> cls)
+    {
+        this.filterStreamCls = cls;
     }
     
     private static class SessionContext implements EnkiMDSession

@@ -21,6 +21,7 @@
 */
 package org.eigenbase.enki.mdr;
 
+import java.io.*;
 import java.util.*;
 
 import javax.jmi.reflect.*;
@@ -205,6 +206,60 @@ public interface EnkiMDRepository extends MDRepository
      * Retrieves the default {@link ClassLoader} for this repository.
      */
     public ClassLoader getDefaultClassLoader();
+    
+    /**
+     * Backs up the given extent, writing a single file to the given output 
+     * stream. The file written may be a multi-file archive, such as a ZIP, 
+     * JAR or TAR file. Typically the file is uncompressed, allowing the 
+     * caller to apply their choice of compression.
+     *
+     * @param extentName name of the extent to back up
+     * @param stream an OutputStream to which a single file's data is written
+     * @throws EnkiBackupFailedException if there is an error writing to the
+     *                                   stream or reading from the repository
+     */
+    public void backupExtent(String extentName, OutputStream stream) 
+        throws EnkiBackupFailedException;
+
+    /**
+     * Restores the contents of the given input stream to the named extent. 
+     * The input stream is assumed to contain a single file's data.  The input 
+     * stream's close method is <b>not</b> called, thereby allowing the extent 
+     * to be restored from a single entry in a multi-file archive, such as a 
+     * ZIP, JAR or TAR file.
+     *
+     * @param extentName name of the extent to be created and restore to
+     * @param metaModelExtentName name of the extent describing the
+     *                            new extent's metamodel
+     * @param metaPackageName name of the root package for the new extent
+     * @throws EnkiRestoreFailedException if there is an error reading from the 
+     *                                    stream or writing to the repository
+     */
+    public void restoreExtent(
+        String extentName,
+        String metaModelExtentName,
+        String metaPackageName,
+        InputStream stream) 
+    throws EnkiRestoreFailedException;
+    
+    /**
+     * Configures a special {@link InputStream} that modifies XMI-based 
+     * repository data as it is being restored.  Longer term, applications
+     * should not store binary data (particularly control characters) in 
+     * repository string attributes.  In the near term, applications may
+     * dynamically detect and modify or filter such characters at the 
+     * InputStream (not XML) level.
+     * 
+     * <p>The given class must have a constructor that takes a single
+     * InputStream as a parameter.
+     * 
+     * <p>Implementations which do not store XMI in their backups may ignore
+     * calls to this method.
+     * 
+     * @param cls class representing a filtering InputStream
+     */
+    @Deprecated
+    public void setRestoreExtentXmiFilter(Class<? extends InputStream> cls);
 }
 
 // End EnkiMDRepository.java
