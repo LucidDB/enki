@@ -164,7 +164,7 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         if (this == other) {
             return true;
         }
-        
+
         if (other instanceof RefBaseObjectBase) {
             long thisMofId = this.getMofId();
             long otherMofId = ((RefBaseObjectBase)other).getMofId();
@@ -175,8 +175,11 @@ public abstract class RefBaseObjectBase implements RefBaseObject
             return thisMofId == otherMofId;
         } else if (other == null) {
             return false;
+        } else if (other instanceof RefBaseObject) {
+            return this.refMofId().equals(
+                ((RefBaseObject)other).refMofId());
         } else {
-            return this.refMofId().equals(((RefBaseObject)other).refMofId());
+            return false;
         }
     }
     

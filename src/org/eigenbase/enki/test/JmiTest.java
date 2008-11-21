@@ -872,6 +872,14 @@ public class JmiTest extends JmiTestBase
             getRepository().endTrans();
         }
     }
+
+    @Test
+    public void testEqualsWithClassMismatch()
+    {
+        Car car = getCarInstance();
+        Assert.assertFalse(car.equals("tesla"));
+    }
+    
 }
 
 // End JmiTest.java
