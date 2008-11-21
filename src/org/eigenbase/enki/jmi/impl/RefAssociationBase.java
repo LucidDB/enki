@@ -111,14 +111,8 @@ public abstract class RefAssociationBase
     {
         logJmi("refAllLinks");
         
-        ArrayList<RefAssociationLinkImpl> allLinks = 
-            new ArrayList<RefAssociationLinkImpl>();
-        for(Collection<RefAssociationLinkImpl> links: 
-                firstToSecondMap.values())
-        {
-            allLinks.addAll(links);
-        }
-        return Collections.unmodifiableCollection(allLinks);
+        return Collections.unmodifiableCollection(
+            new ArrayList<RefAssociationLinkImpl>(links));
     }
 
     public boolean refLinkExists(RefObject end1, RefObject end2)    
