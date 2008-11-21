@@ -187,6 +187,13 @@
         <filter token="ENKI_CATALOG_DIR" value="${test.catalog.dir}"/>
       </filterset>
     </copy>
+    <!-- Automatically create all tables and views. -->
+    <replace file="${test.dir}/TestStorage.properties"
+      token ="VIEW" value="AUTO"/>
+    <replace file="${test.dir}/TestPluginStorage.properties"
+      token ="VIEW" value="AUTO"/>
+    <replace file="${test.dir}/ComparisonTestStorage.properties"
+      token ="VIEW" value="AUTO"/>
   </target>
 
   <target 
