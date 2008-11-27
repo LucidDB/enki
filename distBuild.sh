@@ -84,6 +84,9 @@ DIST_DIR="$ENKI_DIR/dist"
 
 DETAIL_FILE="$DIST_DIR/LAST_CHANGE"
 
+echo "Embedding details for ${BRANCH}@${LAST_SYNCED}"
+echo "--"
+
 echo >"$DETAIL_FILE" ${BRANCH}@${LAST_SYNCED}
 echo >>"$DETAIL_FILE" "--"
 

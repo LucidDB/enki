@@ -1102,8 +1102,14 @@ public class HibernateMDRepository
     private void dropExtentStorage(ExtentDescriptor extentDesc)
         throws EnkiDropFailedException
     {
+        MdrSession mdrSession = getMdrSession();
+        if (!mdrSession.context.isEmpty()) {
+            throw new EnkiHibernateException(
+                "No repository transactions may be open while dropping extent storage");
+        }
+        
         enqueueEvent(
-            getMdrSession(),
+            mdrSession,
             new ExtentEvent(
                 this,
                 ExtentEvent.EVENT_EXTENT_DELETE,
@@ -1114,7 +1120,7 @@ public class HibernateMDRepository
         
         extentMap.remove(extentDesc.name);
         
-        Session session = sessionFactory.getCurrentSession();
+        Session session = mdrSession.session;
         Transaction trans = session.beginTransaction();
         boolean rollback = true;
         try {
@@ -1130,13 +1136,22 @@ public class HibernateMDRepository
             session.delete(dbExtent);
 
             trans.commit();
+
+            fireChanges(mdrSession);
+
             rollback = false;
         } catch(HibernateException e) {
             throw new EnkiDropFailedException(
                 "Could not delete extent table entry", e);
         } finally {
-            if (rollback) {
-                trans.rollback();
+            try {
+                if (rollback) {
+                    trans.rollback();
+                    
+                    fireCanceledChanges(mdrSession);
+                }
+            } finally {
+                mdrSession.reset();
             }
         }
         
