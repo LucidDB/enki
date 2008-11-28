@@ -25,6 +25,7 @@ import org.junit.*;
 import org.junit.runner.*;
 
 import eem.sample.special.*;
+import eem.sample.pluginbase.*;
 
 /**
  * AttributeTest tests attributes on MDR class instances.
@@ -72,6 +73,34 @@ public class AttributeTest extends SampleModelTestBase
             getRepository().endTrans(false);
         }
     }
+
+    // Disabled due to bug ENK-4
+    public void _testCompositionAttributes()
+    {
+        getRepository().beginTrans(true);
+        try {
+            PluginBasePackage pkg = getSamplePackage().getPluginBase();
+
+            // This works.
+            ComposedElement composed =
+                pkg.getComposedElement().createComposedElement();
+            CompositeElement composite =
+                pkg.getCompositeElement().createCompositeElement();
+            composed.setComp(composite);
+            
+            // But this does not, because the attribute is
+            // inherited from an abstract class.
+            ConcreteComposedElement concrete =
+                pkg.getConcreteComposedElement().createConcreteComposedElement();
+            CompositeElement composite2 =
+                pkg.getCompositeElement().createCompositeElement();
+            concrete.setComp(composite2);
+        }
+        finally {
+            getRepository().endTrans(false);
+        }
+    }
+    
 }
 
 // End JmiTest.java
