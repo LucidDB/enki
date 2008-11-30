@@ -879,7 +879,26 @@ public class JmiTest extends JmiTestBase
         Car car = getCarInstance();
         Assert.assertFalse(car.equals("tesla"));
     }
-    
+
+    // Disabled due to ENK-3
+    public void _testStructFieldOrder()
+    {
+        Car car = getCarInstance();
+
+        // any attribute will do
+        Attribute attrib =
+            getAttributes((MofClass)car.refMetaObject()).get(0);
+        MultiplicityType mt = attrib.getMultiplicity();
+
+
+        List<String> expectedNames = new ArrayList<String>();
+        expectedNames.add("lower");
+        expectedNames.add("upper");
+        expectedNames.add("isOrdered");
+        expectedNames.add("isUnique");
+        
+        Assert.assertEquals(expectedNames, mt.refFieldNames());
+    }
 }
 
 // End JmiTest.java
