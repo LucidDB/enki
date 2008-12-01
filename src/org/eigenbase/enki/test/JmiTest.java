@@ -880,8 +880,8 @@ public class JmiTest extends JmiTestBase
         Assert.assertFalse(car.equals("tesla"));
     }
 
-    // Disabled due to ENK-3
-    public void _testStructFieldOrder()
+    @Test
+    public void testStructFieldOrder()
     {
         Car car = getCarInstance();
 

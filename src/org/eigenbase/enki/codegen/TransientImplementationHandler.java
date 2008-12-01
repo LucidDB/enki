@@ -117,6 +117,9 @@ public abstract class TransientImplementationHandler
     private static final JavaClassReference JAVA_UTIL_ITERATOR_CLASS =
         new JavaClassReference(Iterator.class, true);
 
+    private static final JavaClassReference JAVA_UTIL_ARRAYS_CLASS =
+        new JavaClassReference(Arrays.class, true);
+    
     private static final JavaClassReference JMI_EXCEPTION_CLASS =
         new JavaClassReference(JmiException.class, true);
     
@@ -153,6 +156,8 @@ public abstract class TransientImplementationHandler
     private static final JavaClassReference[] STRUCT_REFS = {
         REF_STRUCT_IMPL_CLASS,
         JMI_EXCEPTION_CLASS,
+        JAVA_UTIL_ARRAYS_CLASS,
+        JAVA_UTIL_LIST_CLASS,
     };
     
     private final Logger log = 
@@ -1385,8 +1390,7 @@ public abstract class TransientImplementationHandler
             }
             
             endBlock();
-            
-            
+                        
             // field methods
             for(StructureField field: fields) {
                 newLine();
@@ -1413,6 +1417,24 @@ public abstract class TransientImplementationHandler
             
             newLine();
             writeCheckConstraints();
+            
+            newLine();
+            writeln("// Implement RefStruct");
+            startBlock("public ", JAVA_UTIL_LIST_CLASS, "<?> refFieldNames()");
+            writeln("return ", JAVA_UTIL_ARRAYS_CLASS, ".asList(");
+            increaseIndent();
+            writeln("new String[] {");
+            increaseIndent();
+            for(StructureField field: fields) {
+                String fieldName = 
+                    CodeGenUtils.getClassFieldName(field.getName());
+                writeln(fieldName, ",");
+            }
+            decreaseIndent();
+            writeln("});");
+            decreaseIndent();
+            endBlock();
+            
             writeEntityFooter();
         }
         finally {

@@ -23,6 +23,8 @@
 
 package org.eigenbase.enki.jmi.model;
 
+import java.util.*;
+
 import javax.jmi.reflect.*;
 import org.eigenbase.enki.jmi.impl.*;
 
@@ -79,6 +81,18 @@ public class MultiplicityType
 
     protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
     {
+    }
+    
+    // Implement RefStruct
+    public List<?> refFieldNames()
+    {
+        return Arrays.asList(
+            new String[] {
+                "lower",
+                "upper",
+                "isOrdered",
+                "isUnique"
+            });
     }
 }
 

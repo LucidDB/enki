@@ -33,17 +33,7 @@ import javax.jmi.reflect.*;
  */
 public abstract class RefStructBase implements RefStruct
 {
-    @SuppressWarnings("unchecked")
-    public List refFieldNames()
-    {
-        Field[] fields = getClass().getDeclaredFields();
-        ArrayList<String> fieldNames = new ArrayList<String>();
-        for(Field field: fields) {
-            fieldNames.add(field.getName());
-        }
-        
-        return fieldNames;
-    }
+    public abstract List<?> refFieldNames();
 
     public Object refGetValue(String fieldName)
     {
