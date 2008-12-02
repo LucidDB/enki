@@ -882,7 +882,12 @@ public class JmiTest extends JmiTestBase
 
     @Test
     public void testStructFieldOrder()
+        throws Exception
     {
+        // See ENK-3 for commentary.  We want to verify that
+        // MultiplicityType's fields always come out in the
+        // correct order.
+        
         Car car = getCarInstance();
 
         // any attribute will do
@@ -896,8 +901,36 @@ public class JmiTest extends JmiTestBase
         expectedNames.add("upper");
         expectedNames.add("isOrdered");
         expectedNames.add("isUnique");
-        
         Assert.assertEquals(expectedNames, mt.refFieldNames());
+
+        // Rest of this should probably be in MofModelTest instead.
+        // Verify that in MOF, the corresponding fields of
+        // Multiplicity's StructureType also match.
+
+        // Find the class descriptor for Attribute in the MOF Model
+        MofClass attribClass = (MofClass) attrib.refMetaObject();
+
+        // Walk up to its parent class (StructuralFeature).
+        MofClass structuralFeatureClass =
+            (MofClass) attribClass.getSupertypes().get(0);
+        
+        // StructuralFeature has an attribute named multiplicity, which
+        // is what we're after.
+        TypedElement te = (TypedElement)
+            structuralFeatureClass.lookupElement("multiplicity");
+
+        // Get that attribute's type, which should be a
+        // StructureType.
+        StructureType st = (StructureType) te.getType();
+
+        // Enumerate that StructureType's fields.
+        List<String> mofFieldNames = new ArrayList<String>();
+        System.out.println("CONTENTS = " + st.getContents().getClass().getName());
+        for (Object obj : st.getContents()) {
+            StructureField sf = (StructureField) obj;
+            mofFieldNames.add(sf.getName());
+        }
+        Assert.assertEquals(expectedNames, mofFieldNames);
     }
 }
 
