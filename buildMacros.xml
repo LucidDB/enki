@@ -290,6 +290,14 @@
     </sequential>
   </macrodef>
 
+  <macrodef name="enki.delete-mdr-btrees">
+    <sequential>
+      <delete quiet="true">
+        <fileset dir="${enki.dir}" includes="mdr.bt?"/>
+      </delete>
+    </sequential>
+  </macrodef>
+
   <target name="enki_mdr.taskdef">
     <taskdef 
       name="enki.mdr.task" 
@@ -311,12 +319,14 @@
       <attribute name="modelPathRef" default="empty.ref.id"/>
       <element name="mdr-tasks" optional="false"/>
       <sequential>
+        <enki.delete-mdr-btrees/>
         <enki.mdr.task
             propertiesFile="@{propertiesFile}"
             modelPathRef="@{modelPathRef}"
             logConfigFile="${enki.mdr.log.config}">
           <mdr-tasks/>
         </enki.mdr.task>
+        <enki.delete-mdr-btrees/>
       </sequential>
     </macrodef>
   </target>

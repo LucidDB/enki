@@ -273,9 +273,7 @@
 
     <ant dir="${sample.dir}" target="cleanPlugin"/>
 
-    <delete>
-      <fileset dir="${enki.dir}" includes="mdr.bt?"/>
-    </delete>
+    <enki.delete-mdr-btrees/>
   </target>
 
   <target name="cleanPluginDbStorage">
@@ -338,7 +336,6 @@
   <target 
       name="createSampleRepository"
       depends="clean,compile.dependencies,enki_mdr.taskdef,configureSampleRepository,cleanSampleRepository">
-
     <!-- Choose generator class -->
     <enki.set-generator-property impl="${enki.impl}" property="gen.cls"/>
 
@@ -348,16 +345,9 @@
     <mkdir dir="${sample.catalog.dir}/java"/>
 
     <!-- Synthesize model into Java code -->
-    <enki.mdr>
-      <mdr-tasks>
-        <mapJava
-            file="${sample.model.xmi}"
-            dir="${sample.catalog.dir}/java"
-            extent="SampleMetamodel"
-            generatorClass="${gen.cls}"
-            generatorOptions="tablePrefix='SMPL_'"/>
-      </mdr-tasks>
-    </enki.mdr>
+    <enki.antFork 
+      target="forked_mapSampleClasses"
+      classpathref="enki.3p.ant.run.classpath"/>
 
     <enki.javac
       srcdir="${sample.catalog.dir}/java"
@@ -369,19 +359,9 @@
     <if>
       <equals arg1="${enki.impl}" arg2="hibernate"/>
       <then>
-        <path id="sql_gen_path">
-          <pathelement path="${sample.catalog.dir}/java"/>
-        </path>
-        <enki.mdr 
-            propertiesFile="${test.dir}/TestStorage.properties"
-            modelPathRef="sql_gen_path">
-          <mdr-tasks>
-            <exportSchema
-              extent="SampleMetamodel"
-              mode="model"
-              dir="${sample.catalog.dir}/java"/>
-          </mdr-tasks>
-        </enki.mdr>
+        <enki.antFork 
+          target="forked_exportSampleSchema"
+          classpathref="enki.3p.ant.run.classpath"/>
       </then>
     </if>
 
@@ -404,6 +384,46 @@
   </target>
 
   <target
+    name="forked_mapSampleClasses"
+    depends="enki_mdr.taskdef">
+
+    <!-- Choose generator class -->
+    <enki.set-generator-property impl="${enki.impl}" property="gen.cls"/>
+
+    <!-- Synthesize model into Java code -->
+    <enki.mdr>
+      <mdr-tasks>
+        <mapJava
+            file="${sample.model.xmi}"
+            dir="${sample.catalog.dir}/java"
+            extent="SampleMetamodel"
+            generatorClass="${gen.cls}"
+            generatorOptions="tablePrefix='SMPL_'"/>
+      </mdr-tasks>
+    </enki.mdr>
+  </target>
+
+  <target
+    name="forked_exportSampleSchema"
+    depends="enki_mdr.taskdef">
+    <!-- Choose generator class -->
+    <enki.set-generator-property impl="${enki.impl}" property="gen.cls"/>
+    <path id="sql_gen_path">
+      <pathelement path="${sample.catalog.dir}/java"/>
+    </path>
+    <enki.mdr 
+      propertiesFile="${test.dir}/TestStorage.properties"
+      modelPathRef="sql_gen_path">
+      <mdr-tasks>
+        <exportSchema
+          extent="SampleMetamodel"
+          mode="model"
+          dir="${sample.catalog.dir}/java"/>
+      </mdr-tasks>
+    </enki.mdr>
+  </target>
+
+  <target
       name="createSamplePluginRepository"
       depends="cleanSamplePluginRepository">
 
@@ -415,17 +435,9 @@
 
     <mkdir dir="${sample.catalog.dir}/plugin/java"/>
 
-    <!-- Synthesize model into Java code -->
-    <enki.mdr>
-      <mdr-tasks>
-        <mapJava
-            file="${sample.plugin.model.xmi}"
-            dir="${sample.catalog.dir}/plugin/java"
-            extent="SampleMetamodel"
-            generatorClass="${gen.cls}"
-            generatorOptions="tablePrefix='SMPL_',plugin='true',include='eem.sample.plugin'"/>
-      </mdr-tasks>
-    </enki.mdr>
+    <enki.antFork 
+      target="forked_mapSamplePluginClasses"
+      classpathref="enki.3p.ant.run.classpath"/>
 
     <enki.javac
         srcdir="${sample.catalog.dir}/plugin/java"
@@ -440,20 +452,9 @@
     <if>
       <equals arg1="${enki.impl}" arg2="hibernate"/>
       <then>
-        <path id="plugin_sql_gen_path">
-          <pathelement path="${sample.catalog.dir}/java"/>
-          <pathelement path="${sample.catalog.dir}/plugin/java"/>
-        </path>
-        <enki.mdr 
-            propertiesFile="${test.dir}/TestPluginStorage.properties"
-            modelPathRef="plugin_sql_gen_path">
-          <mdr-tasks>
-            <exportSchema
-              extent="SampleMetamodel"
-              mode="model-plugin"
-              dir="${sample.catalog.dir}/plugin/java"/>
-          </mdr-tasks>
-        </enki.mdr>
+        <enki.antFork 
+          target="forked_exportSamplePluginSchema"
+          classpathref="enki.3p.ant.run.classpath"/>
       </then>
     </if>
 
@@ -471,6 +472,46 @@
     <enki.antFork 
       target="forked_importSamplePluginMetamodel"
       classpathref="sample.plugin.mdr.classpath"/>
+  </target>
+
+  <target
+    name="forked_mapSamplePluginClasses"
+    depends="enki_mdr.taskdef">
+    <!-- Choose generator class -->
+    <enki.set-generator-property impl="${enki.impl}" property="gen.cls"/>
+
+    <!-- Synthesize model into Java code -->
+    <enki.mdr>
+      <mdr-tasks>
+        <mapJava
+            file="${sample.plugin.model.xmi}"
+            dir="${sample.catalog.dir}/plugin/java"
+            extent="SampleMetamodel"
+            generatorClass="${gen.cls}"
+            generatorOptions="tablePrefix='SMPL_',plugin='true',include='eem.sample.plugin'"/>
+      </mdr-tasks>
+    </enki.mdr>
+  </target>
+
+  <target
+    name="forked_exportSamplePluginSchema"
+    depends="enki_mdr.taskdef">
+    <!-- Choose generator class -->
+    <enki.set-generator-property impl="${enki.impl}" property="gen.cls"/>
+    <path id="plugin_sql_gen_path">
+      <pathelement path="${sample.catalog.dir}/java"/>
+      <pathelement path="${sample.catalog.dir}/plugin/java"/>
+    </path>
+    <enki.mdr 
+      propertiesFile="${test.dir}/TestPluginStorage.properties"
+      modelPathRef="plugin_sql_gen_path">
+      <mdr-tasks>
+        <exportSchema
+          extent="SampleMetamodel"
+          mode="model-plugin"
+          dir="${sample.catalog.dir}/plugin/java"/>
+      </mdr-tasks>
+    </enki.mdr>
   </target>
 
   <target name="forked_importSampleMetamodel" depends="enki_mdr.taskdef">
@@ -646,6 +687,20 @@
     </enki.mdr>
   </target>
 
+  <target name="dropUmlm2Repository">
+    <enki.antFork 
+      target="forked_dropUmlm2Repository"
+      classpathref="umlm2.mdr.classpath"/>
+  </target>
+
+  <target name="forked_dropUmlm2Repository" depends="enki_mdr.taskdef">
+    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
+      <mdr-tasks>
+        <dropExtent extent="Umlm2Repository"/>
+      </mdr-tasks>
+    </enki.mdr>
+  </target>
+
   <target name="distCheckConfig">
     <fail message="Must set dist.build.details -- preferably via distBuild.sh">
       <condition>
@@ -803,7 +858,8 @@
 
   <target name="test-with-setup" depends="createSampleRepository,createSamplePluginRepository,test-only"/>
 
-  <target name="test-umlm2" depends="createUmlm2Repository"/>
+  <target name="test-umlm2" 
+    depends="createUmlm2Repository, dropUmlm2Repository"/>
 
   <target name="test-only">
     <echo message="**********************************************"/>
@@ -900,9 +956,9 @@
   </target>
 
   <target name="clean">
+    <enki.delete-mdr-btrees/>
     <delete quiet="true">
       <fileset dir="${classes.dir}" includes="**/*"/>
-      <fileset dir="${enki.dir}" includes="mdr.bt?"/>
       <fileset dir="${trace.dir}">
         <include name="*.log"/>
         <include name="*.log.*"/>

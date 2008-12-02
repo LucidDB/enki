@@ -77,7 +77,9 @@ public class DropExtentSubTask
         EnkiMDRepository repos = getMDRepository(true);
 
         try {
+            repos.beginSession();
             repos.dropExtentStorage(extentName);
+            repos.endSession();
         } catch (EnkiDropFailedException e) {
             if (failOnError) {
                 throw new BuildException(e);
