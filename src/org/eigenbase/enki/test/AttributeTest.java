@@ -74,30 +74,32 @@ public class AttributeTest extends SampleModelTestBase
         }
     }
 
-    // Disabled due to bug ENK-4
-    public void _testCompositionAttributes()
+    @Test
+    public void testCompositionAttributes()
     {
         getRepository().beginTrans(true);
         try {
             PluginBasePackage pkg = getSamplePackage().getPluginBase();
 
-            // This works.
             ComposedElement composed =
                 pkg.getComposedElement().createComposedElement();
             CompositeElement composite =
                 pkg.getCompositeElement().createCompositeElement();
             composed.setComp(composite);
+            composed.refDelete();
             
-            // But this does not, because the attribute is
+            // This didn't work until ENK-4 was fixed, because the attribute is
             // inherited from an abstract class.
             ConcreteComposedElement concrete =
-                pkg.getConcreteComposedElement().createConcreteComposedElement();
+                pkg.getConcreteComposedElement().
+                createConcreteComposedElement();
             CompositeElement composite2 =
                 pkg.getCompositeElement().createCompositeElement();
             concrete.setComp(composite2);
+            concrete.refDelete();
         }
         finally {
-            getRepository().endTrans(false);
+            getRepository().endTrans();
         }
     }
     

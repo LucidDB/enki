@@ -1042,7 +1042,7 @@ public class HibernateJavaHandler
             }
         }
 
-        if (getPassIndex() == 0 && !cls.isAbstract()) {
+        if (getPassIndex() == 0) {
             for(Attribute attrib: nonDataTypeAttribs) {
                 addComponentAttrib(
                     attrib.getType(), 

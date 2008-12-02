@@ -927,27 +927,25 @@ public class HibernateMappingHandler
         }
         
         if (getPassIndex() == 0) {
-            if (!cls.isAbstract()) {
-                Collection<Attribute> instanceAttributes =
-                    CodeGenUtils.contentsOfType(
-                        cls,
-                        HierachySearchKindEnum.ENTITY_ONLY, 
-                        VisibilityKindEnum.PUBLIC_VIS,
-                        ScopeKindEnum.INSTANCE_LEVEL,
-                        Attribute.class);
+            Collection<Attribute> instanceAttributes =
+                CodeGenUtils.contentsOfType(
+                    cls,
+                    HierachySearchKindEnum.ENTITY_ONLY, 
+                    VisibilityKindEnum.PUBLIC_VIS,
+                    ScopeKindEnum.INSTANCE_LEVEL,
+                    Attribute.class);
 
-                for(Attribute attrib: instanceAttributes) {
-                    if (attrib.isDerived()) {
-                        continue;
-                    }
-                    if (attrib.getType() instanceof DataType) {
-                        continue;
-                    }
-                    
-                    addComponentAttrib(
-                        attrib.getType(), 
-                        new ComponentInfo(cls, attrib, false));
+            for(Attribute attrib: instanceAttributes) {
+                if (attrib.isDerived()) {
+                    continue;
                 }
+                if (attrib.getType() instanceof DataType) {
+                    continue;
+                }
+                    
+                addComponentAttrib(
+                    attrib.getType(), 
+                    new ComponentInfo(cls, attrib, false));
             }
             return;
         }
