@@ -43,8 +43,11 @@ public abstract class RefAssociationBase
 {
     private final RefPackage container;    
     private final EnkiMDRepository repos;
-    
+
+    // REVIEW jvs 30-Nov-2008:  A number of methods shadow this data member
+    // with local variables named "links", which could lead to confusion.
     private final Set<RefAssociationLinkImpl> links;
+    
     private final Map<RefObject, Collection<RefAssociationLinkImpl>> firstToSecondMap;
     private final Map<RefObject, Collection<RefAssociationLinkImpl>> secondToFirstMap;
     

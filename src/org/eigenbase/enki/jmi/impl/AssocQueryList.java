@@ -29,7 +29,7 @@ import javax.jmi.reflect.*;
  * AssocQueryList implements a {@link List} of {@link RefObject} that 
  * automatically updates the {@link RefAssociationBase} object responsible
  * for managing an association.  Modifications to the collection or association
- * are reflect from one to the other. 
+ * are reflected from one to the other. 
  * 
  * @author Stephan Zuercher
  */
