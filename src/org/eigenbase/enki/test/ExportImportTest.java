@@ -28,6 +28,8 @@ import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 import javax.jmi.xmi.*;
 
+import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 import org.junit.*;
 import org.junit.runner.*;
@@ -37,7 +39,7 @@ import org.netbeans.api.xmi.*;
 import eem.sample.*;
 
 /**
- * Tests export and importing models.
+ * Tests export and import of models.
  * 
  * @author Stephan Zuercher
  */
@@ -45,9 +47,16 @@ import eem.sample.*;
 public class ExportImportTest extends SampleModelTestBase
 {
     private static String sampleMetamodelName;
+
+    /**
+     * Fixture for location of baseline export to diff against.
+     */
+    private static final File file =
+        new File("test/results/ExportImportTest.xmi");
     
     @BeforeClass
     public static void populateExtent()
+        throws Exception
     {
         getRepository().beginTrans(true);
         
@@ -128,17 +137,17 @@ public class ExportImportTest extends SampleModelTestBase
         }
         
         getTestLogger().info("Metamodel = " + sampleMetamodelName);
+
+        RefPackage refPackage = getPackage();
+        
+        exportExtent(refPackage, file);
     }
     
     @Test
     public void testExportImport() throws Exception
     {
-        File file = new File("test/results/ExportImportTest.xmi");
-        
         RefPackage refPackage = getPackage();
         
-        exportExtent(refPackage, file);
-
         Assert.assertTrue(file.exists());
         Assert.assertTrue(file.length() > 0L);
         
@@ -157,7 +166,78 @@ public class ExportImportTest extends SampleModelTestBase
         XmiFileComparator.assertEqual(file, file2);
     }
 
-    private void exportExtent(RefPackage refPackage, File file) 
+    @Test
+    public void testMultipleExtents()
+        throws Exception
+    {
+        MDRepository mdrRepos = getRepository();
+        if (mdrRepos instanceof HibernateMDRepository) {
+            HibernateMDRepository hibernateRepos =
+                (HibernateMDRepository) mdrRepos;
+            hibernateRepos.enableMultipleExtentsForSameModel();
+        }
+
+        // Verify that two extents can coexist.  (Or three if
+        // the fixture package still exists.)
+        RefPackage refPackageX = createExtent("extentX");
+        RefPackage refPackageY = createExtent("extentY");
+
+        // Verify we can import into both of them.  Save the roots returned by
+        // one of them, because we can't rely on package export yet with
+        // Hibernate (currently, it would incorrectly include both extents
+        // since it's not able to discriminate them).
+        Collection rootsX = importExtent(refPackageX, file);
+        importExtent(refPackageY, file);
+
+        File file2 = new File("test/results/ExportImportTestMultiple.xmi");
+        exportXmi(null, file2, rootsX);
+        
+        deleteExtent(refPackageX);
+        deleteExtent(refPackageY);
+
+        // make sure other tests use the default mode
+        bounceRepository();
+
+        XmiFileComparator.assertEqual(file, file2);
+    }
+
+    @Test
+    public void testMultipleExtentsUnsupportedByDefault()
+        throws Exception
+    {
+        if (!(getRepository() instanceof HibernateMDRepository)) {
+            // Only Hibernate has this limitation.
+            return;
+        }
+        
+        // Note that which createExtent call fails depends on
+        // whether other tests have already deleted the fixture
+        // package, but either way, one of them is
+        // guaranteed to fail.
+        RefPackage refPackageA = null;
+        RefPackage refPackageB = null;
+        try {
+            refPackageA = createExtent("extentA");
+            refPackageB = createExtent("extentB");
+            Assert.fail("expected EnkiCreationFailedException");
+        } catch (EnkiCreationFailedException ex) {
+            Assert.assertEquals(
+                "Metamodel 'SampleMetamodel' has already been instantiated",
+                ex.getMessage());
+        }
+        if (refPackageA != null) {
+            deleteExtent(refPackageA);
+        }
+    }
+    
+    private static void exportExtent(RefPackage refPackage, File file) 
+        throws IOException
+    {
+        exportXmi(refPackage, file, null);
+    }
+    
+    private static void exportXmi(
+        RefPackage refPackage, File file, Collection roots) 
         throws IOException
     {
         getRepository().beginTrans(false);
@@ -167,7 +247,12 @@ public class ExportImportTest extends SampleModelTestBase
                 XMIWriterFactory.getDefault().createXMIWriter();
             FileOutputStream outStream = new FileOutputStream(file);
             try {
-                xmiWriter.write(outStream, refPackage, "1.2");
+                if (roots == null) {
+                    xmiWriter.write(outStream, refPackage, "1.2");
+                } else {
+                    assert(refPackage == null);
+                    xmiWriter.write(outStream, roots, "1.2");
+                }
             } finally {
                 outStream.close();
             }
@@ -188,6 +273,11 @@ public class ExportImportTest extends SampleModelTestBase
     }
     
     private RefPackage createExtent() throws Exception
+    {
+        return createExtent(getTestExtentName());
+    }
+    
+    private RefPackage createExtent(String extentName) throws Exception
     {
         getRepository().beginTrans(true);
         
@@ -210,14 +300,15 @@ public class ExportImportTest extends SampleModelTestBase
             }
 
             return getRepository().createExtent(
-                getTestExtentName(), extentPackage);
+                extentName, extentPackage);
         }
         finally {
             getRepository().endTrans();
         }
     }
     
-    private void importExtent(RefPackage extent, File file) throws Exception
+    private Collection importExtent(
+        RefPackage extent, File file) throws Exception
     {
         MDRepository mdrRepos = getRepository();
 
@@ -227,18 +318,19 @@ public class ExportImportTest extends SampleModelTestBase
             mdrRepos.beginTrans(true);
             rollback = true;
             
-            xmiReader.read(
+            Collection roots = xmiReader.read(
                 file.toURL().toString(),
                 extent);
             
             rollback = false;
             mdrRepos.endTrans();
+            return roots;
         } finally {
             if (rollback) {
                 mdrRepos.endTrans(true);
             }
         }
-    }    
+    }
 }
 
 // End ExportImportTest.java

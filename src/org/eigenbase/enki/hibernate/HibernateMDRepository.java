@@ -486,6 +486,22 @@ public class HibernateMDRepository
     private final boolean logMemStats;
     private final boolean createSchema;
     private final boolean createViews;
+
+    /**
+     * Whether {@link #enableInterThreadSessions} has been called.
+     */
+    private static boolean interThreadSessionsEnabled;
+
+    /**
+     * Only used when interThreadSessionsEnabled=true.
+     */
+    private static final LinkedList<MdrSession> globalSessionStack
+        = new LinkedList<MdrSession>();
+        
+    /**
+     * Whether {@link #enableMultipleExtentsForSameModel} has been called.
+     */
+    private boolean multipleExtentsEnabled;
     
     private final DataSourceConfigurator dataSourceConfigurator;
     
@@ -761,6 +777,46 @@ public class HibernateMDRepository
         sessionStack.pop();
         int count = sessionCount.decrementAndGet();
         assert(count >= 0);
+    }
+
+    /**
+     * Turns on inter-thread session mode.  By default (with this mode
+     * disabled), each thread gets its own session stack.  Enabling
+     * inter-thread sessions causes all threads to share a common session stack
+     * (with locking disabled at the Enki level, implying that the application
+     * should take care of its own synchronization around Enki).  If this
+     * method is called at all, it should be called before the first session
+     * is created.  This method has global effect on all repository instances.
+     *
+     * @param enabled true to enable this mode
+     *
+     * @deprecated This is an experimental mode and is likely to
+     * be removed or replaced in the future.
+     */
+    @Deprecated
+    public static void enableInterThreadSessions(boolean enabled)
+    {
+        interThreadSessionsEnabled = enabled;
+    }
+
+    /**
+     * Turns on the ability to create multiple instance extents for
+     * the same model extent.  By default, this is disabled since
+     * most of the necessary support doesn't actually exist yet.
+     * In particular, objects don't know which extent they are part of,
+     * and neither do class instances, so methods such as
+     * {@link RefClass#refAllOfClass} will return object instances
+     * from all extents sharing the same model.
+     *
+     * @deprecated This is an experimental mode and is likely to
+     * become the default in the future once the necessary
+     * support is working, at which time this method will no
+     * longer be necessary.
+     */
+    @Deprecated
+    public void enableMultipleExtentsForSameModel()
+    {
+        multipleExtentsEnabled = true;
     }
     
     public void beginTrans(boolean write)
@@ -1048,6 +1104,18 @@ public class HibernateMDRepository
             if (extentDesc != null) {
                 throw new EnkiCreationFailedException(
                     "Extent '" + name + "' already exists");
+            }
+
+            if (!multipleExtentsEnabled && (metaPackage != null)) {
+                ModelDescriptor modelDesc = findModelDescriptor(metaPackage);
+                
+                for (ExtentDescriptor ed : extentMap.values()) {
+                    if (ed.modelDescriptor == modelDesc) {
+                        throw new EnkiCreationFailedException(
+                            "Metamodel '" + modelDesc.name
+                            + "' has already been instantiated");
+                    }
+                }
             }
             
             enqueueEvent(
@@ -1928,6 +1996,12 @@ public class HibernateMDRepository
             throw new NullPointerException("refClass == null");
         }
         
+        if (multipleExtentsEnabled) {
+            if (classRegistry.containsKey(uid)) {
+                return;
+            }
+        }
+        
         HibernateRefClass prev = classRegistry.put(uid, refClass);
         if (prev != null) {
             throw new InternalJmiError(
@@ -1954,6 +2028,10 @@ public class HibernateMDRepository
     {
         if (uid == null) {
             throw new NullPointerException("uid == null");
+        }
+
+        if (multipleExtentsEnabled) {
+            return;
         }
         
         HibernateRefClass old = classRegistry.remove(uid);
@@ -2003,6 +2081,12 @@ public class HibernateMDRepository
         if (refAssoc == null) {
             throw new NullPointerException("refAssoc == null");
         }
+
+        if (multipleExtentsEnabled) {
+            if (assocRegistry.containsKey(uid)) {
+                return;
+            }
+        }
         
         HibernateRefAssociation prev = assocRegistry.put(uid, refAssoc);
         if (prev != null) {
@@ -2031,6 +2115,10 @@ public class HibernateMDRepository
     {
         if (uid == null) {
             throw new NullPointerException("uid == null");
+        }
+
+        if (multipleExtentsEnabled) {
+            return;
         }
         
         HibernateRefAssociation old = assocRegistry.remove(uid);
@@ -2089,7 +2177,7 @@ public class HibernateMDRepository
     }
     
     /**
-     * Helper method for generating the extent deletion even from a RefPackage.
+     * Helper method for generating the extent deletion event from a RefPackage.
      * 
      * @param pkg top-level RefPackage of the extent being deleted
      */
@@ -2270,21 +2358,10 @@ public class HibernateMDRepository
             }
         }
     }
-    
-    private ExtentDescriptor createExtentStorage(
-        String name,
-        RefObject metaPackage, 
-        RefPackage[] existingInstances)
-    throws EnkiCreationFailedException
-    {
-        if (metaPackage == null) {
-            initModelExtent(name, true);
-            return extentMap.get(name);
-        }
-        
-        ModelDescriptor modelDesc = null;
 
-        EXTENT_SEARCH:
+    private ModelDescriptor findModelDescriptor(RefObject metaPackage)
+        throws EnkiCreationFailedException
+    {
         for(Map.Entry<String, ExtentDescriptor> entry: extentMap.entrySet()) {
             ExtentDescriptor extentDesc = entry.getValue();
             
@@ -2298,18 +2375,28 @@ public class HibernateMDRepository
                             MofPackage.class))
                 {
                     if (extentMofPkg == metaPackage) {
-                        modelDesc = 
+                        return
                             configurator.getModelMap().get(extentDesc.name);
-                        break EXTENT_SEARCH;
                     }
                 }
             }
-        }        
-        
-        if (modelDesc == null) {
-            throw new EnkiCreationFailedException(
-                "Unknown metapackage");
         }
+        throw new EnkiCreationFailedException(
+            "Unknown metapackage");
+    }
+    
+    private ExtentDescriptor createExtentStorage(
+        String name,
+        RefObject metaPackage, 
+        RefPackage[] existingInstances)
+    throws EnkiCreationFailedException
+    {
+        if (metaPackage == null) {
+            initModelExtent(name, true);
+            return extentMap.get(name);
+        }
+        
+        ModelDescriptor modelDesc = findModelDescriptor(metaPackage);
         
         initModelStorage(modelDesc);
         
@@ -2389,7 +2476,13 @@ public class HibernateMDRepository
             trans.commit();
         }
 
+        // NOTE jvs 1-Dec-2008:  While loading an existing repository,
+        // we have to allow for the fact that it may have been created with
+        // multipleExtentsEnabled=true, since the application hasn't
+        // had a chance to enable this flag yet.
+        multipleExtentsEnabled = true;
         loadExistingExtents(extents);
+        multipleExtentsEnabled = false;
         
         thread = new EnkiChangeEventThread(this);
         thread.start();
@@ -2944,6 +3037,9 @@ public class HibernateMDRepository
         
         private void obtainWriteLock()
         {
+            if (interThreadSessionsEnabled) {
+                return;
+            }
             if (lock != null) {
                 throw new EnkiHibernateException("already locked");
             }
@@ -2954,6 +3050,9 @@ public class HibernateMDRepository
         
         private void obtainReadLock()
         {
+            if (interThreadSessionsEnabled) {
+                return;
+            }
             if (lock != null) {
                 throw new EnkiHibernateException("already locked");
             }
@@ -2965,6 +3064,9 @@ public class HibernateMDRepository
         
         private void releaseLock()
         {
+            if (interThreadSessionsEnabled) {
+                return;
+            }
             if (lock == null) {
                 log.warning(
                     "Request to release non-existent transaction lock");
@@ -3028,7 +3130,11 @@ public class HibernateMDRepository
                 @Override
                 protected LinkedList<MdrSession> initialValue()
                 {
-                    return new LinkedList<MdrSession>();
+                    if (interThreadSessionsEnabled) {
+                        return globalSessionStack;
+                    } else {
+                        return new LinkedList<MdrSession>();
+                    }
                 }
             };
         
