@@ -53,21 +53,21 @@ public abstract class HibernateRefPackage
             deleteExtent = true;
         }
         
-        deleteObjectsRecursively(deleteExtent);
-        
+        deleteObjectsRecursively();
         if (deleteExtent) {
+            unregisterObjectsRecursively();
             getHibernateRepository().deleteExtentDescriptor(this);
         }
     }
 
-    private void deleteObjectsRecursively(boolean unregister)
+    private void deleteObjectsRecursively()
     {
         for(RefPackage refPackage: 
                 GenericCollections.asTypedCollection(
                     refAllPackages(), RefPackage.class))
         {
             if (refPackage instanceof HibernateRefPackage) {
-                ((HibernateRefPackage)refPackage).deleteObjectsRecursively(unregister);
+                ((HibernateRefPackage)refPackage).deleteObjectsRecursively();
             }
             
             // TODO: transient packages deletion
@@ -98,9 +98,19 @@ public abstract class HibernateRefPackage
                 refObject.refDelete();
             }
         }        
-
-        if (!unregister) {
-            return;
+    }
+    
+    private void unregisterObjectsRecursively()
+    {
+        for(RefPackage refPackage: 
+                GenericCollections.asTypedCollection(
+                    refAllPackages(), RefPackage.class))
+        {
+            if (refPackage instanceof HibernateRefPackage) {
+                ((HibernateRefPackage)refPackage).unregisterObjectsRecursively();
+            }
+            
+            // TODO: transient packages deletion
         }
         
         HibernateMDRepository repos = getHibernateRepository();
