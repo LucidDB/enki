@@ -66,6 +66,8 @@ public class HibernateBackupRestoreUtil
     
     private static final int MAX_UNSTREAMED_STRING_LEN = 1024;
     
+    private static final int BATCH_SIZE = 500;
+    
     private static final String MOF_ID_COLUMN_NAME = 
         HibernateMappingHandler.MOF_ID_COLUMN_NAME;
     
@@ -92,8 +94,10 @@ public class HibernateBackupRestoreUtil
         HibernateMDRepository.ExtentDescriptor extentDesc, OutputStream stream)
     throws EnkiBackupFailedException
     {
+        // Flush session to make sure pending, uncomitted changes are backed
+        // up.  It's weird behavior, but we want to mimic extent export.
         Session session = repos.getCurrentSession();
-        session.clear();
+        session.flush();
         
         Properties backupProps = new Properties();
         backupProps.put(PROP_EXTENT, extentDesc.name);
@@ -606,7 +610,7 @@ public class HibernateBackupRestoreUtil
     throws SQLException, IOException
     {
         // TODO: when to invoke provider DDL script (if ever)?
-        
+
         Map<String, Class<? extends RefObject>> tableClassMap =
             new HashMap<String, Class<? extends RefObject>>();
         
@@ -660,9 +664,9 @@ public class HibernateBackupRestoreUtil
         PreparedStatement stmt = 
             conn.prepareStatement(
                 "delete from " +
-                dialect.quote("ENKI_TYPE_LOOKUP") +
+                HibernateDialectUtil.quote(dialect, "ENKI_TYPE_LOOKUP") +
                 " where " +
-                dialect.quote("typeName") +
+                HibernateDialectUtil.quote(dialect, "typeName") +
                 " = ?");
         try {
             for(Class<? extends RefObject> cls: tableClassMap.values()) {
@@ -764,11 +768,11 @@ public class HibernateBackupRestoreUtil
         PreparedStatement typeLookupStmt = 
             conn.prepareStatement(
                 "insert into "
-                + dialect.quote("ENKI_TYPE_LOOKUP")
+                + HibernateDialectUtil.quote(dialect, "ENKI_TYPE_LOOKUP")
                 + " ("
-                + dialect.quote(MOF_ID_COLUMN_NAME)
+                + HibernateDialectUtil.quote(dialect, MOF_ID_COLUMN_NAME)
                 + ", "
-                + dialect.quote("typeName")
+                + HibernateDialectUtil.quote(dialect, "typeName")
                 + ") values (?, ?)");
         try {
             String line;
@@ -810,6 +814,7 @@ public class HibernateBackupRestoreUtil
                 
                 PreparedStatement stmt = conn.prepareStatement(sql);
                 try {
+                    int batchSize = 0;
                     List<Long> mofIds = new ArrayList<Long>();
                     for(int i = 0; i < numRows; i++) {
                         String dataRow = data.readLine();
@@ -859,7 +864,17 @@ public class HibernateBackupRestoreUtil
                             pos++;
                         }
                         
-                        stmt.executeUpdate();
+                        stmt.addBatch();
+                        batchSize++;
+                        
+                        if (batchSize == BATCH_SIZE) {
+                            stmt.executeBatch();
+                            batchSize = 0;
+                        }
+                    }
+                    
+                    if (batchSize > 0) {
+                        stmt.executeBatch();
                     }
                     
                     if (!mofIds.isEmpty()) {
@@ -867,10 +882,21 @@ public class HibernateBackupRestoreUtil
                             tableClassMap.get(descriptor[0]);
                         if (cls != null) {                            
                             String typeName = cls.getName();
+                            batchSize = 0;
                             for(Long mofId: mofIds) {
                                 typeLookupStmt.setLong(1, mofId);
                                 typeLookupStmt.setString(2, typeName);
-                                typeLookupStmt.executeUpdate();
+                                typeLookupStmt.addBatch();
+                                batchSize++;
+                                
+                                if (batchSize == BATCH_SIZE) {
+                                    typeLookupStmt.executeBatch();
+                                    batchSize = 0;
+                                }
+                            }
+                            
+                            if (batchSize > 0) {
+                                typeLookupStmt.executeBatch();
                             }
                         }
                     }
@@ -902,14 +928,14 @@ public class HibernateBackupRestoreUtil
         
         sql
             .append("insert into ")
-            .append(dialect.quote(descriptor[0]))
+            .append(HibernateDialectUtil.quote(dialect, descriptor[0]))
             .append(" (");
         for(int i = 1; i < descriptor.length; i++) {
             if (i > 1) {
                 sql.append(", ");
             }
             String colName = descriptor[i];
-            sql.append(dialect.quote(colName));
+            sql.append(HibernateDialectUtil.quote(dialect, colName));
         }
         
         sql.append(") values (");

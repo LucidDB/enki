@@ -1031,12 +1031,7 @@ class HibernateMassDeletionUtil
     
     private String quote(String entity)
     {
-        StringBuilder b = new StringBuilder();
-        b
-            .append(sqlDialect.openQuote())
-            .append(entity)
-            .append(sqlDialect.closeQuote());
-        return b.toString();
+        return HibernateDialectUtil.quote(sqlDialect, entity);
     }
     
     private String concat(String... strs)

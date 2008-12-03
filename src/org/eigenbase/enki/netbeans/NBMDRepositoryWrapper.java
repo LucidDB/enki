@@ -31,6 +31,7 @@ import javax.jmi.reflect.*;
 import javax.jmi.xmi.*;
 
 import org.eigenbase.enki.mdr.*;
+import org.eigenbase.enki.util.*;
 import org.netbeans.api.mdr.*;
 import org.netbeans.api.mdr.events.*;
 import org.netbeans.api.xmi.*;
@@ -406,6 +407,7 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
         try {
             RefPackage extent = getExtent(extentName);
             if (extent != null) {
+                delete(extent);
                 extent.refDelete();
                 extent = null;
             }
@@ -462,6 +464,48 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
         } finally {
             endTrans(rollback);
         }        
+    }
+    
+    private void delete(RefPackage pkg)
+    {
+        for(RefClass cls: 
+            GenericCollections.asTypedCollection(
+                pkg.refAllClasses(),
+                RefClass.class))
+        {
+            Collection<RefObject> allOfClass = 
+                new ArrayList<RefObject>(
+                    GenericCollections.asTypedCollection(
+                        cls.refAllOfClass(),
+                        RefObject.class));
+        
+            Iterator<RefObject> iter = allOfClass.iterator();
+            while(iter.hasNext()) {
+                RefFeatured owner = iter.next().refImmediateComposite();
+                if (owner != null && owner instanceof RefObject)
+                {
+                    // If we delete this object before we happen
+                    // to have deleted its composite owner, the owner will
+                    // throw an exception (because this object was already
+                    // deleted). Can happen depending on iteration order of
+                    // pkg.refAllClasses(). So remove this object from the
+                    // collection and let the owner delete it.
+                    iter.remove();
+                }
+            }
+        
+            for(RefObject obj: allOfClass) {
+                obj.refDelete();
+            }
+        }
+        
+        for(RefPackage p: 
+                GenericCollections.asTypedCollection(
+                    pkg.refAllPackages(),
+                    RefPackage.class))
+        {
+            delete(p);
+        }
     }
     
     private InputStream makeXmiFilterStream(InputStream stream) 

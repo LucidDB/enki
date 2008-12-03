@@ -30,6 +30,7 @@ import javax.jmi.reflect.*;
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.hibernate.codegen.*;
 import org.eigenbase.enki.hibernate.jmi.*;
+import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.test.*;
 import org.eigenbase.enki.util.*;
 import org.hibernate.*;
@@ -217,9 +218,10 @@ public class HibernateConstraintsTest extends SampleModelTestBase
                     
                     stmt.executeUpdate(
                         "delete from " + 
-                        sqlDialect.quote(delTableList.get(i)) +
+                        HibernateDialectUtil.quote(
+                            sqlDialect, delTableList.get(i)) +
                         " where " +
-                        sqlDialect.quote("mofId") +
+                        HibernateDialectUtil.quote(sqlDialect, "mofId") +
                         " = " +
                         mofId);
                 }
@@ -310,9 +312,9 @@ public class HibernateConstraintsTest extends SampleModelTestBase
                     
                     stmt.executeUpdate(
                         "delete from " + 
-                        sqlDialect.quote(tables.get(i)) +
+                        HibernateDialectUtil.quote(sqlDialect, tables.get(i)) +
                         " where " +
-                        sqlDialect.quote("mofId") +
+                        HibernateDialectUtil.quote(sqlDialect, "mofId") +
                         " = " +
                         mofId);
                     
@@ -324,9 +326,10 @@ public class HibernateConstraintsTest extends SampleModelTestBase
                 
                 stmt.executeUpdate(
                     "delete from " + 
-                    sqlDialect.quote("ENKI_TYPE_LOOKUP") +
+                    HibernateDialectUtil.quote(
+                        sqlDialect, "ENKI_TYPE_LOOKUP") +
                     " where " + 
-                    sqlDialect.quote("mofId") +
+                    HibernateDialectUtil.quote(sqlDialect, "mofId") +
                     " in (" + inList + ")");
                 
                 DatabaseMetaData metaData = conn.getMetaData();
@@ -336,9 +339,9 @@ public class HibernateConstraintsTest extends SampleModelTestBase
 
                     stmt.executeUpdate(
                         "delete from " +
-                        sqlDialect.quote(tableName) +
+                        HibernateDialectUtil.quote(sqlDialect, tableName) +
                         " where " +
-                        sqlDialect.quote(data[1]) +
+                        HibernateDialectUtil.quote(sqlDialect, data[1]) +
                         " in (" + inList + ")");
                 }
             } finally {

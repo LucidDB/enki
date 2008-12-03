@@ -26,6 +26,7 @@ import java.util.*;
 import javax.jmi.model.*;
 
 import org.eigenbase.enki.codegen.*;
+import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.util.*;
 import org.hibernate.dialect.*;
 
@@ -159,7 +160,8 @@ public class HibernateViewMappingUtil
         List<ReferenceInfo> refInfos = new ArrayList<ReferenceInfo>();
         
         String quotedMofId = 
-            quote(HibernateMappingHandler.MOF_ID_COLUMN_NAME, dialect);
+            HibernateDialectUtil.quote(
+                dialect, HibernateMappingHandler.MOF_ID_COLUMN_NAME);
         
         output.writeln("select");
         output.increaseIndent();
@@ -169,7 +171,7 @@ public class HibernateViewMappingUtil
             ",");
         output.write(
             "'", cls.getName(), "' as ", 
-            quote(MOF_CLASSNAME_COLUMN_NAME, dialect));
+            HibernateDialectUtil.quote(dialect, MOF_CLASSNAME_COLUMN_NAME));
         for(Attribute attrib: attribs) {
             if (attrib.isDerived()) {
                 continue;
@@ -206,9 +208,10 @@ public class HibernateViewMappingUtil
             String fieldName = CodeGenUtils.getClassFieldName(aliasName);
 
             output.writeln(",");
-            output.write("t.", quote(fieldName, dialect));
+            output.write("t.", HibernateDialectUtil.quote(dialect, fieldName));
             if (!fieldName.equals(aliasName)) {
-                output.write(" as ", quote(aliasName, dialect));
+                output.write(
+                    " as ", HibernateDialectUtil.quote(dialect, aliasName));
             }
         }
         for(Reference ref: refs) {
@@ -281,9 +284,11 @@ public class HibernateViewMappingUtil
                 output.writeln(",");
                 output.write(
                     getMofIdConversion(
-                        alias + "." + quote(column, dialect), 
+                        alias
+                        + "."
+                        + HibernateDialectUtil.quote(dialect, column), 
                         dialect), 
-                    " as ", quote(aliasName, dialect));
+                    " as ", HibernateDialectUtil.quote(dialect, aliasName));
             }
         }
         
@@ -297,7 +302,9 @@ public class HibernateViewMappingUtil
                 " as ", join.alias);
             output.increaseIndent();
             output.writeln(
-                " on t.", quote(join.column, dialect), " = ", 
+                " on t.", 
+                HibernateDialectUtil.quote(dialect, join.column),
+                " = ", 
                 join.alias, ".", quotedMofId);
             output.decreaseIndent();
         }
@@ -430,8 +437,10 @@ public class HibernateViewMappingUtil
         output.writeln("select");
         output.increaseIndent();
         output.writeln(
-            quote(HibernateMappingHandler.MOF_ID_COLUMN_NAME, dialect), ",");
-        output.write(quote(MOF_CLASSNAME_COLUMN_NAME, dialect));
+            HibernateDialectUtil.quote(
+                dialect, HibernateMappingHandler.MOF_ID_COLUMN_NAME), ",");
+        output.write(
+            HibernateDialectUtil.quote(dialect, MOF_CLASSNAME_COLUMN_NAME));
         for(Attribute attrib: attribs) {
             if (attrib.isDerived()) {
                 continue;
@@ -459,7 +468,7 @@ public class HibernateViewMappingUtil
                 String fieldName = attrib.getName();
 
                 output.writeln(",");
-                output.write(quote(fieldName, dialect));
+                output.write(HibernateDialectUtil.quote(dialect, fieldName));
                 break;
                     
             default:
@@ -488,7 +497,7 @@ public class HibernateViewMappingUtil
                 }
                 
                 output.writeln(",");
-                output.write(quote(fieldName, dialect));
+                output.write(HibernateDialectUtil.quote(dialect, fieldName));
             }
         }
         
@@ -497,23 +506,13 @@ public class HibernateViewMappingUtil
         output.writeln("from ", viewName(tableName, dialect, true));
     }    
     
-    private String quote(String name, Dialect dialect)
-    {
-        StringBuilder b = new StringBuilder();
-        b
-            .append(dialect.openQuote())
-            .append(name)
-            .append(dialect.closeQuote());
-        return b.toString();
-    }
-    
     private String tableName(String tableName, Dialect dialect)
     {
         if (tablePrefix != null) {
             tableName = tablePrefix + tableName;
         }
         
-        return quote(tableName, dialect);
+        return HibernateDialectUtil.quote(dialect, tableName);
     }
     
     private String viewName(
@@ -526,7 +525,7 @@ public class HibernateViewMappingUtil
             tableName = tablePrefix + tableName;
         }
         
-        return quote(tableName, dialect);
+        return HibernateDialectUtil.quote(dialect, tableName);
     }
     
     private final class Join

@@ -883,12 +883,14 @@
       <jvmarg line="${assertions.jvmarg}"/>
       <sysproperty key="enki.home" value="${enki.dir}"/>
       <sysproperty key="enki.test.extent" value="SampleRepository"/>
+      <sysproperty key="java.util.logging.config.file" value="${trace.dir}/EnkiTrace.properties"/>
       <formatter type="plain"/>
       <batchtest todir="${test.results.dir}">
         <fileset dir="${classes.dir}">
           <include name="**/test/**/*Test.class" unless="enki.test.pattern"/>
           <include name="${enki.test.pattern}" if="enki.test.pattern"/>
           <exclude name="**/test/plugin/*Test.class"/>
+          <exclude name="**/test/performance/*Test.class" unless="enki.test.pattern"/>
         </fileset>
       </batchtest>
     </junit>
@@ -914,12 +916,14 @@
       <sysproperty 
           key="enki.storageProps"
           value="${test.dir}/TestPluginStorage.properties"/>
+      <sysproperty key="java.util.logging.config.file" value="${trace.dir}/EnkiTrace.properties"/>
       <formatter type="plain"/>
       <batchtest todir="${test.results.dir}">
         <fileset dir="${classes.dir}">
           <include name="**/test/plugin/*Test.class" unless="enki.test.pattern"/>
           <include name="${enki.test.pattern}" if="enki.test.pattern"/>
           <exclude name="**/test/*Test.class" if="enki.test.pattern"/>
+          <exclude name="**/test/performance/*Test.class" if="enki.test.pattern"/>
         </fileset>
       </batchtest>
     </junit>

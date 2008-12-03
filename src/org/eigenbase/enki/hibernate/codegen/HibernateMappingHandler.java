@@ -29,6 +29,7 @@ import javax.jmi.model.*;
 
 import org.eigenbase.enki.codegen.*;
 import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 import org.hibernate.dialect.*;
@@ -886,9 +887,9 @@ public class HibernateMappingHandler
             for(int i = 0; i < columns.length; i++) {
                 String c = columns[i];
                 if (i + 1 < columns.length) {
-                    writeText(quote(c, exemplar), ",");
+                    writeText(HibernateDialectUtil.quote(exemplar, c), ",");
                 } else {
-                    writeText(quote(c, exemplar), ")");
+                    writeText(HibernateDialectUtil.quote(exemplar, c), ")");
                 }
             }
             decreaseIndent();
@@ -1234,16 +1235,6 @@ public class HibernateMappingHandler
         return "`" + fieldName + "`";
     }
     
-    private String quote(String name, Dialect dialect)
-    {
-        StringBuilder b = new StringBuilder();
-        b
-            .append(dialect.openQuote())
-            .append(name)
-            .append(dialect.closeQuote());
-        return b.toString();
-    }
-    
     private String tableName(String tableName)
     {
         if (tablePrefix != null) {
@@ -1259,7 +1250,7 @@ public class HibernateMappingHandler
             tableName = tablePrefix + tableName;
         }
         
-        return quote(tableName, dialect);
+        return HibernateDialectUtil.quote(dialect, tableName);
     }
     
     static String computeBaseTableName(Classifier cls)
@@ -1289,7 +1280,7 @@ public class HibernateMappingHandler
             tableName = tablePrefix + tableName;
         }
         
-        return quote(tableName + "Index", dialect);
+        return HibernateDialectUtil.quote(dialect, tableName + "Index");
     }
     
     protected static MappingType getMappingType(

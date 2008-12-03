@@ -84,23 +84,24 @@ public class MofIdGenerator
         
         this.querySql = 
             "select "
-            + dialect.quote(COLUMN_NAME)
+            + HibernateDialectUtil.quote(dialect, COLUMN_NAME)
             + " from "
             + dialect.appendLockHint(LockMode.UPGRADE, tableName)
             + dialect.getForUpdateString();
         
         this.updateSql = 
             "update "
-            + dialect.quote(tableName) 
+            + HibernateDialectUtil.quote(dialect, tableName) 
             + " set "
-            + dialect.quote(COLUMN_NAME)
+            + HibernateDialectUtil.quote(dialect, COLUMN_NAME)
             + " = ? where "
-            + dialect.quote(COLUMN_NAME)
+            + HibernateDialectUtil.quote(dialect, COLUMN_NAME)
             + " = ?";
 
         this.createDdl = generateCreateDdl(enkiProps, dialect);
         
-        this.dropDdl = "drop table " + dialect.quote(tableName);
+        this.dropDdl = 
+            "drop table " + HibernateDialectUtil.quote(dialect, tableName);
         
         this.initSql = generateInsertDml(enkiProps, dialect);
         
@@ -116,7 +117,7 @@ public class MofIdGenerator
             storageProps.getProperty(PROPERTY_TABLE_NAME, DEFAULT_TABLE_NAME);
         
         return 
-            "create table " + dialect.quote(tableName) +
+            "create table " + HibernateDialectUtil.quote(dialect, tableName) +
             " (" + COLUMN_NAME + " " + dialect.getTypeName(Types.BIGINT) + ")"
             + dialect.getTableTypeString();
     }
@@ -127,7 +128,10 @@ public class MofIdGenerator
         String tableName = 
             storageProps.getProperty(PROPERTY_TABLE_NAME, DEFAULT_TABLE_NAME);
         
-        return "insert into " + dialect.quote(tableName) + " values (0)";
+        return 
+            "insert into " + 
+            HibernateDialectUtil.quote(dialect, tableName) +
+            " values (0)";
     }
     
     public Validity isGeneratorTableValid(Connection conn)
