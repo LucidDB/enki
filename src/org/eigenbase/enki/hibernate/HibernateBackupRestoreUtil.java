@@ -24,9 +24,9 @@ package org.eigenbase.enki.hibernate;
 import java.io.*;
 import java.lang.reflect.*;
 import java.math.*;
-import java.net.*;
 import java.sql.*;
 import java.util.*;
+import java.util.logging.*;
 import java.util.zip.*;
 
 import javax.jmi.model.*;
@@ -34,7 +34,6 @@ import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.hibernate.HibernateMDRepository.*;
 import org.eigenbase.enki.hibernate.codegen.*;
-import org.eigenbase.enki.hibernate.config.*;
 import org.eigenbase.enki.hibernate.jmi.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.mdr.*;
@@ -71,6 +70,9 @@ public class HibernateBackupRestoreUtil
     private static final String MOF_ID_COLUMN_NAME = 
         HibernateMappingHandler.MOF_ID_COLUMN_NAME;
     
+    private static final Logger log = 
+        Logger.getLogger(HibernateBackupRestoreUtil.class.getName());
+    
     private final HibernateMDRepository repos;
     private final Dialect dialect;
     
@@ -94,6 +96,8 @@ public class HibernateBackupRestoreUtil
         HibernateMDRepository.ExtentDescriptor extentDesc, OutputStream stream)
     throws EnkiBackupFailedException
     {
+        log.info("Backing up extent '" + extentDesc.name + "'");
+        
         // Flush session to make sure pending, uncomitted changes are backed
         // up.  It's weird behavior, but we want to mimic extent export.
         Session session = repos.getCurrentSession();
@@ -151,6 +155,8 @@ public class HibernateBackupRestoreUtil
             dataFile.delete();
             propsFile.delete();
         }
+        
+        log.info("Backed up extent '" + extentDesc.name + "'");
     }
     
     private File makeTempFile() throws IOException
@@ -169,6 +175,8 @@ public class HibernateBackupRestoreUtil
     private long dumpData(File dataFile, RefPackage extent) 
         throws EnkiBackupFailedException
     {
+        log.fine("Dumping extent data");
+        
         BufferedWriter output = null;
         try {
             output = new BufferedWriter(
@@ -436,6 +444,8 @@ public class HibernateBackupRestoreUtil
         ZipOutputStream zipStream, String entryName, File source)
     throws IOException
     {
+        log.fine("Writing ZIP entry");
+
         ZipEntry entry = new ZipEntry(entryName);
         entry.setSize(source.length());
         
@@ -476,6 +486,8 @@ public class HibernateBackupRestoreUtil
         InputStream stream) 
     throws EnkiRestoreFailedException
     {
+        log.info("Restoring extent '" + extentDesc.name + "'");
+        
         Session session = repos.getCurrentSession();
         session.clear();
 
@@ -531,7 +543,7 @@ public class HibernateBackupRestoreUtil
                 ZipEntry entry;
                 while((entry = zipStream.getNextEntry()) != null) {
                     if (!throwing) {
-                        repos.log.warning(
+                        log.warning(
                             "Ignoring unexpected backup stream entry '" 
                             + entry.getName() 
                             + "'");
@@ -545,6 +557,8 @@ public class HibernateBackupRestoreUtil
                 }
             }
         }
+        
+        log.info("Restored extent '" + extentDesc.name + "'");
     }
 
     /**
@@ -609,10 +623,14 @@ public class HibernateBackupRestoreUtil
         ExtentDescriptor extentDesc)
     throws SQLException, IOException
     {
-        // TODO: when to invoke provider DDL script (if ever)?
+        log.fine("Delete existing extent data");
+        
+        // TODO: when to invoke DDL scripts (if ever)?
 
         Map<String, Class<? extends RefObject>> tableClassMap =
             new HashMap<String, Class<? extends RefObject>>();
+        Set<String> assocTables = new HashSet<String>();
+        Set<String> assocChildTables = new HashSet<String>();
         
         LinkedList<HibernateRefPackage> queue = 
             new LinkedList<HibernateRefPackage>();
@@ -639,29 +657,50 @@ public class HibernateBackupRestoreUtil
     
                 tableClassMap.put(cls.getTable(), cls.getInstanceClass());
             }
+            
+            for(HibernateRefAssociation assoc:
+                    GenericCollections.asTypedCollection(
+                        pkg.refAllAssociations(), 
+                        HibernateRefAssociation.class))
+            {
+                assocTables.add(assoc.getTable());
+                String collectionTable = assoc.getCollectionTable();
+                if (collectionTable != null) {
+                    assocChildTables.add(collectionTable);
+                }
+            }
         }
 
         Session session = repos.getCurrentSession();
         
         Connection conn = session.connection();
 
-        // Execute drop scripts.  Plug-ins first, then main model since the
-        // plug-ins may have FK references to association tables.
-        ModelDescriptor modelDesc = extentDesc.modelDescriptor;
-        for(ModelPluginDescriptor mpd: modelDesc.plugins) {
-            executeDdl(conn, mpd.dropDdl, true);
+        Statement stmt = conn.createStatement();
+        try {
+            for(String table: tableClassMap.keySet()) {
+                stmt.execute(
+                    "truncate table " +
+                    HibernateDialectUtil.quote(dialect, table));
+            }
+            
+            for(String table: assocChildTables) {
+                stmt.execute(
+                    "truncate table " +
+                    HibernateDialectUtil.quote(dialect, table));
+            }
+            
+            for(String table: assocTables) {
+                stmt.execute(
+                    "truncate table " +
+                    HibernateDialectUtil.quote(dialect, table));
+            }
+        } finally {
+            stmt.close();
         }
-        executeDdl(conn, modelDesc.dropDdl, true);
-        
-        // Execute create scripts. Main model first, then plug-ins (FKs again).
-        executeDdl(conn, modelDesc.createDdl, false);
-        for(ModelPluginDescriptor mpd: modelDesc.plugins) {
-            executeDdl(conn, mpd.createDdl, false);
-        }
-        
+            
         SessionFactory sessionFactory = session.getSessionFactory();
         
-        PreparedStatement stmt = 
+        PreparedStatement typeLookupStmt = 
             conn.prepareStatement(
                 "delete from " +
                 HibernateDialectUtil.quote(dialect, "ENKI_TYPE_LOOKUP") +
@@ -669,72 +708,31 @@ public class HibernateBackupRestoreUtil
                 HibernateDialectUtil.quote(dialect, "typeName") +
                 " = ?");
         try {
+            int batchSize = 0;
             for(Class<? extends RefObject> cls: tableClassMap.values()) {
                 // Evict these from the cache; we've just deleted them all.
                 sessionFactory.evict(cls);
                 
-                stmt.setString(1, cls.getName());
-                stmt.executeUpdate();
+                typeLookupStmt.setString(1, cls.getName());
+                typeLookupStmt.addBatch();
+                batchSize++;
+                
+                if (batchSize == BATCH_SIZE) {
+                    typeLookupStmt.executeBatch();
+                }
             }
             
+            if (batchSize > 0) {
+                typeLookupStmt.executeBatch();
+            }
+
             // Dump any queries that may reference evicted objects.
             sessionFactory.evictQueries();
         } finally {
-            stmt.close();
+            typeLookupStmt.close();
         }
         
         return tableClassMap;
-    }
-    
-    /**
-     * Executes a metamodel DDL script on the given connection from the given
-     * URL.  If configured to ignore errors, errors executing individual
-     * DDL statements are ignored.  Errors creating or closing the SQL 
-     * {@link Statement} object are always thrown.
-     * 
-     * @param conn database connection
-     * @param ddlScript location of DDL script
-     * @param ignoreErrors if true, errors are ignored
-     * @throws IOException on error reading from the URL
-     * @throws SQLException on database error (see above)
-     */
-    private void executeDdl(
-        Connection conn, 
-        URL ddlScript, 
-        boolean ignoreErrors)
-    throws IOException, SQLException
-    {
-        StringBuilder sql = new StringBuilder();
-        BufferedReader rdr = makeReader(ddlScript.openStream());
-        
-        Statement stmt = conn.createStatement();
-        try {
-            String line;
-            while((line = rdr.readLine()) != null) {
-                String trimmed = line.trim();
-                if (trimmed.endsWith(";")) {
-                    sql.append(trimmed);
-                    
-                    try {
-                        stmt.execute(sql.toString());
-                    } catch(SQLException e) {
-                        if (!ignoreErrors) {
-                            throw e;
-                        }
-                    }
-                    
-                    sql.setLength(0);
-                } else {
-                    sql.append(line).append("\n");
-                }
-            }
-        } finally {
-            try {
-                stmt.close();
-            } finally {
-                rdr.close();
-            }
-        }
     }
     
     /**
@@ -754,6 +752,8 @@ public class HibernateBackupRestoreUtil
         Map<String, Class<? extends RefObject>> tableClassMap)
     throws IOException, SQLException
     {
+        log.fine("Restore backup data");
+        
         MofIdGenerator mofIdGenerator = repos.getMofIdGenerator();
         long maxMofId = -1;
         long baseMofId = mofIdGenerator.nextMofId();
@@ -762,8 +762,6 @@ public class HibernateBackupRestoreUtil
         Session session = repos.getCurrentSession();
         
         Connection conn = session.connection();
-        
-        int maxDataLength = computeMaxRowLength(conn);
         
         PreparedStatement typeLookupStmt = 
             conn.prepareStatement(
@@ -805,15 +803,11 @@ public class HibernateBackupRestoreUtil
                 
                 int numCols = descriptor.length - 1;
                 
-                // Assume all strings, and if that might overflow the
-                // maximum packet, stream them all.
-                boolean streamAllStrings = false;
-                if ((numCols * MAX_UNSTREAMED_STRING_LEN) > maxDataLength) {
-                    streamAllStrings = true;
-                }
-                
                 PreparedStatement stmt = conn.prepareStatement(sql);
                 try {
+                    List<String> values = new ArrayList<String>(numCols);
+                    List<Type> types = new ArrayList<Type>(numCols);
+                    
                     int batchSize = 0;
                     List<Long> mofIds = new ArrayList<Long>();
                     for(int i = 0; i < numRows; i++) {
@@ -823,14 +817,22 @@ public class HibernateBackupRestoreUtil
                                 "Premature end of data file");
                         }
     
-                        List<String> values = Type.split(dataRow);
+                        values.clear();
+                        types.clear();
+                        
+                        Type.split(dataRow, values, types);
+                        assert(values.size() == types.size());
                         if (values.size() != numCols) {
                             throw new IOException("Invalid record size");
                         }
     
                         int pos = 1;
-                        for(String value: values) {
-                            Type type = Type.fromString(value);
+                        Iterator<String> valueIter = values.iterator();
+                        Iterator<Type> typeIter = types.iterator();
+                        while(valueIter.hasNext()) {
+                            String value = valueIter.next();
+                            Type type = typeIter.next();
+                            
                             Object v = type.decode(value);
     
                             if (type == Type.MOFID) {
@@ -848,9 +850,7 @@ public class HibernateBackupRestoreUtil
                             if (type == Type.CHARACTER) {
                                 String vs = (String)v;
                                 int vsLen = vs.length();
-                                if (vsLen > MAX_UNSTREAMED_STRING_LEN ||
-                                    streamAllStrings)
-                                {
+                                if (vsLen > MAX_UNSTREAMED_STRING_LEN) {
                                     stmt.setCharacterStream(
                                         pos,
                                         new StringReader(vs),
@@ -908,6 +908,8 @@ public class HibernateBackupRestoreUtil
             typeLookupStmt.close();
         }
         
+        log.fine("Update MOF ID generator");
+        
         // Run up the mofId until it is greater than the the largest value we
         // used.
         // TODO: Add a mechanism to explicitly set the value.
@@ -950,60 +952,6 @@ public class HibernateBackupRestoreUtil
         String result = sql.toString();
 
         return result;
-    }
-
-    /**
-     * Determines the maximum row length for the current database connection.
-     * This method is primarily useful for databases such as MySQL which
-     * enforce a limit on the amount of data which may be transmitted in a
-     * single packet.  If the data for a particular insert statement is 
-     * larger than this value, it must be broken up in some way.
-     * 
-     * <p>If the database imposes no particular limit, this method returns
-     * {@link Integer#MAX_VALUE}.  For MySQL this method returns the value
-     * of <code>max_allowed_packet</code> variable or 1 MB if no value is
-     * found for the variable.
-     * 
-     * @param conn database connection
-     * @return maximum row length
-     * @throws SQLException if there's an error reading the value from the
-     *                      database
-     */
-    private int computeMaxRowLength(Connection conn)
-        throws SQLException
-    {
-        int maxRowLength = Integer.MAX_VALUE;
-        if (dialect instanceof MySQLDialect) {
-            maxRowLength = 1024 * 1024; // MySQL default
-            Statement stmt = conn.createStatement();
-            try {
-                ResultSet rset = 
-                    stmt.executeQuery(
-                        "show variables like 'max_allowed_packet'");
-                try {
-                    if (rset.next()) {
-                        String maxAllowedPacketStr = rset.getString(2);
-                        
-                        try {
-                            maxRowLength = 
-                                Integer.parseInt(maxAllowedPacketStr);
-                        } catch(NumberFormatException e) {
-                            repos.log.warning(
-                                "Error parsing MySQL max_allowed_packet value '"
-                                + maxAllowedPacketStr 
-                                + "'; using default (" 
-                                + maxRowLength
-                                + ")");
-                        }
-                    }
-                } finally {
-                    rset.close();
-                }
-            } finally {
-                stmt.close();
-            }
-        }
-        return maxRowLength;
     }
 
     /**
@@ -1057,6 +1005,18 @@ public class HibernateBackupRestoreUtil
             m.put(BigInteger.class, BIG_INTEGER);
             m.put(Boolean.class, BOOLEAN);
             classTypeLookup = Collections.unmodifiableMap(m);
+        }
+        
+        private static final Map<Character, Type> suffixLookup;
+        static {
+            Map<Character, Type> m = new HashMap<Character, Type>();
+            m.put(MOFID.suffix, MOFID);
+            m.put(LONG.suffix, LONG);
+            m.put(FLOAT.suffix, FLOAT);
+            m.put(DOUBLE.suffix, DOUBLE);
+            m.put(BIG_DECIMAL.suffix, BIG_DECIMAL);
+            m.put(BIG_INTEGER.suffix, BIG_INTEGER);
+            suffixLookup = Collections.unmodifiableMap(m);
         }
         
         private final char suffix;
@@ -1124,34 +1084,45 @@ public class HibernateBackupRestoreUtil
             return type;
         }
         
-        public static Type fromString(String data)
+        /**
+         * Determines the type of the value in data starting at character
+         * pos.
+         * 
+         * @param data data string
+         * @param pos start type detection here
+         * @param endPos this wrapper is updated to contain the index of the 
+         *               character immediately after the end of the type
+         *               (which may be beyond the end of the data)
+         * @return type of the data at pos
+         */
+        private static Type fromString(String data, int pos, IntWrapper endPos)
         {
-            return fromString(data, 0);
-        }
-        
-        public static Type fromString(String data, int pos)
-        {
-            if (data.regionMatches(pos, "null", 0, 4)) {
+            if (data.startsWith("null", pos)) {
+                endPos.value = pos + 4; 
                 return NULL;
             }
             
-            if (data.charAt(pos) == '\'') {
+            if (data.startsWith("'", pos)) {
+                int start = pos + 1;
+                int end = data.indexOf('\'', start);
+                assert(end > start);
+                endPos.value = end + 1;
                 return CHARACTER;
             }
             
             int commaPos = data.indexOf(',', pos);
-            int suffixPos = (commaPos < 0) ? data.length() - 1 : commaPos - 1;
+            int endPosValue = (commaPos < 0) ? data.length() : commaPos;
+            endPos.value = endPosValue;
+            int suffixPos = endPosValue - 1;
 
             char suffix = data.charAt(suffixPos);
             
-            for(Type type: values()) {
-                if (type.suffix != 0 && type.suffix == suffix) {
-                    return type;
-                }
+            Type type = suffixLookup.get(suffix);
+            if (type != null) {
+                return type;
             }
 
-            if (data.regionMatches(pos, "true", 0, 4) ||
-                data.regionMatches(pos, "false", 0, 5))
+            if (data.startsWith("true", pos) || data.startsWith("false", pos))
             {
                 return BOOLEAN;
             }
@@ -1159,49 +1130,20 @@ public class HibernateBackupRestoreUtil
             return INT;
         }
         
-        public static List<String> split(String values)
+        public static void split(
+            String values, List<String> result, List<Type> types)
         {
-            List<String> result = new ArrayList<String>();
+            IntWrapper endPosWrapper = new IntWrapper();
             
             int pos = 0;
             int len = values.length();
             while(pos < len) {
-                Type t = fromString(values, pos);
-                switch(t) {
-                default:
-                    int commaPos = values.indexOf(',', pos);
-                    if (commaPos < 0) {
-                        commaPos = len;
-                    }
-                    result.add(values.substring(pos, commaPos));
-                    pos = commaPos + 1;
-                    break;
-                    
-                case CHARACTER:
-                    int endPos = pos + 1;
-                    CHAR_LOOP:
-                    while(endPos < len) {
-                        char ch = values.charAt(endPos);
-                        switch(ch) {
-                        case '\\':
-                            endPos += 2;
-                            break;
-                        case '\'':
-                            endPos++;
-                            break CHAR_LOOP;
-                        default: 
-                            endPos++;
-                            break;
-                        }
-                    }
-                    assert(endPos == len || values.charAt(endPos) == ',');
-                    result.add(values.substring(pos, endPos));
-                    pos = endPos + 1;
-                    break;
-                }
+                Type t = fromString(values, pos, endPosWrapper);
+                types.add(t);
+                int commaPos = endPosWrapper.value;
+                result.add(values.substring(pos, commaPos));
+                pos = commaPos + 1;
             }
-            
-            return result;
         }
         
         public String encode(Object o)
@@ -1214,14 +1156,17 @@ public class HibernateBackupRestoreUtil
             if (quote) {
                 StringBuilder b = new StringBuilder();
                 int len = s.length();
-                
+
                 b.append('\'');
                 for(int i = 0; i < len; i++) {
                     char ch = s.charAt(i);
                     switch(ch) {
-                    case '\'':
                     case '\\':
                         b.append('\\').append(ch);
+                        break;
+                        
+                    case '\'':
+                        b.append("\\a");
                         break;
                         
                     case '\n':
@@ -1257,23 +1202,31 @@ public class HibernateBackupRestoreUtil
                 
                 int i = 1;
                 while(i < len) {
-                    char ch = value.charAt(i);
-                    if (ch == '\\') {
-                        i++;
-                        char next = value.charAt(i);
-                        switch(next) {
-                        default:
-                            b.append(next);
-                            break;
-                        case 'n':
-                            b.append('\n');
-                            break;
-                        case 'r':
-                            b.append('\r');
-                            break;
-                        }
-                    } else {
-                        b.append(ch);
+                    int backslash = value.indexOf('\\', i);
+                    if (backslash < 0) {
+                        b.append(value.substring(i, len));
+                        break;
+                    }
+
+                    if (backslash > i) {
+                        b.append(value.substring(i, backslash));
+                    }
+                    i = backslash + 1;
+
+                    char next = value.charAt(i);
+                    switch(next) {
+                    default:
+                        b.append(next);
+                        break;
+                    case 'a':
+                        b.append('\'');
+                        break;
+                    case 'n':
+                        b.append('\n');
+                        break;
+                    case 'r':
+                        b.append('\r');
+                        break;
                     }
                     
                     i++;
@@ -1295,8 +1248,17 @@ public class HibernateBackupRestoreUtil
             try {
                 return cons.newInstance(consValue);
             } catch (Exception e) {
-                throw new IllegalArgumentException(value);
+                throw new IllegalArgumentException(value, e);
             }            
+        }
+    }
+    
+    private static class IntWrapper
+    {
+        public int value;
+
+        public IntWrapper()
+        {
         }
     }
     
