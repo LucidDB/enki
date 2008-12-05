@@ -799,7 +799,9 @@ public class HibernateBackupRestoreUtil
                         break;
                     }
                 }
-                assert(mofIdCol > 0);
+                if (mofIdCol < 0) {
+                    throw new IOException("Record missing MOF ID column");
+                }
                 
                 int numCols = descriptor.length - 1;
                 
@@ -1105,7 +1107,10 @@ public class HibernateBackupRestoreUtil
             if (data.startsWith("'", pos)) {
                 int start = pos + 1;
                 int end = data.indexOf('\'', start);
-                assert(end > start);
+                if (end < 0) {
+                    throw new IllegalStateException(
+                        "Unterminated character string");
+                }
                 endPos.value = end + 1;
                 return CHARACTER;
             }

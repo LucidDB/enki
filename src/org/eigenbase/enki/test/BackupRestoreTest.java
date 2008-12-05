@@ -190,11 +190,17 @@ public class BackupRestoreTest extends SampleModelTestBase
             c2.setMelting(CONE2_MELTING);
             c2.setScoops(CONE2_SCOOPS);
             
-            CustomTagTarget ctt = 
+            CustomTagTarget ctt1 = 
                 specialPkg.getCustomTagTarget().createCustomTagTarget();
-            ctt.setString192(SHORT_STRING);
-            ctt.setString64k(MEDIUM_STRING);
-            ctt.setString16m(LONG_STRING);
+            ctt1.setString192(SHORT_STRING);
+            ctt1.setString64k(MEDIUM_STRING);
+            ctt1.setString16m(LONG_STRING);
+            
+            CustomTagTarget ctt2 = 
+                specialPkg.getCustomTagTarget().createCustomTagTarget();
+            ctt2.setString192("");
+            ctt2.setString64k("");
+            ctt2.setString16m("");
             
             createAdditionalData();
         } finally {
@@ -237,7 +243,7 @@ public class BackupRestoreTest extends SampleModelTestBase
              
             Collection<?> ctts = 
                 specialPkg.getCustomTagTarget().refAllOfClass();
-            Assert.assertEquals(1, ctts.size());
+            Assert.assertEquals(2, ctts.size());
             
             Cornucopia corn = (Cornucopia)corns.iterator().next();
             Assert.assertEquals(CORN_INTA, corn.getIntegerA());
@@ -290,11 +296,24 @@ public class BackupRestoreTest extends SampleModelTestBase
             Assert.assertEquals(CONE2_MELTING, cone2.isMelting());
             Assert.assertEquals(CONE2_SCOOPS, cone2.getScoops());
             
-            CustomTagTarget ctt = (CustomTagTarget)ctts.iterator().next();
-            Assert.assertEquals(SHORT_STRING, ctt.getString192());
-            Assert.assertEquals(MEDIUM_STRING, ctt.getString64k());
-            Assert.assertEquals(LONG_STRING, ctt.getString16m());     
+            iter = ctts.iterator();
+            CustomTagTarget ctt1 = (CustomTagTarget)iter.next();
+            CustomTagTarget ctt2 = (CustomTagTarget)iter.next();
+
+            if (ctt1.getString192().length() == 0) {
+                CustomTagTarget temp = ctt1;
+                ctt1 = ctt2;
+                ctt2 = temp;
+            }
+
+            Assert.assertEquals(SHORT_STRING, ctt1.getString192());
+            Assert.assertEquals(MEDIUM_STRING, ctt1.getString64k());
+            Assert.assertEquals(LONG_STRING, ctt1.getString16m());     
                         
+            Assert.assertEquals("", ctt2.getString192());
+            Assert.assertEquals("", ctt2.getString64k());
+            Assert.assertEquals("", ctt2.getString16m());     
+
             long additionalMofId = validateAdditionalData(returnMaxMofId);
             
             getSamplePackage().refVerifyConstraints(true);
