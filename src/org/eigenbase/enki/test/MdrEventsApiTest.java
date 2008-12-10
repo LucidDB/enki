@@ -1306,6 +1306,14 @@ public class MdrEventsApiTest extends SampleModelTestBase
                 Building.class, "address", "1510 Fashion Island Blvd.",
                 Floor.class, "floorNumber", "2",
                 pos));
+        if (preview) {
+            // In preview mode, we will hear "echoes" of the events too.
+            validators.add(
+                new AssociationRemoveEventValidator(
+                    EventType.PLANNED, "floors",
+                    Floor.class, "floorNumber", "2",
+                    Building.class, "address", "1510 Fashion Island Blvd."));
+        }
         validators.add(
             new AssociationRemoveEventValidator(
                 EventType.PLANNED, "floor",
@@ -1318,11 +1326,6 @@ public class MdrEventsApiTest extends SampleModelTestBase
                     EventType.PLANNED, "rooms",
                     Room.class, "roomNumber", "240",
                     Floor.class, "floorNumber", "2"));
-            validators.add(
-                new AssociationRemoveEventValidator(
-                    EventType.PLANNED, "floors",
-                    Floor.class, "floorNumber", "2",
-                    Building.class, "address", "1510 Fashion Island Blvd."));
         }
         // Can't access the objects on commit, so just verify types.
         // No commit events are expected for preview.

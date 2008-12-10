@@ -43,9 +43,15 @@ public abstract class MdrGenerator
     public static final String DEFAULT_ENKI_MODEL_EXTENT_NAME = 
         "EnkiModelExtent";
 
+    private static final String NBMDR_STORAGE_FACTORY_PROPERTY =
+        "org.netbeans.mdr.storagemodel.StorageFactoryClassName";
+    private static final String NBMDR_MEM_STORAGE_FACTORY_VALUE =
+        "org.netbeans.mdr.persistence.memoryimpl.StorageFactoryImpl";
+    
     private MDRManager mdrMgr;
     private MDRepository mdr;
     private String extentName;
+    private String savedStorageFactory;
     
     public MdrGenerator()
     {
@@ -70,6 +76,8 @@ public abstract class MdrGenerator
     
     public final void execute() throws GenerationException
     {
+        boolean configuredMemoryRepos = false;
+        
         try {
             if (!xmiFile.exists()) {
                 throw new FileNotFoundException(xmiFile.toString());
@@ -84,6 +92,14 @@ public abstract class MdrGenerator
             if (extentName == null) {
                 throw new GenerationException("Extent name not set");
             }
+        
+            // Fix ENK-6: Netbean's BTree repository implementation has a bug
+            // which can cause ordered multi-value associations to be 
+            // incorrectly re-ordered during XMI import.  This causes 
+            // Attributes and References to be intermittently re-ordered.
+            // Memory repository seems to avoid this problem.
+            configureMemoryRepos(true);
+            configuredMemoryRepos = true;
             
             configureHandlers();
             
@@ -100,6 +116,10 @@ public abstract class MdrGenerator
         } finally {
             if (mdr != null) {
                 mdr.shutdown();
+            }
+            
+            if (configuredMemoryRepos) {
+                configureMemoryRepos(false);
             }
         }
     }
@@ -163,6 +183,25 @@ public abstract class MdrGenerator
             System.err.println();
             e.printStackTrace();
         }        
+    }
+    
+    private void configureMemoryRepos(boolean enable)
+    {
+        Properties sysProps = System.getProperties();
+        if (enable) {
+            savedStorageFactory = 
+                sysProps.getProperty(NBMDR_STORAGE_FACTORY_PROPERTY);
+            sysProps.setProperty(
+                NBMDR_STORAGE_FACTORY_PROPERTY, 
+                NBMDR_MEM_STORAGE_FACTORY_VALUE);
+        } else {
+            sysProps.remove(NBMDR_STORAGE_FACTORY_PROPERTY);
+            if (savedStorageFactory != null) {
+                sysProps.setProperty(
+                    NBMDR_STORAGE_FACTORY_PROPERTY, 
+                    savedStorageFactory);
+            }
+        }
     }
 
     private MDRManager getDefaultMdrManager()

@@ -26,11 +26,26 @@
       </xslt>
       <java classname="org.netbeans.lib.jmi.uml2mof.Main"
         fork="true" failonerror="true">
+        <!-- UML2MOF Defaults to Netbeans MDR's btree implementation.  That
+             implementation has a bug which intermittently causes ordered 
+             multi-value associations to be re-ordered during XMI import.
+             The re-ordering can cause factory method parameters and MDR
+             events to be incorrectly re-ordered resulting in compilation
+             errors and test failures. The memory implementation provides
+             deterministic output. -->
+        <sysproperty
+          key="org.netbeans.mdr.storagemodel.StorageFactoryClassName"
+          value="org.netbeans.mdr.persistence.memoryimpl.StorageFactoryImpl"/>
         <sysproperty key="org.netbeans.mdr.Logger" value="256"/>
         <classpath>
           <pathelement location="${mdrlibs.dir}/openide-util.jar"/>
           <pathelement location="${mdrlibs.dir}/uml-1.4.jar"/>
           <pathelement location="${mdrlibs.dir}/uml2mof.jar"/>
+          <pathelement location="${mdrlibs.dir}/jmi.jar"/>
+          <pathelement location="${mdrlibs.dir}/jmiutils.jar"/>
+          <pathelement location="${mdrlibs.dir}/nbmdr.jar"/>
+          <pathelement location="${mdrlibs.dir}/mdrapi.jar"/>
+          <pathelement location="${mdrlibs.dir}/mof.jar"/>
         </classpath>
         <arg value="@{umlsansdiagrams}"/>
         <arg value="@{outputfilename}"/>
