@@ -462,24 +462,29 @@ public class HibernateMappingHandler
         writeEmptyElem(
             "property",
             "name", ASSOC_TYPE_PROPERTY,
+            "column", hibernateQuote(ASSOC_TYPE_PROPERTY),
             "not-null", "true",
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
         
         writeEmptyElem(
             "property",
             "name", ASSOC_ONE_TO_ONE_PARENT_TYPE_COLUMN,
+            "column", hibernateQuote(ASSOC_ONE_TO_ONE_PARENT_TYPE_COLUMN),
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
         writeEmptyElem(
             "property",
-            "name", ASSOC_ONE_TO_ONE_PARENT_ID_COLUMN);
+            "name", ASSOC_ONE_TO_ONE_PARENT_ID_COLUMN,
+            "column", hibernateQuote(ASSOC_ONE_TO_ONE_PARENT_ID_COLUMN));
 
         writeEmptyElem(
             "property",
             "name", ASSOC_ONE_TO_ONE_CHILD_TYPE_COLUMN,
+            "column", hibernateQuote(ASSOC_ONE_TO_ONE_CHILD_TYPE_COLUMN),
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
         writeEmptyElem(
             "property",
-            "name", ASSOC_ONE_TO_ONE_CHILD_ID_COLUMN);
+            "name", ASSOC_ONE_TO_ONE_CHILD_ID_COLUMN,
+            "column", hibernateQuote(ASSOC_ONE_TO_ONE_CHILD_ID_COLUMN));
         
         // Named queries
         newLine();
@@ -521,21 +526,25 @@ public class HibernateMappingHandler
         writeEmptyElem(
             "property",
             "name", ASSOC_TYPE_PROPERTY,
+            "column", hibernateQuote(ASSOC_TYPE_PROPERTY),
             "not-null", "true",
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
         
         writeEmptyElem(
             "property",
             "name", ASSOC_REVERSE_POLARITY_PROPERTY,
+            "column", hibernateQuote(ASSOC_REVERSE_POLARITY_PROPERTY),
             "not-null", "true");
 
         writeEmptyElem(
             "property",
             "name", ASSOC_ONE_TO_MANY_PARENT_TYPE_COLUMN,
+            "column", hibernateQuote(ASSOC_ONE_TO_MANY_PARENT_TYPE_COLUMN),
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
         writeEmptyElem(
             "property",
-            "name", ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN);
+            "name", ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN,
+            "column", hibernateQuote(ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN));
         
         if (isHighCardinality) {
             startElem(
@@ -557,17 +566,19 @@ public class HibernateMappingHandler
         writeCacheElement();
         writeEmptyElem(
             "key", 
-            "column", ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN);
+            "column", hibernateQuote(ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN));
         startElem(
             "composite-element", "class", assocLazyElementClass);
         writeEmptyElem(
             "property",
             "name", ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN,
+            "column", hibernateQuote(ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN),
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH,
             "not-null", "true");
         writeEmptyElem(
             "property",
             "name", ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN,
+            "column", hibernateQuote(ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN),
             "not-null", "true");
         endElem("composite-element");
         endElem("set");
@@ -609,21 +620,25 @@ public class HibernateMappingHandler
         writeEmptyElem(
             "property",
             "name", ASSOC_TYPE_PROPERTY,
+            "column", hibernateQuote(ASSOC_TYPE_PROPERTY),
             "not-null", "true",
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
         
         writeEmptyElem(
             "property",
             "name", ASSOC_REVERSE_POLARITY_PROPERTY,
+            "column", hibernateQuote(ASSOC_REVERSE_POLARITY_PROPERTY),
             "not-null", "true");
 
         writeEmptyElem(
             "property",
             "name", ASSOC_ONE_TO_MANY_PARENT_TYPE_COLUMN,
+            "column", hibernateQuote(ASSOC_ONE_TO_MANY_PARENT_TYPE_COLUMN),
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
         writeEmptyElem(
             "property",
-            "name", ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN);
+            "name", ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN,
+            "column", hibernateQuote(ASSOC_ONE_TO_MANY_PARENT_ID_COLUMN));
         
         startElem(
             "list",
@@ -635,19 +650,22 @@ public class HibernateMappingHandler
         writeCacheElement();        
         writeEmptyElem(
             "key", 
-            "column", ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN);
+            "column", hibernateQuote(ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN));
         writeEmptyElem(
-            "list-index", "column", ASSOC_ONE_TO_MANY_CHILD_ORDINAL_COLUMN);
+            "list-index", 
+            "column", hibernateQuote(ASSOC_ONE_TO_MANY_CHILD_ORDINAL_COLUMN));
         startElem(
             "composite-element", "class", assocLazyElementClass);
         writeEmptyElem(
             "property",
             "name", ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN,
+            "column", hibernateQuote(ASSOC_ONE_TO_MANY_CHILD_TYPE_COLUMN),
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH,
             "not-null", "true");
         writeEmptyElem(
             "property",
             "name", ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN,
+            "column", hibernateQuote(ASSOC_ONE_TO_MANY_CHILD_ID_COLUMN),
             "not-null", "true");
         endElem("composite-element");
         endElem("list");
@@ -682,21 +700,25 @@ public class HibernateMappingHandler
         writeEmptyElem(
             "property",
             "name", ASSOC_TYPE_PROPERTY,
+            "column", hibernateQuote(ASSOC_TYPE_PROPERTY),
             "not-null", "true",
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
 
         writeEmptyElem(
             "property",
             "name", ASSOC_REVERSE_POLARITY_PROPERTY,
+            "column", hibernateQuote(ASSOC_REVERSE_POLARITY_PROPERTY),
             "not-null", "true");
 
         writeEmptyElem(
             "property",
             "name", ASSOC_MANY_TO_MANY_SOURCE_TYPE_COLUMN,
+            "column", hibernateQuote(ASSOC_MANY_TO_MANY_SOURCE_TYPE_COLUMN),
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
         writeEmptyElem(
             "property",
-            "name", ASSOC_MANY_TO_MANY_SOURCE_ID_COLUMN);
+            "name", ASSOC_MANY_TO_MANY_SOURCE_ID_COLUMN,
+            "column", hibernateQuote(ASSOC_MANY_TO_MANY_SOURCE_ID_COLUMN));
         
         startElem(
             "set",
@@ -708,17 +730,19 @@ public class HibernateMappingHandler
         writeCacheElement();
         writeEmptyElem(
             "key",
-            "column", ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN);
+            "column", hibernateQuote(ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN));
         startElem(
             "composite-element", "class", assocLazyElementClass);
         writeEmptyElem(
             "property",
             "name", ASSOC_MANY_TO_MANY_TARGET_TYPE_COLUMN,
+            "column", hibernateQuote(ASSOC_MANY_TO_MANY_TARGET_TYPE_COLUMN),
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH,
             "not-null", "true");
         writeEmptyElem(
             "property",
             "name", ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN,
+            "column", hibernateQuote(ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN),
             "not-null", "true");
         endElem("composite-element");
         endElem("set");
@@ -753,21 +777,25 @@ public class HibernateMappingHandler
         writeEmptyElem(
             "property",
             "name", ASSOC_TYPE_PROPERTY,
+            "column", hibernateQuote(ASSOC_TYPE_PROPERTY),
             "not-null", "true",
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
 
         writeEmptyElem(
             "property",
             "name", ASSOC_REVERSE_POLARITY_PROPERTY,
+            "column", hibernateQuote(ASSOC_REVERSE_POLARITY_PROPERTY),
             "not-null", "true");
         
         writeEmptyElem(
             "property",
             "name", ASSOC_MANY_TO_MANY_SOURCE_TYPE_COLUMN,
+            "column", hibernateQuote(ASSOC_MANY_TO_MANY_SOURCE_TYPE_COLUMN),
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH);
         writeEmptyElem(
             "property",
-            "name", ASSOC_MANY_TO_MANY_SOURCE_ID_COLUMN);
+            "name", ASSOC_MANY_TO_MANY_SOURCE_ID_COLUMN,
+            "column", hibernateQuote(ASSOC_MANY_TO_MANY_SOURCE_ID_COLUMN));
         
         startElem(
             "list",
@@ -779,9 +807,11 @@ public class HibernateMappingHandler
         writeCacheElement();
         writeEmptyElem(
             "key",
-            "column", ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN);
+            "column", hibernateQuote(ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN));
         writeEmptyElem(
-            "list-index", "column", ASSOC_MANY_TO_MANY_TARGET_ORDINAL_COLUMN);
+            "list-index",
+            "column", 
+            hibernateQuote(ASSOC_MANY_TO_MANY_TARGET_ORDINAL_COLUMN));
         startElem(
             "composite-element", "class", assocLazyElementClass);
         // REVIEW: SWZ: 2008-07-29: purposely re-using 1-to-many field names 
@@ -790,11 +820,13 @@ public class HibernateMappingHandler
         writeEmptyElem(
             "property",
             "name", ASSOC_MANY_TO_MANY_TARGET_TYPE_COLUMN,
+            "column", hibernateQuote(ASSOC_MANY_TO_MANY_TARGET_TYPE_COLUMN),
             "length", CodeGenUtils.DEFAULT_STRING_LENGTH,
             "not-null", "true");
         writeEmptyElem(
             "property",
             "name", ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN,
+            "column", hibernateQuote(ASSOC_MANY_TO_MANY_TARGET_ID_COLUMN),
             "not-null", "true");
         endElem("composite-element");
         endElem("list");
