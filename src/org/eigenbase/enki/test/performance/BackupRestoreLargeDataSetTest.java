@@ -430,7 +430,10 @@ public class BackupRestoreLargeDataSetTest extends SampleModelTestBase
         URL importSource = 
             BackupRestoreLargeDataSetTest.class.getResource(
                 "BackupRestoreLargeDataSet.xmi");
-        
+        if (importSource == null) {
+            Assert.fail(
+                "Execute this class's main() method to generate an XMI large data set XMI file");
+        }
         File backup = 
             new File("test/results/BackupRestoreLargeDataSetTest.backup");
         
