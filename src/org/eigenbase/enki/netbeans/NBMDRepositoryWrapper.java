@@ -29,8 +29,11 @@ import java.util.logging.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 import javax.jmi.xmi.*;
+import javax.management.*;
 
+import org.eigenbase.enki.mbean.*;
 import org.eigenbase.enki.mdr.*;
+import org.eigenbase.enki.netbeans.mbean.*;
 import org.eigenbase.enki.util.*;
 import org.netbeans.api.mdr.*;
 import org.netbeans.api.mdr.events.*;
@@ -97,15 +100,37 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     public final int id;
     
     private final NBMDRepositoryImpl impl;
+    private final Properties storageProps;
     
     private Class<? extends InputStream> filterStreamCls;
     
-    public NBMDRepositoryWrapper(NBMDRepositoryImpl impl)
+    private ObjectName mbeanName;
+    
+    public NBMDRepositoryWrapper(
+        NBMDRepositoryImpl impl, 
+        Properties storageProps)
     {
         this.impl = impl;
+        this.storageProps = storageProps;
         this.id = NEXT_ID++;
+        
+        try {
+            this.mbeanName = 
+                EnkiMBeanUtil.registerRepositoryMBean(
+                    NBMDRepositoryMBeanFactory.create(this));
+        } catch(JMException e) {
+            throw new ProviderInstantiationException(
+                "Unable to register mbean", e);
+        }
     }
 
+    public void finalize()
+    {
+        if (mbeanName != null) {
+            EnkiMBeanUtil.unregisterRepositoryMBean(mbeanName);
+        }
+    }
+    
     // implement EnkiMDRepository
     public MdrProvider getProviderType()
     {
@@ -337,6 +362,9 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
 
     public void shutdown()
     {
+        EnkiMBeanUtil.unregisterRepositoryMBean(mbeanName);
+        mbeanName = null;
+        
         // Make it possible to start a new instance of NBMDRepositoryImpl
         org.netbeans.jmiimpl.mof.model.NamespaceImpl.clearContains();
         
@@ -369,6 +397,9 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     public String getAnnotation(String extentName)
     {
         MofPackage pkg = (MofPackage)getExtent(extentName).refMetaObject();
+        if (pkg == null) {
+            return null;
+        }
         
         return pkg.getAnnotation();
     }
@@ -522,6 +553,13 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     public void setRestoreExtentXmiFilter(Class<? extends InputStream> cls)
     {
         this.filterStreamCls = cls;
+    }
+    
+    public Properties getStorageProperties()
+    {
+        Properties copy = new Properties();
+        copy.putAll(storageProps);
+        return copy;
     }
     
     private static class SessionContext implements EnkiMDSession

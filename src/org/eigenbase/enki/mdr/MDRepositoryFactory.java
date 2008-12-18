@@ -60,6 +60,9 @@ public class MDRepositoryFactory
     public static final String ENKI_IMPL_TYPE = 
         "org.eigenbase.enki.implementationType";
     
+    public static final String ENKI_REPOS_NAME = 
+        "org.eigenbase.enki.repositoryName";
+    
     public static final String PROPERTY_ENKI_IMPLEMENTATION = 
         "enki.implementation";
 
@@ -201,7 +204,8 @@ public class MDRepositoryFactory
             }
 
             // load repository
-            return new NBMDRepositoryWrapper(new NBMDRepositoryImpl());
+            return new NBMDRepositoryWrapper(
+                new NBMDRepositoryImpl(), storageProps);
         } finally {
             // restore saved system properties
             for (Map.Entry<Object, Object> entry : savedProps.entrySet()) {

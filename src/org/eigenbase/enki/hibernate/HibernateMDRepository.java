@@ -32,6 +32,8 @@ import java.util.logging.*;
 
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
+import javax.management.ObjectName;
+import javax.management.JMException;
 import javax.naming.*;
 import javax.sql.*;
 
@@ -39,9 +41,11 @@ import org.eigenbase.enki.codegen.*;
 import org.eigenbase.enki.hibernate.codegen.*;
 import org.eigenbase.enki.hibernate.config.*;
 import org.eigenbase.enki.hibernate.jmi.*;
+import org.eigenbase.enki.hibernate.mbean.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.jmi.impl.*;
 import org.eigenbase.enki.jmi.model.init.*;
+import org.eigenbase.enki.mbean.*;
 import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.mdr.EnkiChangeEventThread.*;
 import org.eigenbase.enki.util.*;
@@ -535,6 +539,8 @@ public class HibernateMDRepository
 
     private boolean previewDelete;
 
+    private ObjectName mbeanName;
+
     public HibernateMDRepository(
         List<Properties> modelProperties,
         Properties storageProperties,
@@ -627,6 +633,15 @@ public class HibernateMDRepository
         
         this.sessionCount = new AtomicInteger(0);  
         this.sessionIdGenerator = new AtomicInteger(0);
+        
+        try {
+            mbeanName = 
+                EnkiMBeanUtil.registerRepositoryMBean(
+                    HibernateMDRepositoryMBeanFactory.create(this));
+        } catch (JMException e) {
+            throw new ProviderInstantiationException(
+                "Unable to register mbean", e);
+        }
     }
     
     private <T> T readStorageProperty(
@@ -638,6 +653,13 @@ public class HibernateMDRepository
             name,
             defaultValue,
             cls);
+    }
+    
+    public void finalize()
+    {
+        if (mbeanName != null) {
+            EnkiMBeanUtil.unregisterRepositoryMBean(mbeanName);
+        }
     }
     
     public MdrProvider getProviderType()
@@ -1599,6 +1621,9 @@ public class HibernateMDRepository
                 "cannot shutdown while " + count + " session(s) are open");
         }
         
+        EnkiMBeanUtil.unregisterRepositoryMBean(mbeanName);
+        mbeanName = null;
+        
         synchronized(listeners) {
             listeners.clear();
         }
@@ -1813,6 +1838,13 @@ public class HibernateMDRepository
     public SessionFactory getSessionFactory()
     {
         return sessionFactory;
+    }
+    
+    public Properties getStorageProperties()
+    {
+        Properties props = new Properties();
+        props.putAll(storageProperties);
+        return props;
     }
     
     private MdrSession getMdrSession()

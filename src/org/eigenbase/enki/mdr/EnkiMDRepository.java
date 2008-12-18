@@ -260,6 +260,13 @@ public interface EnkiMDRepository extends MDRepository
      */
     @Deprecated
     public void setRestoreExtentXmiFilter(Class<? extends InputStream> cls);
+    
+    /**
+     * Retrieves a copy of this repository's storage properties.
+     * 
+     * @return a copy of this repository's storage properties
+     */
+    public Properties getStorageProperties();
 }
 
 // End EnkiMDRepository.java
