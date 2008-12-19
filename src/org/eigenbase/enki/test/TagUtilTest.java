@@ -26,6 +26,7 @@ import java.util.*;
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
+import org.eigenbase.enki.codegen.*;
 import org.eigenbase.enki.util.*;
 import org.junit.*;
 import org.junit.runner.*;
@@ -48,7 +49,7 @@ public class TagUtilTest extends SampleModelTestBase
         for(Classifier c: allClasses) {
             List<Attribute> attribs = getAttributes(c);
             for(Attribute a: attribs) {
-                int maxLength = TagUtil.findMaxLengthTag(c, a, 128);
+                int maxLength = CodeGenUtils.findMaxLengthTag(c, a, 128);
                 Assert.assertTrue(maxLength > 0);
             }
         }

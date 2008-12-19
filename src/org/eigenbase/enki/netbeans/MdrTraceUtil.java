@@ -100,16 +100,16 @@ public class MdrTraceUtil
 
     /**
      * TracingErrorManager overrides the Netbeans ErrorManager to intercept
-     * messages and route them to the configured tracer.
+     * messages and route them to the configured logger.
      */
     private static class TracingErrorManager
         extends ErrorManager
     {
-        private final Logger tracer;
+        private final Logger logger;
 
-        TracingErrorManager(Logger tracer)
+        TracingErrorManager(Logger logger)
         {
-            this.tracer = tracer;
+            this.logger = logger;
         }
 
         // implement ErrorManager
@@ -136,32 +136,32 @@ public class MdrTraceUtil
             java.util.Date date)
         {
             Level level = convertSeverity(severity);
-            if (!tracer.isLoggable(level)) {
+            if (!logger.isLoggable(level)) {
                 return t;
             }
-            tracer.throwing(
+            logger.throwing(
                 "MdrUtil.TracingErrorManager",
                 "annotate",
                 t);
-            if (tracer.isLoggable(Level.FINEST) && (stackTrace != null)) {
-                tracer.throwing(
+            if (logger.isLoggable(Level.FINEST) && (stackTrace != null)) {
+                logger.throwing(
                     "MdrUtil.TracingErrorManager",
                     "annotate:stackTrace",
                     stackTrace);
             }
-            tracer.log(level, message, t);
+            logger.log(level, message, t);
             if (t instanceof JmiException) {
                 JmiException ex = (JmiException) t;
-                tracer.log(
+                logger.log(
                     level,
                     "JmiException.ELEMENT:  " + ex.getElementInError());
-                tracer.log(
+                logger.log(
                     level,
                     "JmiException.OBJECT:  " + ex.getObjectInError());
             }
             if (t instanceof TypeMismatchException) {
                 TypeMismatchException ex = (TypeMismatchException) t;
-                tracer.log(
+                logger.log(
                     level,
                     "TypeMismatchException.EXPECTED:  "
                     + ex.getExpectedType());
@@ -172,13 +172,13 @@ public class MdrTraceUtil
         // implement ErrorManager
         public void notify(int severity, Throwable t)
         {
-            tracer.throwing("MdrUtil.TracingErrorManager", "notify", t);
+            logger.throwing("MdrUtil.TracingErrorManager", "notify", t);
         }
 
         // implement ErrorManager
         public void log(int severity, String s)
         {
-            tracer.log(
+            logger.log(
                 convertSeverity(severity),
                 s);
         }

@@ -161,7 +161,7 @@ public abstract class EventValidator
     }
     
     abstract EventValidator cloneWithNewExpectedEventType(
-        EventType expectedEventType);
+        EventType newEventType);
 }
 
 // End EventValidator.java

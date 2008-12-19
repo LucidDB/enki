@@ -92,8 +92,7 @@ public class ImportXmiSubTask extends SubTask
         repos.beginSession();
         try {
             boolean builtIn = repos.isExtentBuiltIn(extent);
-            if (builtIn) {            
-                // TODO: perform import for Hibernate implementation
+            if (builtIn) {
                 System.out.println(
                     "Ignoring import step for built-in extent '" + extent + "'");
                 return;

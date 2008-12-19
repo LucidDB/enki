@@ -68,14 +68,14 @@ public class MofIdGenerator
         String blockSizeStr = 
             enkiProps.getProperty(
                 PROPERTY_BLOCK_SIZE, String.valueOf(DEFAULT_BLOCK_SIZE));
-        int blockSize;
+        int blockSizeInit;
         try {
-            blockSize = Integer.parseInt(blockSizeStr);
+            blockSizeInit = Integer.parseInt(blockSizeStr);
         }
         catch(NumberFormatException e) {
-            blockSize = DEFAULT_BLOCK_SIZE;
+            blockSizeInit = DEFAULT_BLOCK_SIZE;
         }
-        this.blockSize = blockSize;
+        this.blockSize = blockSizeInit;
         
         this.tableName = 
             enkiProps.getProperty(PROPERTY_TABLE_NAME, DEFAULT_TABLE_NAME);

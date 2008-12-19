@@ -2548,10 +2548,6 @@ public class HibernateMDRepository
                 exists = true;
             } catch(HibernateException e) {
                 // Presume that table doesn't exist.
-                
-                // REVIEW: SWZ: 3/12/08: If it's a connection error, and
-                // suddenly starts working (startup race?) we could 
-                // conceivably destroy the tables, which would be bad.
                 log.log(Level.FINE, "Extent Query Error", e);
             }
         } finally {

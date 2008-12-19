@@ -100,17 +100,17 @@ public class ReferenceInfoImpl
             baseName = StringUtil.toInitialUpper(referencedEnd.getName());
         }
         
-        String fieldName;
+        String fieldNameInit;
         if (prefixWithAssocName) {
-            fieldName = 
+            fieldNameInit = 
                 StringUtil.toInitialLower(assoc.getName()) + "_" +
                 StringUtil.toInitialUpper(referencedEnd.getName());
         } else {
-            fieldName = StringUtil.toInitialLower(referencedEnd.getName());
+            fieldNameInit = StringUtil.toInitialLower(referencedEnd.getName());
         }
 
         this.referenceEndBaseName = baseName;
-        this.fieldName = fieldName;
+        this.fieldName = fieldNameInit;
         
         this.isReferenceEndFirst = (getEnd(0) == referencedEnd);
         

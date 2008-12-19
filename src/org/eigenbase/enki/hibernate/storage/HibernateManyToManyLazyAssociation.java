@@ -51,16 +51,16 @@ public abstract class HibernateManyToManyLazyAssociation
     }
     
     @Override
-    public void addInitialTarget(HibernateAssociable target)
+    public void addInitialTarget(HibernateAssociable newTarget)
     {
         Set<Element> targets = getTarget();
         
-        if (target== null) {
+        if (newTarget== null) {
             targets = new HashSet<Element>();
             setTarget(targets);
         }
         
-        targets.add(newElement(target));
+        targets.add(newElement(newTarget));
     }
 
     @Override
@@ -100,14 +100,14 @@ public abstract class HibernateManyToManyLazyAssociation
     
     public void postRemove(HibernateAssociable end1, HibernateAssociable end2)
     {
-        HibernateAssociable source;
-        HibernateAssociable target;
+        HibernateAssociable sourceEnd;
+        HibernateAssociable targetEnd;
         if (getReversed()) {
-            source = end2;
-            target = end1;
+            sourceEnd = end2;
+            targetEnd = end1;
         } else {
-            source = end1;
-            target = end2;
+            sourceEnd = end1;
+            targetEnd = end2;
         }
 
         final String type = getType();
@@ -116,10 +116,10 @@ public abstract class HibernateManyToManyLazyAssociation
         boolean sourceIsFirstEnd = !targetIsFirstEnd;
         
         HibernateManyToManyLazyAssociationBase sourceAssoc =
-            (HibernateManyToManyLazyAssociationBase)source.getAssociation(
+            (HibernateManyToManyLazyAssociationBase)sourceEnd.getAssociation(
                 type, sourceIsFirstEnd);
         HibernateManyToManyLazyAssociationBase targetAssoc =
-            (HibernateManyToManyLazyAssociationBase)target.getAssociation(
+            (HibernateManyToManyLazyAssociationBase)targetEnd.getAssociation(
                 type, targetIsFirstEnd);
 
         assert(equals(sourceAssoc, this) || equals(targetAssoc, this));
@@ -128,22 +128,22 @@ public abstract class HibernateManyToManyLazyAssociation
             sourceAssoc.getTargetElements();
         
         if (sourceAssocTargets.isEmpty()) {
-            source.setAssociation(type, sourceIsFirstEnd, null);
+            sourceEnd.setAssociation(type, sourceIsFirstEnd, null);
 
-            sourceAssoc.delete(getHibernateRepository(source));
+            sourceAssoc.delete(getHibernateRepository(sourceEnd));
         }
         
         Collection<Element> targetAssocTargets = 
             targetAssoc.getTargetElements();
         
         boolean removedFromTargetAssoc = 
-            targetAssocTargets.remove(newElement(source));
+            targetAssocTargets.remove(newElement(sourceEnd));
         
         if (removedFromTargetAssoc) {
             if (targetAssocTargets.isEmpty()) {
-                target.setAssociation(type, targetIsFirstEnd, null);
+                targetEnd.setAssociation(type, targetIsFirstEnd, null);
     
-                targetAssoc.delete(getHibernateRepository(source));
+                targetAssoc.delete(getHibernateRepository(sourceEnd));
             }
         }        
     }

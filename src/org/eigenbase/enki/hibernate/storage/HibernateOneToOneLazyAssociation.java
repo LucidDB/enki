@@ -103,12 +103,12 @@ public abstract class HibernateOneToOneLazyAssociation
 
     public HibernateAssociable getParent()
     {
-        String parentType = getParentType();
-        if (parentType == null) {
+        String type = getParentType();
+        if (type == null) {
             return null;
         }
         
-        return (HibernateAssociable)load(parentType, getParentId());
+        return (HibernateAssociable)load(type, getParentId());
     }
     
     public <E> E getParent(Class<E> cls)
@@ -118,12 +118,12 @@ public abstract class HibernateOneToOneLazyAssociation
 
     public HibernateAssociable getChild()
     {
-        String childType = getChildType();
-        if (childType == null) {
+        String type = getChildType();
+        if (type == null) {
             return null;
         }
         
-        return (HibernateAssociable)load(childType, getChildId());
+        return (HibernateAssociable)load(type, getChildId());
     }
     
     public <E> E getChild(Class<E> cls)

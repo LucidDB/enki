@@ -179,7 +179,7 @@ public abstract class HibernateLazyAssociationBase
     {
         assert(elements.size() == loadedObjects.size());
         
-        // TODO: SWZ: 2008-07-14: These is nearly identical to loadBatch,
+        // TODO: SWZ: 2008-07-14: This is nearly identical to loadBatch,
         // except for the multi-map usage.  Perhaps simply combine them.
         List<Long> preLoadMofIds = new ArrayList<Long>();
         MultiHashMap preLoadIndexes = new MultiHashMap();

@@ -58,14 +58,14 @@ public abstract class HibernateOneToManyLazyOrderedAssociation
     @Override
     public void addInitialChild(HibernateAssociable child)
     {
-        List<Element> children = getChildren();
+        List<Element> childList = getChildren();
         
-        if (children == null) {
-            children = new ArrayList<Element>();
-            setChildren(children);
+        if (childList == null) {
+            childList = new ArrayList<Element>();
+            setChildren(childList);
         }
         
-        children.add(newElement(child));
+        childList.add(newElement(child));
     }
     
     @Override
@@ -176,10 +176,10 @@ public abstract class HibernateOneToManyLazyOrderedAssociation
     
     public List<HibernateAssociable> getCollection()
     {
-        List<Element> children = getChildren();
+        List<Element> childList = getChildren();
         
-        if (childrenWrapper == null || childrenWrapper.elements != children) {
-            childrenWrapper = new ElementList(children);
+        if (childrenWrapper == null || childrenWrapper.elements != childList) {
+            childrenWrapper = new ElementList(childList);
         }
 
         return childrenWrapper;
@@ -290,7 +290,7 @@ public abstract class HibernateOneToManyLazyOrderedAssociation
             parentIsFirstEnd = true;
         }
 
-        List<Element> children = getChildren();
+        List<Element> childList = getChildren();
 
         boolean inPreviewDelete =
             getHibernateRepository(item).inPreviewDelete();
@@ -300,7 +300,7 @@ public abstract class HibernateOneToManyLazyOrderedAssociation
                 item.setAssociation(type, parentIsFirstEnd, null);
             }
             
-            for(Element child: children) {
+            for(Element child: childList) {
                 RefObject childRefObj = load(child);
                 
                 if (!inPreviewDelete) {
@@ -321,9 +321,9 @@ public abstract class HibernateOneToManyLazyOrderedAssociation
             if (!inPreviewDelete) {
                 item.setAssociation(type, !parentIsFirstEnd, null);
                 Element elem = newElement(item);
-                children.remove(elem);
+                childList.remove(elem);
             
-                if (children.isEmpty()) {
+                if (childList.isEmpty()) {
                     getParent().setAssociation(type, parentIsFirstEnd, null);
                     emptyElements();
                     delete(getHibernateRepository(item));

@@ -90,7 +90,7 @@ public class HibernateMofInitHandler extends MofInitHandler
                 
                 MofPackage owningPackage = (MofPackage)pkg.getContainer();
                 if (owningPackage == null) {
-                    // TODO: is this valid?
+                    // REVIEW: SWZ: 2008-12-19: is this a valid case?
                     throw new GenerationException("unowned, included package");
                 }
                 

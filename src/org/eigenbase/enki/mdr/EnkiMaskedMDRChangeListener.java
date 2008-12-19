@@ -75,12 +75,12 @@ public class EnkiMaskedMDRChangeListener implements MDRPreChangeListener
             return;
         }
 
-        int mask;
+        int localMask;
         synchronized(this) {
-            mask = this.mask;
+            localMask = this.mask;
         }
                
-        if (event.isOfType(mask)) {
+        if (event.isOfType(localMask)) {
             try {
                 preListener.changeCancelled(event);
             }
@@ -100,12 +100,12 @@ public class EnkiMaskedMDRChangeListener implements MDRPreChangeListener
             return;
         }
         
-        int mask;
+        int localMask;
         synchronized(this) {
-            mask = this.mask;
+            localMask = this.mask;
         }
         
-        if (event.isOfType(mask)) {
+        if (event.isOfType(localMask)) {
             try {
                 preListener.plannedChange(event);
             }
@@ -121,12 +121,12 @@ public class EnkiMaskedMDRChangeListener implements MDRPreChangeListener
     // Implements MDRChangeListener
     public void change(MDRChangeEvent event)
     {
-        int mask;
+        int localMask;
         synchronized(this) {
-            mask = this.mask;
+            localMask = this.mask;
         }
         
-        if (event.isOfType(mask)) {
+        if (event.isOfType(localMask)) {
             try {
                 listener.change(event);
             }

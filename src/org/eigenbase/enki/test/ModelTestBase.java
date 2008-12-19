@@ -115,11 +115,11 @@ public abstract class ModelTestBase
         pkg = getRepository().getExtent(getTestExtentName());
     }
     
-    private static void delete(RefPackage pkg)
+    private static void delete(RefPackage refPkg)
     {
         for(RefClass cls: 
                 GenericCollections.asTypedCollection(
-                    pkg.refAllClasses(),
+                    refPkg.refAllClasses(),
                     RefClass.class))
         {
             Collection<RefObject> allOfClass = 
@@ -150,7 +150,7 @@ public abstract class ModelTestBase
         
         for(RefPackage p: 
                 GenericCollections.asTypedCollection(
-                    pkg.refAllPackages(),
+                    refPkg.refAllPackages(),
                     RefPackage.class))
         {
             delete(p);

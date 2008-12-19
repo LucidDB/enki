@@ -285,14 +285,12 @@ public class CodeGenUtils
      * that the maximum storage size for the underlying database should be used
      * and causes the value {@link Integer#MAX_VALUE} to be returned.
      * 
-     * <p><b>NOTE:</b> 
-     * {@link TagUtil#findMaxLengthTag(Classifier, Attribute, int)}</p>
-     * 
      * @param cls Classifier in which the Attribute appears (perhaps via
      *            inheritance)
      * @param attrib Attribute to get a maximum length
      * @param defaultMaxLength the default to return if no other value is found
-     * @param log optional Logger to use if an out-of-range value is truncated 
+     * @param logger optional Logger to use if an out-of-range value is 
+     *               truncated 
      * @return the maximum length for the Classifier and Attribute given,
      *         Integer.MAX_VALUE for unlimited.
      * @throws NumberFormatException if a tag value cannot be converted to an 
@@ -302,23 +300,42 @@ public class CodeGenUtils
         Classifier cls, 
         Attribute attrib, 
         int defaultMaxLength,
-        Logger log)
+        Logger logger)
     {
         String maxLen = TagUtil.getTagValue(attrib, MAX_LENGTH_TAG_NAME);
         if (maxLen != null) {
-            return convertMaxLengthToInt(maxLen, log, attrib.getName());
+            return convertMaxLengthToInt(maxLen, logger, attrib.getName());
         }
 
         // Check the attribute's container (Classifier) for a class-level 
         // default.
         maxLen = findMaxLength(cls); 
         if (maxLen != null) {
-            return convertMaxLengthToInt(maxLen, log, attrib.getName());
+            return convertMaxLengthToInt(maxLen, logger, attrib.getName());
         }
         
         return defaultMaxLength;
     }
 
+    /**
+     * Returns the maximum length for a given attribute in a given class.
+     * Equivalent to 
+     * {@link #findMaxLengthTag(Classifier, Attribute, int, Logger) 
+     *        findMaxLengthTag(cls, attrib, defaultMaxLength, null)}.
+     * 
+     * @param cls object's class
+     * @param attrib object's attribute
+     * @param defaultMaxLength default maximum length
+     * @return max length for the class/attribute combination
+     */
+    public static int findMaxLengthTag(
+        Classifier cls, 
+        Attribute attrib, 
+        int defaultMaxLength)
+    {
+        return findMaxLengthTag(cls, attrib, defaultMaxLength, null);
+    }
+    
     /**
      * Converts a maximum length string into an integer.  Performs truncation 
      * for out-of bounds values and supports
@@ -326,14 +343,14 @@ public class CodeGenUtils
      * {@link #findMaxLengthTag(Classifier, Attribute, int, Logger)}.
      * 
      * @param maxLen maximum length string
-     * @param log logger for out-of-bounds logging
+     * @param logger logger for out-of-bounds logging
      * @param attribName attribute name for out-of-bounds logging
      * @return int representation of maxLen
      * @throws NumberFormatException if maxLen cannot be converted to an 
      *                               integer
      */
     private static int convertMaxLengthToInt(
-        String maxLen, Logger log, String attribName)
+        String maxLen, Logger logger, String attribName)
     throws NumberFormatException
     {
         if (MAX_LENGTH_UNLIMITED_VALUE.equals(maxLen)) {
@@ -343,8 +360,8 @@ public class CodeGenUtils
         int max = Integer.parseInt(maxLen);
         
         if (max < 1) {
-            if (log != null) {
-                log.warning(
+            if (logger != null) {
+                logger.warning(
                     "Adjusted string length for attribute '"
                     + attribName
                     + "' to 1");
@@ -921,9 +938,8 @@ public class CodeGenUtils
             String pkgPrefix = 
                 TagUtil.getTagValue(pkg, TagUtil.TAGID_PACKAGE_PREFIX);
             if (pkgPrefix != null) {
-                // Package names are all-lowercase alphabetic.
-                // REVIEW: SWZ: 10/31/2007: Make sure pkgPrefix doesn't 
-                // contain non-alphabetic characters.
+                // Package names are all-lowercase alphabetic. Let javac
+                // worry about legality.
                 buffer.append(pkgPrefix.toLowerCase(Locale.US)).append('.');
             }
         } else {

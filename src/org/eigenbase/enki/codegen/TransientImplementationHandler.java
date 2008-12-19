@@ -120,9 +120,6 @@ public abstract class TransientImplementationHandler
     private static final JavaClassReference JAVA_UTIL_ARRAYS_CLASS =
         new JavaClassReference(Arrays.class, true);
     
-    private static final JavaClassReference JMI_EXCEPTION_CLASS =
-        new JavaClassReference(JmiException.class, true);
-    
     private static final JavaClassReference MULTIPLICITY_CLASS =
         new JavaClassReference(Multiplicity.class, true);
 

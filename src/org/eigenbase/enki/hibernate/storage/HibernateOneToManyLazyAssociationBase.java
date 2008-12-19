@@ -75,12 +75,12 @@ public abstract class HibernateOneToManyLazyAssociationBase
 
     public HibernateAssociable getParent()
     {
-        String parentType = getParentType();
-        if (parentType == null) {
+        String type = getParentType();
+        if (type == null) {
             return null;
         }
         
-        return (HibernateAssociable)load(parentType, getParentId());
+        return (HibernateAssociable)load(type, getParentId());
     }
 
     protected abstract boolean getUnique();

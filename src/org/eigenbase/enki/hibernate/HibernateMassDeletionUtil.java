@@ -250,13 +250,15 @@ class HibernateMassDeletionUtil
      * as all of type or class caches.  It's intended use is to implement
      * dropExtent only.
      *
-     * @param session a Hibernate session object
+     * @param currentSession a Hibernate session object
      * @param pkg the RefPackage (extent root) to delete objects from
      */
-    void massDeleteAll(Session session, RefPackage pkg)
+    void massDeleteAll(Session currentSession, RefPackage pkg)
     {
+        this.session = currentSession;
+        
         Map<String, String> instanceClassMap = new HashMap<String, String>();
-        Set<Class<?>> evictionSet = new HashSet<Class<?>>();
+        Set<Class<?>> classEvictionSet = new HashSet<Class<?>>();
         
         List<String> assocTables = new ArrayList<String>();
 
@@ -282,7 +284,7 @@ class HibernateMassDeletionUtil
                     if (cls != null) {
                         instanceClassMap.put(
                             cls.getName(), hrc.getClassIdentifier());
-                        evictionSet.add(cls);
+                        classEvictionSet.add(cls);
                     }
                 }
             }
@@ -329,7 +331,7 @@ class HibernateMassDeletionUtil
         
         // Evict all instance of the deleted types from the second level cache.
         SessionFactory sessionFactory = session.getSessionFactory();
-        for(Class<?> cls: evictionSet) {
+        for(Class<?> cls: classEvictionSet) {
             sessionFactory.evict(cls);
         }
         sessionFactory.evictQueries();
@@ -825,9 +827,9 @@ class HibernateMassDeletionUtil
         return removals;
     }
     
-    private void computeTableMaps(HibernateAssociation... assocs)
+    private void computeTableMaps(HibernateAssociation... sampleAssocs)
     {
-        for(HibernateAssociation assoc: assocs) {
+        for(HibernateAssociation assoc: sampleAssocs) {
             if (assoc != null) {
                 HibernateAssociation.Kind kind = assoc.getKind();
                 

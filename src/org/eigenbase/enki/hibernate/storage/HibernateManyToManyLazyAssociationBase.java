@@ -75,12 +75,12 @@ public abstract class HibernateManyToManyLazyAssociationBase
     
     public HibernateAssociable getSource()
     {
-        String sourceType = getSourceType();
-        if (sourceType == null) {
+        String type = getSourceType();
+        if (type == null) {
             return null;
         }
         
-        return (HibernateAssociable)load(sourceType, getSourceId());
+        return (HibernateAssociable)load(type, getSourceId());
     }
 
     public <E> E getSource(Class<E> cls)
@@ -276,14 +276,14 @@ public abstract class HibernateManyToManyLazyAssociationBase
 
     public Collection<RefAssociationLink> getLinks()
     {
-        boolean reversed = getReversed();
+        boolean rev = getReversed();
 
         ArrayList<RefAssociationLink> links = 
             new ArrayList<RefAssociationLink>();
         HibernateAssociable source = getSource();
         for(HibernateAssociable target: getTargetCollection()) {
             RefAssociationLink link;
-            if (reversed) {
+            if (rev) {
                 link = new RefAssociationLinkImpl(target, source);
             } else {
                 link = new RefAssociationLinkImpl(source, target);
@@ -295,9 +295,9 @@ public abstract class HibernateManyToManyLazyAssociationBase
 
     public Collection<? extends RefObject> query(boolean returnSecondEnd)
     {
-        boolean reversed = getReversed();
+        boolean rev = getReversed();
         boolean getSource;
-        if (reversed) {
+        if (rev) {
             getSource = returnSecondEnd;
         } else {
             getSource = !returnSecondEnd;

@@ -98,7 +98,7 @@ public class AttributeSetEventValidator extends AttributeEventValidator
     }
 
     @Override
-    EventValidator cloneWithNewExpectedEventType(EventType expectedEventType)
+    EventValidator cloneWithNewExpectedEventType(EventType newEventType)
     {
         Class<? extends RefObject> newType = null;
         if (expectedNewType != null) {
@@ -111,7 +111,7 @@ public class AttributeSetEventValidator extends AttributeEventValidator
         }
         
         return new AttributeSetEventValidator(
-            expectedEventType,
+            newEventType,
             expectedAttributeName,
             valueAttributeName,
             newType,

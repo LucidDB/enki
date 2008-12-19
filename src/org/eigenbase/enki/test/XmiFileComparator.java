@@ -320,33 +320,33 @@ public class XmiFileComparator
             this.name = name;
             this.attributes = new TreeMap<String, String>();
             
-            String xmiId = null;
-            boolean isReference = false;
+            String xmiIdValue = null;
+            boolean isReferenceValue = false;
             for(int i = 0; i < xmlAttributes.getLength(); i++) {
                 String attribName = xmlAttributes.getQName(i);
                 String attribValue = xmlAttributes.getValue(i);
                 
                 if (attribName.equals("xmi.id")) {
-                    assert(xmiId == null);
-                    xmiId = attribValue;
+                    assert(xmiIdValue == null);
+                    xmiIdValue = attribValue;
                 } else if (attribName.equals("xmi.idref")) {
-                    assert(xmiId == null);
-                    xmiId = attribValue;
-                    isReference = true;
+                    assert(xmiIdValue == null);
+                    xmiIdValue = attribValue;
+                    isReferenceValue = true;
                 } else if (name.equals("XMI") && attribName.equals("timestamp")) {
                     this.attributes.put(attribName, "<timestamp-ignored>");                    
                 } else {
                     this.attributes.put(attribName, attribValue);
                 }
             }
-            this.xmiId = xmiId;
-            this.isReference = isReference;
+            this.xmiId = xmiIdValue;
+            this.isReference = isReferenceValue;
             this.lineNumber = locator.getLineNumber();
             this.children = new ArrayList<Element>();
             this.characters = new StringBuffer();
             
-            if (!isReference && xmiId != null) {
-                getXmiIdElemMap().put(xmiId, this);
+            if (!isReferenceValue && xmiIdValue != null) {
+                getXmiIdElemMap().put(xmiIdValue, this);
             }
         }
      

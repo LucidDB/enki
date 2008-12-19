@@ -64,8 +64,8 @@ public class MofIdTypeMapping
     
     public int hashCode()
     {
-        long mofId = this.getMofId();
-        return (int)(mofId >>> 32) ^ (int)mofId;
+        long localMofId = this.getMofId();
+        return (int)(localMofId >>> 32) ^ (int)localMofId;
     }
 }
 

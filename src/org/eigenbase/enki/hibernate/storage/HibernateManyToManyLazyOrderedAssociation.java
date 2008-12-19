@@ -58,16 +58,16 @@ public abstract class HibernateManyToManyLazyOrderedAssociation
     }
     
     @Override
-    public void addInitialTarget(HibernateAssociable target)
+    public void addInitialTarget(HibernateAssociable newTarget)
     {
         List<Element> targets = getTarget();
         
-        if (target == null) {
+        if (newTarget == null) {
             targets = new ArrayList<Element>();
             setTarget(targets);
         }
         
-        targets.add(newElement(target));
+        targets.add(newElement(newTarget));
     }
 
     @Override
@@ -78,10 +78,10 @@ public abstract class HibernateManyToManyLazyOrderedAssociation
 
     protected List<HibernateAssociable> getTargetList()
     {
-        List<Element> target = getTarget();
+        List<Element> targetList = getTarget();
         
-        if (targetWrapper == null || targetWrapper.elements != target) {
-            targetWrapper = new ElementList(target);
+        if (targetWrapper == null || targetWrapper.elements != targetList) {
+            targetWrapper = new ElementList(targetList);
         }
 
         return targetWrapper;
@@ -163,17 +163,17 @@ public abstract class HibernateManyToManyLazyOrderedAssociation
     public boolean remove(
         int index, HibernateAssociable end1, HibernateAssociable end2)
     {
-        HibernateAssociable source;
-        HibernateAssociable target;
+        HibernateAssociable sourceEnd;
+        HibernateAssociable targetEnd;
         if (getReversed()) {
-            source = end2;
-            target = end1;
+            sourceEnd = end2;
+            targetEnd = end1;
         } else {
-            source = end1;
-            target = end2;
+            sourceEnd = end1;
+            targetEnd = end2;
         }
 
-        return removeInternal(source, target, index);
+        return removeInternal(sourceEnd, targetEnd, index);
     }
     
     public Collection <HibernateAssociable> get(HibernateAssociable item)

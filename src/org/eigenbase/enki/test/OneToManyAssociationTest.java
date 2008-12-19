@@ -673,8 +673,8 @@ public class OneToManyAssociationTest extends SampleModelTestBase
     @Test
     public void testUnorderedDuplicates()
     {
-        final int N = 4;
-        final int EN = 1;
+        final int N_DUPS = 4;
+        final int EXPECTED_N = 1;
         
         String e12MofId;
         String e13MofId;
@@ -688,7 +688,7 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             Entity13 e13 = getSimplePackage().getEntity13().createEntity13();
             e13MofId = e13.refMofId();
             
-            for(int i = 0; i < N; i++) {
+            for(int i = 0; i < N_DUPS; i++) {
                 e12.getEntity13().add(e13);
             }
         }
@@ -703,7 +703,7 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             
             Collection<Entity13> entities13 = e12.getEntity13();
             
-            Assert.assertEquals(EN, entities13.size());
+            Assert.assertEquals(EXPECTED_N, entities13.size());
             for(Entity13 e13: entities13) {
                 Assert.assertEquals(e13MofId, e13.refMofId());
             }
@@ -716,7 +716,7 @@ public class OneToManyAssociationTest extends SampleModelTestBase
     @Test
     public void testOrderedDuplicates()
     {
-        final int N = 4;
+        final int N_DUPS = 4;
         
         String e16MofId;
         String e17MofId;
@@ -730,7 +730,7 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             Entity17 e17 = getSimplePackage().getEntity17().createEntity17();
             e17MofId = e17.refMofId();
             
-            for(int i = 0; i < N; i++) {
+            for(int i = 0; i < N_DUPS; i++) {
                 e16.getEntity17().add(e17);
             }
         }
@@ -745,7 +745,7 @@ public class OneToManyAssociationTest extends SampleModelTestBase
             
             List<Entity17> entities17 = e16.getEntity17();
             
-            Assert.assertEquals(N, entities17.size());
+            Assert.assertEquals(N_DUPS, entities17.size());
             for(Entity17 e17: entities17) {
                 Assert.assertEquals(e17MofId, e17.refMofId());
             }
@@ -755,14 +755,14 @@ public class OneToManyAssociationTest extends SampleModelTestBase
         }
         
         // Remove by index, one at a time
-        for(int repeat = 0; repeat <= N; repeat++) {
+        for(int repeat = 0; repeat <= N_DUPS; repeat++) {
             getRepository().beginTrans(true);
             try {
                 Entity16 e16 = (Entity16)getRepository().getByMofId(e16MofId);
                 
                 List<Entity17> entities17 = e16.getEntity17();
                 
-                Assert.assertEquals(N - repeat, entities17.size());
+                Assert.assertEquals(N_DUPS - repeat, entities17.size());
                 for(Entity17 e17: entities17) {
                     Assert.assertEquals(e17MofId, e17.refMofId());
                 }

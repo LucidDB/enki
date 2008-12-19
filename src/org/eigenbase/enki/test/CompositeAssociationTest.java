@@ -284,7 +284,7 @@ public class CompositeAssociationTest
     public void testMultipleComposition()
     {
         // TODO: test that a single Log cannot simultaneously be a component
-        // of a LogCabin and LogRaft (not current enforced)
+        // of a LogCabin and LogRaft (not currently enforced)
         getRepository().beginTrans(false);        
         try {
             Collection<Log> logs =

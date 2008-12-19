@@ -134,19 +134,19 @@ public abstract class HandlerBase
     }
     
     // Implement Handler
-    public void beginPass(int passIndex) throws GenerationException
+    public void beginPass(int newPassIndex) throws GenerationException
     {
-        if (passIndex >= getNumPasses()) {
+        if (newPassIndex >= getNumPasses()) {
             throw new GenerationException(
                 "Invalid internal state: too many passes");
         }
-        this.passIndex = passIndex;
+        this.passIndex = newPassIndex;
     }
     
     // Implement Handler
-    public void endPass(int passIndex) throws GenerationException
+    public void endPass(int endingPassIndex) throws GenerationException
     {
-        if (this.passIndex != passIndex) {
+        if (this.passIndex != endingPassIndex) {
             throw new GenerationException(
                 "Invalid internal state: passIndex mismatch");
         }

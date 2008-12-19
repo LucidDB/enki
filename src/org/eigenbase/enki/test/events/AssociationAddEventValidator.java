@@ -105,10 +105,10 @@ public class AssociationAddEventValidator extends AssociationEventValidator
     }
 
     @Override
-    EventValidator cloneWithNewExpectedEventType(EventType expectedEventType)
+    EventValidator cloneWithNewExpectedEventType(EventType newEventType)
     {
         return new AssociationAddEventValidator(
-            expectedEventType,
+            newEventType,
             expectedEndName,
             expectedFixedType,
             fixedTypeAttrib,

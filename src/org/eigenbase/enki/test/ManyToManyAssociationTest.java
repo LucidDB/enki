@@ -878,8 +878,7 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
     @Test
     public void testUnorderedDuplicates()
     {
-        final int N = 4;
-        final int EN = 1;
+        final int EXPECTED_N = 1;
         
         String e20RefMofId;
         String e21RefMofId;
@@ -909,7 +908,7 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
             
             Collection<Entity21> entities21 = e20.getEntity21();
             
-            Assert.assertEquals(EN, entities21.size());
+            Assert.assertEquals(EXPECTED_N, entities21.size());
             
             for(Entity21 e21: entities21) {
                 Assert.assertEquals(e21RefMofId, e21.refMofId());
@@ -923,8 +922,6 @@ public class ManyToManyAssociationTest extends SampleModelTestBase
     @Test
     public void testOrderedDuplicates()
     {
-        final int N = 4;
-        
         String e22RefMofId;
         String e23RefMofId;
 

@@ -3191,8 +3191,8 @@ public class HibernateJavaHandler
             
             newLine();
             
-            // TODO: collect this information once (rather than recomputing
-            // for each class in instance and proxy generation)
+            // REVIEW: SWZ: Could collect this information once (rather than 
+            // recomputing for each class in instance and proxy generation)
             Collection<Reference> instanceReferences =
                 CodeGenUtils.contentsOfType(
                     cls,

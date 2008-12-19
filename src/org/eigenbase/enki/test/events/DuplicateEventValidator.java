@@ -70,7 +70,7 @@ public class DuplicateEventValidator extends EventValidator
     }
     
     @Override
-    EventValidator cloneWithNewExpectedEventType(EventType expectedEventType)
+    EventValidator cloneWithNewExpectedEventType(EventType newEventType)
     {
         throw new UnsupportedOperationException();
     }    

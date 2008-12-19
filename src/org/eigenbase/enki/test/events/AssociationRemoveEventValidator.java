@@ -107,10 +107,10 @@ public class AssociationRemoveEventValidator
     }
     
     @Override
-    EventValidator cloneWithNewExpectedEventType(EventType expectedEventType)
+    EventValidator cloneWithNewExpectedEventType(EventType newEventType)
     {
         return new AssociationRemoveEventValidator(
-            expectedEventType,
+            newEventType,
             expectedEndName,
             expectedFixedType,
             fixedTypeAttrib,

@@ -230,14 +230,14 @@ public class ExportImportTest extends SampleModelTestBase
         }
     }
     
-    private static void exportExtent(RefPackage refPackage, File file) 
+    private static void exportExtent(RefPackage refPackage, File exportFile) 
         throws IOException
     {
-        exportXmi(refPackage, file, null);
+        exportXmi(refPackage, exportFile, null);
     }
     
     private static void exportXmi(
-        RefPackage refPackage, File file, Collection roots) 
+        RefPackage refPackage, File exportFile, Collection roots) 
         throws IOException
     {
         getRepository().beginTrans(false);
@@ -245,7 +245,7 @@ public class ExportImportTest extends SampleModelTestBase
         try {
             XmiWriter xmiWriter = 
                 XMIWriterFactory.getDefault().createXMIWriter();
-            FileOutputStream outStream = new FileOutputStream(file);
+            FileOutputStream outStream = new FileOutputStream(exportFile);
             try {
                 if (roots == null) {
                     xmiWriter.write(outStream, refPackage, "1.2");
@@ -308,7 +308,7 @@ public class ExportImportTest extends SampleModelTestBase
     }
     
     private Collection importExtent(
-        RefPackage extent, File file) throws Exception
+        RefPackage extent, File importFile) throws Exception
     {
         MDRepository mdrRepos = getRepository();
 
@@ -319,7 +319,7 @@ public class ExportImportTest extends SampleModelTestBase
             rollback = true;
             
             Collection roots = xmiReader.read(
-                file.toURL().toString(),
+                importFile.toURL().toString(),
                 extent);
             
             rollback = false;

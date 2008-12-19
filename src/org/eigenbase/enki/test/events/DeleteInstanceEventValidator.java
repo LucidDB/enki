@@ -70,9 +70,9 @@ public class DeleteInstanceEventValidator
     }
 
     @Override
-    EventValidator cloneWithNewExpectedEventType(EventType expectedEventType)
+    EventValidator cloneWithNewExpectedEventType(EventType newEventType)
     {
-        return new DeleteInstanceEventValidator(expectedEventType, mofId);
+        return new DeleteInstanceEventValidator(newEventType, mofId);
     }
 
 }

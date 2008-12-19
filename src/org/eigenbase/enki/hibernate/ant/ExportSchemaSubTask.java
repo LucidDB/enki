@@ -270,11 +270,11 @@ public class ExportSchemaSubTask
         }
     }
 
-    private void export(Configuration config, File file, boolean create)
+    private void export(Configuration config, File exportFile, boolean create)
     {
         SchemaExport exporter = new SchemaExport(config);
         exporter.setDelimiter(DELIMITER);
-        exporter.setOutputFile(file.getPath());
+        exporter.setOutputFile(exportFile.getPath());
         exporter.execute(false, false, !create, create);
     }
     
@@ -284,7 +284,7 @@ public class ExportSchemaSubTask
      * create additional tables for a model plugin.
      * 
      * @param config Hibernate configuration
-     * @param file final output file
+     * @param exportFile final output file
      * @param create if true generate create statements, else drop
      * @param baseDdl previously created DDL (matching create or drop) to 
      *                filter
@@ -292,7 +292,7 @@ public class ExportSchemaSubTask
      */
     private void export(
         Configuration config, 
-        File file, 
+        File exportFile, 
         boolean create, 
         URL baseDdl)
     throws IOException
@@ -335,7 +335,7 @@ public class ExportSchemaSubTask
             BufferedWriter out = 
                 new BufferedWriter(
                     new OutputStreamWriter(
-                        new FileOutputStream(file), "UTF-8"));
+                        new FileOutputStream(exportFile), "UTF-8"));
             try {
                 BufferedReader in =
                     new BufferedReader(

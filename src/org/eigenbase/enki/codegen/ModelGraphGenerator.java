@@ -64,7 +64,7 @@ public class ModelGraphGenerator
         }
     }
 
-    private class Vertex
+    private static class Vertex
     {
         private final MofClass cls;
         private String desc;
@@ -112,7 +112,7 @@ public class ModelGraphGenerator
         }
     }
     
-    private class Edge
+    private static class Edge
     {
         private final Vertex source;
         private final Vertex target;
@@ -142,7 +142,7 @@ public class ModelGraphGenerator
         }
     }
     
-    private class ModelHandler implements ClassInstanceHandler
+    private static class ModelHandler implements ClassInstanceHandler
     {
         private File outputDir;
         

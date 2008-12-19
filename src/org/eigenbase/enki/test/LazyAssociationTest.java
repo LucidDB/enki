@@ -358,12 +358,12 @@ public class LazyAssociationTest extends SampleModelTestBase
             Assert.assertNotNull(child);
             Assert.assertNotNull(child2);
             
-            Collection<LazyChild> children = 
+            Collection<LazyChild> childCollection = 
                 getSpecialPackage().getLazyOwnership().getOwnsLazily(parent);
 
-            Assert.assertEquals(2, children.size());
-            Assert.assertTrue(children.contains(child));
-            Assert.assertTrue(children.contains(child2));
+            Assert.assertEquals(2, childCollection.size());
+            Assert.assertTrue(childCollection.contains(child));
+            Assert.assertTrue(childCollection.contains(child2));
             
         } finally {
             getRepository().endTrans();
@@ -483,11 +483,11 @@ public class LazyAssociationTest extends SampleModelTestBase
             LazyChild child = 
                 (LazyChild)getRepository().getByMofId(childMofId);
             
-            Collection<LazyChild> children = 
+            Collection<LazyChild> childCollection = 
                 getSpecialPackage().getLazyOwnership().getOwnsLazily(parent);
 
-            Assert.assertEquals(1, children.size());
-            Assert.assertTrue(children.contains(child));
+            Assert.assertEquals(1, childCollection.size());
+            Assert.assertTrue(childCollection.contains(child));
             Assert.assertEquals(parent, child.getLazyOwner());
         } finally {
             getRepository().endTrans();
@@ -512,13 +512,13 @@ public class LazyAssociationTest extends SampleModelTestBase
 
             Assert.assertEquals(parentMofId, parent.refMofId());
             
-            Collection<LazyChild> children = 
+            Collection<LazyChild> childCollection = 
                 getSpecialPackage().getLazyOwnership().getOwnsLazily(parent);
-            Assert.assertEquals(child1MofIds.size(), children.size());
+            Assert.assertEquals(child1MofIds.size(), childCollection.size());
             
             Set<String> childMofIdsCopy = new HashSet<String>(child1MofIds);
             
-            for(LazyChild child: children) {
+            for(LazyChild child: childCollection) {
                 Assert.assertTrue(childMofIdsCopy.contains(child.refMofId()));
                 childMofIdsCopy.remove(child.refMofId());
             }
@@ -541,13 +541,13 @@ public class LazyAssociationTest extends SampleModelTestBase
             
             List<String> child1MofIds = childMofIds.get(0);
             
-            Collection<LazyChild> children = 
+            Collection<LazyChild> childCollection = 
                 getSpecialPackage().getLazyOwnership().getOwnsLazily(parent);
-            Assert.assertEquals(child1MofIds.size(), children.size());
+            Assert.assertEquals(child1MofIds.size(), childCollection.size());
             
             Set<String> childMofIdsCopy = new HashSet<String>(child1MofIds);
             
-            for(LazyChild child: children) {
+            for(LazyChild child: childCollection) {
                 Assert.assertTrue(childMofIdsCopy.contains(child.refMofId()));
                 childMofIdsCopy.remove(child.refMofId());
             }

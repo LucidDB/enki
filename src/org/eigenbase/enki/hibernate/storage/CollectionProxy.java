@@ -242,7 +242,7 @@ public class CollectionProxy<E extends RefObject> implements Collection<E>
     }
     
     protected void modified(
-        HibernateAssociation assoc, Collection<HibernateAssociable> c)
+        HibernateAssociation a, Collection<HibernateAssociable> c)
     {
     }
     

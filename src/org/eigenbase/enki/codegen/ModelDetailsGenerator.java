@@ -58,17 +58,17 @@ import org.jgrapht.traverse.*;
  */
 public class ModelDetailsGenerator extends ModelGraphGenerator
 {
-    private static Set<String> showAttribsOfType;
-    private static boolean showAttribFreeClasses;
-    private static boolean showTransientClasses;
+    private static Set<String> showAttribsOfTypeParam;
+    private static boolean showAttribFreeClassesParam;
+    private static boolean showTransientClassesParam;
 
     @Override
     protected void configureHandlers()
     {
         ModelHandler handler = new ModelHandler();
-        handler.setShowAttribsOfType(showAttribsOfType);
-        handler.setShowAttribFreeClasses(showAttribFreeClasses);
-        handler.setShowTransientClasses(showTransientClasses);
+        handler.setShowAttribsOfType(showAttribsOfTypeParam);
+        handler.setShowAttribFreeClasses(showAttribFreeClassesParam);
+        handler.setShowTransientClasses(showTransientClassesParam);
         addHandler(handler);
     }
     
@@ -78,14 +78,14 @@ public class ModelDetailsGenerator extends ModelGraphGenerator
             int i = 0;
             String xmiFileName = args[i++];
             String outputDir = args[i++];
-            showTransientClasses = Boolean.valueOf(args[i++]);
-            showAttribFreeClasses = Boolean.valueOf(args[i++]);
-            showAttribsOfType = new HashSet<String>();
+            showTransientClassesParam = Boolean.valueOf(args[i++]);
+            showAttribFreeClassesParam = Boolean.valueOf(args[i++]);
+            showAttribsOfTypeParam = new HashSet<String>();
             for( ; i < args.length; i++) {
-                showAttribsOfType.add(args[i]);
+                showAttribsOfTypeParam.add(args[i]);
             }
-            if (showAttribsOfType.isEmpty()) {
-                showAttribsOfType = null;
+            if (showAttribsOfTypeParam.isEmpty()) {
+                showAttribsOfTypeParam = null;
             }
             
             ModelDetailsGenerator g = new ModelDetailsGenerator();
@@ -100,7 +100,7 @@ public class ModelDetailsGenerator extends ModelGraphGenerator
         }
     }
     
-    private class ModelHandler implements ClassInstanceHandler
+    private static class ModelHandler implements ClassInstanceHandler
     {
         private File outputDir;
         

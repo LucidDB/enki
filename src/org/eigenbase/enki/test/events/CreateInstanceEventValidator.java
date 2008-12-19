@@ -62,18 +62,19 @@ public class CreateInstanceEventValidator extends EventValidator
     }
 
     @Override
-    public void validateEvent(InstanceEvent event, int seq)
+    public void validateEvent(InstanceEvent instanceEvent, int seq)
     {
-        this.event = event;
+        this.event = instanceEvent;
         
         Assert.assertTrue(
             toString(),
-            event.isOfType(
+            instanceEvent.isOfType(
                 InstanceEvent.EVENT_INSTANCE_CREATE));
 
-        Assert.assertEquals(toString(), expectedSource, event.getSource());
+        Assert.assertEquals(
+            toString(), expectedSource, instanceEvent.getSource());
         
-        RefObject instance = event.getInstance();
+        RefObject instance = instanceEvent.getInstance();
         if (expectedEventType == EventType.PLANNED) {
             Assert.assertNull(toString(), instance);
         } else {
@@ -83,7 +84,8 @@ public class CreateInstanceEventValidator extends EventValidator
                 expectedInstanceType.isInstance(instance));
         }
         
-        Assert.assertEquals(toString(), expectedArgs, event.getArguments());
+        Assert.assertEquals(
+            toString(), expectedArgs, instanceEvent.getArguments());
     }
     
     public RefObject getInstance()
@@ -111,10 +113,10 @@ public class CreateInstanceEventValidator extends EventValidator
     }
 
     @Override
-    EventValidator cloneWithNewExpectedEventType(EventType expectedEventType)
+    EventValidator cloneWithNewExpectedEventType(EventType newEventType)
     {
         return new CreateInstanceEventValidator(
-            expectedEventType,
+            newEventType,
             expectedSource,
             expectedInstanceType,
             expectedArgs);

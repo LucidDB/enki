@@ -210,11 +210,11 @@ public abstract class MdrGenerator
         Thread.currentThread().setContextClassLoader( 
             this.getClass().getClassLoader() );
         
-        MDRManager mdrMgr = MDRManager.getDefault();
+        MDRManager newMdrMgr = MDRManager.getDefault();
         
         Thread.currentThread().setContextClassLoader( oldLoader );
 
-        return mdrMgr;
+        return newMdrMgr;
     }
     
     private void begin()

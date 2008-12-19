@@ -44,8 +44,6 @@ public abstract class RefAssociationBase
     private final RefPackage container;    
     private final EnkiMDRepository repos;
 
-    // REVIEW jvs 30-Nov-2008:  A number of methods shadow this data member
-    // with local variables named "links", which could lead to confusion.
     private final Set<RefAssociationLinkImpl> links;
     
     private final Map<RefObject, Collection<RefAssociationLinkImpl>> firstToSecondMap;
@@ -194,30 +192,32 @@ public abstract class RefAssociationBase
             index = -1;
         }
         
-        Collection<RefAssociationLinkImpl> links = map.get(key);
-        if (links == null) {
+        Collection<RefAssociationLinkImpl> referencedLinks = map.get(key);
+        if (referencedLinks == null) {
             if (multiplicity.isOrdered()) {
-                links = new ArrayList<RefAssociationLinkImpl>();
+                referencedLinks = new ArrayList<RefAssociationLinkImpl>();
             } else {
-                links = new HashSet<RefAssociationLinkImpl>();
+                referencedLinks = new HashSet<RefAssociationLinkImpl>();
             }
             
-            map.put(key, links);
+            map.put(key, referencedLinks);
         }
         
         if (multiplicity.isSingle()) {
-            if (!links.isEmpty() && !links.contains(link)) {
+            if (!referencedLinks.isEmpty() && 
+                !referencedLinks.contains(link))
+            {
                 throw new WrongSizeException(
                     isFirstEnd ? link.refSecondEnd() : link.refFirstEnd());
             }
-        } else if (multiplicity.isUnique() && links.contains(link)) {
+        } else if (multiplicity.isUnique() && referencedLinks.contains(link)) {
             return;
         }
 
         if (index < 0) {
-            links.add(link);
+            referencedLinks.add(link);
         } else {
-            ((List<RefAssociationLinkImpl>)links).add(index, link);
+            ((List<RefAssociationLinkImpl>)referencedLinks).add(index, link);
         }
     }
     
@@ -231,7 +231,8 @@ public abstract class RefAssociationBase
             map = secondToFirstMap;
         }
         
-        Collection<RefAssociationLinkImpl> links = map.get(queryObject); 
+        Collection<RefAssociationLinkImpl> referencedLinks = 
+            map.get(queryObject); 
 
         // isFirstEnd refers to the given end, so check the multiplicity of
         // the other end to see whether the result should be ordered.
@@ -239,13 +240,13 @@ public abstract class RefAssociationBase
             (isFirstEnd && end2Multiplicity.isOrdered()) ||
             (!isFirstEnd && end1Multiplicity.isOrdered());
 
-        if (links == null) {
+        if (referencedLinks == null) {
             if (isOrdered) {
-                links = new ArrayList<RefAssociationLinkImpl>();
+                referencedLinks = new ArrayList<RefAssociationLinkImpl>();
             } else {
-                links = new HashSet<RefAssociationLinkImpl>();
+                referencedLinks = new HashSet<RefAssociationLinkImpl>();
             }
-            map.put(queryObject, links);
+            map.put(queryObject, referencedLinks);
         }
         
         if (isOrdered) {
@@ -253,13 +254,13 @@ public abstract class RefAssociationBase
                 this, 
                 queryObject, 
                 isFirstEnd, 
-                (List<RefAssociationLinkImpl>)links);
+                (List<RefAssociationLinkImpl>)referencedLinks);
         } else {
             return new AssocQueryCollection(
                 this,
                 queryObject,
                 isFirstEnd,
-                links);
+                referencedLinks);
         }
     }
     
@@ -267,12 +268,12 @@ public abstract class RefAssociationBase
     protected void checkConstraints(
         List<JmiException> errors, boolean deepVerify)
     {
-        Collection<RefAssociationLink> links = 
+        Collection<RefAssociationLink> allLinks = 
             GenericCollections.asTypedCollection(
                 refAllLinks(), RefAssociationLink.class);
         
         // check first ends
-        for(RefAssociationLink link: links) {
+        for(RefAssociationLink link: allLinks) {
             Collection<? extends RefObject> secondEnds = 
                 query(true, link.refFirstEnd());
 
@@ -288,7 +289,7 @@ public abstract class RefAssociationBase
         }
         
         // check second ends
-        for(RefAssociationLink link: links) {
+        for(RefAssociationLink link: allLinks) {
             Collection<? extends RefObject> firstEnds = 
                 query(false, link.refSecondEnd());
             

@@ -60,14 +60,14 @@ public abstract class HibernateOneToManyLazyAssociation
     
     public void addInitialChild(HibernateAssociable child)
     {
-        Collection<Element> children = getChildren();
+        Collection<Element> childCollection = getChildren();
         
-        if (children == null) {
-            children = new HashSet<Element>();
-            setChildren(children);
+        if (childCollection == null) {
+            childCollection = new HashSet<Element>();
+            setChildren(childCollection);
         }
         
-        children.add(newElement(child));
+        childCollection.add(newElement(child));
     }
     
     @Override
@@ -188,14 +188,14 @@ public abstract class HibernateOneToManyLazyAssociation
         boolean inPreviewDelete = 
             getHibernateRepository(item).inPreviewDelete();
 
-        Collection<Element> children = getChildren();
+        Collection<Element> childCollection = getChildren();
         
         if (isParent) {
             if (!inPreviewDelete) {
                 item.setAssociation(type, parentIsFirstEnd, null);
             }
             
-            for(Element child: children) {
+            for(Element child: childCollection) {
                 RefObject childRefObj = load(child);
                 
                 if (!inPreviewDelete) {
@@ -217,9 +217,9 @@ public abstract class HibernateOneToManyLazyAssociation
             
                 Element elem = newElement(item);
         
-                children.remove(elem);
+                childCollection.remove(elem);
             
-                if (children.isEmpty()) {
+                if (childCollection.isEmpty()) {
                     getParent().setAssociation(type, parentIsFirstEnd, null);
                     emptyElements();
                     delete(getHibernateRepository(item));

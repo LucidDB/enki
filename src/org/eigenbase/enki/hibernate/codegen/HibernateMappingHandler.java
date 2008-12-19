@@ -1429,8 +1429,6 @@ public class HibernateMappingHandler
         if (pkg.getContainer() == null && 
             !pkg.getName().equals("PrimitiveTypes"))
         {
-            // TODO: reinstate
-//            assert(topLevelPackage == null);
             topLevelPackage =
                 CodeGenUtils.getTypeName(
                     pkg, PACKAGE_SUFFIX + HibernateJavaHandler.IMPL_SUFFIX);

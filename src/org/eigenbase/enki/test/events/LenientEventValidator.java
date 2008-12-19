@@ -84,7 +84,7 @@ public class LenientEventValidator extends EventValidator
     }
 
     @Override
-    EventValidator cloneWithNewExpectedEventType(EventType expectedEventType)
+    EventValidator cloneWithNewExpectedEventType(EventType newEventType)
     {
         return new LenientEventValidator(numExpectedEvents);
     }

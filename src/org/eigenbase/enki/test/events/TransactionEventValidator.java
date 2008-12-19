@@ -58,9 +58,9 @@ public class TransactionEventValidator extends EventValidator
     }
 
     @Override
-    EventValidator cloneWithNewExpectedEventType(EventType expectedEventType)
+    EventValidator cloneWithNewExpectedEventType(EventType newEventType)
     {
-        return new TransactionEventValidator(expectedEventType, isBeginTxn);
+        return new TransactionEventValidator(newEventType, isBeginTxn);
     }
 }
 
