@@ -72,7 +72,7 @@ public class EnkiMBeanUtil
         ObjectName objectName = 
             new ObjectName(
                 DOMAIN + 
-                ":type=" + repositoryMBean.getClass().getSimpleName() +
+                ":type=" + EnkiRepository.class.getSimpleName() +
                 ",name=" + getName(repositoryMBean.getRepos()));
         
         mbeanServer.registerMBean(repositoryMBean, objectName);

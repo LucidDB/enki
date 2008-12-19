@@ -40,8 +40,10 @@ import org.netbeans.mdr.persistence.btreeimpl.btreestorage.*;
  * which provider to instantiate and to configure the provider itself.  The
  * storage properties must contain the a property with the key
  * {@value #ENKI_IMPL_TYPE} and the name of an Enki MDR Provider (as defined 
- * in {@link MdrProvider}.  All other storage properties are specific to the 
- * provider.
+ * by the enumeration {@link MdrProvider}. In addition, the storage properties
+ * may specify a unique repository name by providing a property with the key
+ * {@value #ENKI_REPOS_NAME}. The name is used for JMX MBean identification.
+ * All other storage properties are specific to the provider.
  *  
  * @author Stephan Zuercher
  */
