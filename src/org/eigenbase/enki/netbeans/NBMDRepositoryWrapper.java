@@ -33,6 +33,7 @@ import javax.management.*;
 
 import org.eigenbase.enki.mbean.*;
 import org.eigenbase.enki.mdr.*;
+import org.eigenbase.enki.mdr.ClassLoaderProvider;
 import org.eigenbase.enki.netbeans.mbean.*;
 import org.eigenbase.enki.util.*;
 import org.netbeans.api.mdr.*;
@@ -107,10 +108,10 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     private ObjectName mbeanName;
     
     public NBMDRepositoryWrapper(
-        NBMDRepositoryImpl impl, 
-        Properties storageProps)
+        Properties storageProps,
+        ClassLoaderProvider classLoaderProvider)
     {
-        this.impl = impl;
+        this.impl = loadRepository(storageProps, classLoaderProvider);
         this.storageProps = storageProps;
         this.id = NEXT_ID++;
         
@@ -123,6 +124,78 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
                 "Unable to register mbean", e);
         }
     }
+    
+    private static NBMDRepositoryImpl loadRepository(
+        Properties storagePropsInit, ClassLoaderProvider classLoaderProvider)
+    {
+        if (classLoaderProvider != null) {
+            BaseObjectHandler.setClassLoaderProvider(classLoaderProvider);
+        }
+        
+        Properties sysProps = System.getProperties();
+        
+        Map<Object, Object> savedProps = new HashMap<Object, Object>();
+
+        String storagePrefix = NETBEANS_MDR_STORAGE_PROP_PREFIX;
+
+        // may be specified as a property
+        String storageFactoryClassName = 
+            storagePropsInit.getProperty(NETBEANS_MDR_CLASS_NAME_PROP);
+
+        if (storageFactoryClassName == null) {
+            // use default
+            storageFactoryClassName = BtreeFactory.class.getName();
+        }
+
+        if (storageFactoryClassName.equals(BtreeFactory.class.getName())) {
+            // special case
+            storagePrefix = "";
+        }
+
+        // save existing system properties first
+        savedProps.put(
+            NETBEANS_MDR_CLASS_NAME_PROP,
+            sysProps.get(NETBEANS_MDR_CLASS_NAME_PROP));
+        for(Object key: storagePropsInit.keySet()) {
+            String propName = applyPrefix(storagePrefix, key.toString());
+            savedProps.put(propName, sysProps.get(propName));
+        }
+
+        try {
+            // set desired properties
+            sysProps.put(
+                NETBEANS_MDR_CLASS_NAME_PROP, storageFactoryClassName);
+            for (Map.Entry<Object, Object> entry : storagePropsInit.entrySet()) {
+                sysProps.put(
+                    applyPrefix(
+                        storagePrefix,
+                        entry.getKey().toString()),
+                    entry.getValue());
+            }
+
+            // load repository
+            return new NBMDRepositoryImpl();
+        } finally {
+            // restore saved system properties
+            for (Map.Entry<Object, Object> entry : savedProps.entrySet()) {
+                if (entry.getValue() == null) {
+                    sysProps.remove(entry.getKey());
+                } else {
+                    sysProps.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+    }
+
+    private static String applyPrefix(String prefix, String propertyName)
+    {
+        if (propertyName.startsWith(prefix)) {
+            return propertyName;
+        }
+        
+        return prefix + propertyName;
+    }
+    
 
     public void finalize()
     {

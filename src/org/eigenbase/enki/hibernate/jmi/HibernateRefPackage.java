@@ -110,7 +110,7 @@ public abstract class HibernateRefPackage
                 ((HibernateRefPackage)refPackage).unregisterObjectsRecursively();
             }
             
-            // TODO: transient packages deletion
+            // TODO: unregister transient packages
         }
         
         HibernateMDRepository repos = getHibernateRepository();

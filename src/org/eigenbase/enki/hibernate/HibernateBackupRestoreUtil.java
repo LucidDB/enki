@@ -625,8 +625,6 @@ public class HibernateBackupRestoreUtil
     {
         log.fine("Delete existing extent data");
         
-        // TODO: when to invoke DDL scripts (if ever)?
-
         Map<String, Class<? extends RefObject>> tableClassMap =
             new HashMap<String, Class<? extends RefObject>>();
         Set<String> assocTables = new HashSet<String>();

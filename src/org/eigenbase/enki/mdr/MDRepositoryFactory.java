@@ -28,9 +28,6 @@ import java.util.logging.*;
 
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.netbeans.*;
-import org.netbeans.mdr.*;
-import org.netbeans.mdr.handlers.*;
-import org.netbeans.mdr.persistence.btreeimpl.btreestorage.*;
 
 /**
  * MDRepositoryFactory is a factory class for {@link EnkiMDRepository}
@@ -158,66 +155,7 @@ public class MDRepositoryFactory
     private static EnkiMDRepository newNetbeansMDRepository(
         Properties storageProps)
     {
-        // TODO: move these brains to the netbeans package 
-        
-        if (classLoaderProvider != null) {
-            BaseObjectHandler.setClassLoaderProvider(classLoaderProvider);
-        }
-        
-        Properties sysProps = System.getProperties();
-        
-        Map<Object, Object> savedProps = new HashMap<Object, Object>();
-
-        String storagePrefix = NETBEANS_MDR_STORAGE_PROP_PREFIX;
-
-        // may be specified as a property
-        String storageFactoryClassName = 
-            storageProps.getProperty(NETBEANS_MDR_CLASS_NAME_PROP);
-
-        if (storageFactoryClassName == null) {
-            // use default
-            storageFactoryClassName = BtreeFactory.class.getName();
-        }
-
-        if (storageFactoryClassName.equals(BtreeFactory.class.getName())) {
-            // special case
-            storagePrefix = "";
-        }
-
-        // save existing system properties first
-        savedProps.put(
-            NETBEANS_MDR_CLASS_NAME_PROP,
-            sysProps.get(NETBEANS_MDR_CLASS_NAME_PROP));
-        for(Object key: storageProps.keySet()) {
-            String propName = applyPrefix(storagePrefix, key.toString());
-            savedProps.put(propName, sysProps.get(propName));
-        }
-
-        try {
-            // set desired properties
-            sysProps.put(
-                NETBEANS_MDR_CLASS_NAME_PROP, storageFactoryClassName);
-            for (Map.Entry<Object, Object> entry : storageProps.entrySet()) {
-                sysProps.put(
-                    applyPrefix(
-                        storagePrefix,
-                        entry.getKey().toString()),
-                    entry.getValue());
-            }
-
-            // load repository
-            return new NBMDRepositoryWrapper(
-                new NBMDRepositoryImpl(), storageProps);
-        } finally {
-            // restore saved system properties
-            for (Map.Entry<Object, Object> entry : savedProps.entrySet()) {
-                if (entry.getValue() == null) {
-                    sysProps.remove(entry.getKey());
-                } else {
-                    sysProps.put(entry.getKey(), entry.getValue());
-                }
-            }
-        }
+        return new NBMDRepositoryWrapper(storageProps, classLoaderProvider);
     }
     
     private static EnkiMDRepository newHibernateRepository(
@@ -318,15 +256,6 @@ public class MDRepositoryFactory
         }
         
         return modelProps;
-    }
-    
-    private static String applyPrefix(String prefix, String propertyName)
-    {
-        if (propertyName.startsWith(prefix)) {
-            return propertyName;
-        }
-        
-        return prefix + propertyName;
     }
     
     public static void setClassLoaderProvider(ClassLoaderProvider provider)
