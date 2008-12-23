@@ -103,25 +103,21 @@ import org.eigenbase.enki.codegen.*;
  */
 public class HibernateGenerator extends MdrGenerator
 {
-    /** The name of the generator option for setting the table prefix. */
+    /** Name of the generator option that controls the table prefix. */
     public static final String TABLE_PREFIX_OPTION = "tablePrefix";
     
     /** 
-     * The name of the generator option for setting the default string 
-     * length. 
+     * Name of the generator option that controls the default string length. 
      */
     public static final String DEFAULT_STRING_LENGTH_OPTION = 
         "defaultStringLength";
     
-    /** 
-     * The name of the generator option for setting the identifier
-     * limit. 
-     */
+    /** Name of the generator option that sets identifier length limit. */
     public static final String IDENTIFIER_LIMIT_OPTION = 
         "identifierLimit";
     
     /**
-     * The name of the generator option for including specific packages.
+     * Name of the generator option that controls including specific packages.
      */
     public static final String INCLUDE_PACKAGE_OPTION = "include";
 
@@ -129,8 +125,8 @@ public class HibernateGenerator extends MdrGenerator
     public static final String PLUGIN_OPTION = "plugin";
     
     /** 
-     *  The name of the generator option for generating join-able all-of-type
-     *  views for all classes.
+     *  Name of the generator option for that controls the generation of 
+     *  join-able all-of-type views for all classes.
      */
     public static final String GENERATE_VIEWS_OPTION = "generateViews";
     

@@ -353,7 +353,7 @@ public class HibernateJavaHandler
     private final Map<MofPackage, MofPackage> clusteringMap;
 
     private String tablePrefix;
-
+    
     public HibernateJavaHandler()
     {
         super();
@@ -560,16 +560,14 @@ public class HibernateJavaHandler
                 false,
                 "Model-specific storage sub-class.");
             
-            if (tablePrefix != null) {
-                tableName = tablePrefix + tableName;
-            }
+            tableName = tableName(tableName);
+            
             writeConstant(
                 "String", "_table", QUOTE + tableName + QUOTE, true);
             
-            if (tablePrefix != null && collectionTableName != null) {
-                collectionTableName = tablePrefix + collectionTableName;
-            }
             if (collectionTableName != null) {
+                collectionTableName = tableName(collectionTableName);
+
                 writeConstant(
                     "String", "_collectionTable", 
                     QUOTE + collectionTableName + QUOTE, true);
@@ -731,12 +729,9 @@ public class HibernateJavaHandler
                 QUOTE + allLinksQueryName + QUOTE, true);
             newLine();
 
-            if (tablePrefix != null) {
-                table = tablePrefix + table;
-            }
-            
-            if (tablePrefix != null && collectionTable != null) {
-                collectionTable = tablePrefix + collectionTable;
+            table = tableName(table);            
+            if (collectionTable != null) {
+                collectionTable = tableName(collectionTable);
             }
             
             writeConstant(
@@ -993,6 +988,15 @@ public class HibernateJavaHandler
         finally {
             close();
         }            
+    }
+    
+    private String tableName(String base)
+    {
+        if (tablePrefix != null) {
+            base = tablePrefix + base;
+        }
+        
+        return base;
     }
 
     public void generateClassInstance(MofClass cls)
@@ -3059,11 +3063,12 @@ public class HibernateJavaHandler
                 HibernateMappingHandler.CACHE_REGION_SUFFIX + 
                 HibernateMappingHandler.CACHE_REGION_QUERY_SUFFIX;
             String tableName =
-                HibernateMappingHandler.computeBaseTableName(cls);
+                tableName(HibernateMappingHandler.computeBaseTableName(cls));
+
             if (tablePrefix != null) {
                 queryCacheRegion = tablePrefix + queryCacheRegion;
-                tableName = tablePrefix + tableName;
             }
+            
             writeConstant(
                 "String", "_queryCacheRegion", "\"" + queryCacheRegion + "\"",
                 true);
