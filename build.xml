@@ -912,7 +912,7 @@
       <sysproperty key="enki.home" value="${enki.dir}"/>
       <sysproperty key="enki.test.extent" value="SampleRepository"/>
       <sysproperty 
-          key="enki.storageProps"
+          key="enki.test.storageProps"
           value="${test.dir}/TestPluginStorage.properties"/>
       <sysproperty key="java.util.logging.config.file" value="${trace.dir}/EnkiTrace.properties"/>
       <formatter type="plain"/>
