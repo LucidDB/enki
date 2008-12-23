@@ -2557,6 +2557,14 @@ public class HibernateMDRepository
         }
         
         if (exists) {
+            if (sqlDialect instanceof HSQLDialect) {
+                // Validator is broken: doesn't quote properly and always 
+                // fails.
+                log.warning(
+                    "Skipping validation of provider schema (HSQLDB)");
+                return;
+            }
+            
             log.info("Validating Enki Hibernate provider schema");
             
             SchemaValidator validator = new SchemaValidator(config);
@@ -2610,6 +2618,15 @@ public class HibernateMDRepository
     private void initModelStorage(ModelDescriptor modelDesc)
     throws EnkiCreationFailedException
     {
+        if (sqlDialect instanceof HSQLDialect) {
+            // Validator is broken: doesn't quote properly and always fails.
+            log.warning(
+                "Skipping validation of schema for model '" 
+                + modelDesc.name 
+                + "' (HSQLDB)");
+            return;
+        }
+
         ClassLoader contextClassLoader = null;
         if (classLoader != null) {
             contextClassLoader = 

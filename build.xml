@@ -122,7 +122,7 @@
     value from customBuild.properties.
   -->
   <property name="enki.impl" value="${enki.impl.default}"/>
-  <property name="enki.all.impl" value="netbeans,hibernate"/>
+  <property name="enki.all.impl" value="netbeans,hibernate,hibernate-hsqldb"/>
 
   <!-- classpath for javadoc generation -->
   <path id="enki.javadoc.classpath">
@@ -214,6 +214,9 @@
         <not>
           <equals arg1="${enki.impl}" arg2="netbeans"/>
         </not>
+        <not>
+          <equals arg1="${enki.impl}" arg2="hibernate-hsqldb"/>
+        </not>
         <length
             string="${cleanSampleRepos.org.eigenbase.enki.dev.connection.driver_class}" 
             trim="true"
@@ -225,11 +228,7 @@
           target="forked_cleanDbStorage"
           classpathref="enki.3p.ant.run.classpath"/>
       </then>
-    </if>
-
-    <if>
-      <equals arg1="${enki.impl}" arg2="netbeans"/>
-      <then>
+      <else>
         <delete>
           <fileset dir="${sample.catalog.dir}">
             <include name="EnkiCatalog.*"/>
@@ -240,7 +239,7 @@
             <include name="EnkiCatalog.*"/>
           </fileset>
         </delete>
-      </then>
+      </else>
     </if>
 
     <delete dir="${sample.catalog.dir}/java" includes="**/*"/>
@@ -286,6 +285,9 @@
         <not>
           <equals arg1="${enki.impl}" arg2="netbeans"/>
         </not>
+        <not>
+          <equals arg1="${enki.impl}" arg2="hibernate-hsqldb"/>
+        </not>
         <length
             string="${cleanSamplePluginRepos.org.eigenbase.enki.dev.connection.driver_class}" 
             trim="true"
@@ -297,17 +299,13 @@
           target="forked_cleanPluginDbStorage"
           classpathref="enki.3p.ant.run.classpath"/>
       </then>
-    </if>
-
-    <if>
-      <equals arg1="${enki.impl}" arg2="netbeans"/>
-      <then>
+      <else>
         <delete>
           <fileset dir="${sample.catalog.dir}">
             <include name="EnkiPluginCatalog.*"/>
           </fileset>
         </delete>
-      </then>
+      </else>
     </if>
 
     <delete dir="${sample.catalog.dir}/plugin/java" includes="**/*"/>
@@ -357,7 +355,7 @@
     </enki.javac>
 
     <if>
-      <equals arg1="${enki.impl}" arg2="hibernate"/>
+      <matches string="${enki.impl}" pattern="^hibernate.*"/>
       <then>
         <enki.antFork 
           target="forked_exportSampleSchema"
@@ -450,7 +448,7 @@
     </enki.javac>
 
     <if>
-      <equals arg1="${enki.impl}" arg2="hibernate"/>
+      <matches string="${enki.impl}" pattern="^hibernate.*"/>
       <then>
         <enki.antFork 
           target="forked_exportSamplePluginSchema"
@@ -516,7 +514,7 @@
 
   <target name="forked_importSampleMetamodel" depends="enki_mdr.taskdef">
     <if>
-      <equals arg1="${enki.impl}" arg2="hibernate"/>
+      <matches string="${enki.impl}" pattern="^hibernate.*"/>
       <then>
         <property 
           file="${test.dir}/TestStorage.properties" 
@@ -561,7 +559,7 @@
 
   <target name="forked_importSamplePluginMetamodel" depends="enki_mdr.taskdef">
     <if>
-      <equals arg1="${enki.impl}" arg2="hibernate"/>
+      <matches string="${enki.impl}" pattern="^hibernate.*"/>
       <then>
         <property 
           file="${test.dir}/TestPluginStorage.properties" 
@@ -632,7 +630,7 @@
 
     <!-- FIXME jvs 3-Jul-2008:  this stuff shouldn't be needed -->
     <if>
-      <equals arg1="${enki.impl}" arg2="hibernate"/>
+      <matches string="${enki.impl}" pattern="^hibernate.*"/>
       <then>
         <replace 
           file="${umlm2.catalog.dir}/java/org/omg/uml/foundation/core/Stereotype$Impl.java"

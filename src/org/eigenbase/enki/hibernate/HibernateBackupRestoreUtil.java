@@ -346,7 +346,9 @@ public class HibernateBackupRestoreUtil
                         tableMofIdCols.getValues(table);
                     
                     ResultSet rset = 
-                        stmt.executeQuery("select * from " + table);
+                        stmt.executeQuery(
+                            "select * from " 
+                            + HibernateDialectUtil.quote(dialect, table));
                     try {
                         ResultSetMetaData metadata = rset.getMetaData();
                         int numCols = metadata.getColumnCount();
@@ -673,23 +675,28 @@ public class HibernateBackupRestoreUtil
         
         Connection conn = session.connection();
 
+        String deleteMechanism = "truncate table ";
+        if (dialect instanceof HSQLDialect) {
+            deleteMechanism = "delete from ";
+        }
+        
         Statement stmt = conn.createStatement();
         try {
             for(String table: tableClassMap.keySet()) {
                 stmt.execute(
-                    "truncate table " +
+                    deleteMechanism +
                     HibernateDialectUtil.quote(dialect, table));
             }
             
             for(String table: assocChildTables) {
                 stmt.execute(
-                    "truncate table " +
+                    deleteMechanism +
                     HibernateDialectUtil.quote(dialect, table));
             }
             
             for(String table: assocTables) {
                 stmt.execute(
-                    "truncate table " +
+                    deleteMechanism +
                     HibernateDialectUtil.quote(dialect, table));
             }
         } finally {

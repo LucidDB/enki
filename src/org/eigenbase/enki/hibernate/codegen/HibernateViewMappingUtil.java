@@ -104,12 +104,6 @@ public class HibernateViewMappingUtil
                 HibernateMappingHandler.computeBaseTableName(cls);
             String viewName = viewName(tableName, exemplar, true);
 
-            output.startElem("database-object");
-            output.startElem("create");
-            output.startCData();
-            output.writeln("create view ", viewName, " AS");
-            output.increaseIndent();
-
             Collection<Attribute> instanceAttributes =
                 CodeGenUtils.contentsOfType(
                     cls,
@@ -123,6 +117,20 @@ public class HibernateViewMappingUtil
                     HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                     VisibilityKindEnum.PUBLIC_VIS,
                     Reference.class);
+
+            output.startElem("database-object");
+            output.startElem("create");
+            output.startCData();
+            output.writeln("create view ", viewName, "(");
+            output.increaseIndent();
+            generateColumnNameList(
+                cls,
+                instanceAttributes,
+                instanceReferences,
+                exemplar);
+            output.decreaseIndent();
+            output.writeln(") as");
+            output.increaseIndent();
 
             generateClassViewSubquery(
                 cls, 
@@ -145,6 +153,87 @@ public class HibernateViewMappingUtil
             }
             output.endElem("database-object");
         }
+    }
+    
+    private void generateColumnNameList(
+        Classifier cls,
+        Collection<Attribute> attribs, 
+        Collection<Reference> refs, 
+        Dialect dialect)
+    throws GenerationException
+    {
+        output.writeln(
+            HibernateDialectUtil.quote(
+                dialect, HibernateMappingHandler.MOF_ID_COLUMN_NAME), ", ");
+        output.write(
+            HibernateDialectUtil.quote(dialect, MOF_CLASSNAME_COLUMN_NAME));
+        
+        List<ReferenceInfo> refInfos = new ArrayList<ReferenceInfo>();
+        for(Attribute attrib: attribs) {
+            if (attrib.isDerived()) {
+                continue;
+            }
+            
+            HibernateMappingHandler.MappingType mappingType = 
+                HibernateMappingHandler.getMappingType(
+                    attrib.getType(), attrib.getMultiplicity());
+
+            switch(mappingType) {
+            case COLLECTION:
+            case LIST:
+                // Ignored
+                continue;
+            
+            case CLASS:
+                refInfos.add(
+                    new ComponentInfo((MofClass)cls, attrib, true));
+                continue;
+                
+            case BOOLEAN:
+            case STRING:
+            case ENUMERATION:
+            case OTHER_DATA_TYPE:
+                break;
+                    
+            default:
+                throw new GenerationException(
+                    "unknown mapping type: " +  mappingType);
+            }
+            
+            // Use the plain field name to mimic behavior required by Farrago.
+            String aliasName = attrib.getName();
+
+            output.writeln(",");
+            output.write(HibernateDialectUtil.quote(dialect, aliasName));
+        }
+        for(Reference ref: refs) {
+            ReferenceInfo refInfo = new ReferenceInfoImpl(ref);
+            refInfos.add(refInfo);
+        }
+
+        for(ReferenceInfo refInfo: refInfos) {
+            if (refInfo.isSingle()) {
+                String aliasName;
+                if (refInfo.getReference() != null) {
+                    aliasName = 
+                        refInfo.getReference().getReferencedEnd().getName();
+                } else {
+                    Attribute attrib = 
+                        ((ComponentInfo)refInfo).getOwnerAttribute();
+                    aliasName = attrib.getName();
+
+                    int pos = aliasName.indexOf('$');
+                    if (pos > 0) {
+                        aliasName = aliasName.substring(0, pos);
+                    }
+                }
+                
+                output.writeln(",");
+                output.write(HibernateDialectUtil.quote(dialect, aliasName));
+            }
+        }
+
+        output.writeln();
     }
     
     private void generateClassViewSubquery(
@@ -359,12 +448,6 @@ public class HibernateViewMappingUtil
                 HibernateMappingHandler.computeBaseTableName(cls);
             String viewName = viewName(tableName, exemplar, false);
 
-            output.startElem("database-object");
-            output.startElem("create");
-            output.startCData();
-            output.writeln("create view ", viewName, " AS");
-            output.increaseIndent();
-
             Collection<Classifier> subtypes = subtypesMap.getValues(cls);
 
             Collection<Attribute> instanceAttributes =
@@ -380,6 +463,20 @@ public class HibernateViewMappingUtil
                     HierachySearchKindEnum.INCLUDE_SUPERTYPES, 
                     VisibilityKindEnum.PUBLIC_VIS,
                     Reference.class);
+
+            output.startElem("database-object");
+            output.startElem("create");
+            output.startCData();
+            output.writeln("create view ", viewName, "(");
+            output.increaseIndent();
+            generateColumnNameList(
+                cls, 
+                instanceAttributes,
+                instanceReferences,
+                exemplar);
+            output.decreaseIndent();
+            output.writeln(") AS");
+            output.increaseIndent();
 
             boolean first = true;
             for(Classifier subtype: subtypes) {

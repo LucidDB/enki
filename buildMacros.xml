@@ -336,7 +336,7 @@
     <attribute name="property"/>
     <sequential>
       <condition property="@{property}" value="${enki.generator.hibernate}">
-        <equals arg1="@{impl}" arg2="hibernate"/>
+        <matches string="@{impl}" pattern="^hibernate.*"/>
       </condition>
       <condition property="@{property}" value="${enki.generator.netbeans}">
         <equals arg1="@{impl}" arg2="netbeans"/>
