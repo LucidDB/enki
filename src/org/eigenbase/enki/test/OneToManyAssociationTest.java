@@ -134,7 +134,7 @@ public class OneToManyAssociationTest extends SampleModelTestBase
                 // contend that since the e11 can only refer to one Entity10,
                 // it should automatically be removed.  (Or else it should be
                 // a constraint violation exception.)
-                if (getMdrProvider() == MdrProvider.NETBEANS_MDR) {
+                if (getMdrProvider() != MdrProvider.ENKI_HIBERNATE) {
                     e10a.getEntity11().remove(e11);
                 }
                 e10b.getEntity11().add(e11);
@@ -193,7 +193,7 @@ public class OneToManyAssociationTest extends SampleModelTestBase
                 // contend that since the e17 can only refer to one Entity16,
                 // it should automatically be removed.  (Or else it should be
                 // a constraint violation exception.)
-                if (getMdrProvider() == MdrProvider.NETBEANS_MDR) {
+                if (getMdrProvider() != MdrProvider.ENKI_HIBERNATE) {
                     e16a.getEntity17().remove(e17);
                 }
                 e16b.getEntity17().add(e17);

@@ -78,22 +78,6 @@ public abstract class HibernateRefObject
         super.delete();
     }
     
-    @Override
-    public RefFeatured refOutermostComposite()
-    {
-        logJmi("refOutermostComposite");
-
-        RefFeatured immediateComposite = refImmediateComposite();
-        if (immediateComposite == null) {
-            return this;
-        } else if (immediateComposite instanceof RefObject) {
-            return ((RefObject)immediateComposite).refOutermostComposite();
-        }
-        
-        // must be a RefClass
-        return immediateComposite;
-    }
-    
     protected void associationSetSingle(
         String type, 
         String refAssocId, 

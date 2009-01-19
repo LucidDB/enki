@@ -25,6 +25,7 @@ import java.io.*;
 import java.util.*;
 import java.util.logging.*;
 
+import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.mdr.*;
@@ -202,6 +203,10 @@ public abstract class ModelTestBase
      */
     protected static void bounceRepository()
     {
+        if (getMdrProvider() == MdrProvider.ENKI_TRANSIENT) {
+            return;
+        }
+        
         tearDownTestClass();
         
         Assert.assertNull(repos);
@@ -395,10 +400,58 @@ public abstract class ModelTestBase
             MDRepositoryFactory.newMDRepository(result.storageProps);
         Assert.assertNotNull(result.repos);
         
+        if (result.repos.getProviderType() == MdrProvider.ENKI_TRANSIENT) {
+            // ENKI_TRANSIENT is a complete amnesiac. Recreate the
+            // expected extents.  Note that this code is specific to the
+            // Enki sample and sample plug-in repositories created by the
+            // build scripts (whereas the rest of this class will handle 
+            // any repository you choose to throw at it).
+            recreateTransientExtent(result.repos, extentName);
+        }
+        
         result.pkg = result.repos.getExtent(extentName);
         Assert.assertNotNull(result.pkg);        
         
         return result;
+    }
+    
+    private static void recreateTransientExtent(
+        EnkiMDRepository repository, String extentName)
+    {
+        repository.beginSession();
+        repository.beginTrans(true);
+        try {
+            String modelExtentName = "SampleMetamodel";
+            String packageName = "EEM";
+            repository.createExtent(modelExtentName);
+            ModelPackage modelPackage =
+                (ModelPackage)repository.getExtent(modelExtentName);
+            MofPackage extentPackage = null;
+            for(MofPackage mofPkg: 
+                    GenericCollections.asTypedCollection(
+                        modelPackage.getMofPackage().refAllOfClass(),
+                        MofPackage.class))
+            {
+                if (mofPkg.getName().equals(packageName)) {
+                    extentPackage = mofPkg;
+                    break;
+                }
+            }
+            
+            if (extentPackage == null) {
+                Assert.fail(
+                    "Package '" + packageName + 
+                    "' does not exist in the extent '" + modelExtentName + 
+                    "'");
+            }
+            
+            repository.createExtent(extentName, extentPackage);
+        } catch (CreationFailedException e) {
+            fail("Transient repository re-init error", e);
+        } finally {
+            repository.endTrans(false);
+            repository.endSession();
+        }
     }
     
     /**

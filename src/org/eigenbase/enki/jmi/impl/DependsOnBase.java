@@ -36,7 +36,7 @@ import javax.jmi.reflect.*;
  * 
  * @author Stephan Zuercher
  */
-public class DependsOnBase extends RefAssociationBase
+public abstract class DependsOnBase extends RefAssociationBase
 {
     private static final String PROVIDER_END_NAME = "provider";
     private static final String DEPENDENT_END_NAME = "dependent";
@@ -72,9 +72,8 @@ public class DependsOnBase extends RefAssociationBase
         MetamodelInitializer initalizer = getInitializer();
         
         for(RefClassBase refClass: initalizer.getAllRefClasses()) {
-            for(RefObject refObject: 
-                    initalizer.getAllInstancesOf(refClass, false))
-            {
+            for(Object obj: refClass.refAllOfClass()) {
+                RefObject refObject = (RefObject)obj;
                 ModelElement modelElement = (ModelElement)refObject;
                 
                 Collection<?> providers =

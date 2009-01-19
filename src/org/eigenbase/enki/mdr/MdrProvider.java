@@ -37,7 +37,12 @@ public enum MdrProvider
     /**
      * Hibernate-based MDR provider.
      */
-    ENKI_HIBERNATE;
+    ENKI_HIBERNATE,
+    
+    /**
+     *  Transient MDR provider.
+     */
+    ENKI_TRANSIENT;
 }
 
 // End Provider.java

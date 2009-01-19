@@ -118,11 +118,12 @@
   <property name="sample.plugin.mdr.classpath" refid="sample.plugin.mdr.classpath"/>
 
   <!-- 
-    Implementation type.  One of hibernate, netbeans.  Defaults to
-    value from customBuild.properties.
+    Implementation type.  One of:
+        hibernate, netbeans, hibernate-hsqldb, transient
+    Defaults to value from customBuild.properties.
   -->
   <property name="enki.impl" value="${enki.impl.default}"/>
-  <property name="enki.all.impl" value="netbeans,hibernate,hibernate-hsqldb"/>
+  <property name="enki.all.impl" value="netbeans,hibernate,hibernate-hsqldb,transient"/>
 
   <!-- classpath for javadoc generation -->
   <path id="enki.javadoc.classpath">
@@ -212,10 +213,7 @@
     <if>
       <and>
         <not>
-          <equals arg1="${enki.impl}" arg2="netbeans"/>
-        </not>
-        <not>
-          <equals arg1="${enki.impl}" arg2="hibernate-hsqldb"/>
+          <matches string="${enki.impl}" pattern="(netbeans|hibernate-hsqldb|transient)"/>
         </not>
         <length
             string="${cleanSampleRepos.org.eigenbase.enki.dev.connection.driver_class}" 
@@ -283,10 +281,7 @@
     <if>
       <and>
         <not>
-          <equals arg1="${enki.impl}" arg2="netbeans"/>
-        </not>
-        <not>
-          <equals arg1="${enki.impl}" arg2="hibernate-hsqldb"/>
+          <matches string="${enki.impl}" pattern="(netbeans|hibernate-hsqldb|transient)"/>
         </not>
         <length
             string="${cleanSamplePluginRepos.org.eigenbase.enki.dev.connection.driver_class}" 
@@ -547,11 +542,6 @@
             name="SampleRepository"
             extent="SampleMetamodel"
             package="EEM"/>
-      </mdr-tasks>
-    </enki.mdr>
-
-    <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
-      <mdr-tasks>
         <writeDtd extent="SampleRepository" file="${sample.dtd}"/>
       </mdr-tasks>
     </enki.mdr>
@@ -595,11 +585,6 @@
             name="SampleRepository"
             extent="SampleMetamodel"
             package="EEM"/>
-      </mdr-tasks>
-    </enki.mdr>
-
-    <enki.mdr propertiesFile="${test.dir}/TestPluginStorage.properties">
-      <mdr-tasks>
         <writeDtd extent="SampleRepository" file="${sample.plugin.dtd}"/>
       </mdr-tasks>
     </enki.mdr>

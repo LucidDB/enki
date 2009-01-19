@@ -28,6 +28,7 @@ import java.util.logging.*;
 
 import org.eigenbase.enki.hibernate.*;
 import org.eigenbase.enki.netbeans.*;
+import org.eigenbase.enki.trans.*;
 
 /**
  * MDRepositoryFactory is a factory class for {@link EnkiMDRepository}
@@ -52,9 +53,16 @@ public class MDRepositoryFactory
     public static final String META_INF_DIR_NAME = "META-INF";
     
     public static final String ENKI_DIR_NAME = "enki";
-    
+
+    /** The name of the META-INF/enki directory. */
     public static final String META_INF_ENKI_DIR = 
         META_INF_DIR_NAME + "/" + ENKI_DIR_NAME;
+
+    /** 
+     * The name of the metamodel configuration properties file. Stored in 
+     * the <code>META-INF/enki</code> directory of an Enki model JAR file.
+     */
+    public static final String CONFIG_PROPERTIES = "configurator.properties";
 
     public static final String ENKI_IMPL_TYPE = 
         "org.eigenbase.enki.implementationType";
@@ -127,6 +135,10 @@ public class MDRepositoryFactory
             return newHibernateRepository(
                 storageProps, modelProperties, classLoader);
             
+        case ENKI_TRANSIENT:
+            return newTransientRepository(
+                storageProps, modelProperties, classLoader);
+            
         default:
             throw new UnknownProviderException(
                 "unimplemented provider: " + provider.toString());
@@ -182,6 +194,30 @@ public class MDRepositoryFactory
         }
     }
     
+    private static EnkiMDRepository newTransientRepository(
+        Properties storageProps, 
+        List<Properties> modelProperties,
+        ClassLoader classLoader)
+    {
+        ClassLoader contextClassLoader = null;
+        if (classLoader != null) {
+            contextClassLoader = 
+                Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(classLoader);
+        }
+
+        try {
+            return new TransientMDRepository(
+                modelProperties, storageProps, classLoader);
+        }
+        finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(
+                    contextClassLoader);                
+            }
+        }
+    }
+    
     public static List<Properties> getRepositoryProperties(
         Properties storageProperties)
     {
@@ -218,8 +254,7 @@ public class MDRepositoryFactory
         
         Enumeration<URL> configUrls = 
             classLoader.getResources(
-                META_INF_ENKI_DIR + "/" + 
-                HibernateMDRepository.CONFIG_PROPERTIES);
+                META_INF_ENKI_DIR + "/" + CONFIG_PROPERTIES);
         
         String ignoreExtent = 
             System.getProperty(SYS_PROPERTY_ENKI_IGNORE_EXTENT);
@@ -232,7 +267,7 @@ public class MDRepositoryFactory
             Properties props = new Properties();
             props.load(configUrl.openStream());
         
-            if (ignoreExtent!= null &&
+            if (ignoreExtent != null &&
                 ignoreExtent.equals(props.get(PROPERTY_ENKI_EXTENT)))
             {
                 log.info("Ignore Config URL: " + configUrl.toString());

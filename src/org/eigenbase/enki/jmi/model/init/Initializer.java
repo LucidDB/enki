@@ -1,3 +1,26 @@
+/*
+//  $Id$
+//  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
+//  Copyright (C) 2007-2009 The Eigenbase Project
+//  Copyright (C) 2007-2009 Disruptive Tech
+//  Copyright (C) 2007-2009 LucidEra, Inc.
+// 
+//  This library is free software; you can redistribute it and/or modify it
+//  under the terms of the GNU Lesser General Public License as published by
+//  the Free Software Foundation; either version 2.1 of the License, or (at
+//  your option) any later version.
+// 
+//  This library is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//  GNU Lesser General Public License for more details.
+// 
+//  You should have received a copy of the GNU Lesser General Public
+//  License along with this library; if not, write to the Free Software
+//  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
+//  USA
+*/
+
 package org.eigenbase.enki.jmi.model.init;
 
 import java.util.*;
@@ -19,240 +42,15 @@ public final class Initializer
         class_ = new MofClass[28];
 
         class_[0] = getModelPackage().getMofClass().createMofClass(
-            "Tag",
+            "ModelElement",
             "",
             false,
             false,
-            false,
+            true,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
             false);
 
         class_[1] = getModelPackage().getMofClass().createMofClass(
-            "Constant",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[2] = getModelPackage().getMofClass().createMofClass(
-            "Constraint",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[3] = getModelPackage().getMofClass().createMofClass(
-            "Parameter",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[4] = getModelPackage().getMofClass().createMofClass(
-            "Import",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[5] = getModelPackage().getMofClass().createMofClass(
-            "Package",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[6] = getModelPackage().getMofClass().createMofClass(
-            "AssociationEnd",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[7] = getModelPackage().getMofClass().createMofClass(
-            "Association",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[8] = getModelPackage().getMofClass().createMofClass(
-            "Exception",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[9] = getModelPackage().getMofClass().createMofClass(
-            "Operation",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[10] = getModelPackage().getMofClass().createMofClass(
-            "BehavioralFeature",
-            "",
-            false,
-            false,
-            true,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[11] = getModelPackage().getMofClass().createMofClass(
-            "Reference",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[12] = getModelPackage().getMofClass().createMofClass(
-            "Attribute",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[13] = getModelPackage().getMofClass().createMofClass(
-            "StructuralFeature",
-            "",
-            false,
-            false,
-            true,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[14] = getModelPackage().getMofClass().createMofClass(
-            "Feature",
-            "",
-            false,
-            false,
-            true,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[15] = getModelPackage().getMofClass().createMofClass(
-            "AliasType",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[16] = getModelPackage().getMofClass().createMofClass(
-            "StructureField",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[17] = getModelPackage().getMofClass().createMofClass(
-            "StructureType",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[18] = getModelPackage().getMofClass().createMofClass(
-            "CollectionType",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[19] = getModelPackage().getMofClass().createMofClass(
-            "EnumerationType",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[20] = getModelPackage().getMofClass().createMofClass(
-            "PrimitiveType",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[21] = getModelPackage().getMofClass().createMofClass(
-            "DataType",
-            "",
-            false,
-            false,
-            true,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[22] = getModelPackage().getMofClass().createMofClass(
-            "Class",
-            "",
-            false,
-            false,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[23] = getModelPackage().getMofClass().createMofClass(
-            "Classifier",
-            "",
-            false,
-            false,
-            true,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[24] = getModelPackage().getMofClass().createMofClass(
-            "TypedElement",
-            "",
-            false,
-            false,
-            true,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[25] = getModelPackage().getMofClass().createMofClass(
-            "GeneralizableElement",
-            "",
-            false,
-            false,
-            true,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        class_[26] = getModelPackage().getMofClass().createMofClass(
             "Namespace",
             "",
             false,
@@ -261,12 +59,237 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
             false);
 
-        class_[27] = getModelPackage().getMofClass().createMofClass(
-            "ModelElement",
+        class_[2] = getModelPackage().getMofClass().createMofClass(
+            "GeneralizableElement",
             "",
             false,
             false,
             true,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[3] = getModelPackage().getMofClass().createMofClass(
+            "TypedElement",
+            "",
+            false,
+            false,
+            true,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[4] = getModelPackage().getMofClass().createMofClass(
+            "Classifier",
+            "",
+            false,
+            false,
+            true,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[5] = getModelPackage().getMofClass().createMofClass(
+            "Class",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[6] = getModelPackage().getMofClass().createMofClass(
+            "DataType",
+            "",
+            false,
+            false,
+            true,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[7] = getModelPackage().getMofClass().createMofClass(
+            "PrimitiveType",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[8] = getModelPackage().getMofClass().createMofClass(
+            "EnumerationType",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[9] = getModelPackage().getMofClass().createMofClass(
+            "CollectionType",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[10] = getModelPackage().getMofClass().createMofClass(
+            "StructureType",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[11] = getModelPackage().getMofClass().createMofClass(
+            "StructureField",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[12] = getModelPackage().getMofClass().createMofClass(
+            "AliasType",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[13] = getModelPackage().getMofClass().createMofClass(
+            "Feature",
+            "",
+            false,
+            false,
+            true,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[14] = getModelPackage().getMofClass().createMofClass(
+            "StructuralFeature",
+            "",
+            false,
+            false,
+            true,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[15] = getModelPackage().getMofClass().createMofClass(
+            "Attribute",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[16] = getModelPackage().getMofClass().createMofClass(
+            "Reference",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[17] = getModelPackage().getMofClass().createMofClass(
+            "BehavioralFeature",
+            "",
+            false,
+            false,
+            true,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[18] = getModelPackage().getMofClass().createMofClass(
+            "Operation",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[19] = getModelPackage().getMofClass().createMofClass(
+            "Exception",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[20] = getModelPackage().getMofClass().createMofClass(
+            "Association",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[21] = getModelPackage().getMofClass().createMofClass(
+            "AssociationEnd",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[22] = getModelPackage().getMofClass().createMofClass(
+            "Package",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[23] = getModelPackage().getMofClass().createMofClass(
+            "Import",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[24] = getModelPackage().getMofClass().createMofClass(
+            "Parameter",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[25] = getModelPackage().getMofClass().createMofClass(
+            "Constraint",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[26] = getModelPackage().getMofClass().createMofClass(
+            "Constant",
+            "",
+            false,
+            false,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        class_[27] = getModelPackage().getMofClass().createMofClass(
+            "Tag",
+            "",
+            false,
+            false,
+            false,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
             false);
     }
@@ -278,7 +301,7 @@ public final class Initializer
         primitiveType = new PrimitiveType[15];
 
         primitiveType[0] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "CorbaWChar",
+            "Boolean",
             "",
             false,
             false,
@@ -286,7 +309,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         primitiveType[1] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "CorbaChar",
+            "Integer",
             "",
             false,
             false,
@@ -294,7 +317,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         primitiveType[2] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "CorbaString",
+            "Long",
             "",
             false,
             false,
@@ -302,7 +325,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         primitiveType[3] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "CorbaLongDouble",
+            "Float",
             "",
             false,
             false,
@@ -310,7 +333,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         primitiveType[4] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "CorbaUnsignedLongLong",
+            "Double",
             "",
             false,
             false,
@@ -318,7 +341,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         primitiveType[5] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "CorbaUnsignedLong",
+            "String",
             "",
             false,
             false,
@@ -326,7 +349,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         primitiveType[6] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "CorbaUnsignedShort",
+            "CorbaOctet",
             "",
             false,
             false,
@@ -342,7 +365,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         primitiveType[8] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "CorbaOctet",
+            "CorbaUnsignedShort",
             "",
             false,
             false,
@@ -350,7 +373,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         primitiveType[9] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "String",
+            "CorbaUnsignedLong",
             "",
             false,
             false,
@@ -358,7 +381,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         primitiveType[10] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "Double",
+            "CorbaUnsignedLongLong",
             "",
             false,
             false,
@@ -366,7 +389,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         primitiveType[11] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "Float",
+            "CorbaLongDouble",
             "",
             false,
             false,
@@ -374,7 +397,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         primitiveType[12] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "Long",
+            "CorbaString",
             "",
             false,
             false,
@@ -382,7 +405,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         primitiveType[13] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "Integer",
+            "CorbaChar",
             "",
             false,
             false,
@@ -390,7 +413,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         primitiveType[14] = getModelPackage().getPrimitiveType().createPrimitiveType(
-            "Boolean",
+            "CorbaWChar",
             "",
             false,
             false,
@@ -406,28 +429,27 @@ public final class Initializer
         enumerationType = new EnumerationType[5];
 
         enumerationType[0] = getModelPackage().getEnumerationType().createEnumerationType(
-            "EvaluationKind",
+            "VisibilityKind",
             "",
             true,
             true,
             false,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
             Arrays.asList(
-                "immediate",
-                "deferred"));
+                "public_vis",
+                "protected_vis",
+                "private_vis"));
 
         enumerationType[1] = getModelPackage().getEnumerationType().createEnumerationType(
-            "DirectionKind",
+            "ScopeKind",
             "",
             true,
             true,
             false,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
             Arrays.asList(
-                "in_dir",
-                "out_dir",
-                "inout_dir",
-                "return_dir"));
+                "instance_level",
+                "classifier_level"));
 
         enumerationType[2] = getModelPackage().getEnumerationType().createEnumerationType(
             "AggregationKind",
@@ -442,27 +464,28 @@ public final class Initializer
                 "composite"));
 
         enumerationType[3] = getModelPackage().getEnumerationType().createEnumerationType(
-            "ScopeKind",
+            "DirectionKind",
             "",
             true,
             true,
             false,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
             Arrays.asList(
-                "instance_level",
-                "classifier_level"));
+                "in_dir",
+                "out_dir",
+                "inout_dir",
+                "return_dir"));
 
         enumerationType[4] = getModelPackage().getEnumerationType().createEnumerationType(
-            "VisibilityKind",
+            "EvaluationKind",
             "",
             true,
             true,
             false,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
             Arrays.asList(
-                "public_vis",
-                "protected_vis",
-                "private_vis"));
+                "immediate",
+                "deferred"));
     }
 
     private void collectionTypeInit()
@@ -491,19 +514,19 @@ public final class Initializer
         structureField = new StructureField[4];
 
         structureField[0] = getModelPackage().getStructureField().createStructureField(
-            "isUnique",
+            "lower",
             "");
 
         structureField[1] = getModelPackage().getStructureField().createStructureField(
-            "isOrdered",
-            "");
-
-        structureField[2] = getModelPackage().getStructureField().createStructureField(
             "upper",
             "");
 
+        structureField[2] = getModelPackage().getStructureField().createStructureField(
+            "isOrdered",
+            "");
+
         structureField[3] = getModelPackage().getStructureField().createStructureField(
-            "lower",
+            "isUnique",
             "");
     }
 
@@ -518,20 +541,7 @@ public final class Initializer
         attribute = new Attribute[31];
 
         attribute[0] = getModelPackage().getAttribute().createAttribute(
-            "values",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                true,
-                false),
-            true,
-            false);
-
-        attribute[1] = getModelPackage().getAttribute().createAttribute(
-            "tagId",
+            "name",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -543,8 +553,21 @@ public final class Initializer
             true,
             false);
 
+        attribute[1] = getModelPackage().getAttribute().createAttribute(
+            "qualifiedName",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                1,
+                -1,
+                true,
+                false),
+            false,
+            true);
+
         attribute[2] = getModelPackage().getAttribute().createAttribute(
-            "value",
+            "annotation",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -557,7 +580,7 @@ public final class Initializer
             false);
 
         attribute[3] = getModelPackage().getAttribute().createAttribute(
-            "evaluationPolicy",
+            "isRoot",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -570,7 +593,7 @@ public final class Initializer
             false);
 
         attribute[4] = getModelPackage().getAttribute().createAttribute(
-            "language",
+            "isLeaf",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -583,7 +606,7 @@ public final class Initializer
             false);
 
         attribute[5] = getModelPackage().getAttribute().createAttribute(
-            "expression",
+            "isAbstract",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -596,45 +619,6 @@ public final class Initializer
             false);
 
         attribute[6] = getModelPackage().getAttribute().createAttribute(
-            "multiplicity",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false),
-            true,
-            false);
-
-        attribute[7] = getModelPackage().getAttribute().createAttribute(
-            "direction",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false),
-            true,
-            false);
-
-        attribute[8] = getModelPackage().getAttribute().createAttribute(
-            "isClustered",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false),
-            true,
-            false);
-
-        attribute[9] = getModelPackage().getAttribute().createAttribute(
             "visibility",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
@@ -647,8 +631,8 @@ public final class Initializer
             true,
             false);
 
-        attribute[10] = getModelPackage().getAttribute().createAttribute(
-            "isChangeable",
+        attribute[7] = getModelPackage().getAttribute().createAttribute(
+            "isSingleton",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -660,7 +644,20 @@ public final class Initializer
             true,
             false);
 
-        attribute[11] = getModelPackage().getAttribute().createAttribute(
+        attribute[8] = getModelPackage().getAttribute().createAttribute(
+            "labels",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                1,
+                -1,
+                true,
+                true),
+            true,
+            false);
+
+        attribute[9] = getModelPackage().getAttribute().createAttribute(
             "multiplicity",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
@@ -673,8 +670,34 @@ public final class Initializer
             true,
             false);
 
+        attribute[10] = getModelPackage().getAttribute().createAttribute(
+            "scope",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false),
+            true,
+            false);
+
+        attribute[11] = getModelPackage().getAttribute().createAttribute(
+            "visibility",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false),
+            true,
+            false);
+
         attribute[12] = getModelPackage().getAttribute().createAttribute(
-            "aggregation",
+            "multiplicity",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -687,7 +710,7 @@ public final class Initializer
             false);
 
         attribute[13] = getModelPackage().getAttribute().createAttribute(
-            "isNavigable",
+            "isChangeable",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -739,7 +762,7 @@ public final class Initializer
             false);
 
         attribute[17] = getModelPackage().getAttribute().createAttribute(
-            "isChangeable",
+            "isNavigable",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -752,7 +775,7 @@ public final class Initializer
             false);
 
         attribute[18] = getModelPackage().getAttribute().createAttribute(
-            "multiplicity",
+            "aggregation",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -765,32 +788,6 @@ public final class Initializer
             false);
 
         attribute[19] = getModelPackage().getAttribute().createAttribute(
-            "visibility",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false),
-            true,
-            false);
-
-        attribute[20] = getModelPackage().getAttribute().createAttribute(
-            "scope",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false),
-            true,
-            false);
-
-        attribute[21] = getModelPackage().getAttribute().createAttribute(
             "multiplicity",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
@@ -803,21 +800,8 @@ public final class Initializer
             true,
             false);
 
-        attribute[22] = getModelPackage().getAttribute().createAttribute(
-            "labels",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                1,
-                -1,
-                true,
-                true),
-            true,
-            false);
-
-        attribute[23] = getModelPackage().getAttribute().createAttribute(
-            "isSingleton",
+        attribute[20] = getModelPackage().getAttribute().createAttribute(
+            "isChangeable",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -829,7 +813,7 @@ public final class Initializer
             true,
             false);
 
-        attribute[24] = getModelPackage().getAttribute().createAttribute(
+        attribute[21] = getModelPackage().getAttribute().createAttribute(
             "visibility",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
@@ -842,8 +826,47 @@ public final class Initializer
             true,
             false);
 
+        attribute[22] = getModelPackage().getAttribute().createAttribute(
+            "isClustered",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false),
+            true,
+            false);
+
+        attribute[23] = getModelPackage().getAttribute().createAttribute(
+            "direction",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false),
+            true,
+            false);
+
+        attribute[24] = getModelPackage().getAttribute().createAttribute(
+            "multiplicity",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false),
+            true,
+            false);
+
         attribute[25] = getModelPackage().getAttribute().createAttribute(
-            "isAbstract",
+            "expression",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -856,7 +879,7 @@ public final class Initializer
             false);
 
         attribute[26] = getModelPackage().getAttribute().createAttribute(
-            "isLeaf",
+            "language",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -869,7 +892,7 @@ public final class Initializer
             false);
 
         attribute[27] = getModelPackage().getAttribute().createAttribute(
-            "isRoot",
+            "evaluationPolicy",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -882,7 +905,7 @@ public final class Initializer
             false);
 
         attribute[28] = getModelPackage().getAttribute().createAttribute(
-            "annotation",
+            "value",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -895,20 +918,7 @@ public final class Initializer
             false);
 
         attribute[29] = getModelPackage().getAttribute().createAttribute(
-            "qualifiedName",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                1,
-                -1,
-                true,
-                false),
-            false,
-            true);
-
-        attribute[30] = getModelPackage().getAttribute().createAttribute(
-            "name",
+            "tagId",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -916,6 +926,19 @@ public final class Initializer
                 1,
                 1,
                 false,
+                false),
+            true,
+            false);
+
+        attribute[30] = getModelPackage().getAttribute().createAttribute(
+            "values",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                true,
                 false),
             true,
             false);
@@ -928,126 +951,18 @@ public final class Initializer
         reference = new Reference[12];
 
         reference[0] = getModelPackage().getReference().createReference(
-            "elements",
+            "requiredElements",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
             getModelPackage().createMultiplicityType(
-                1,
+                0,
                 -1,
                 false,
                 true),
-            true);
+            false);
 
         reference[1] = getModelPackage().getReference().createReference(
-            "constrainedElements",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                1,
-                -1,
-                false,
-                true),
-            true);
-
-        reference[2] = getModelPackage().getReference().createReference(
-            "importedNamespace",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false),
-            true);
-
-        reference[3] = getModelPackage().getReference().createReference(
-            "exceptions",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                true,
-                true),
-            true);
-
-        reference[4] = getModelPackage().getReference().createReference(
-            "referencedEnd",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false),
-            true);
-
-        reference[5] = getModelPackage().getReference().createReference(
-            "exposedEnd",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false),
-            true);
-
-        reference[6] = getModelPackage().getReference().createReference(
-            "type",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false),
-            true);
-
-        reference[7] = getModelPackage().getReference().createReference(
-            "supertypes",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                true,
-                true),
-            true);
-
-        reference[8] = getModelPackage().getReference().createReference(
-            "contents",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                true,
-                true),
-            true);
-
-        reference[9] = getModelPackage().getReference().createReference(
-            "constraints",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                false,
-                true),
-            true);
-
-        reference[10] = getModelPackage().getReference().createReference(
             "container",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
@@ -1059,8 +974,8 @@ public final class Initializer
                 false),
             true);
 
-        reference[11] = getModelPackage().getReference().createReference(
-            "requiredElements",
+        reference[2] = getModelPackage().getReference().createReference(
+            "constraints",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -1069,7 +984,115 @@ public final class Initializer
                 -1,
                 false,
                 true),
-            false);
+            true);
+
+        reference[3] = getModelPackage().getReference().createReference(
+            "contents",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                true,
+                true),
+            true);
+
+        reference[4] = getModelPackage().getReference().createReference(
+            "supertypes",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                true,
+                true),
+            true);
+
+        reference[5] = getModelPackage().getReference().createReference(
+            "type",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false),
+            true);
+
+        reference[6] = getModelPackage().getReference().createReference(
+            "exposedEnd",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false),
+            true);
+
+        reference[7] = getModelPackage().getReference().createReference(
+            "referencedEnd",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false),
+            true);
+
+        reference[8] = getModelPackage().getReference().createReference(
+            "exceptions",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                true,
+                true),
+            true);
+
+        reference[9] = getModelPackage().getReference().createReference(
+            "importedNamespace",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false),
+            true);
+
+        reference[10] = getModelPackage().getReference().createReference(
+            "constrainedElements",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                1,
+                -1,
+                false,
+                true),
+            true);
+
+        reference[11] = getModelPackage().getReference().createReference(
+            "elements",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            getModelPackage().createMultiplicityType(
+                1,
+                -1,
+                false,
+                true),
+            true);
     }
 
     private Operation[] operation;
@@ -1079,84 +1102,84 @@ public final class Initializer
         operation = new Operation[12];
 
         operation[0] = getModelPackage().getOperation().createOperation(
-            "otherEnd",
+            "findRequiredElements",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
             false);
 
         operation[1] = getModelPackage().getOperation().createOperation(
-            "findElementsByTypeExtended",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        operation[2] = getModelPackage().getOperation().createOperation(
-            "lookupElementExtended",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        operation[3] = getModelPackage().getOperation().createOperation(
-            "allSupertypes",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        operation[4] = getModelPackage().getOperation().createOperation(
-            "nameIsValid",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        operation[5] = getModelPackage().getOperation().createOperation(
-            "findElementsByType",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        operation[6] = getModelPackage().getOperation().createOperation(
-            "resolveQualifiedName",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        operation[7] = getModelPackage().getOperation().createOperation(
-            "lookupElement",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        operation[8] = getModelPackage().getOperation().createOperation(
-            "isVisible",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        operation[9] = getModelPackage().getOperation().createOperation(
-            "isFrozen",
-            "",
-            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        operation[10] = getModelPackage().getOperation().createOperation(
             "isRequiredBecause",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
             false);
 
+        operation[2] = getModelPackage().getOperation().createOperation(
+            "isFrozen",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        operation[3] = getModelPackage().getOperation().createOperation(
+            "isVisible",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        operation[4] = getModelPackage().getOperation().createOperation(
+            "lookupElement",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        operation[5] = getModelPackage().getOperation().createOperation(
+            "resolveQualifiedName",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        operation[6] = getModelPackage().getOperation().createOperation(
+            "findElementsByType",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        operation[7] = getModelPackage().getOperation().createOperation(
+            "nameIsValid",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        operation[8] = getModelPackage().getOperation().createOperation(
+            "allSupertypes",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        operation[9] = getModelPackage().getOperation().createOperation(
+            "lookupElementExtended",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        operation[10] = getModelPackage().getOperation().createOperation(
+            "findElementsByTypeExtended",
+            "",
+            javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
         operation[11] = getModelPackage().getOperation().createOperation(
-            "findRequiredElements",
+            "otherEnd",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
@@ -1170,13 +1193,13 @@ public final class Initializer
         exception = new MofException[2];
 
         exception[0] = getModelPackage().getMofException().createMofException(
-            "NameNotResolved",
+            "NameNotFound",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         exception[1] = getModelPackage().getMofException().createMofException(
-            "NameNotFound",
+            "NameNotResolved",
             "",
             javax.jmi.model.ScopeKindEnum.INSTANCE_LEVEL,
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
@@ -1189,7 +1212,7 @@ public final class Initializer
         association = new Association[10];
 
         association[0] = getModelPackage().getAssociation().createAssociation(
-            "IsOfType",
+            "AttachesTo",
             "",
             true,
             true,
@@ -1198,69 +1221,6 @@ public final class Initializer
             false);
 
         association[1] = getModelPackage().getAssociation().createAssociation(
-            "RefersTo",
-            "",
-            true,
-            true,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        association[2] = getModelPackage().getAssociation().createAssociation(
-            "Exposes",
-            "",
-            true,
-            true,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            true);
-
-        association[3] = getModelPackage().getAssociation().createAssociation(
-            "CanRaise",
-            "",
-            true,
-            true,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        association[4] = getModelPackage().getAssociation().createAssociation(
-            "Constrains",
-            "",
-            true,
-            true,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        association[5] = getModelPackage().getAssociation().createAssociation(
-            "Aliases",
-            "",
-            true,
-            true,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        association[6] = getModelPackage().getAssociation().createAssociation(
-            "Generalizes",
-            "",
-            true,
-            true,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        association[7] = getModelPackage().getAssociation().createAssociation(
-            "Contains",
-            "",
-            true,
-            true,
-            false,
-            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
-            false);
-
-        association[8] = getModelPackage().getAssociation().createAssociation(
             "DependsOn",
             "",
             true,
@@ -1269,8 +1229,71 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
             true);
 
+        association[2] = getModelPackage().getAssociation().createAssociation(
+            "Contains",
+            "",
+            true,
+            true,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        association[3] = getModelPackage().getAssociation().createAssociation(
+            "Generalizes",
+            "",
+            true,
+            true,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        association[4] = getModelPackage().getAssociation().createAssociation(
+            "Aliases",
+            "",
+            true,
+            true,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        association[5] = getModelPackage().getAssociation().createAssociation(
+            "Constrains",
+            "",
+            true,
+            true,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        association[6] = getModelPackage().getAssociation().createAssociation(
+            "CanRaise",
+            "",
+            true,
+            true,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
+        association[7] = getModelPackage().getAssociation().createAssociation(
+            "Exposes",
+            "",
+            true,
+            true,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            true);
+
+        association[8] = getModelPackage().getAssociation().createAssociation(
+            "RefersTo",
+            "",
+            true,
+            true,
+            false,
+            javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS,
+            false);
+
         association[9] = getModelPackage().getAssociation().createAssociation(
-            "AttachesTo",
+            "IsOfType",
             "",
             true,
             true,
@@ -1286,222 +1309,18 @@ public final class Initializer
         associationEnd = new AssociationEnd[20];
 
         associationEnd[0] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "typedElements",
+            "modelElement",
             "",
             true,
             javax.jmi.model.AggregationKindEnum.NONE,
             getModelPackage().createMultiplicityType(
-                0,
+                1,
                 -1,
                 false,
                 true),
             true);
 
         associationEnd[1] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "type",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false),
-            true);
-
-        associationEnd[2] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "referencedEnd",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false),
-            true);
-
-        associationEnd[3] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "referent",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                false,
-                true),
-            true);
-
-        associationEnd[4] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "exposedEnd",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false),
-            true);
-
-        associationEnd[5] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "referrer",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                false,
-                true),
-            true);
-
-        associationEnd[6] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "except",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                true,
-                true),
-            true);
-
-        associationEnd[7] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "operation",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                false,
-                true),
-            true);
-
-        associationEnd[8] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "constrainedElement",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                1,
-                -1,
-                false,
-                true),
-            true);
-
-        associationEnd[9] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "constraint",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                false,
-                true),
-            true);
-
-        associationEnd[10] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "imported",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false),
-            true);
-
-        associationEnd[11] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "importer",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                false,
-                true),
-            true);
-
-        associationEnd[12] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "subtype",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                false,
-                true),
-            true);
-
-        associationEnd[13] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "supertype",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                true,
-                true),
-            true);
-
-        associationEnd[14] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "containedElement",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                true,
-                true),
-            true);
-
-        associationEnd[15] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "container",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.COMPOSITE,
-            getModelPackage().createMultiplicityType(
-                0,
-                1,
-                false,
-                false),
-            true);
-
-        associationEnd[16] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "provider",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                false,
-                true),
-            false);
-
-        associationEnd[17] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "dependent",
-            "",
-            true,
-            javax.jmi.model.AggregationKindEnum.NONE,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                false,
-                true),
-            false);
-
-        associationEnd[18] = getModelPackage().getAssociationEnd().createAssociationEnd(
             "tag",
             "",
             true,
@@ -1513,13 +1332,217 @@ public final class Initializer
                 true),
             true);
 
-        associationEnd[19] = getModelPackage().getAssociationEnd().createAssociationEnd(
-            "modelElement",
+        associationEnd[2] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "dependent",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                false,
+                true),
+            false);
+
+        associationEnd[3] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "provider",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                false,
+                true),
+            false);
+
+        associationEnd[4] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "container",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.COMPOSITE,
+            getModelPackage().createMultiplicityType(
+                0,
+                1,
+                false,
+                false),
+            true);
+
+        associationEnd[5] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "containedElement",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                true,
+                true),
+            true);
+
+        associationEnd[6] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "supertype",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                true,
+                true),
+            true);
+
+        associationEnd[7] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "subtype",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                false,
+                true),
+            true);
+
+        associationEnd[8] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "importer",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                false,
+                true),
+            true);
+
+        associationEnd[9] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "imported",
             "",
             true,
             javax.jmi.model.AggregationKindEnum.NONE,
             getModelPackage().createMultiplicityType(
                 1,
+                1,
+                false,
+                false),
+            true);
+
+        associationEnd[10] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "constraint",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                false,
+                true),
+            true);
+
+        associationEnd[11] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "constrainedElement",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                1,
+                -1,
+                false,
+                true),
+            true);
+
+        associationEnd[12] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "operation",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                false,
+                true),
+            true);
+
+        associationEnd[13] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "except",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                true,
+                true),
+            true);
+
+        associationEnd[14] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "referrer",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                false,
+                true),
+            true);
+
+        associationEnd[15] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "exposedEnd",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false),
+            true);
+
+        associationEnd[16] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "referent",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                false,
+                true),
+            true);
+
+        associationEnd[17] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "referencedEnd",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false),
+            true);
+
+        associationEnd[18] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "type",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false),
+            true);
+
+        associationEnd[19] = getModelPackage().getAssociationEnd().createAssociationEnd(
+            "typedElements",
+            "",
+            true,
+            javax.jmi.model.AggregationKindEnum.NONE,
+            getModelPackage().createMultiplicityType(
+                0,
                 -1,
                 false,
                 true),
@@ -1533,7 +1556,7 @@ public final class Initializer
         package_ = new MofPackage[3];
 
         package_[0] = getModelPackage().getMofPackage().createMofPackage(
-            "CorbaIdlTypes",
+            "PrimitiveTypes",
             "",
             false,
             false,
@@ -1549,7 +1572,7 @@ public final class Initializer
             javax.jmi.model.VisibilityKindEnum.PUBLIC_VIS);
 
         package_[2] = getModelPackage().getMofPackage().createMofPackage(
-            "PrimitiveTypes",
+            "CorbaIdlTypes",
             "",
             false,
             false,
@@ -1581,23 +1604,23 @@ public final class Initializer
             "",
             javax.jmi.model.DirectionKindEnum.RETURN_DIR,
             getModelPackage().createMultiplicityType(
-                1,
-                1,
+                0,
+                -1,
                 false,
-                false));
+                true));
 
         parameter[1] = getModelPackage().getParameter().createParameter(
-            "includeSubtypes",
+            "kinds",
             "",
             javax.jmi.model.DirectionKindEnum.IN_DIR,
             getModelPackage().createMultiplicityType(
                 1,
-                1,
+                -1,
                 false,
-                false));
+                true));
 
         parameter[2] = getModelPackage().getParameter().createParameter(
-            "ofType",
+            "recursive",
             "",
             javax.jmi.model.DirectionKindEnum.IN_DIR,
             getModelPackage().createMultiplicityType(
@@ -1611,13 +1634,13 @@ public final class Initializer
             "",
             javax.jmi.model.DirectionKindEnum.RETURN_DIR,
             getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                true,
-                true));
+                1,
+                1,
+                false,
+                false));
 
         parameter[4] = getModelPackage().getParameter().createParameter(
-            "name",
+            "otherElement",
             "",
             javax.jmi.model.DirectionKindEnum.IN_DIR,
             getModelPackage().createMultiplicityType(
@@ -1627,9 +1650,9 @@ public final class Initializer
                 false));
 
         parameter[5] = getModelPackage().getParameter().createParameter(
-            "**result**",
+            "reason",
             "",
-            javax.jmi.model.DirectionKindEnum.RETURN_DIR,
+            javax.jmi.model.DirectionKindEnum.OUT_DIR,
             getModelPackage().createMultiplicityType(
                 1,
                 1,
@@ -1641,15 +1664,15 @@ public final class Initializer
             "",
             javax.jmi.model.DirectionKindEnum.RETURN_DIR,
             getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                true,
-                true));
+                1,
+                1,
+                false,
+                false));
 
         parameter[7] = getModelPackage().getParameter().createParameter(
-            "proposedName",
+            "**result**",
             "",
-            javax.jmi.model.DirectionKindEnum.IN_DIR,
+            javax.jmi.model.DirectionKindEnum.RETURN_DIR,
             getModelPackage().createMultiplicityType(
                 1,
                 1,
@@ -1657,116 +1680,6 @@ public final class Initializer
                 false));
 
         parameter[8] = getModelPackage().getParameter().createParameter(
-            "**result**",
-            "",
-            javax.jmi.model.DirectionKindEnum.RETURN_DIR,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false));
-
-        parameter[9] = getModelPackage().getParameter().createParameter(
-            "includeSubtypes",
-            "",
-            javax.jmi.model.DirectionKindEnum.IN_DIR,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false));
-
-        parameter[10] = getModelPackage().getParameter().createParameter(
-            "ofType",
-            "",
-            javax.jmi.model.DirectionKindEnum.IN_DIR,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false));
-
-        parameter[11] = getModelPackage().getParameter().createParameter(
-            "**result**",
-            "",
-            javax.jmi.model.DirectionKindEnum.RETURN_DIR,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                true,
-                true));
-
-        parameter[12] = getModelPackage().getParameter().createParameter(
-            "qualifiedName",
-            "",
-            javax.jmi.model.DirectionKindEnum.IN_DIR,
-            getModelPackage().createMultiplicityType(
-                1,
-                -1,
-                true,
-                false));
-
-        parameter[13] = getModelPackage().getParameter().createParameter(
-            "**result**",
-            "",
-            javax.jmi.model.DirectionKindEnum.RETURN_DIR,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false));
-
-        parameter[14] = getModelPackage().getParameter().createParameter(
-            "name",
-            "",
-            javax.jmi.model.DirectionKindEnum.IN_DIR,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false));
-
-        parameter[15] = getModelPackage().getParameter().createParameter(
-            "**result**",
-            "",
-            javax.jmi.model.DirectionKindEnum.RETURN_DIR,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false));
-
-        parameter[16] = getModelPackage().getParameter().createParameter(
-            "restOfName",
-            "",
-            javax.jmi.model.DirectionKindEnum.OUT_DIR,
-            getModelPackage().createMultiplicityType(
-                0,
-                -1,
-                true,
-                false));
-
-        parameter[17] = getModelPackage().getParameter().createParameter(
-            "explanation",
-            "",
-            javax.jmi.model.DirectionKindEnum.OUT_DIR,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false));
-
-        parameter[18] = getModelPackage().getParameter().createParameter(
-            "name",
-            "",
-            javax.jmi.model.DirectionKindEnum.OUT_DIR,
-            getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false));
-
-        parameter[19] = getModelPackage().getParameter().createParameter(
             "otherElement",
             "",
             javax.jmi.model.DirectionKindEnum.IN_DIR,
@@ -1776,10 +1689,120 @@ public final class Initializer
                 false,
                 false));
 
-        parameter[20] = getModelPackage().getParameter().createParameter(
+        parameter[9] = getModelPackage().getParameter().createParameter(
+            "name",
+            "",
+            javax.jmi.model.DirectionKindEnum.OUT_DIR,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false));
+
+        parameter[10] = getModelPackage().getParameter().createParameter(
+            "explanation",
+            "",
+            javax.jmi.model.DirectionKindEnum.OUT_DIR,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false));
+
+        parameter[11] = getModelPackage().getParameter().createParameter(
+            "restOfName",
+            "",
+            javax.jmi.model.DirectionKindEnum.OUT_DIR,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                true,
+                false));
+
+        parameter[12] = getModelPackage().getParameter().createParameter(
             "**result**",
             "",
             javax.jmi.model.DirectionKindEnum.RETURN_DIR,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false));
+
+        parameter[13] = getModelPackage().getParameter().createParameter(
+            "name",
+            "",
+            javax.jmi.model.DirectionKindEnum.IN_DIR,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false));
+
+        parameter[14] = getModelPackage().getParameter().createParameter(
+            "**result**",
+            "",
+            javax.jmi.model.DirectionKindEnum.RETURN_DIR,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false));
+
+        parameter[15] = getModelPackage().getParameter().createParameter(
+            "qualifiedName",
+            "",
+            javax.jmi.model.DirectionKindEnum.IN_DIR,
+            getModelPackage().createMultiplicityType(
+                1,
+                -1,
+                true,
+                false));
+
+        parameter[16] = getModelPackage().getParameter().createParameter(
+            "**result**",
+            "",
+            javax.jmi.model.DirectionKindEnum.RETURN_DIR,
+            getModelPackage().createMultiplicityType(
+                0,
+                -1,
+                true,
+                true));
+
+        parameter[17] = getModelPackage().getParameter().createParameter(
+            "ofType",
+            "",
+            javax.jmi.model.DirectionKindEnum.IN_DIR,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false));
+
+        parameter[18] = getModelPackage().getParameter().createParameter(
+            "includeSubtypes",
+            "",
+            javax.jmi.model.DirectionKindEnum.IN_DIR,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false));
+
+        parameter[19] = getModelPackage().getParameter().createParameter(
+            "**result**",
+            "",
+            javax.jmi.model.DirectionKindEnum.RETURN_DIR,
+            getModelPackage().createMultiplicityType(
+                1,
+                1,
+                false,
+                false));
+
+        parameter[20] = getModelPackage().getParameter().createParameter(
+            "proposedName",
+            "",
+            javax.jmi.model.DirectionKindEnum.IN_DIR,
             getModelPackage().createMultiplicityType(
                 1,
                 1,
@@ -1791,15 +1814,15 @@ public final class Initializer
             "",
             javax.jmi.model.DirectionKindEnum.RETURN_DIR,
             getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false));
+                0,
+                -1,
+                true,
+                true));
 
         parameter[22] = getModelPackage().getParameter().createParameter(
-            "reason",
+            "**result**",
             "",
-            javax.jmi.model.DirectionKindEnum.OUT_DIR,
+            javax.jmi.model.DirectionKindEnum.RETURN_DIR,
             getModelPackage().createMultiplicityType(
                 1,
                 1,
@@ -1807,7 +1830,7 @@ public final class Initializer
                 false));
 
         parameter[23] = getModelPackage().getParameter().createParameter(
-            "otherElement",
+            "name",
             "",
             javax.jmi.model.DirectionKindEnum.IN_DIR,
             getModelPackage().createMultiplicityType(
@@ -1821,13 +1844,13 @@ public final class Initializer
             "",
             javax.jmi.model.DirectionKindEnum.RETURN_DIR,
             getModelPackage().createMultiplicityType(
-                1,
-                1,
-                false,
-                false));
+                0,
+                -1,
+                true,
+                true));
 
         parameter[25] = getModelPackage().getParameter().createParameter(
-            "recursive",
+            "ofType",
             "",
             javax.jmi.model.DirectionKindEnum.IN_DIR,
             getModelPackage().createMultiplicityType(
@@ -1837,24 +1860,24 @@ public final class Initializer
                 false));
 
         parameter[26] = getModelPackage().getParameter().createParameter(
-            "kinds",
+            "includeSubtypes",
             "",
             javax.jmi.model.DirectionKindEnum.IN_DIR,
             getModelPackage().createMultiplicityType(
                 1,
-                -1,
+                1,
                 false,
-                true));
+                false));
 
         parameter[27] = getModelPackage().getParameter().createParameter(
             "**result**",
             "",
             javax.jmi.model.DirectionKindEnum.RETURN_DIR,
             getModelPackage().createMultiplicityType(
-                0,
-                -1,
+                1,
+                1,
                 false,
-                true));
+                false));
     }
 
     private Constraint[] constraint;
@@ -1864,408 +1887,408 @@ public final class Initializer
         constraint = new Constraint[58];
 
         constraint[0] = getModelPackage().getConstraint().createConstraint(
-            "ConstantsTypeMustBePrimitive",
+            "MustBeContainedUnlessPackage",
             "",
-            "context Constant\ninv: self.type.oclIsOfType(PrimitiveType)",
+            "context ModelElement\ninv: \nnot self.oclIsTypeOf(Package) implies \n  self.container -> size = 1",
             "OCL",
             javax.jmi.model.EvaluationKindEnum.DEFERRED);
 
         constraint[1] = getModelPackage().getConstraint().createConstraint(
-            "ConstantsValueMustMatchType",
-            "",
-            "context Constant\ninv: ...",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[2] = getModelPackage().getConstraint().createConstraint(
-            "ConstraintsLimitedToContainer",
-            "",
-            "context Constraint\ninv:\nself.constrainedElements ->\n  forAll(c | self.container.extendedNamespace() -> includes(c))",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[3] = getModelPackage().getConstraint().createConstraint(
-            "CannotConstrainThisElement",
-            "",
-            "context Constraint\ninv:\nself.constrainedElements -> \n  forAll(c | not Set{Constraint, Tag, Imports, Constant} -> \n		  includes(c.oclType())",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[4] = getModelPackage().getConstraint().createConstraint(
-            "NestedPackagesCannotImport",
-            "",
-            "context Import\ninv:\nself.container -> notEmpty implies\n  self.container -> asSequence -> first -> container -> isEmpty",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[5] = getModelPackage().getConstraint().createConstraint(
-            "CannotImportNestedComponents",
-            "",
-            "context Import\ninv: not self.container.allContents() -> includes(self.imported)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[6] = getModelPackage().getConstraint().createConstraint(
-            "CannotImportSelf",
-            "",
-            "context Import\ninv: self.container <> self.imported",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[7] = getModelPackage().getConstraint().createConstraint(
-            "CanOnlyImportPackagesAndClasses",
-            "",
-            "context Import\ninv:\nself.imported.oclIsTypeOf(Class) or\nself.imported.oclIsTypeOf(Package)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[8] = getModelPackage().getConstraint().createConstraint(
-            "ImportedNamespaceMustBeVisible",
-            "",
-            "context Import\ninv: self.container.isVisible(self.importedNamespace)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[9] = getModelPackage().getConstraint().createConstraint(
-            "PackagesCannotBeAbstract",
-            "",
-            "context Package\ninv: not self.isAbstract",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[10] = getModelPackage().getConstraint().createConstraint(
-            "PackageContainmentRules",
-            "",
-            "context Package\ninv:\nSet{Package, Class, DataType, Association, Exception, \n    Constant, Constraint, Import, Tag}) ->\n  includesAll(self.contentTypes)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[11] = getModelPackage().getConstraint().createConstraint(
-            "CannotHaveTwoAggregateEnds",
-            "",
-            "context AssociationEnd\ninv: \nself.aggregation <> #none implies self.otherEnd = #none",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[12] = getModelPackage().getConstraint().createConstraint(
-            "CannotHaveTwoOrderedEnds",
-            "",
-            "context AssociationEnd\ninv:\nself.multiplicity.isOrdered implies \n  not self.otherEnd.multiplicity.isOrdered",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[13] = getModelPackage().getConstraint().createConstraint(
-            "EndsMustBeUnique",
-            "",
-            "context AssociationEnd\ninv: \n(self.multiplicity.upper > 1 or \n self.multiplicity.upper = UNBOUNDED) implies\n  self.multiplicity.isUnique",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[14] = getModelPackage().getConstraint().createConstraint(
-            "EndTypeMustBeClass",
-            "",
-            "context AssociationEnd\ninv: self.type.oclIsTypeOf(Class)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[15] = getModelPackage().getConstraint().createConstraint(
-            "AssociationsMustBeBinary",
-            "",
-            "context Association\ninv: self.contents -> \nselect(c | c.oclIsTypeOf(AssociationEnd)) -> size = 2",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[16] = getModelPackage().getConstraint().createConstraint(
-            "AssociationsMustBePublic",
-            "",
-            "context Association\ninv: self.visibility = #public_vis",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[17] = getModelPackage().getConstraint().createConstraint(
-            "AssociationsCannotBeAbstract",
-            "",
-            "context Association\ninv: not self.isAbstract",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[18] = getModelPackage().getConstraint().createConstraint(
-            "AssociationMustBeRootAndLeaf",
-            "",
-            "context Association\ninv: self.isRoot and self.isLeaf",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[19] = getModelPackage().getConstraint().createConstraint(
-            "AssociationsHaveNoSupertypes",
-            "",
-            "context Association\ninv: self.supertypes -> isEmpty",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[20] = getModelPackage().getConstraint().createConstraint(
-            "AssociationContainmentRules",
-            "",
-            "context Association\ninv: \nSet{AssociationEnd, Constraint, Tag} ->\n  includesAll(self.contentTypes())",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[21] = getModelPackage().getConstraint().createConstraint(
-            "ExceptionsHaveOnlyOutParameters",
-            "",
-            "context Exception\ninv:\nself.contents -> \n  select(c | c.oclIsTypeOf(Parameter)) ->\n    forAll(p : Parameter | p.direction = #out_dir)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[22] = getModelPackage().getConstraint().createConstraint(
-            "ExceptionContainmentRules",
-            "",
-            "context Exception\ninv: Set{Parameter, Tag}) -> includesAll(self.contentTypes())",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[23] = getModelPackage().getConstraint().createConstraint(
-            "OperationExceptionsMustBeVisible",
-            "",
-            "context Operation\ninv: self.exceptions -> forAll(e | self.isVisible(e))",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[24] = getModelPackage().getConstraint().createConstraint(
-            "OperationsHaveAtMostOneReturn",
-            "",
-            "context Operation\ninv:\nself.contents -> \n  select(c | c.oclIsTypeOf(Parameter)) ->\n    select(p : Parameter | p.direction = #return_dir) -> size < 2",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[25] = getModelPackage().getConstraint().createConstraint(
-            "OperationContainmentRules",
-            "",
-            "context Operation\ninv: \nSet{Parameter, Constraint, Tag} -> includesAll(self.contentTypes())",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[26] = getModelPackage().getConstraint().createConstraint(
-            "ReferencedEndMustBeVisible",
-            "",
-            "context Reference\ninv: self.isVisible(self.referencedEnd)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[27] = getModelPackage().getConstraint().createConstraint(
-            "ContainerMustMatchExposedType",
-            "",
-            "context Reference\ninv:\nself.container.allSupertypes() -> including(self) ->\n  includes(self.referencedEnd.otherEnd.type)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[28] = getModelPackage().getConstraint().createConstraint(
-            "ReferencedEndMustBeNavigable",
-            "",
-            "context Reference\ninv: self.referencedEnd.isNavigable",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[29] = getModelPackage().getConstraint().createConstraint(
-            "ReferenceTypeMustMatchEndType",
-            "",
-            "context Reference\ninv: self.type = self.referencedEnd.type",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[30] = getModelPackage().getConstraint().createConstraint(
-            "ChangeableReferenceMustHaveChangeableEnd",
-            "",
-            "context Reference\ninv: self.isChangeable = self.referencedEnd.isChangeable",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[31] = getModelPackage().getConstraint().createConstraint(
-            "ReferenceMustBeInstanceScoped",
-            "",
-            "context Reference\ninv: self.scope = #instance_level",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[32] = getModelPackage().getConstraint().createConstraint(
-            "ReferenceMultiplicityMustMatchEnd",
-            "",
-            "context Reference\ninv: self.multiplicity = self.referencedEnd.multiplicity",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[33] = getModelPackage().getConstraint().createConstraint(
-            "StructureFieldContainmentRules",
-            "",
-            "context StructureField\ninv: Set{Constraint, Tag}) -> includesAll(self.contentTypes)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[34] = getModelPackage().getConstraint().createConstraint(
-            "MustHaveFields",
-            "",
-            "context StructureType\ninv: self.contents -> exists(c | c.oclIsOfType(StructureField))",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[35] = getModelPackage().getConstraint().createConstraint(
-            "DataTypesCannotBeAbstract",
-            "",
-            "context DataType\ninv: not self.isAbstract",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[36] = getModelPackage().getConstraint().createConstraint(
-            "DataTypesHaveNoSupertypes",
-            "",
-            "context DataType\ninv: self.supertypes -> isEmpty",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[37] = getModelPackage().getConstraint().createConstraint(
-            "DataTypeContainmentRules",
-            "",
-            "context DataType\ninv: \nif self.oclIsOfType(StructureType)\nthen\n  Set{TypeAlias, Constraint, Tag, StructureField} ->\n    includesAll(self.contentTypes())\nelse\n  Set{TypeAlias, Constraint, Tag} -> \n    includesAll(self.contentTypes())",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[38] = getModelPackage().getConstraint().createConstraint(
-            "MustBeUnorderedNonunique",
-            "",
-            "context MultiplicityType\ninv: \nself.upper = 1 implies (not self.isOrdered and not self.isUnique)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[39] = getModelPackage().getConstraint().createConstraint(
-            "UpperMustBePositive",
-            "",
-            "context MultiplicityType\ninv: self.upper >= 1 or self.upper = Unbounded",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[40] = getModelPackage().getConstraint().createConstraint(
-            "LowerCannotExceedUpper",
-            "",
-            "context MultiplicityType\ninv: self.lower <= self.upper or self.upper = Unbounded",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[41] = getModelPackage().getConstraint().createConstraint(
-            "LowerCannotBeNegativeOrUnbounded",
-            "",
-            "context MultiplicityType\ninv: self.lower >= 0 and self.lower <> Unbounded",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[42] = getModelPackage().getConstraint().createConstraint(
-            "AbstractClassesCannotBeSingleton",
-            "",
-            "context Class\ninv: self.isAbstract implies not self.isSingleton",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[43] = getModelPackage().getConstraint().createConstraint(
-            "ClassContainmentRules",
-            "",
-            "context Class\ninv: \nSet{Class, DataType, Attribute, Reference, Operation,\n    Exception, Constant, Constraint, Tag} ->\n  includesAll(self.contentTypes())",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[44] = getModelPackage().getConstraint().createConstraint(
-            "TypeMustBeVisible",
-            "",
-            "context TypedElement\ninv: self.isVisible(self.type)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[45] = getModelPackage().getConstraint().createConstraint(
-            "AssociationsCannotBeTypes",
-            "",
-            "context TypedElement\ninv: not self.type.oclIsKindOf(Association)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[46] = getModelPackage().getConstraint().createConstraint(
-            "NoSubtypesAllowedForLeaf",
-            "",
-            "context GeneralizableElement\ninv: self.supertypes -> forAll(s | not s.isLeaf)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[47] = getModelPackage().getConstraint().createConstraint(
-            "SupertypesMustBeVisible",
-            "",
-            "context GeneralizableElement\ninv: self.supertypes -> forAll(s | self.isVisible(s))",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[48] = getModelPackage().getConstraint().createConstraint(
-            "NoSupertypesAllowedForRoot",
-            "",
-            "context GeneralizableElement\ninv: self.isRoot implies self.supertypes -> isEmpty",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[49] = getModelPackage().getConstraint().createConstraint(
-            "DiamondRuleMustBeObeyed",
-            "",
-            "context GeneralizableElement\ninv:\nlet superNamespaces = \n  self.supertypes -> collect(s | s.extendedNamespace) in\nsuperNamespaces -> asSet -> isUnique(s | s.name)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[50] = getModelPackage().getConstraint().createConstraint(
-            "ContentsMustNotCollideWithSupertypes",
-            "",
-            "context GeneralizableElement\ninv:\nlet superContents = self.allSupertypes() -> \n  collect(s | s.contents) in\nself.contents -> forAll(m1 | superContents -> \n  forAll(m2 | m1.name = m2.name implies m1 = m2))",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[51] = getModelPackage().getConstraint().createConstraint(
-            "SupertypeKindMustBeSame",
-            "",
-            "context GeneralizableElement\ninv: self.supertypes -> forAll(s | s.oclType() = self.oclType())",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[52] = getModelPackage().getConstraint().createConstraint(
-            "SupertypeMustNotBeSelf",
-            "",
-            "context GeneralizableElement\ninv: self.allSupertypes() -> forAll(s | s <> self)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[53] = getModelPackage().getConstraint().createConstraint(
-            "ContentNamesMustNotCollide",
-            "",
-            "context Namespace\ninv: self.contents.forAll(e1, e2 | e1.name = e2.name implies r1 = r2)",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[54] = getModelPackage().getConstraint().createConstraint(
-            "FrozenDependenciesCannotBeChanged",
-            "",
-            "context ModelElement\npost: \nself.isFrozen() implies \n  let myClasses = self.oclType() -> allSupertypes() -> \n    includes(self.oclType()) in\n  let myRefs = Set(Reference) = \n    self.RefBaseObject::refMetaObject() -> asOclType(Class) -> \n    findElementsByTypeExtended(Reference) in\n  let myDepRefs = myRefs -> \n    select(r | Set{\"\n		  \"\n		  \"\n      includes(r.name)) in\n  myDepRefs -> forAll(r | \n    self.RefObject::refValue@pre(r) = self.RefObject::refValue(r))",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[55] = getModelPackage().getConstraint().createConstraint(
-            "FrozenElementsCannotBeDeleted",
-            "",
-            "context ModelElement\npost: \n(self.isFrozen@pre() and \n self.container@pre -> notEmpty and\n self.container.isFrozen@pre()) implies\n(self.container.Object::non_existent() or \n not self.Object::non_existent())",
-            "OCL",
-            javax.jmi.model.EvaluationKindEnum.DEFERRED);
-
-        constraint[56] = getModelPackage().getConstraint().createConstraint(
             "FrozenAttributesCannotBeChanged",
             "",
             "context ModelElement\ninv: \nself.isFrozen() implies \n  let myTypes = \n    self.oclType() -> allSupertypes() -> includes(self.oclType()) in\n  let myAttrs : Set(Attribute) = \n    self.RefBaseObject::refMetaObject() -> asOclType(Class) -> \n    findElementsByTypeExtended(Attribute) in\n  myAttrs -> forAll(a | \n    self.RefObject::refValue@pre(a) = self.RefObject::refValue(a))",
             "OCL",
             javax.jmi.model.EvaluationKindEnum.DEFERRED);
 
-        constraint[57] = getModelPackage().getConstraint().createConstraint(
-            "MustBeContainedUnlessPackage",
+        constraint[2] = getModelPackage().getConstraint().createConstraint(
+            "FrozenElementsCannotBeDeleted",
             "",
-            "context ModelElement\ninv: \nnot self.oclIsTypeOf(Package) implies \n  self.container -> size = 1",
+            "context ModelElement\npost: \n(self.isFrozen@pre() and \n self.container@pre -> notEmpty and\n self.container.isFrozen@pre()) implies\n(self.container.Object::non_existent() or \n not self.Object::non_existent())",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[3] = getModelPackage().getConstraint().createConstraint(
+            "FrozenDependenciesCannotBeChanged",
+            "",
+            "context ModelElement\npost: \nself.isFrozen() implies \n  let myClasses = self.oclType() -> allSupertypes() -> \n    includes(self.oclType()) in\n  let myRefs = Set(Reference) = \n    self.RefBaseObject::refMetaObject() -> asOclType(Class) -> \n    findElementsByTypeExtended(Reference) in\n  let myDepRefs = myRefs -> \n    select(r | Set{\"\n		  \"\n		  \"\n      includes(r.name)) in\n  myDepRefs -> forAll(r | \n    self.RefObject::refValue@pre(r) = self.RefObject::refValue(r))",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[4] = getModelPackage().getConstraint().createConstraint(
+            "ContentNamesMustNotCollide",
+            "",
+            "context Namespace\ninv: self.contents.forAll(e1, e2 | e1.name = e2.name implies r1 = r2)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[5] = getModelPackage().getConstraint().createConstraint(
+            "SupertypeMustNotBeSelf",
+            "",
+            "context GeneralizableElement\ninv: self.allSupertypes() -> forAll(s | s <> self)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[6] = getModelPackage().getConstraint().createConstraint(
+            "SupertypeKindMustBeSame",
+            "",
+            "context GeneralizableElement\ninv: self.supertypes -> forAll(s | s.oclType() = self.oclType())",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[7] = getModelPackage().getConstraint().createConstraint(
+            "ContentsMustNotCollideWithSupertypes",
+            "",
+            "context GeneralizableElement\ninv:\nlet superContents = self.allSupertypes() -> \n  collect(s | s.contents) in\nself.contents -> forAll(m1 | superContents -> \n  forAll(m2 | m1.name = m2.name implies m1 = m2))",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[8] = getModelPackage().getConstraint().createConstraint(
+            "DiamondRuleMustBeObeyed",
+            "",
+            "context GeneralizableElement\ninv:\nlet superNamespaces = \n  self.supertypes -> collect(s | s.extendedNamespace) in\nsuperNamespaces -> asSet -> isUnique(s | s.name)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[9] = getModelPackage().getConstraint().createConstraint(
+            "NoSupertypesAllowedForRoot",
+            "",
+            "context GeneralizableElement\ninv: self.isRoot implies self.supertypes -> isEmpty",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[10] = getModelPackage().getConstraint().createConstraint(
+            "SupertypesMustBeVisible",
+            "",
+            "context GeneralizableElement\ninv: self.supertypes -> forAll(s | self.isVisible(s))",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[11] = getModelPackage().getConstraint().createConstraint(
+            "NoSubtypesAllowedForLeaf",
+            "",
+            "context GeneralizableElement\ninv: self.supertypes -> forAll(s | not s.isLeaf)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[12] = getModelPackage().getConstraint().createConstraint(
+            "AssociationsCannotBeTypes",
+            "",
+            "context TypedElement\ninv: not self.type.oclIsKindOf(Association)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[13] = getModelPackage().getConstraint().createConstraint(
+            "TypeMustBeVisible",
+            "",
+            "context TypedElement\ninv: self.isVisible(self.type)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[14] = getModelPackage().getConstraint().createConstraint(
+            "ClassContainmentRules",
+            "",
+            "context Class\ninv: \nSet{Class, DataType, Attribute, Reference, Operation,\n    Exception, Constant, Constraint, Tag} ->\n  includesAll(self.contentTypes())",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[15] = getModelPackage().getConstraint().createConstraint(
+            "AbstractClassesCannotBeSingleton",
+            "",
+            "context Class\ninv: self.isAbstract implies not self.isSingleton",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[16] = getModelPackage().getConstraint().createConstraint(
+            "LowerCannotBeNegativeOrUnbounded",
+            "",
+            "context MultiplicityType\ninv: self.lower >= 0 and self.lower <> Unbounded",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[17] = getModelPackage().getConstraint().createConstraint(
+            "LowerCannotExceedUpper",
+            "",
+            "context MultiplicityType\ninv: self.lower <= self.upper or self.upper = Unbounded",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[18] = getModelPackage().getConstraint().createConstraint(
+            "UpperMustBePositive",
+            "",
+            "context MultiplicityType\ninv: self.upper >= 1 or self.upper = Unbounded",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[19] = getModelPackage().getConstraint().createConstraint(
+            "MustBeUnorderedNonunique",
+            "",
+            "context MultiplicityType\ninv: \nself.upper = 1 implies (not self.isOrdered and not self.isUnique)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[20] = getModelPackage().getConstraint().createConstraint(
+            "DataTypeContainmentRules",
+            "",
+            "context DataType\ninv: \nif self.oclIsOfType(StructureType)\nthen\n  Set{TypeAlias, Constraint, Tag, StructureField} ->\n    includesAll(self.contentTypes())\nelse\n  Set{TypeAlias, Constraint, Tag} -> \n    includesAll(self.contentTypes())",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[21] = getModelPackage().getConstraint().createConstraint(
+            "DataTypesHaveNoSupertypes",
+            "",
+            "context DataType\ninv: self.supertypes -> isEmpty",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[22] = getModelPackage().getConstraint().createConstraint(
+            "DataTypesCannotBeAbstract",
+            "",
+            "context DataType\ninv: not self.isAbstract",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[23] = getModelPackage().getConstraint().createConstraint(
+            "MustHaveFields",
+            "",
+            "context StructureType\ninv: self.contents -> exists(c | c.oclIsOfType(StructureField))",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[24] = getModelPackage().getConstraint().createConstraint(
+            "StructureFieldContainmentRules",
+            "",
+            "context StructureField\ninv: Set{Constraint, Tag}) -> includesAll(self.contentTypes)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[25] = getModelPackage().getConstraint().createConstraint(
+            "ReferenceMultiplicityMustMatchEnd",
+            "",
+            "context Reference\ninv: self.multiplicity = self.referencedEnd.multiplicity",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[26] = getModelPackage().getConstraint().createConstraint(
+            "ReferenceMustBeInstanceScoped",
+            "",
+            "context Reference\ninv: self.scope = #instance_level",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[27] = getModelPackage().getConstraint().createConstraint(
+            "ChangeableReferenceMustHaveChangeableEnd",
+            "",
+            "context Reference\ninv: self.isChangeable = self.referencedEnd.isChangeable",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[28] = getModelPackage().getConstraint().createConstraint(
+            "ReferenceTypeMustMatchEndType",
+            "",
+            "context Reference\ninv: self.type = self.referencedEnd.type",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[29] = getModelPackage().getConstraint().createConstraint(
+            "ReferencedEndMustBeNavigable",
+            "",
+            "context Reference\ninv: self.referencedEnd.isNavigable",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[30] = getModelPackage().getConstraint().createConstraint(
+            "ContainerMustMatchExposedType",
+            "",
+            "context Reference\ninv:\nself.container.allSupertypes() -> including(self) ->\n  includes(self.referencedEnd.otherEnd.type)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[31] = getModelPackage().getConstraint().createConstraint(
+            "ReferencedEndMustBeVisible",
+            "",
+            "context Reference\ninv: self.isVisible(self.referencedEnd)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[32] = getModelPackage().getConstraint().createConstraint(
+            "OperationContainmentRules",
+            "",
+            "context Operation\ninv: \nSet{Parameter, Constraint, Tag} -> includesAll(self.contentTypes())",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[33] = getModelPackage().getConstraint().createConstraint(
+            "OperationsHaveAtMostOneReturn",
+            "",
+            "context Operation\ninv:\nself.contents -> \n  select(c | c.oclIsTypeOf(Parameter)) ->\n    select(p : Parameter | p.direction = #return_dir) -> size < 2",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[34] = getModelPackage().getConstraint().createConstraint(
+            "OperationExceptionsMustBeVisible",
+            "",
+            "context Operation\ninv: self.exceptions -> forAll(e | self.isVisible(e))",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[35] = getModelPackage().getConstraint().createConstraint(
+            "ExceptionContainmentRules",
+            "",
+            "context Exception\ninv: Set{Parameter, Tag}) -> includesAll(self.contentTypes())",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[36] = getModelPackage().getConstraint().createConstraint(
+            "ExceptionsHaveOnlyOutParameters",
+            "",
+            "context Exception\ninv:\nself.contents -> \n  select(c | c.oclIsTypeOf(Parameter)) ->\n    forAll(p : Parameter | p.direction = #out_dir)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[37] = getModelPackage().getConstraint().createConstraint(
+            "AssociationContainmentRules",
+            "",
+            "context Association\ninv: \nSet{AssociationEnd, Constraint, Tag} ->\n  includesAll(self.contentTypes())",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[38] = getModelPackage().getConstraint().createConstraint(
+            "AssociationsHaveNoSupertypes",
+            "",
+            "context Association\ninv: self.supertypes -> isEmpty",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[39] = getModelPackage().getConstraint().createConstraint(
+            "AssociationMustBeRootAndLeaf",
+            "",
+            "context Association\ninv: self.isRoot and self.isLeaf",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[40] = getModelPackage().getConstraint().createConstraint(
+            "AssociationsCannotBeAbstract",
+            "",
+            "context Association\ninv: not self.isAbstract",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[41] = getModelPackage().getConstraint().createConstraint(
+            "AssociationsMustBePublic",
+            "",
+            "context Association\ninv: self.visibility = #public_vis",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[42] = getModelPackage().getConstraint().createConstraint(
+            "AssociationsMustBeBinary",
+            "",
+            "context Association\ninv: self.contents -> \nselect(c | c.oclIsTypeOf(AssociationEnd)) -> size = 2",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[43] = getModelPackage().getConstraint().createConstraint(
+            "EndTypeMustBeClass",
+            "",
+            "context AssociationEnd\ninv: self.type.oclIsTypeOf(Class)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[44] = getModelPackage().getConstraint().createConstraint(
+            "EndsMustBeUnique",
+            "",
+            "context AssociationEnd\ninv: \n(self.multiplicity.upper > 1 or \n self.multiplicity.upper = UNBOUNDED) implies\n  self.multiplicity.isUnique",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[45] = getModelPackage().getConstraint().createConstraint(
+            "CannotHaveTwoOrderedEnds",
+            "",
+            "context AssociationEnd\ninv:\nself.multiplicity.isOrdered implies \n  not self.otherEnd.multiplicity.isOrdered",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[46] = getModelPackage().getConstraint().createConstraint(
+            "CannotHaveTwoAggregateEnds",
+            "",
+            "context AssociationEnd\ninv: \nself.aggregation <> #none implies self.otherEnd = #none",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[47] = getModelPackage().getConstraint().createConstraint(
+            "PackageContainmentRules",
+            "",
+            "context Package\ninv:\nSet{Package, Class, DataType, Association, Exception, \n    Constant, Constraint, Import, Tag}) ->\n  includesAll(self.contentTypes)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[48] = getModelPackage().getConstraint().createConstraint(
+            "PackagesCannotBeAbstract",
+            "",
+            "context Package\ninv: not self.isAbstract",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[49] = getModelPackage().getConstraint().createConstraint(
+            "ImportedNamespaceMustBeVisible",
+            "",
+            "context Import\ninv: self.container.isVisible(self.importedNamespace)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[50] = getModelPackage().getConstraint().createConstraint(
+            "CanOnlyImportPackagesAndClasses",
+            "",
+            "context Import\ninv:\nself.imported.oclIsTypeOf(Class) or\nself.imported.oclIsTypeOf(Package)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[51] = getModelPackage().getConstraint().createConstraint(
+            "CannotImportSelf",
+            "",
+            "context Import\ninv: self.container <> self.imported",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[52] = getModelPackage().getConstraint().createConstraint(
+            "CannotImportNestedComponents",
+            "",
+            "context Import\ninv: not self.container.allContents() -> includes(self.imported)",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[53] = getModelPackage().getConstraint().createConstraint(
+            "NestedPackagesCannotImport",
+            "",
+            "context Import\ninv:\nself.container -> notEmpty implies\n  self.container -> asSequence -> first -> container -> isEmpty",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[54] = getModelPackage().getConstraint().createConstraint(
+            "CannotConstrainThisElement",
+            "",
+            "context Constraint\ninv:\nself.constrainedElements -> \n  forAll(c | not Set{Constraint, Tag, Imports, Constant} -> \n		  includes(c.oclType())",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[55] = getModelPackage().getConstraint().createConstraint(
+            "ConstraintsLimitedToContainer",
+            "",
+            "context Constraint\ninv:\nself.constrainedElements ->\n  forAll(c | self.container.extendedNamespace() -> includes(c))",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[56] = getModelPackage().getConstraint().createConstraint(
+            "ConstantsValueMustMatchType",
+            "",
+            "context Constant\ninv: ...",
+            "OCL",
+            javax.jmi.model.EvaluationKindEnum.DEFERRED);
+
+        constraint[57] = getModelPackage().getConstraint().createConstraint(
+            "ConstantsTypeMustBePrimitive",
+            "",
+            "context Constant\ninv: self.type.oclIsOfType(PrimitiveType)",
             "OCL",
             javax.jmi.model.EvaluationKindEnum.DEFERRED);
     }
@@ -2277,34 +2300,34 @@ public final class Initializer
         constant = new Constant[13];
 
         constant[0] = getModelPackage().getConstant().createConstant(
-            "Unbounded",
+            "ContainerDep",
             "",
-            "-1");
+            "container");
 
         constant[1] = getModelPackage().getConstant().createConstant(
-            "AllDep",
+            "ContentsDep",
             "",
-            "all");
+            "contents");
 
         constant[2] = getModelPackage().getConstant().createConstant(
-            "IndirectDep",
+            "SignatureDep",
             "",
-            "indirect");
+            "signature");
 
         constant[3] = getModelPackage().getConstant().createConstant(
-            "TaggedElementsDep",
+            "ConstraintDep",
             "",
-            "tagged elements");
+            "constraint");
 
         constant[4] = getModelPackage().getConstant().createConstant(
-            "ReferencedEndsDep",
+            "ConstrainedElementsDep",
             "",
-            "referenced ends");
+            "constrained elements");
 
         constant[5] = getModelPackage().getConstant().createConstant(
-            "TypeDefinitionDep",
+            "SpecializationDep",
             "",
-            "type definition");
+            "specialization");
 
         constant[6] = getModelPackage().getConstant().createConstant(
             "ImportDep",
@@ -2312,34 +2335,34 @@ public final class Initializer
             "import");
 
         constant[7] = getModelPackage().getConstant().createConstant(
-            "SpecializationDep",
+            "TypeDefinitionDep",
             "",
-            "specialization");
+            "type definition");
 
         constant[8] = getModelPackage().getConstant().createConstant(
-            "ConstrainedElementsDep",
+            "ReferencedEndsDep",
             "",
-            "constrained elements");
+            "referenced ends");
 
         constant[9] = getModelPackage().getConstant().createConstant(
-            "ConstraintDep",
+            "TaggedElementsDep",
             "",
-            "constraint");
+            "tagged elements");
 
         constant[10] = getModelPackage().getConstant().createConstant(
-            "SignatureDep",
+            "IndirectDep",
             "",
-            "signature");
+            "indirect");
 
         constant[11] = getModelPackage().getConstant().createConstant(
-            "ContentsDep",
+            "AllDep",
             "",
-            "contents");
+            "all");
 
         constant[12] = getModelPackage().getConstant().createConstant(
-            "ContainerDep",
+            "Unbounded",
             "",
-            "container");
+            "-1");
     }
 
     private Tag[] tag;
@@ -2357,438 +2380,438 @@ public final class Initializer
                 "javax.jmi"));
 
         tag[1] = getModelPackage().getTag().createTag(
-            "*tag_62",
+            "*tag_1",
             "",
-            "org.omg.mof.idl_version",
+            "org.omg.mof.idl_prefix",
             Arrays.asList(
-                "1.4"));
+                "org.omg.mof"));
 
         tag[2] = getModelPackage().getTag().createTag(
-            "*tag_61",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[3] = getModelPackage().getTag().createTag(
-            "*tag_60",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[4] = getModelPackage().getTag().createTag(
-            "*tag_59",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[5] = getModelPackage().getTag().createTag(
-            "*tag_58",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[6] = getModelPackage().getTag().createTag(
-            "*tag_57",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[7] = getModelPackage().getTag().createTag(
-            "*tag_56",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[8] = getModelPackage().getTag().createTag(
-            "*tag_55",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[9] = getModelPackage().getTag().createTag(
-            "*tag_54",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[10] = getModelPackage().getTag().createTag(
-            "*tag_53",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[11] = getModelPackage().getTag().createTag(
-            "*tag_52",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[12] = getModelPackage().getTag().createTag(
-            "*tag_51",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[13] = getModelPackage().getTag().createTag(
-            "*tag_50",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[14] = getModelPackage().getTag().createTag(
-            "*tag_49",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[15] = getModelPackage().getTag().createTag(
-            "*tag_48",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[16] = getModelPackage().getTag().createTag(
-            "*tag_47",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[17] = getModelPackage().getTag().createTag(
-            "*tag_46",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[18] = getModelPackage().getTag().createTag(
-            "*tag_45",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[19] = getModelPackage().getTag().createTag(
-            "*tag_44",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[20] = getModelPackage().getTag().createTag(
-            "*tag_43",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[21] = getModelPackage().getTag().createTag(
-            "*tag_42",
-            "",
-            "javax.jmi.substituteName",
-            Arrays.asList(
-                "MofPackage"));
-
-        tag[22] = getModelPackage().getTag().createTag(
-            "*tag_41",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[23] = getModelPackage().getTag().createTag(
-            "*tag_40",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[24] = getModelPackage().getTag().createTag(
-            "*tag_39",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[25] = getModelPackage().getTag().createTag(
-            "*tag_38",
-            "",
-            "javax.jmi.substituteName",
-            Arrays.asList(
-                "MofException"));
-
-        tag[26] = getModelPackage().getTag().createTag(
-            "*tag_37",
-            "",
-            "org.omg.mof.idl_substitute_name",
-            Arrays.asList(
-                "MofException"));
-
-        tag[27] = getModelPackage().getTag().createTag(
-            "*tag_36",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[28] = getModelPackage().getTag().createTag(
-            "*tag_35",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[29] = getModelPackage().getTag().createTag(
-            "*tag_34",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[30] = getModelPackage().getTag().createTag(
-            "*tag_33",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[31] = getModelPackage().getTag().createTag(
-            "*tag_32",
-            "",
-            "org.omg.mof.idl_substitute_name",
-            Arrays.asList(
-                "MofAttribute"));
-
-        tag[32] = getModelPackage().getTag().createTag(
-            "*tag_31",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[33] = getModelPackage().getTag().createTag(
-            "*tag_30",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[34] = getModelPackage().getTag().createTag(
-            "*tag_29",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[35] = getModelPackage().getTag().createTag(
-            "*tag_28",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[36] = getModelPackage().getTag().createTag(
-            "*tag_27",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[37] = getModelPackage().getTag().createTag(
-            "*tag_26",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[38] = getModelPackage().getTag().createTag(
-            "*tag_25",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[39] = getModelPackage().getTag().createTag(
-            "*tag_24",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[40] = getModelPackage().getTag().createTag(
-            "*tag_23",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[41] = getModelPackage().getTag().createTag(
-            "*tag_22",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[42] = getModelPackage().getTag().createTag(
-            "*tag_21",
-            "",
-            "javax.jmi.substituteName",
-            Arrays.asList(
-                "MofClass"));
-
-        tag[43] = getModelPackage().getTag().createTag(
-            "*tag_20",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[44] = getModelPackage().getTag().createTag(
-            "*tag_19",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[45] = getModelPackage().getTag().createTag(
-            "*tag_18",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[46] = getModelPackage().getTag().createTag(
-            "*tag_17",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[47] = getModelPackage().getTag().createTag(
-            "*tag_16",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[48] = getModelPackage().getTag().createTag(
-            "*tag_15",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[49] = getModelPackage().getTag().createTag(
-            "*tag_14",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[50] = getModelPackage().getTag().createTag(
-            "*tag_13",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[51] = getModelPackage().getTag().createTag(
-            "*tag_12",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[52] = getModelPackage().getTag().createTag(
-            "*tag_11",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[53] = getModelPackage().getTag().createTag(
-            "*tag_10",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[54] = getModelPackage().getTag().createTag(
-            "*tag_9",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[55] = getModelPackage().getTag().createTag(
-            "*tag_8",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[56] = getModelPackage().getTag().createTag(
-            "*tag_7",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[57] = getModelPackage().getTag().createTag(
-            "*tag_6",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[58] = getModelPackage().getTag().createTag(
-            "*tag_5",
-            "",
-            "org.omg.mof.idl_version",
-            Arrays.asList(
-                "1.4"));
-
-        tag[59] = getModelPackage().getTag().createTag(
-            "*tag_4",
-            "",
-            "org.omg.xmi.namespace",
-            Arrays.asList(
-                "Model"));
-
-        tag[60] = getModelPackage().getTag().createTag(
-            "*tag_3",
-            "",
-            "javax.jmi.packagePrefix",
-            Arrays.asList(
-                "javax.jmi"));
-
-        tag[61] = getModelPackage().getTag().createTag(
             "*tag_2",
             "",
             "org.omg.mof.idl_version",
             Arrays.asList(
                 "1.4"));
 
-        tag[62] = getModelPackage().getTag().createTag(
-            "*tag_1",
+        tag[3] = getModelPackage().getTag().createTag(
+            "*tag_3",
             "",
-            "org.omg.mof.idl_prefix",
+            "javax.jmi.packagePrefix",
             Arrays.asList(
-                "org.omg.mof"));
+                "javax.jmi"));
+
+        tag[4] = getModelPackage().getTag().createTag(
+            "*tag_4",
+            "",
+            "org.omg.xmi.namespace",
+            Arrays.asList(
+                "Model"));
+
+        tag[5] = getModelPackage().getTag().createTag(
+            "*tag_5",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[6] = getModelPackage().getTag().createTag(
+            "*tag_6",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[7] = getModelPackage().getTag().createTag(
+            "*tag_7",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[8] = getModelPackage().getTag().createTag(
+            "*tag_8",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[9] = getModelPackage().getTag().createTag(
+            "*tag_9",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[10] = getModelPackage().getTag().createTag(
+            "*tag_10",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[11] = getModelPackage().getTag().createTag(
+            "*tag_11",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[12] = getModelPackage().getTag().createTag(
+            "*tag_12",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[13] = getModelPackage().getTag().createTag(
+            "*tag_13",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[14] = getModelPackage().getTag().createTag(
+            "*tag_14",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[15] = getModelPackage().getTag().createTag(
+            "*tag_15",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[16] = getModelPackage().getTag().createTag(
+            "*tag_16",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[17] = getModelPackage().getTag().createTag(
+            "*tag_17",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[18] = getModelPackage().getTag().createTag(
+            "*tag_18",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[19] = getModelPackage().getTag().createTag(
+            "*tag_19",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[20] = getModelPackage().getTag().createTag(
+            "*tag_20",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[21] = getModelPackage().getTag().createTag(
+            "*tag_21",
+            "",
+            "javax.jmi.substituteName",
+            Arrays.asList(
+                "MofClass"));
+
+        tag[22] = getModelPackage().getTag().createTag(
+            "*tag_22",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[23] = getModelPackage().getTag().createTag(
+            "*tag_23",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[24] = getModelPackage().getTag().createTag(
+            "*tag_24",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[25] = getModelPackage().getTag().createTag(
+            "*tag_25",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[26] = getModelPackage().getTag().createTag(
+            "*tag_26",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[27] = getModelPackage().getTag().createTag(
+            "*tag_27",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[28] = getModelPackage().getTag().createTag(
+            "*tag_28",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[29] = getModelPackage().getTag().createTag(
+            "*tag_29",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[30] = getModelPackage().getTag().createTag(
+            "*tag_30",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[31] = getModelPackage().getTag().createTag(
+            "*tag_31",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[32] = getModelPackage().getTag().createTag(
+            "*tag_32",
+            "",
+            "org.omg.mof.idl_substitute_name",
+            Arrays.asList(
+                "MofAttribute"));
+
+        tag[33] = getModelPackage().getTag().createTag(
+            "*tag_33",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[34] = getModelPackage().getTag().createTag(
+            "*tag_34",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[35] = getModelPackage().getTag().createTag(
+            "*tag_35",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[36] = getModelPackage().getTag().createTag(
+            "*tag_36",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[37] = getModelPackage().getTag().createTag(
+            "*tag_37",
+            "",
+            "org.omg.mof.idl_substitute_name",
+            Arrays.asList(
+                "MofException"));
+
+        tag[38] = getModelPackage().getTag().createTag(
+            "*tag_38",
+            "",
+            "javax.jmi.substituteName",
+            Arrays.asList(
+                "MofException"));
+
+        tag[39] = getModelPackage().getTag().createTag(
+            "*tag_39",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[40] = getModelPackage().getTag().createTag(
+            "*tag_40",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[41] = getModelPackage().getTag().createTag(
+            "*tag_41",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[42] = getModelPackage().getTag().createTag(
+            "*tag_42",
+            "",
+            "javax.jmi.substituteName",
+            Arrays.asList(
+                "MofPackage"));
+
+        tag[43] = getModelPackage().getTag().createTag(
+            "*tag_43",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[44] = getModelPackage().getTag().createTag(
+            "*tag_44",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[45] = getModelPackage().getTag().createTag(
+            "*tag_45",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[46] = getModelPackage().getTag().createTag(
+            "*tag_46",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[47] = getModelPackage().getTag().createTag(
+            "*tag_47",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[48] = getModelPackage().getTag().createTag(
+            "*tag_48",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[49] = getModelPackage().getTag().createTag(
+            "*tag_49",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[50] = getModelPackage().getTag().createTag(
+            "*tag_50",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[51] = getModelPackage().getTag().createTag(
+            "*tag_51",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[52] = getModelPackage().getTag().createTag(
+            "*tag_52",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[53] = getModelPackage().getTag().createTag(
+            "*tag_53",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[54] = getModelPackage().getTag().createTag(
+            "*tag_54",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[55] = getModelPackage().getTag().createTag(
+            "*tag_55",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[56] = getModelPackage().getTag().createTag(
+            "*tag_56",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[57] = getModelPackage().getTag().createTag(
+            "*tag_57",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[58] = getModelPackage().getTag().createTag(
+            "*tag_58",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[59] = getModelPackage().getTag().createTag(
+            "*tag_59",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[60] = getModelPackage().getTag().createTag(
+            "*tag_60",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[61] = getModelPackage().getTag().createTag(
+            "*tag_61",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
+
+        tag[62] = getModelPackage().getTag().createTag(
+            "*tag_62",
+            "",
+            "org.omg.mof.idl_version",
+            Arrays.asList(
+                "1.4"));
 
         tag[63] = getModelPackage().getTag().createTag(
             "*tag",
@@ -2802,647 +2825,647 @@ public final class Initializer
     {
         AttachesTo attachesToAssoc = getModelPackage().getAttachesTo();
 
-        attachesToAssoc.add(package_[2], tag[63]);
-        attachesToAssoc.add(attribute[30], tag[57]);
-        attachesToAssoc.add(attribute[29], tag[56]);
-        attachesToAssoc.add(attribute[28], tag[55]);
-        attachesToAssoc.add(operation[11], tag[54]);
-        attachesToAssoc.add(operation[10], tag[53]);
-        attachesToAssoc.add(class_[27], tag[58]);
-        attachesToAssoc.add(exception[1], tag[51]);
-        attachesToAssoc.add(exception[0], tag[50]);
-        attachesToAssoc.add(operation[7], tag[49]);
-        attachesToAssoc.add(operation[6], tag[48]);
-        attachesToAssoc.add(operation[4], tag[47]);
-        attachesToAssoc.add(class_[26], tag[52]);
-        attachesToAssoc.add(class_[25], tag[46]);
-        attachesToAssoc.add(class_[24], tag[45]);
-        attachesToAssoc.add(class_[23], tag[44]);
-        attachesToAssoc.add(attribute[2], tag[14]);
-        attachesToAssoc.add(class_[1], tag[15]);
-        attachesToAssoc.add(attribute[1], tag[12]);
-        attachesToAssoc.add(attribute[0], tag[11]);
-        attachesToAssoc.add(class_[0], tag[13]);
-        attachesToAssoc.add(association[9], tag[10]);
-        attachesToAssoc.add(association[8], tag[9]);
-        attachesToAssoc.add(association[7], tag[8]);
-        attachesToAssoc.add(association[6], tag[7]);
-        attachesToAssoc.add(association[5], tag[6]);
-        attachesToAssoc.add(association[4], tag[5]);
-        attachesToAssoc.add(association[3], tag[4]);
-        attachesToAssoc.add(association[2], tag[3]);
-        attachesToAssoc.add(association[1], tag[2]);
-        attachesToAssoc.add(association[0], tag[1]);
-        attachesToAssoc.add(package_[1], tag[62]);
-        attachesToAssoc.add(package_[1], tag[61]);
-        attachesToAssoc.add(package_[1], tag[60]);
-        attachesToAssoc.add(package_[1], tag[59]);
-        attachesToAssoc.add(package_[0], tag[0]);
-        attachesToAssoc.add(class_[22], tag[43]);
-        attachesToAssoc.add(class_[22], tag[42]);
-        attachesToAssoc.add(class_[21], tag[41]);
-        attachesToAssoc.add(class_[20], tag[40]);
-        attachesToAssoc.add(class_[19], tag[39]);
-        attachesToAssoc.add(class_[18], tag[38]);
-        attachesToAssoc.add(class_[17], tag[37]);
-        attachesToAssoc.add(class_[16], tag[36]);
-        attachesToAssoc.add(class_[15], tag[35]);
-        attachesToAssoc.add(class_[14], tag[34]);
-        attachesToAssoc.add(class_[13], tag[33]);
-        attachesToAssoc.add(class_[12], tag[32]);
-        attachesToAssoc.add(class_[12], tag[31]);
-        attachesToAssoc.add(class_[11], tag[30]);
-        attachesToAssoc.add(class_[10], tag[29]);
-        attachesToAssoc.add(class_[9], tag[28]);
-        attachesToAssoc.add(class_[8], tag[27]);
-        attachesToAssoc.add(class_[8], tag[26]);
-        attachesToAssoc.add(class_[8], tag[25]);
-        attachesToAssoc.add(class_[7], tag[24]);
-        attachesToAssoc.add(class_[6], tag[23]);
-        attachesToAssoc.add(class_[5], tag[22]);
+        attachesToAssoc.add(association[6], tag[59]);
+        attachesToAssoc.add(class_[13], tag[29]);
+        attachesToAssoc.add(class_[6], tag[22]);
+        attachesToAssoc.add(class_[4], tag[19]);
+        attachesToAssoc.add(class_[10], tag[26]);
+        attachesToAssoc.add(class_[17], tag[34]);
+        attachesToAssoc.add(class_[16], tag[33]);
+        attachesToAssoc.add(attribute[25], tag[46]);
+        attachesToAssoc.add(class_[12], tag[28]);
+        attachesToAssoc.add(association[1], tag[54]);
+        attachesToAssoc.add(class_[5], tag[20]);
         attachesToAssoc.add(class_[5], tag[21]);
-        attachesToAssoc.add(class_[4], tag[20]);
-        attachesToAssoc.add(class_[3], tag[19]);
-        attachesToAssoc.add(attribute[5], tag[17]);
-        attachesToAssoc.add(attribute[4], tag[16]);
-        attachesToAssoc.add(class_[2], tag[18]);
+        attachesToAssoc.add(exception[1], tag[13]);
+        attachesToAssoc.add(class_[7], tag[23]);
+        attachesToAssoc.add(class_[18], tag[35]);
+        attachesToAssoc.add(class_[0], tag[5]);
+        attachesToAssoc.add(association[5], tag[58]);
+        attachesToAssoc.add(package_[0], tag[0]);
+        attachesToAssoc.add(attribute[2], tag[8]);
+        attachesToAssoc.add(exception[0], tag[12]);
+        attachesToAssoc.add(operation[5], tag[15]);
+        attachesToAssoc.add(class_[19], tag[36]);
+        attachesToAssoc.add(class_[19], tag[37]);
+        attachesToAssoc.add(class_[19], tag[38]);
+        attachesToAssoc.add(association[2], tag[55]);
+        attachesToAssoc.add(class_[8], tag[24]);
+        attachesToAssoc.add(class_[25], tag[45]);
+        attachesToAssoc.add(class_[24], tag[44]);
+        attachesToAssoc.add(operation[4], tag[14]);
+        attachesToAssoc.add(class_[20], tag[39]);
+        attachesToAssoc.add(attribute[30], tag[52]);
+        attachesToAssoc.add(association[8], tag[61]);
+        attachesToAssoc.add(association[0], tag[53]);
+        attachesToAssoc.add(class_[22], tag[41]);
+        attachesToAssoc.add(class_[22], tag[42]);
+        attachesToAssoc.add(association[3], tag[56]);
+        attachesToAssoc.add(package_[1], tag[1]);
+        attachesToAssoc.add(package_[1], tag[2]);
+        attachesToAssoc.add(package_[1], tag[3]);
+        attachesToAssoc.add(package_[1], tag[4]);
+        attachesToAssoc.add(class_[9], tag[25]);
+        attachesToAssoc.add(attribute[28], tag[49]);
+        attachesToAssoc.add(attribute[1], tag[7]);
+        attachesToAssoc.add(operation[7], tag[16]);
+        attachesToAssoc.add(package_[2], tag[63]);
+        attachesToAssoc.add(association[7], tag[60]);
+        attachesToAssoc.add(attribute[26], tag[47]);
+        attachesToAssoc.add(class_[27], tag[50]);
+        attachesToAssoc.add(class_[14], tag[30]);
+        attachesToAssoc.add(class_[26], tag[48]);
+        attachesToAssoc.add(attribute[0], tag[6]);
+        attachesToAssoc.add(association[9], tag[62]);
+        attachesToAssoc.add(operation[0], tag[9]);
+        attachesToAssoc.add(class_[2], tag[17]);
+        attachesToAssoc.add(association[4], tag[57]);
+        attachesToAssoc.add(class_[11], tag[27]);
+        attachesToAssoc.add(class_[3], tag[18]);
+        attachesToAssoc.add(operation[1], tag[10]);
+        attachesToAssoc.add(class_[15], tag[31]);
+        attachesToAssoc.add(class_[15], tag[32]);
+        attachesToAssoc.add(class_[23], tag[43]);
+        attachesToAssoc.add(class_[21], tag[40]);
+        attachesToAssoc.add(attribute[29], tag[51]);
+        attachesToAssoc.add(class_[1], tag[11]);
     }
 
     private void containsAssocInit()
     {
         Contains containsAssoc = getModelPackage().getContains();
 
-        containsAssoc.add(package_[2], tag[63]);
-        containsAssoc.add(package_[2], primitiveType[14]);
-        containsAssoc.add(package_[2], primitiveType[13]);
-        containsAssoc.add(package_[2], primitiveType[12]);
-        containsAssoc.add(package_[2], primitiveType[11]);
-        containsAssoc.add(package_[2], primitiveType[10]);
-        containsAssoc.add(package_[2], primitiveType[9]);
-        containsAssoc.add(operation[11], parameter[27]);
-        containsAssoc.add(operation[11], parameter[26]);
-        containsAssoc.add(operation[11], parameter[25]);
-        containsAssoc.add(operation[11], tag[54]);
-        containsAssoc.add(operation[10], parameter[24]);
-        containsAssoc.add(operation[10], parameter[23]);
-        containsAssoc.add(operation[10], parameter[22]);
-        containsAssoc.add(operation[10], tag[53]);
-        containsAssoc.add(operation[9], parameter[21]);
-        containsAssoc.add(operation[8], parameter[20]);
-        containsAssoc.add(operation[8], parameter[19]);
-        containsAssoc.add(class_[27], tag[58]);
-        containsAssoc.add(class_[27], constraint[57]);
-        containsAssoc.add(class_[27], constraint[56]);
-        containsAssoc.add(class_[27], constraint[55]);
-        containsAssoc.add(class_[27], constraint[54]);
-        containsAssoc.add(class_[27], attribute[30]);
-        containsAssoc.add(class_[27], tag[57]);
-        containsAssoc.add(class_[27], attribute[29]);
-        containsAssoc.add(class_[27], tag[56]);
-        containsAssoc.add(class_[27], attribute[28]);
-        containsAssoc.add(class_[27], tag[55]);
-        containsAssoc.add(class_[27], reference[11]);
-        containsAssoc.add(class_[27], constant[12]);
-        containsAssoc.add(class_[27], constant[11]);
-        containsAssoc.add(class_[27], constant[10]);
-        containsAssoc.add(class_[27], constant[9]);
-        containsAssoc.add(class_[27], constant[8]);
-        containsAssoc.add(class_[27], constant[7]);
-        containsAssoc.add(class_[27], constant[6]);
-        containsAssoc.add(class_[27], constant[5]);
-        containsAssoc.add(class_[27], constant[4]);
-        containsAssoc.add(class_[27], constant[3]);
-        containsAssoc.add(class_[27], constant[2]);
-        containsAssoc.add(class_[27], constant[1]);
-        containsAssoc.add(class_[27], operation[11]);
-        containsAssoc.add(class_[27], operation[10]);
-        containsAssoc.add(class_[27], reference[10]);
-        containsAssoc.add(class_[27], reference[9]);
-        containsAssoc.add(class_[27], operation[9]);
-        containsAssoc.add(class_[27], operation[8]);
-        containsAssoc.add(exception[1], parameter[18]);
-        containsAssoc.add(exception[1], tag[51]);
-        containsAssoc.add(exception[0], parameter[17]);
-        containsAssoc.add(exception[0], parameter[16]);
-        containsAssoc.add(exception[0], tag[50]);
-        containsAssoc.add(operation[7], parameter[15]);
-        containsAssoc.add(operation[7], parameter[14]);
-        containsAssoc.add(operation[7], tag[49]);
-        containsAssoc.add(operation[6], parameter[13]);
-        containsAssoc.add(operation[6], parameter[12]);
-        containsAssoc.add(operation[6], tag[48]);
-        containsAssoc.add(operation[5], parameter[11]);
-        containsAssoc.add(operation[5], parameter[10]);
-        containsAssoc.add(operation[5], parameter[9]);
-        containsAssoc.add(operation[4], parameter[8]);
-        containsAssoc.add(operation[4], parameter[7]);
-        containsAssoc.add(operation[4], tag[47]);
-        containsAssoc.add(class_[26], tag[52]);
-        containsAssoc.add(class_[26], constraint[53]);
-        containsAssoc.add(class_[26], exception[1]);
-        containsAssoc.add(class_[26], exception[0]);
-        containsAssoc.add(class_[26], reference[8]);
-        containsAssoc.add(class_[26], operation[7]);
-        containsAssoc.add(class_[26], operation[6]);
-        containsAssoc.add(class_[26], operation[5]);
-        containsAssoc.add(class_[26], operation[4]);
-        containsAssoc.add(operation[3], parameter[6]);
-        containsAssoc.add(operation[2], parameter[5]);
-        containsAssoc.add(operation[2], parameter[4]);
-        containsAssoc.add(operation[1], parameter[3]);
-        containsAssoc.add(operation[1], parameter[2]);
-        containsAssoc.add(operation[1], parameter[1]);
-        containsAssoc.add(class_[25], tag[46]);
-        containsAssoc.add(class_[25], constraint[52]);
-        containsAssoc.add(class_[25], constraint[51]);
-        containsAssoc.add(class_[25], constraint[50]);
-        containsAssoc.add(class_[25], constraint[49]);
-        containsAssoc.add(class_[25], constraint[48]);
-        containsAssoc.add(class_[25], constraint[47]);
-        containsAssoc.add(class_[25], constraint[46]);
-        containsAssoc.add(class_[25], attribute[27]);
-        containsAssoc.add(class_[25], attribute[26]);
-        containsAssoc.add(class_[25], attribute[25]);
-        containsAssoc.add(class_[25], attribute[24]);
-        containsAssoc.add(class_[25], reference[7]);
-        containsAssoc.add(class_[25], operation[3]);
-        containsAssoc.add(class_[25], operation[2]);
-        containsAssoc.add(class_[25], operation[1]);
-        containsAssoc.add(class_[24], tag[45]);
-        containsAssoc.add(class_[24], constraint[45]);
-        containsAssoc.add(class_[24], constraint[44]);
-        containsAssoc.add(class_[24], reference[6]);
-        containsAssoc.add(class_[23], tag[44]);
-        containsAssoc.add(class_[1], tag[15]);
-        containsAssoc.add(class_[1], constraint[1]);
-        containsAssoc.add(class_[1], constraint[0]);
-        containsAssoc.add(class_[1], attribute[2]);
-        containsAssoc.add(class_[1], tag[14]);
-        containsAssoc.add(class_[0], tag[13]);
-        containsAssoc.add(class_[0], attribute[1]);
-        containsAssoc.add(class_[0], tag[12]);
-        containsAssoc.add(class_[0], attribute[0]);
-        containsAssoc.add(class_[0], tag[11]);
-        containsAssoc.add(class_[0], reference[0]);
-        containsAssoc.add(association[9], tag[10]);
-        containsAssoc.add(association[9], associationEnd[19]);
-        containsAssoc.add(association[9], associationEnd[18]);
-        containsAssoc.add(association[8], tag[9]);
-        containsAssoc.add(association[8], associationEnd[17]);
-        containsAssoc.add(association[8], associationEnd[16]);
-        containsAssoc.add(association[7], tag[8]);
-        containsAssoc.add(association[7], associationEnd[15]);
-        containsAssoc.add(association[7], associationEnd[14]);
-        containsAssoc.add(association[6], tag[7]);
-        containsAssoc.add(association[6], associationEnd[13]);
+        containsAssoc.add(association[6], tag[59]);
         containsAssoc.add(association[6], associationEnd[12]);
-        containsAssoc.add(association[5], tag[6]);
-        containsAssoc.add(association[5], associationEnd[11]);
-        containsAssoc.add(association[5], associationEnd[10]);
-        containsAssoc.add(association[4], tag[5]);
-        containsAssoc.add(association[4], associationEnd[9]);
-        containsAssoc.add(association[4], associationEnd[8]);
-        containsAssoc.add(association[3], tag[4]);
-        containsAssoc.add(association[3], associationEnd[7]);
-        containsAssoc.add(association[3], associationEnd[6]);
-        containsAssoc.add(association[2], tag[3]);
-        containsAssoc.add(association[2], associationEnd[5]);
-        containsAssoc.add(association[2], associationEnd[4]);
-        containsAssoc.add(association[1], tag[2]);
-        containsAssoc.add(association[1], associationEnd[3]);
+        containsAssoc.add(association[6], associationEnd[13]);
+        containsAssoc.add(class_[13], tag[29]);
+        containsAssoc.add(class_[13], attribute[10]);
+        containsAssoc.add(class_[13], attribute[11]);
+        containsAssoc.add(class_[6], tag[22]);
+        containsAssoc.add(class_[6], constraint[20]);
+        containsAssoc.add(class_[6], constraint[21]);
+        containsAssoc.add(class_[6], constraint[22]);
+        containsAssoc.add(operation[9], parameter[22]);
+        containsAssoc.add(operation[9], parameter[23]);
+        containsAssoc.add(class_[4], tag[19]);
+        containsAssoc.add(class_[10], tag[26]);
+        containsAssoc.add(class_[10], constraint[23]);
+        containsAssoc.add(class_[17], tag[34]);
+        containsAssoc.add(class_[16], tag[33]);
+        containsAssoc.add(class_[16], constraint[25]);
+        containsAssoc.add(class_[16], constraint[26]);
+        containsAssoc.add(class_[16], constraint[27]);
+        containsAssoc.add(class_[16], constraint[28]);
+        containsAssoc.add(class_[16], constraint[29]);
+        containsAssoc.add(class_[16], constraint[30]);
+        containsAssoc.add(class_[16], constraint[31]);
+        containsAssoc.add(class_[16], reference[6]);
+        containsAssoc.add(class_[16], reference[7]);
+        containsAssoc.add(class_[12], tag[28]);
+        containsAssoc.add(operation[3], parameter[7]);
+        containsAssoc.add(operation[3], parameter[8]);
+        containsAssoc.add(operation[2], parameter[6]);
+        containsAssoc.add(association[1], tag[54]);
         containsAssoc.add(association[1], associationEnd[2]);
-        containsAssoc.add(association[0], tag[1]);
-        containsAssoc.add(association[0], associationEnd[1]);
-        containsAssoc.add(association[0], associationEnd[0]);
-        containsAssoc.add(package_[1], import_[0]);
-        containsAssoc.add(package_[1], tag[62]);
-        containsAssoc.add(package_[1], tag[61]);
-        containsAssoc.add(package_[1], tag[60]);
-        containsAssoc.add(package_[1], tag[59]);
-        containsAssoc.add(package_[1], class_[27]);
-        containsAssoc.add(package_[1], enumerationType[4]);
-        containsAssoc.add(package_[1], class_[26]);
-        containsAssoc.add(package_[1], class_[25]);
-        containsAssoc.add(package_[1], class_[24]);
-        containsAssoc.add(package_[1], class_[23]);
-        containsAssoc.add(package_[1], class_[22]);
-        containsAssoc.add(package_[1], constant[0]);
-        containsAssoc.add(package_[1], structureType[0]);
-        containsAssoc.add(package_[1], constraint[41]);
-        containsAssoc.add(package_[1], constraint[40]);
-        containsAssoc.add(package_[1], constraint[39]);
-        containsAssoc.add(package_[1], constraint[38]);
-        containsAssoc.add(package_[1], class_[21]);
-        containsAssoc.add(package_[1], class_[20]);
-        containsAssoc.add(package_[1], class_[19]);
-        containsAssoc.add(package_[1], class_[18]);
-        containsAssoc.add(package_[1], class_[17]);
-        containsAssoc.add(package_[1], class_[16]);
-        containsAssoc.add(package_[1], class_[15]);
-        containsAssoc.add(package_[1], enumerationType[3]);
-        containsAssoc.add(package_[1], class_[14]);
-        containsAssoc.add(package_[1], class_[13]);
-        containsAssoc.add(package_[1], class_[12]);
-        containsAssoc.add(package_[1], class_[11]);
-        containsAssoc.add(package_[1], class_[10]);
-        containsAssoc.add(package_[1], class_[9]);
-        containsAssoc.add(package_[1], class_[8]);
-        containsAssoc.add(package_[1], class_[7]);
-        containsAssoc.add(package_[1], enumerationType[2]);
-        containsAssoc.add(package_[1], class_[6]);
-        containsAssoc.add(package_[1], class_[5]);
-        containsAssoc.add(package_[1], class_[4]);
-        containsAssoc.add(package_[1], enumerationType[1]);
-        containsAssoc.add(package_[1], class_[3]);
-        containsAssoc.add(package_[1], class_[2]);
-        containsAssoc.add(package_[1], class_[1]);
-        containsAssoc.add(package_[1], class_[0]);
-        containsAssoc.add(package_[1], association[9]);
-        containsAssoc.add(package_[1], association[8]);
-        containsAssoc.add(package_[1], association[7]);
-        containsAssoc.add(package_[1], association[6]);
-        containsAssoc.add(package_[1], association[5]);
-        containsAssoc.add(package_[1], association[4]);
-        containsAssoc.add(package_[1], association[3]);
-        containsAssoc.add(package_[1], association[2]);
-        containsAssoc.add(package_[1], association[1]);
-        containsAssoc.add(package_[1], association[0]);
-        containsAssoc.add(package_[0], tag[0]);
-        containsAssoc.add(package_[0], primitiveType[8]);
-        containsAssoc.add(package_[0], primitiveType[7]);
-        containsAssoc.add(package_[0], primitiveType[6]);
-        containsAssoc.add(package_[0], primitiveType[5]);
-        containsAssoc.add(package_[0], primitiveType[4]);
-        containsAssoc.add(package_[0], primitiveType[3]);
-        containsAssoc.add(package_[0], primitiveType[2]);
-        containsAssoc.add(package_[0], primitiveType[1]);
-        containsAssoc.add(package_[0], primitiveType[0]);
-        containsAssoc.add(class_[22], tag[43]);
-        containsAssoc.add(class_[22], tag[42]);
-        containsAssoc.add(class_[22], constraint[43]);
-        containsAssoc.add(class_[22], constraint[42]);
-        containsAssoc.add(class_[22], attribute[23]);
-        containsAssoc.add(structureType[0], structureField[3]);
-        containsAssoc.add(structureType[0], structureField[2]);
-        containsAssoc.add(structureType[0], structureField[1]);
-        containsAssoc.add(structureType[0], structureField[0]);
-        containsAssoc.add(class_[21], tag[41]);
-        containsAssoc.add(class_[21], constraint[37]);
-        containsAssoc.add(class_[21], constraint[36]);
-        containsAssoc.add(class_[21], constraint[35]);
-        containsAssoc.add(class_[20], tag[40]);
-        containsAssoc.add(class_[19], tag[39]);
-        containsAssoc.add(class_[19], attribute[22]);
-        containsAssoc.add(class_[18], tag[38]);
-        containsAssoc.add(class_[18], attribute[21]);
-        containsAssoc.add(class_[17], tag[37]);
-        containsAssoc.add(class_[17], constraint[34]);
-        containsAssoc.add(class_[16], tag[36]);
-        containsAssoc.add(class_[16], constraint[33]);
-        containsAssoc.add(class_[15], tag[35]);
-        containsAssoc.add(class_[14], tag[34]);
-        containsAssoc.add(class_[14], attribute[20]);
-        containsAssoc.add(class_[14], attribute[19]);
-        containsAssoc.add(class_[13], tag[33]);
-        containsAssoc.add(class_[13], attribute[18]);
-        containsAssoc.add(class_[13], attribute[17]);
-        containsAssoc.add(class_[12], tag[32]);
-        containsAssoc.add(class_[12], tag[31]);
-        containsAssoc.add(class_[12], attribute[16]);
-        containsAssoc.add(class_[11], tag[30]);
-        containsAssoc.add(class_[11], constraint[32]);
-        containsAssoc.add(class_[11], constraint[31]);
-        containsAssoc.add(class_[11], constraint[30]);
-        containsAssoc.add(class_[11], constraint[29]);
-        containsAssoc.add(class_[11], constraint[28]);
-        containsAssoc.add(class_[11], constraint[27]);
-        containsAssoc.add(class_[11], constraint[26]);
-        containsAssoc.add(class_[11], reference[5]);
-        containsAssoc.add(class_[11], reference[4]);
-        containsAssoc.add(class_[10], tag[29]);
-        containsAssoc.add(class_[9], tag[28]);
-        containsAssoc.add(class_[9], constraint[25]);
-        containsAssoc.add(class_[9], constraint[24]);
-        containsAssoc.add(class_[9], constraint[23]);
-        containsAssoc.add(class_[9], attribute[15]);
-        containsAssoc.add(class_[9], reference[3]);
-        containsAssoc.add(class_[8], tag[27]);
-        containsAssoc.add(class_[8], tag[26]);
-        containsAssoc.add(class_[8], tag[25]);
-        containsAssoc.add(class_[8], constraint[22]);
-        containsAssoc.add(class_[8], constraint[21]);
-        containsAssoc.add(class_[7], tag[24]);
-        containsAssoc.add(class_[7], constraint[20]);
-        containsAssoc.add(class_[7], constraint[19]);
-        containsAssoc.add(class_[7], constraint[18]);
-        containsAssoc.add(class_[7], constraint[17]);
-        containsAssoc.add(class_[7], constraint[16]);
-        containsAssoc.add(class_[7], constraint[15]);
-        containsAssoc.add(class_[7], attribute[14]);
-        containsAssoc.add(operation[0], parameter[0]);
-        containsAssoc.add(class_[6], tag[23]);
-        containsAssoc.add(class_[6], constraint[14]);
-        containsAssoc.add(class_[6], constraint[13]);
-        containsAssoc.add(class_[6], constraint[12]);
-        containsAssoc.add(class_[6], constraint[11]);
-        containsAssoc.add(class_[6], attribute[13]);
-        containsAssoc.add(class_[6], attribute[12]);
-        containsAssoc.add(class_[6], attribute[11]);
-        containsAssoc.add(class_[6], attribute[10]);
-        containsAssoc.add(class_[6], operation[0]);
-        containsAssoc.add(class_[5], tag[22]);
+        containsAssoc.add(association[1], associationEnd[3]);
+        containsAssoc.add(operation[6], parameter[16]);
+        containsAssoc.add(operation[6], parameter[17]);
+        containsAssoc.add(operation[6], parameter[18]);
+        containsAssoc.add(class_[5], tag[20]);
         containsAssoc.add(class_[5], tag[21]);
-        containsAssoc.add(class_[5], constraint[10]);
-        containsAssoc.add(class_[5], constraint[9]);
-        containsAssoc.add(class_[4], tag[20]);
-        containsAssoc.add(class_[4], constraint[8]);
-        containsAssoc.add(class_[4], constraint[7]);
-        containsAssoc.add(class_[4], constraint[6]);
-        containsAssoc.add(class_[4], constraint[5]);
-        containsAssoc.add(class_[4], constraint[4]);
-        containsAssoc.add(class_[4], attribute[9]);
-        containsAssoc.add(class_[4], attribute[8]);
-        containsAssoc.add(class_[4], reference[2]);
-        containsAssoc.add(class_[3], tag[19]);
-        containsAssoc.add(class_[3], attribute[7]);
-        containsAssoc.add(class_[3], attribute[6]);
-        containsAssoc.add(class_[2], tag[18]);
-        containsAssoc.add(class_[2], constraint[3]);
-        containsAssoc.add(class_[2], constraint[2]);
-        containsAssoc.add(class_[2], attribute[5]);
+        containsAssoc.add(class_[5], constraint[14]);
+        containsAssoc.add(class_[5], constraint[15]);
+        containsAssoc.add(class_[5], attribute[7]);
+        containsAssoc.add(exception[1], parameter[10]);
+        containsAssoc.add(exception[1], parameter[11]);
+        containsAssoc.add(exception[1], tag[13]);
+        containsAssoc.add(class_[7], tag[23]);
+        containsAssoc.add(class_[18], tag[35]);
+        containsAssoc.add(class_[18], constraint[32]);
+        containsAssoc.add(class_[18], constraint[33]);
+        containsAssoc.add(class_[18], constraint[34]);
+        containsAssoc.add(class_[18], attribute[15]);
+        containsAssoc.add(class_[18], reference[8]);
+        containsAssoc.add(class_[0], tag[5]);
+        containsAssoc.add(class_[0], constraint[0]);
+        containsAssoc.add(class_[0], constraint[1]);
+        containsAssoc.add(class_[0], constraint[2]);
+        containsAssoc.add(class_[0], constraint[3]);
+        containsAssoc.add(class_[0], attribute[0]);
+        containsAssoc.add(class_[0], tag[6]);
+        containsAssoc.add(class_[0], attribute[1]);
+        containsAssoc.add(class_[0], tag[7]);
+        containsAssoc.add(class_[0], attribute[2]);
+        containsAssoc.add(class_[0], tag[8]);
+        containsAssoc.add(class_[0], reference[0]);
+        containsAssoc.add(class_[0], constant[0]);
+        containsAssoc.add(class_[0], constant[1]);
+        containsAssoc.add(class_[0], constant[2]);
+        containsAssoc.add(class_[0], constant[3]);
+        containsAssoc.add(class_[0], constant[4]);
+        containsAssoc.add(class_[0], constant[5]);
+        containsAssoc.add(class_[0], constant[6]);
+        containsAssoc.add(class_[0], constant[7]);
+        containsAssoc.add(class_[0], constant[8]);
+        containsAssoc.add(class_[0], constant[9]);
+        containsAssoc.add(class_[0], constant[10]);
+        containsAssoc.add(class_[0], constant[11]);
+        containsAssoc.add(class_[0], operation[0]);
+        containsAssoc.add(class_[0], operation[1]);
+        containsAssoc.add(class_[0], reference[1]);
+        containsAssoc.add(class_[0], reference[2]);
+        containsAssoc.add(class_[0], operation[2]);
+        containsAssoc.add(class_[0], operation[3]);
+        containsAssoc.add(association[5], tag[58]);
+        containsAssoc.add(association[5], associationEnd[10]);
+        containsAssoc.add(association[5], associationEnd[11]);
+        containsAssoc.add(package_[0], tag[0]);
+        containsAssoc.add(package_[0], primitiveType[0]);
+        containsAssoc.add(package_[0], primitiveType[1]);
+        containsAssoc.add(package_[0], primitiveType[2]);
+        containsAssoc.add(package_[0], primitiveType[3]);
+        containsAssoc.add(package_[0], primitiveType[4]);
+        containsAssoc.add(package_[0], primitiveType[5]);
+        containsAssoc.add(exception[0], parameter[9]);
+        containsAssoc.add(exception[0], tag[12]);
+        containsAssoc.add(operation[5], parameter[14]);
+        containsAssoc.add(operation[5], parameter[15]);
+        containsAssoc.add(operation[5], tag[15]);
+        containsAssoc.add(class_[19], tag[36]);
+        containsAssoc.add(class_[19], tag[37]);
+        containsAssoc.add(class_[19], tag[38]);
+        containsAssoc.add(class_[19], constraint[35]);
+        containsAssoc.add(class_[19], constraint[36]);
+        containsAssoc.add(association[2], tag[55]);
+        containsAssoc.add(association[2], associationEnd[4]);
+        containsAssoc.add(association[2], associationEnd[5]);
+        containsAssoc.add(class_[8], tag[24]);
+        containsAssoc.add(class_[8], attribute[8]);
+        containsAssoc.add(class_[25], tag[45]);
+        containsAssoc.add(class_[25], constraint[54]);
+        containsAssoc.add(class_[25], constraint[55]);
+        containsAssoc.add(class_[25], attribute[25]);
+        containsAssoc.add(class_[25], tag[46]);
+        containsAssoc.add(class_[25], attribute[26]);
+        containsAssoc.add(class_[25], tag[47]);
+        containsAssoc.add(class_[25], enumerationType[4]);
+        containsAssoc.add(class_[25], attribute[27]);
+        containsAssoc.add(class_[25], reference[10]);
+        containsAssoc.add(class_[24], tag[44]);
+        containsAssoc.add(class_[24], attribute[23]);
+        containsAssoc.add(class_[24], attribute[24]);
+        containsAssoc.add(operation[4], parameter[12]);
+        containsAssoc.add(operation[4], parameter[13]);
+        containsAssoc.add(operation[4], tag[14]);
+        containsAssoc.add(class_[20], tag[39]);
+        containsAssoc.add(class_[20], constraint[37]);
+        containsAssoc.add(class_[20], constraint[38]);
+        containsAssoc.add(class_[20], constraint[39]);
+        containsAssoc.add(class_[20], constraint[40]);
+        containsAssoc.add(class_[20], constraint[41]);
+        containsAssoc.add(class_[20], constraint[42]);
+        containsAssoc.add(class_[20], attribute[16]);
+        containsAssoc.add(operation[10], parameter[24]);
+        containsAssoc.add(operation[10], parameter[25]);
+        containsAssoc.add(operation[10], parameter[26]);
+        containsAssoc.add(association[8], tag[61]);
+        containsAssoc.add(association[8], associationEnd[16]);
+        containsAssoc.add(association[8], associationEnd[17]);
+        containsAssoc.add(association[0], tag[53]);
+        containsAssoc.add(association[0], associationEnd[0]);
+        containsAssoc.add(association[0], associationEnd[1]);
+        containsAssoc.add(class_[22], tag[41]);
+        containsAssoc.add(class_[22], tag[42]);
+        containsAssoc.add(class_[22], constraint[47]);
+        containsAssoc.add(class_[22], constraint[48]);
+        containsAssoc.add(association[3], tag[56]);
+        containsAssoc.add(association[3], associationEnd[6]);
+        containsAssoc.add(association[3], associationEnd[7]);
+        containsAssoc.add(package_[1], import_[0]);
+        containsAssoc.add(package_[1], tag[1]);
+        containsAssoc.add(package_[1], tag[2]);
+        containsAssoc.add(package_[1], tag[3]);
+        containsAssoc.add(package_[1], tag[4]);
+        containsAssoc.add(package_[1], class_[0]);
+        containsAssoc.add(package_[1], enumerationType[0]);
+        containsAssoc.add(package_[1], class_[1]);
+        containsAssoc.add(package_[1], class_[2]);
+        containsAssoc.add(package_[1], class_[3]);
+        containsAssoc.add(package_[1], class_[4]);
+        containsAssoc.add(package_[1], class_[5]);
+        containsAssoc.add(package_[1], constant[12]);
+        containsAssoc.add(package_[1], structureType[0]);
+        containsAssoc.add(package_[1], constraint[16]);
+        containsAssoc.add(package_[1], constraint[17]);
+        containsAssoc.add(package_[1], constraint[18]);
+        containsAssoc.add(package_[1], constraint[19]);
+        containsAssoc.add(package_[1], class_[6]);
+        containsAssoc.add(package_[1], class_[7]);
+        containsAssoc.add(package_[1], class_[8]);
+        containsAssoc.add(package_[1], class_[9]);
+        containsAssoc.add(package_[1], class_[10]);
+        containsAssoc.add(package_[1], class_[11]);
+        containsAssoc.add(package_[1], class_[12]);
+        containsAssoc.add(package_[1], enumerationType[1]);
+        containsAssoc.add(package_[1], class_[13]);
+        containsAssoc.add(package_[1], class_[14]);
+        containsAssoc.add(package_[1], class_[15]);
+        containsAssoc.add(package_[1], class_[16]);
+        containsAssoc.add(package_[1], class_[17]);
+        containsAssoc.add(package_[1], class_[18]);
+        containsAssoc.add(package_[1], class_[19]);
+        containsAssoc.add(package_[1], class_[20]);
+        containsAssoc.add(package_[1], enumerationType[2]);
+        containsAssoc.add(package_[1], class_[21]);
+        containsAssoc.add(package_[1], class_[22]);
+        containsAssoc.add(package_[1], class_[23]);
+        containsAssoc.add(package_[1], enumerationType[3]);
+        containsAssoc.add(package_[1], class_[24]);
+        containsAssoc.add(package_[1], class_[25]);
+        containsAssoc.add(package_[1], class_[26]);
+        containsAssoc.add(package_[1], class_[27]);
+        containsAssoc.add(package_[1], association[0]);
+        containsAssoc.add(package_[1], association[1]);
+        containsAssoc.add(package_[1], association[2]);
+        containsAssoc.add(package_[1], association[3]);
+        containsAssoc.add(package_[1], association[4]);
+        containsAssoc.add(package_[1], association[5]);
+        containsAssoc.add(package_[1], association[6]);
+        containsAssoc.add(package_[1], association[7]);
+        containsAssoc.add(package_[1], association[8]);
+        containsAssoc.add(package_[1], association[9]);
+        containsAssoc.add(class_[9], tag[25]);
+        containsAssoc.add(class_[9], attribute[9]);
+        containsAssoc.add(operation[7], parameter[19]);
+        containsAssoc.add(operation[7], parameter[20]);
+        containsAssoc.add(operation[7], tag[16]);
+        containsAssoc.add(package_[2], tag[63]);
+        containsAssoc.add(package_[2], primitiveType[6]);
+        containsAssoc.add(package_[2], primitiveType[7]);
+        containsAssoc.add(package_[2], primitiveType[8]);
+        containsAssoc.add(package_[2], primitiveType[9]);
+        containsAssoc.add(package_[2], primitiveType[10]);
+        containsAssoc.add(package_[2], primitiveType[11]);
+        containsAssoc.add(package_[2], primitiveType[12]);
+        containsAssoc.add(package_[2], primitiveType[13]);
+        containsAssoc.add(package_[2], primitiveType[14]);
+        containsAssoc.add(association[7], tag[60]);
+        containsAssoc.add(association[7], associationEnd[14]);
+        containsAssoc.add(association[7], associationEnd[15]);
+        containsAssoc.add(class_[27], tag[50]);
+        containsAssoc.add(class_[27], attribute[29]);
+        containsAssoc.add(class_[27], tag[51]);
+        containsAssoc.add(class_[27], attribute[30]);
+        containsAssoc.add(class_[27], tag[52]);
+        containsAssoc.add(class_[27], reference[11]);
+        containsAssoc.add(class_[14], tag[30]);
+        containsAssoc.add(class_[14], attribute[12]);
+        containsAssoc.add(class_[14], attribute[13]);
+        containsAssoc.add(class_[26], tag[48]);
+        containsAssoc.add(class_[26], constraint[56]);
+        containsAssoc.add(class_[26], constraint[57]);
+        containsAssoc.add(class_[26], attribute[28]);
+        containsAssoc.add(class_[26], tag[49]);
+        containsAssoc.add(structureType[0], structureField[0]);
+        containsAssoc.add(structureType[0], structureField[1]);
+        containsAssoc.add(structureType[0], structureField[2]);
+        containsAssoc.add(structureType[0], structureField[3]);
+        containsAssoc.add(association[9], tag[62]);
+        containsAssoc.add(association[9], associationEnd[18]);
+        containsAssoc.add(association[9], associationEnd[19]);
+        containsAssoc.add(operation[0], parameter[0]);
+        containsAssoc.add(operation[0], parameter[1]);
+        containsAssoc.add(operation[0], parameter[2]);
+        containsAssoc.add(operation[0], tag[9]);
         containsAssoc.add(class_[2], tag[17]);
-        containsAssoc.add(class_[2], attribute[4]);
-        containsAssoc.add(class_[2], tag[16]);
-        containsAssoc.add(class_[2], enumerationType[0]);
+        containsAssoc.add(class_[2], constraint[5]);
+        containsAssoc.add(class_[2], constraint[6]);
+        containsAssoc.add(class_[2], constraint[7]);
+        containsAssoc.add(class_[2], constraint[8]);
+        containsAssoc.add(class_[2], constraint[9]);
+        containsAssoc.add(class_[2], constraint[10]);
+        containsAssoc.add(class_[2], constraint[11]);
         containsAssoc.add(class_[2], attribute[3]);
-        containsAssoc.add(class_[2], reference[1]);
+        containsAssoc.add(class_[2], attribute[4]);
+        containsAssoc.add(class_[2], attribute[5]);
+        containsAssoc.add(class_[2], attribute[6]);
+        containsAssoc.add(class_[2], reference[4]);
+        containsAssoc.add(class_[2], operation[8]);
+        containsAssoc.add(class_[2], operation[9]);
+        containsAssoc.add(class_[2], operation[10]);
+        containsAssoc.add(association[4], tag[57]);
+        containsAssoc.add(association[4], associationEnd[8]);
+        containsAssoc.add(association[4], associationEnd[9]);
+        containsAssoc.add(class_[3], tag[18]);
+        containsAssoc.add(class_[3], constraint[12]);
+        containsAssoc.add(class_[3], constraint[13]);
+        containsAssoc.add(class_[3], reference[5]);
+        containsAssoc.add(class_[11], tag[27]);
+        containsAssoc.add(class_[11], constraint[24]);
+        containsAssoc.add(operation[1], parameter[3]);
+        containsAssoc.add(operation[1], parameter[4]);
+        containsAssoc.add(operation[1], parameter[5]);
+        containsAssoc.add(operation[1], tag[10]);
+        containsAssoc.add(class_[15], tag[31]);
+        containsAssoc.add(class_[15], tag[32]);
+        containsAssoc.add(class_[15], attribute[14]);
+        containsAssoc.add(class_[23], tag[43]);
+        containsAssoc.add(class_[23], constraint[49]);
+        containsAssoc.add(class_[23], constraint[50]);
+        containsAssoc.add(class_[23], constraint[51]);
+        containsAssoc.add(class_[23], constraint[52]);
+        containsAssoc.add(class_[23], constraint[53]);
+        containsAssoc.add(class_[23], attribute[21]);
+        containsAssoc.add(class_[23], attribute[22]);
+        containsAssoc.add(class_[23], reference[9]);
+        containsAssoc.add(class_[21], tag[40]);
+        containsAssoc.add(class_[21], constraint[43]);
+        containsAssoc.add(class_[21], constraint[44]);
+        containsAssoc.add(class_[21], constraint[45]);
+        containsAssoc.add(class_[21], constraint[46]);
+        containsAssoc.add(class_[21], attribute[17]);
+        containsAssoc.add(class_[21], attribute[18]);
+        containsAssoc.add(class_[21], attribute[19]);
+        containsAssoc.add(class_[21], attribute[20]);
+        containsAssoc.add(class_[21], operation[11]);
+        containsAssoc.add(operation[8], parameter[21]);
+        containsAssoc.add(class_[1], tag[11]);
+        containsAssoc.add(class_[1], constraint[4]);
+        containsAssoc.add(class_[1], exception[0]);
+        containsAssoc.add(class_[1], exception[1]);
+        containsAssoc.add(class_[1], reference[3]);
+        containsAssoc.add(class_[1], operation[4]);
+        containsAssoc.add(class_[1], operation[5]);
+        containsAssoc.add(class_[1], operation[6]);
+        containsAssoc.add(class_[1], operation[7]);
+        containsAssoc.add(operation[11], parameter[27]);
     }
 
     private void generalizesAssocInit()
     {
         Generalizes generalizesAssoc = getModelPackage().getGeneralizes();
 
-        generalizesAssoc.add(class_[27], class_[0]);
-        generalizesAssoc.add(class_[27], class_[2]);
-        generalizesAssoc.add(class_[27], class_[4]);
-        generalizesAssoc.add(class_[27], class_[14]);
-        generalizesAssoc.add(class_[27], class_[24]);
-        generalizesAssoc.add(class_[27], class_[26]);
-        generalizesAssoc.add(class_[14], class_[10]);
-        generalizesAssoc.add(class_[26], class_[10]);
-        generalizesAssoc.add(class_[26], class_[25]);
-        generalizesAssoc.add(class_[25], class_[5]);
-        generalizesAssoc.add(class_[25], class_[23]);
-        generalizesAssoc.add(class_[24], class_[1]);
-        generalizesAssoc.add(class_[24], class_[3]);
-        generalizesAssoc.add(class_[24], class_[6]);
-        generalizesAssoc.add(class_[14], class_[13]);
-        generalizesAssoc.add(class_[24], class_[13]);
-        generalizesAssoc.add(class_[21], class_[15]);
-        generalizesAssoc.add(class_[24], class_[15]);
-        generalizesAssoc.add(class_[24], class_[16]);
-        generalizesAssoc.add(class_[21], class_[18]);
-        generalizesAssoc.add(class_[24], class_[18]);
-        generalizesAssoc.add(class_[23], class_[7]);
-        generalizesAssoc.add(class_[23], class_[21]);
-        generalizesAssoc.add(class_[23], class_[22]);
-        generalizesAssoc.add(class_[21], class_[17]);
-        generalizesAssoc.add(class_[21], class_[19]);
-        generalizesAssoc.add(class_[21], class_[20]);
-        generalizesAssoc.add(class_[13], class_[11]);
-        generalizesAssoc.add(class_[13], class_[12]);
-        generalizesAssoc.add(class_[10], class_[8]);
-        generalizesAssoc.add(class_[10], class_[9]);
+        generalizesAssoc.add(class_[13], class_[14]);
+        generalizesAssoc.add(class_[3], class_[14]);
+        generalizesAssoc.add(class_[13], class_[17]);
+        generalizesAssoc.add(class_[1], class_[17]);
+        generalizesAssoc.add(class_[2], class_[4]);
+        generalizesAssoc.add(class_[2], class_[22]);
+        generalizesAssoc.add(class_[6], class_[7]);
+        generalizesAssoc.add(class_[6], class_[8]);
+        generalizesAssoc.add(class_[6], class_[9]);
+        generalizesAssoc.add(class_[3], class_[9]);
+        generalizesAssoc.add(class_[6], class_[10]);
+        generalizesAssoc.add(class_[6], class_[12]);
+        generalizesAssoc.add(class_[3], class_[12]);
+        generalizesAssoc.add(class_[3], class_[11]);
+        generalizesAssoc.add(class_[3], class_[21]);
+        generalizesAssoc.add(class_[3], class_[24]);
+        generalizesAssoc.add(class_[3], class_[26]);
+        generalizesAssoc.add(class_[0], class_[1]);
+        generalizesAssoc.add(class_[0], class_[3]);
+        generalizesAssoc.add(class_[0], class_[13]);
+        generalizesAssoc.add(class_[0], class_[23]);
+        generalizesAssoc.add(class_[0], class_[25]);
+        generalizesAssoc.add(class_[0], class_[27]);
+        generalizesAssoc.add(class_[4], class_[5]);
+        generalizesAssoc.add(class_[4], class_[6]);
+        generalizesAssoc.add(class_[4], class_[20]);
+        generalizesAssoc.add(class_[17], class_[18]);
+        generalizesAssoc.add(class_[17], class_[19]);
+        generalizesAssoc.add(class_[14], class_[15]);
+        generalizesAssoc.add(class_[14], class_[16]);
+        generalizesAssoc.add(class_[1], class_[2]);
     }
 
     private void aliasesAssocInit()
     {
         Aliases aliasesAssoc = getModelPackage().getAliases();
 
-        aliasesAssoc.add(import_[0], package_[2]);
+        aliasesAssoc.add(import_[0], package_[0]);
     }
 
     private void constrainsAssocInit()
     {
         Constrains constrainsAssoc = getModelPackage().getConstrains();
 
-        constrainsAssoc.add(constraint[57], class_[27]);
-        constrainsAssoc.add(constraint[56], class_[27]);
-        constrainsAssoc.add(constraint[55], class_[27]);
-        constrainsAssoc.add(constraint[54], class_[27]);
-        constrainsAssoc.add(constraint[53], class_[26]);
-        constrainsAssoc.add(constraint[52], class_[25]);
-        constrainsAssoc.add(constraint[51], class_[25]);
-        constrainsAssoc.add(constraint[50], class_[25]);
-        constrainsAssoc.add(constraint[49], class_[25]);
-        constrainsAssoc.add(constraint[48], class_[25]);
-        constrainsAssoc.add(constraint[47], class_[25]);
-        constrainsAssoc.add(constraint[46], class_[25]);
-        constrainsAssoc.add(constraint[45], class_[24]);
-        constrainsAssoc.add(constraint[44], class_[24]);
-        constrainsAssoc.add(constraint[1], class_[1]);
-        constrainsAssoc.add(constraint[0], class_[1]);
-        constrainsAssoc.add(constraint[43], class_[22]);
-        constrainsAssoc.add(constraint[42], class_[22]);
-        constrainsAssoc.add(constraint[41], package_[1]);
-        constrainsAssoc.add(constraint[40], package_[1]);
-        constrainsAssoc.add(constraint[39], package_[1]);
-        constrainsAssoc.add(constraint[38], package_[1]);
-        constrainsAssoc.add(constraint[37], class_[21]);
-        constrainsAssoc.add(constraint[36], class_[21]);
-        constrainsAssoc.add(constraint[35], class_[21]);
-        constrainsAssoc.add(constraint[34], class_[17]);
-        constrainsAssoc.add(constraint[33], class_[16]);
-        constrainsAssoc.add(constraint[32], class_[11]);
-        constrainsAssoc.add(constraint[31], class_[11]);
-        constrainsAssoc.add(constraint[30], class_[11]);
-        constrainsAssoc.add(constraint[29], class_[11]);
-        constrainsAssoc.add(constraint[28], class_[11]);
-        constrainsAssoc.add(constraint[27], class_[11]);
-        constrainsAssoc.add(constraint[26], class_[11]);
-        constrainsAssoc.add(constraint[25], class_[9]);
-        constrainsAssoc.add(constraint[24], class_[9]);
-        constrainsAssoc.add(constraint[23], class_[9]);
-        constrainsAssoc.add(constraint[22], class_[8]);
-        constrainsAssoc.add(constraint[21], class_[8]);
-        constrainsAssoc.add(constraint[20], class_[7]);
-        constrainsAssoc.add(constraint[19], class_[7]);
-        constrainsAssoc.add(constraint[18], class_[7]);
-        constrainsAssoc.add(constraint[17], class_[7]);
-        constrainsAssoc.add(constraint[16], class_[7]);
-        constrainsAssoc.add(constraint[15], class_[7]);
-        constrainsAssoc.add(constraint[14], class_[6]);
-        constrainsAssoc.add(constraint[13], class_[6]);
-        constrainsAssoc.add(constraint[12], class_[6]);
-        constrainsAssoc.add(constraint[11], class_[6]);
-        constrainsAssoc.add(constraint[10], class_[5]);
-        constrainsAssoc.add(constraint[9], class_[5]);
-        constrainsAssoc.add(constraint[8], class_[4]);
-        constrainsAssoc.add(constraint[7], class_[4]);
-        constrainsAssoc.add(constraint[6], class_[4]);
-        constrainsAssoc.add(constraint[5], class_[4]);
-        constrainsAssoc.add(constraint[4], class_[4]);
-        constrainsAssoc.add(constraint[3], class_[2]);
-        constrainsAssoc.add(constraint[2], class_[2]);
+        constrainsAssoc.add(constraint[46], class_[21]);
+        constrainsAssoc.add(constraint[25], class_[16]);
+        constrainsAssoc.add(constraint[2], class_[0]);
+        constrainsAssoc.add(constraint[22], class_[6]);
+        constrainsAssoc.add(constraint[42], class_[20]);
+        constrainsAssoc.add(constraint[21], class_[6]);
+        constrainsAssoc.add(constraint[53], class_[23]);
+        constrainsAssoc.add(constraint[41], class_[20]);
+        constrainsAssoc.add(constraint[16], package_[1]);
+        constrainsAssoc.add(constraint[33], class_[18]);
+        constrainsAssoc.add(constraint[39], class_[20]);
+        constrainsAssoc.add(constraint[1], class_[0]);
+        constrainsAssoc.add(constraint[7], class_[2]);
+        constrainsAssoc.add(constraint[48], class_[22]);
+        constrainsAssoc.add(constraint[57], class_[26]);
+        constrainsAssoc.add(constraint[18], package_[1]);
+        constrainsAssoc.add(constraint[15], class_[5]);
+        constrainsAssoc.add(constraint[5], class_[2]);
+        constrainsAssoc.add(constraint[56], class_[26]);
+        constrainsAssoc.add(constraint[44], class_[21]);
+        constrainsAssoc.add(constraint[14], class_[5]);
+        constrainsAssoc.add(constraint[40], class_[20]);
+        constrainsAssoc.add(constraint[10], class_[2]);
+        constrainsAssoc.add(constraint[45], class_[21]);
+        constrainsAssoc.add(constraint[49], class_[23]);
+        constrainsAssoc.add(constraint[27], class_[16]);
+        constrainsAssoc.add(constraint[32], class_[18]);
+        constrainsAssoc.add(constraint[11], class_[2]);
+        constrainsAssoc.add(constraint[35], class_[19]);
+        constrainsAssoc.add(constraint[50], class_[23]);
+        constrainsAssoc.add(constraint[28], class_[16]);
+        constrainsAssoc.add(constraint[54], class_[25]);
+        constrainsAssoc.add(constraint[43], class_[21]);
+        constrainsAssoc.add(constraint[29], class_[16]);
+        constrainsAssoc.add(constraint[36], class_[19]);
+        constrainsAssoc.add(constraint[8], class_[2]);
+        constrainsAssoc.add(constraint[20], class_[6]);
+        constrainsAssoc.add(constraint[0], class_[0]);
+        constrainsAssoc.add(constraint[52], class_[23]);
+        constrainsAssoc.add(constraint[6], class_[2]);
+        constrainsAssoc.add(constraint[31], class_[16]);
+        constrainsAssoc.add(constraint[47], class_[22]);
+        constrainsAssoc.add(constraint[38], class_[20]);
+        constrainsAssoc.add(constraint[19], package_[1]);
+        constrainsAssoc.add(constraint[12], class_[3]);
+        constrainsAssoc.add(constraint[26], class_[16]);
+        constrainsAssoc.add(constraint[13], class_[3]);
+        constrainsAssoc.add(constraint[51], class_[23]);
+        constrainsAssoc.add(constraint[3], class_[0]);
+        constrainsAssoc.add(constraint[37], class_[20]);
+        constrainsAssoc.add(constraint[17], package_[1]);
+        constrainsAssoc.add(constraint[23], class_[10]);
+        constrainsAssoc.add(constraint[55], class_[25]);
+        constrainsAssoc.add(constraint[34], class_[18]);
+        constrainsAssoc.add(constraint[30], class_[16]);
+        constrainsAssoc.add(constraint[9], class_[2]);
+        constrainsAssoc.add(constraint[4], class_[1]);
+        constrainsAssoc.add(constraint[24], class_[11]);
     }
 
     private void canRaiseAssocInit()
     {
         CanRaise canRaiseAssoc = getModelPackage().getCanRaise();
 
-        canRaiseAssoc.add(operation[7], exception[1]);
-        canRaiseAssoc.add(operation[6], exception[0]);
-        canRaiseAssoc.add(operation[2], exception[1]);
+        canRaiseAssoc.add(operation[5], exception[1]);
+        canRaiseAssoc.add(operation[4], exception[0]);
+        canRaiseAssoc.add(operation[9], exception[0]);
     }
 
     private void exposesAssocInit()
     {
         Exposes exposesAssoc = getModelPackage().getExposes();
 
-        exposesAssoc.add(reference[11], associationEnd[17]);
-        exposesAssoc.add(reference[10], associationEnd[14]);
+        exposesAssoc.add(reference[10], associationEnd[10]);
+        exposesAssoc.add(reference[1], associationEnd[5]);
+        exposesAssoc.add(reference[11], associationEnd[1]);
+        exposesAssoc.add(reference[6], associationEnd[14]);
         exposesAssoc.add(reference[9], associationEnd[8]);
-        exposesAssoc.add(reference[8], associationEnd[15]);
-        exposesAssoc.add(reference[7], associationEnd[12]);
-        exposesAssoc.add(reference[6], associationEnd[0]);
-        exposesAssoc.add(reference[0], associationEnd[18]);
-        exposesAssoc.add(reference[5], associationEnd[5]);
-        exposesAssoc.add(reference[4], associationEnd[3]);
-        exposesAssoc.add(reference[3], associationEnd[7]);
+        exposesAssoc.add(reference[0], associationEnd[2]);
         exposesAssoc.add(reference[2], associationEnd[11]);
-        exposesAssoc.add(reference[1], associationEnd[9]);
+        exposesAssoc.add(reference[4], associationEnd[7]);
+        exposesAssoc.add(reference[5], associationEnd[19]);
+        exposesAssoc.add(reference[8], associationEnd[12]);
+        exposesAssoc.add(reference[3], associationEnd[4]);
+        exposesAssoc.add(reference[7], associationEnd[16]);
     }
 
     private void refersToAssocInit()
     {
         RefersTo refersToAssoc = getModelPackage().getRefersTo();
 
-        refersToAssoc.add(reference[11], associationEnd[16]);
-        refersToAssoc.add(reference[10], associationEnd[15]);
+        refersToAssoc.add(reference[10], associationEnd[11]);
+        refersToAssoc.add(reference[1], associationEnd[4]);
+        refersToAssoc.add(reference[11], associationEnd[0]);
+        refersToAssoc.add(reference[6], associationEnd[15]);
         refersToAssoc.add(reference[9], associationEnd[9]);
-        refersToAssoc.add(reference[8], associationEnd[14]);
-        refersToAssoc.add(reference[7], associationEnd[13]);
-        refersToAssoc.add(reference[6], associationEnd[1]);
-        refersToAssoc.add(reference[0], associationEnd[19]);
-        refersToAssoc.add(reference[5], associationEnd[4]);
-        refersToAssoc.add(reference[4], associationEnd[2]);
-        refersToAssoc.add(reference[3], associationEnd[6]);
+        refersToAssoc.add(reference[0], associationEnd[3]);
         refersToAssoc.add(reference[2], associationEnd[10]);
-        refersToAssoc.add(reference[1], associationEnd[8]);
+        refersToAssoc.add(reference[4], associationEnd[6]);
+        refersToAssoc.add(reference[5], associationEnd[18]);
+        refersToAssoc.add(reference[8], associationEnd[13]);
+        refersToAssoc.add(reference[3], associationEnd[5]);
+        refersToAssoc.add(reference[7], associationEnd[17]);
     }
 
     private void isOfTypeAssocInit()
     {
         IsOfType isOfTypeAssoc = getModelPackage().getIsOfType();
 
-        isOfTypeAssoc.add(primitiveType[14], attribute[8]);
-        isOfTypeAssoc.add(primitiveType[14], attribute[10]);
-        isOfTypeAssoc.add(primitiveType[14], attribute[13]);
-        isOfTypeAssoc.add(primitiveType[14], attribute[14]);
-        isOfTypeAssoc.add(primitiveType[14], attribute[15]);
-        isOfTypeAssoc.add(primitiveType[14], attribute[16]);
-        isOfTypeAssoc.add(primitiveType[14], attribute[17]);
-        isOfTypeAssoc.add(primitiveType[14], structureField[0]);
-        isOfTypeAssoc.add(primitiveType[14], structureField[1]);
-        isOfTypeAssoc.add(primitiveType[14], attribute[23]);
-        isOfTypeAssoc.add(primitiveType[14], parameter[1]);
-        isOfTypeAssoc.add(primitiveType[14], attribute[25]);
-        isOfTypeAssoc.add(primitiveType[14], attribute[26]);
-        isOfTypeAssoc.add(primitiveType[14], attribute[27]);
-        isOfTypeAssoc.add(primitiveType[14], parameter[8]);
-        isOfTypeAssoc.add(primitiveType[14], parameter[9]);
-        isOfTypeAssoc.add(primitiveType[14], parameter[20]);
-        isOfTypeAssoc.add(primitiveType[14], parameter[21]);
-        isOfTypeAssoc.add(primitiveType[14], parameter[24]);
-        isOfTypeAssoc.add(primitiveType[14], parameter[25]);
-        isOfTypeAssoc.add(primitiveType[13], structureField[2]);
-        isOfTypeAssoc.add(primitiveType[13], structureField[3]);
-        isOfTypeAssoc.add(primitiveType[13], constant[0]);
-        isOfTypeAssoc.add(primitiveType[9], attribute[0]);
-        isOfTypeAssoc.add(primitiveType[9], attribute[1]);
-        isOfTypeAssoc.add(primitiveType[9], attribute[2]);
-        isOfTypeAssoc.add(primitiveType[9], attribute[4]);
-        isOfTypeAssoc.add(primitiveType[9], attribute[5]);
-        isOfTypeAssoc.add(primitiveType[9], attribute[22]);
-        isOfTypeAssoc.add(primitiveType[9], parameter[4]);
-        isOfTypeAssoc.add(primitiveType[9], parameter[7]);
-        isOfTypeAssoc.add(primitiveType[9], parameter[12]);
-        isOfTypeAssoc.add(primitiveType[9], parameter[14]);
-        isOfTypeAssoc.add(primitiveType[9], parameter[16]);
-        isOfTypeAssoc.add(primitiveType[9], parameter[17]);
-        isOfTypeAssoc.add(primitiveType[9], parameter[18]);
-        isOfTypeAssoc.add(primitiveType[9], parameter[22]);
-        isOfTypeAssoc.add(primitiveType[9], parameter[26]);
-        isOfTypeAssoc.add(primitiveType[9], constant[1]);
-        isOfTypeAssoc.add(primitiveType[9], constant[2]);
-        isOfTypeAssoc.add(primitiveType[9], constant[3]);
-        isOfTypeAssoc.add(primitiveType[9], constant[4]);
-        isOfTypeAssoc.add(primitiveType[9], constant[5]);
-        isOfTypeAssoc.add(primitiveType[9], constant[6]);
-        isOfTypeAssoc.add(primitiveType[9], constant[7]);
-        isOfTypeAssoc.add(primitiveType[9], constant[8]);
-        isOfTypeAssoc.add(primitiveType[9], constant[9]);
-        isOfTypeAssoc.add(primitiveType[9], constant[10]);
-        isOfTypeAssoc.add(primitiveType[9], constant[11]);
-        isOfTypeAssoc.add(primitiveType[9], constant[12]);
-        isOfTypeAssoc.add(primitiveType[9], attribute[28]);
-        isOfTypeAssoc.add(primitiveType[9], attribute[29]);
-        isOfTypeAssoc.add(primitiveType[9], attribute[30]);
-        isOfTypeAssoc.add(class_[27], associationEnd[8]);
-        isOfTypeAssoc.add(class_[27], associationEnd[14]);
-        isOfTypeAssoc.add(class_[27], associationEnd[16]);
-        isOfTypeAssoc.add(class_[27], associationEnd[17]);
-        isOfTypeAssoc.add(class_[27], associationEnd[19]);
-        isOfTypeAssoc.add(class_[27], reference[0]);
-        isOfTypeAssoc.add(class_[27], reference[1]);
-        isOfTypeAssoc.add(class_[27], parameter[3]);
-        isOfTypeAssoc.add(class_[27], parameter[5]);
-        isOfTypeAssoc.add(class_[27], parameter[11]);
-        isOfTypeAssoc.add(class_[27], parameter[13]);
-        isOfTypeAssoc.add(class_[27], parameter[15]);
-        isOfTypeAssoc.add(class_[27], reference[8]);
-        isOfTypeAssoc.add(class_[27], parameter[19]);
-        isOfTypeAssoc.add(class_[27], parameter[23]);
-        isOfTypeAssoc.add(class_[27], parameter[27]);
-        isOfTypeAssoc.add(class_[27], reference[11]);
-        isOfTypeAssoc.add(enumerationType[4], attribute[9]);
-        isOfTypeAssoc.add(enumerationType[4], attribute[19]);
-        isOfTypeAssoc.add(enumerationType[4], attribute[24]);
-        isOfTypeAssoc.add(class_[26], associationEnd[10]);
-        isOfTypeAssoc.add(class_[26], associationEnd[15]);
-        isOfTypeAssoc.add(class_[26], reference[2]);
-        isOfTypeAssoc.add(class_[26], reference[10]);
-        isOfTypeAssoc.add(class_[25], associationEnd[12]);
-        isOfTypeAssoc.add(class_[25], associationEnd[13]);
-        isOfTypeAssoc.add(class_[25], parameter[6]);
-        isOfTypeAssoc.add(class_[25], reference[7]);
-        isOfTypeAssoc.add(class_[24], associationEnd[0]);
-        isOfTypeAssoc.add(class_[23], associationEnd[1]);
-        isOfTypeAssoc.add(class_[23], reference[6]);
-        isOfTypeAssoc.add(class_[0], associationEnd[18]);
-        isOfTypeAssoc.add(class_[22], parameter[2]);
-        isOfTypeAssoc.add(class_[22], parameter[10]);
-        isOfTypeAssoc.add(structureType[0], attribute[6]);
-        isOfTypeAssoc.add(structureType[0], attribute[11]);
-        isOfTypeAssoc.add(structureType[0], attribute[18]);
-        isOfTypeAssoc.add(structureType[0], attribute[21]);
-        isOfTypeAssoc.add(enumerationType[3], attribute[20]);
-        isOfTypeAssoc.add(class_[11], associationEnd[3]);
-        isOfTypeAssoc.add(class_[11], associationEnd[5]);
-        isOfTypeAssoc.add(class_[9], associationEnd[7]);
-        isOfTypeAssoc.add(class_[8], associationEnd[6]);
-        isOfTypeAssoc.add(class_[8], reference[3]);
-        isOfTypeAssoc.add(enumerationType[2], attribute[12]);
-        isOfTypeAssoc.add(class_[6], associationEnd[2]);
-        isOfTypeAssoc.add(class_[6], associationEnd[4]);
-        isOfTypeAssoc.add(class_[6], parameter[0]);
-        isOfTypeAssoc.add(class_[6], reference[4]);
-        isOfTypeAssoc.add(class_[6], reference[5]);
-        isOfTypeAssoc.add(class_[4], associationEnd[11]);
-        isOfTypeAssoc.add(enumerationType[1], attribute[7]);
-        isOfTypeAssoc.add(enumerationType[0], attribute[3]);
-        isOfTypeAssoc.add(class_[2], associationEnd[9]);
-        isOfTypeAssoc.add(class_[2], reference[9]);
+        isOfTypeAssoc.add(enumerationType[1], attribute[10]);
+        isOfTypeAssoc.add(class_[5], parameter[17]);
+        isOfTypeAssoc.add(class_[5], parameter[25]);
+        isOfTypeAssoc.add(class_[18], associationEnd[12]);
+        isOfTypeAssoc.add(class_[0], reference[0]);
+        isOfTypeAssoc.add(class_[0], parameter[0]);
+        isOfTypeAssoc.add(class_[0], parameter[4]);
+        isOfTypeAssoc.add(class_[0], parameter[8]);
+        isOfTypeAssoc.add(class_[0], reference[3]);
+        isOfTypeAssoc.add(class_[0], parameter[12]);
+        isOfTypeAssoc.add(class_[0], parameter[14]);
+        isOfTypeAssoc.add(class_[0], parameter[16]);
+        isOfTypeAssoc.add(class_[0], parameter[22]);
+        isOfTypeAssoc.add(class_[0], parameter[24]);
+        isOfTypeAssoc.add(class_[0], reference[10]);
+        isOfTypeAssoc.add(class_[0], reference[11]);
+        isOfTypeAssoc.add(class_[0], associationEnd[0]);
+        isOfTypeAssoc.add(class_[0], associationEnd[2]);
+        isOfTypeAssoc.add(class_[0], associationEnd[3]);
+        isOfTypeAssoc.add(class_[0], associationEnd[5]);
+        isOfTypeAssoc.add(class_[0], associationEnd[11]);
+        isOfTypeAssoc.add(class_[4], reference[5]);
+        isOfTypeAssoc.add(class_[4], associationEnd[18]);
+        isOfTypeAssoc.add(class_[27], associationEnd[1]);
+        isOfTypeAssoc.add(enumerationType[0], attribute[6]);
+        isOfTypeAssoc.add(enumerationType[0], attribute[11]);
+        isOfTypeAssoc.add(enumerationType[0], attribute[21]);
+        isOfTypeAssoc.add(enumerationType[3], attribute[23]);
+        isOfTypeAssoc.add(primitiveType[0], parameter[2]);
+        isOfTypeAssoc.add(primitiveType[0], parameter[3]);
+        isOfTypeAssoc.add(primitiveType[0], parameter[6]);
+        isOfTypeAssoc.add(primitiveType[0], parameter[7]);
+        isOfTypeAssoc.add(primitiveType[0], parameter[18]);
+        isOfTypeAssoc.add(primitiveType[0], parameter[19]);
+        isOfTypeAssoc.add(primitiveType[0], attribute[3]);
+        isOfTypeAssoc.add(primitiveType[0], attribute[4]);
+        isOfTypeAssoc.add(primitiveType[0], attribute[5]);
+        isOfTypeAssoc.add(primitiveType[0], parameter[26]);
+        isOfTypeAssoc.add(primitiveType[0], attribute[7]);
+        isOfTypeAssoc.add(primitiveType[0], structureField[2]);
+        isOfTypeAssoc.add(primitiveType[0], structureField[3]);
+        isOfTypeAssoc.add(primitiveType[0], attribute[13]);
+        isOfTypeAssoc.add(primitiveType[0], attribute[14]);
+        isOfTypeAssoc.add(primitiveType[0], attribute[15]);
+        isOfTypeAssoc.add(primitiveType[0], attribute[16]);
+        isOfTypeAssoc.add(primitiveType[0], attribute[17]);
+        isOfTypeAssoc.add(primitiveType[0], attribute[20]);
+        isOfTypeAssoc.add(primitiveType[0], attribute[22]);
+        isOfTypeAssoc.add(structureType[0], attribute[9]);
+        isOfTypeAssoc.add(structureType[0], attribute[12]);
+        isOfTypeAssoc.add(structureType[0], attribute[19]);
+        isOfTypeAssoc.add(structureType[0], attribute[24]);
+        isOfTypeAssoc.add(primitiveType[5], attribute[0]);
+        isOfTypeAssoc.add(primitiveType[5], attribute[1]);
+        isOfTypeAssoc.add(primitiveType[5], attribute[2]);
+        isOfTypeAssoc.add(primitiveType[5], constant[0]);
+        isOfTypeAssoc.add(primitiveType[5], constant[1]);
+        isOfTypeAssoc.add(primitiveType[5], constant[2]);
+        isOfTypeAssoc.add(primitiveType[5], constant[3]);
+        isOfTypeAssoc.add(primitiveType[5], constant[4]);
+        isOfTypeAssoc.add(primitiveType[5], constant[5]);
+        isOfTypeAssoc.add(primitiveType[5], constant[6]);
+        isOfTypeAssoc.add(primitiveType[5], constant[7]);
+        isOfTypeAssoc.add(primitiveType[5], constant[8]);
+        isOfTypeAssoc.add(primitiveType[5], constant[9]);
+        isOfTypeAssoc.add(primitiveType[5], constant[10]);
+        isOfTypeAssoc.add(primitiveType[5], constant[11]);
+        isOfTypeAssoc.add(primitiveType[5], parameter[1]);
+        isOfTypeAssoc.add(primitiveType[5], parameter[5]);
+        isOfTypeAssoc.add(primitiveType[5], parameter[9]);
+        isOfTypeAssoc.add(primitiveType[5], parameter[10]);
+        isOfTypeAssoc.add(primitiveType[5], parameter[11]);
+        isOfTypeAssoc.add(primitiveType[5], parameter[13]);
+        isOfTypeAssoc.add(primitiveType[5], parameter[15]);
+        isOfTypeAssoc.add(primitiveType[5], parameter[20]);
+        isOfTypeAssoc.add(primitiveType[5], parameter[23]);
+        isOfTypeAssoc.add(primitiveType[5], attribute[8]);
+        isOfTypeAssoc.add(primitiveType[5], attribute[25]);
+        isOfTypeAssoc.add(primitiveType[5], attribute[26]);
+        isOfTypeAssoc.add(primitiveType[5], attribute[28]);
+        isOfTypeAssoc.add(primitiveType[5], attribute[29]);
+        isOfTypeAssoc.add(primitiveType[5], attribute[30]);
+        isOfTypeAssoc.add(class_[2], reference[4]);
+        isOfTypeAssoc.add(class_[2], parameter[21]);
+        isOfTypeAssoc.add(class_[2], associationEnd[6]);
+        isOfTypeAssoc.add(class_[2], associationEnd[7]);
+        isOfTypeAssoc.add(enumerationType[4], attribute[27]);
+        isOfTypeAssoc.add(class_[3], associationEnd[19]);
+        isOfTypeAssoc.add(class_[23], associationEnd[8]);
+        isOfTypeAssoc.add(class_[21], reference[6]);
+        isOfTypeAssoc.add(class_[21], reference[7]);
+        isOfTypeAssoc.add(class_[21], parameter[27]);
+        isOfTypeAssoc.add(class_[21], associationEnd[15]);
+        isOfTypeAssoc.add(class_[21], associationEnd[17]);
+        isOfTypeAssoc.add(class_[19], reference[8]);
+        isOfTypeAssoc.add(class_[19], associationEnd[13]);
+        isOfTypeAssoc.add(primitiveType[1], constant[12]);
+        isOfTypeAssoc.add(primitiveType[1], structureField[0]);
+        isOfTypeAssoc.add(primitiveType[1], structureField[1]);
+        isOfTypeAssoc.add(class_[16], associationEnd[14]);
+        isOfTypeAssoc.add(class_[16], associationEnd[16]);
+        isOfTypeAssoc.add(class_[25], reference[2]);
+        isOfTypeAssoc.add(class_[25], associationEnd[10]);
+        isOfTypeAssoc.add(class_[1], reference[1]);
+        isOfTypeAssoc.add(class_[1], reference[9]);
+        isOfTypeAssoc.add(class_[1], associationEnd[4]);
+        isOfTypeAssoc.add(class_[1], associationEnd[9]);
+        isOfTypeAssoc.add(enumerationType[2], attribute[18]);
     }
 
     @SuppressWarnings("unchecked")

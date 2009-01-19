@@ -192,31 +192,6 @@ public abstract class HibernateRefAssociation
         return association1.remove(associable1, associable2);
     }
 
-    protected abstract Class<? extends RefObject> getFirstEndType();
-    protected abstract Class<? extends RefObject> getSecondEndType();
-    
-    private void checkTypes(RefObject end1, RefObject end2)
-    {
-        checkFirstEndType(end1);
-        checkSecondEndType(end2);
-    }
-
-    private void checkFirstEndType(RefObject end1)
-    {
-        Class<?> end1Type = getFirstEndType();
-        if (!end1Type.isAssignableFrom(end1.getClass())) {
-            throw new TypeMismatchException(end1Type, this, end1);
-        }
-    }    
-    
-    private void checkSecondEndType(RefObject end2)
-    {
-        Class<?> end2Type = getSecondEndType();
-        if (!end2Type.isAssignableFrom(end2.getClass())) {
-            throw new TypeMismatchException(end2Type, this, end2);
-        }
-    }
-    
     protected void fireAddEvent(RefObject end1, RefObject end2)
     {
         generateAddEvent(end1, end1Name, end2, AssociationEvent.POSITION_NONE);

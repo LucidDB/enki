@@ -1,9 +1,9 @@
 /*
 //  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2008 The Eigenbase Project
-//  Copyright (C) 2007-2008 Disruptive Tech
-//  Copyright (C) 2007-2008 LucidEra, Inc.
+//  Copyright (C) 2007-2009 The Eigenbase Project
+//  Copyright (C) 2007-2009 Disruptive Tech
+//  Copyright (C) 2007-2009 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -50,6 +50,11 @@ public class Operation
     private javax.jmi.model.Contains containedElement;
     private javax.jmi.model.CanRaise except;
 
+    // Association Fields
+    private javax.jmi.model.Aliases aliases_Importer;
+    private javax.jmi.model.AttachesTo attachesTo_Tag;
+    private javax.jmi.model.DependsOn dependsOn_Dependent;
+
     Operation(
         RefClass refClass)
     {
@@ -60,6 +65,10 @@ public class Operation
         this.constraint = (javax.jmi.model.Constrains)refImmediatePackage().refAssociation("Constrains");
         this.containedElement = (javax.jmi.model.Contains)refImmediatePackage().refAssociation("Contains");
         this.except = (javax.jmi.model.CanRaise)refImmediatePackage().refAssociation("CanRaise");
+
+        this.aliases_Importer = (javax.jmi.model.Aliases)refImmediatePackage().refAssociation("Aliases");
+        this.attachesTo_Tag = (javax.jmi.model.AttachesTo)refImmediatePackage().refAssociation("AttachesTo");
+        this.dependsOn_Dependent = (javax.jmi.model.DependsOn)refImmediatePackage().refAssociation("DependsOn");
     }
 
     Operation(
@@ -152,7 +161,10 @@ public class Operation
 
     public void setContainer(javax.jmi.model.Namespace newValue)
     {
-        container.add(newValue, this);
+        container.refQuery("containedElement", this).clear();
+        if (newValue != null) {
+            container.add(newValue, this);
+        }
     }
 
     @SuppressWarnings("unchecked")

@@ -88,6 +88,8 @@ public abstract class RefAssociationBase
     {
         logJmi("refAddLink");
         
+        checkTypes(end1, end2);
+        
         RefAssociationLinkImpl link = new RefAssociationLinkImpl(end1, end2);
 
         addToMap(link, true, -1);
@@ -120,6 +122,8 @@ public abstract class RefAssociationBase
     {
         logJmi("refLinkExists");
         
+        checkTypes(end1, end2);
+
         RefAssociationLinkImpl testLink = 
             new RefAssociationLinkImpl(end1, end2);
         
@@ -165,7 +169,15 @@ public abstract class RefAssociationBase
     {
         logJmi("refRemoveLink");
         
-        throw new UnsupportedOperationException();
+        checkTypes(end1, end2);
+
+        RefAssociationLinkImpl link = new RefAssociationLinkImpl(end1, end2);
+
+        if (removeFromMaps(link)) {
+            return true;
+        }
+        
+        return links.remove(link);
     }
     
     private void addToMap(
@@ -210,8 +222,6 @@ public abstract class RefAssociationBase
                 throw new WrongSizeException(
                     isFirstEnd ? link.refSecondEnd() : link.refFirstEnd());
             }
-        } else if (multiplicity.isUnique() && referencedLinks.contains(link)) {
-            return;
         }
 
         if (index < 0) {
@@ -221,14 +231,75 @@ public abstract class RefAssociationBase
         }
     }
     
+    private boolean removeFromMaps(RefAssociationLinkImpl link)
+    {
+        RefObject end1 = link.refFirstEnd();
+        RefObject end2 = link.refSecondEnd();
+
+        boolean handleEnd1 = true;
+        boolean handleEnd2 = true;
+        if (end2Multiplicity.isOrdered() && end1Multiplicity.isSingle()) {
+            List<RefAssociationLinkImpl> referencedLinks = 
+                (List<RefAssociationLinkImpl>)firstToSecondMap.get(end1);
+
+            boolean removed = referencedLinks.remove(link);
+            if (!removed) {
+                return false;
+            }
+            
+            boolean additional = referencedLinks.lastIndexOf(link) >= 0;
+            if (additional) {
+                // Don't remove from the other direction or the link set
+                return true;
+            }
+            
+            handleEnd1 = false;
+        } else if (end1Multiplicity.isOrdered() && end2Multiplicity.isSingle())
+        {
+            List<RefAssociationLinkImpl> referencedLinks = 
+                (List<RefAssociationLinkImpl>)secondToFirstMap.get(end2);
+
+            boolean removed = referencedLinks.remove(link);
+            if (!removed) {
+                return false;
+            }
+            
+            boolean additional = referencedLinks.lastIndexOf(link) >= 0;
+            if (additional) {
+                // Don't remove from the other direction or the link set
+                return true;
+            }
+            
+            handleEnd2 = false;
+        }
+        
+        if (handleEnd1) {
+            Collection<RefAssociationLinkImpl> referencedLinks = 
+                firstToSecondMap.get(end1);
+
+            referencedLinks.remove(link);
+        }
+        
+        if (handleEnd2) {
+            Collection<RefAssociationLinkImpl> referencedLinks = 
+                secondToFirstMap.get(end2);
+
+            referencedLinks.remove(link);
+        }
+
+        return false;
+    }
+    
     protected Collection<? extends RefObject> query(
         boolean isFirstEnd, RefObject queryObject)
     {
         Map<RefObject, Collection<RefAssociationLinkImpl>> map;
         if (isFirstEnd) {
             map = firstToSecondMap;
+            checkFirstEndType(queryObject);
         } else {
             map = secondToFirstMap;
+            checkSecondEndType(queryObject);
         }
         
         Collection<RefAssociationLinkImpl> referencedLinks = 
@@ -261,6 +332,31 @@ public abstract class RefAssociationBase
                 queryObject,
                 isFirstEnd,
                 referencedLinks);
+        }
+    }
+    
+    protected abstract Class<? extends RefObject> getFirstEndType();
+    protected abstract Class<? extends RefObject> getSecondEndType();
+    
+    protected void checkTypes(RefObject end1, RefObject end2)
+    {
+        checkFirstEndType(end1);
+        checkSecondEndType(end2);
+    }
+
+    protected void checkFirstEndType(RefObject end1)
+    {
+        Class<?> end1Type = getFirstEndType();
+        if (!end1Type.isAssignableFrom(end1.getClass())) {
+            throw new TypeMismatchException(end1Type, this, end1);
+        }
+    }    
+    
+    protected void checkSecondEndType(RefObject end2)
+    {
+        Class<?> end2Type = getSecondEndType();
+        if (!end2Type.isAssignableFrom(end2.getClass())) {
+            throw new TypeMismatchException(end2Type, this, end2);
         }
     }
     

@@ -53,9 +53,9 @@ public class AssocQueryList
     public void add(int index, RefObject element)
     {
         if (fixedIsFirstEnd) {
-            assoc.addLink(fixedEnd, element, -1, index);
+            assoc.addLink(fixedEnd, element, index, -1);
         } else {
-            assoc.addLink(element, fixedEnd, index, -1);
+            assoc.addLink(element, fixedEnd, -1, index);
         }
     }
 
@@ -133,12 +133,24 @@ public class AssocQueryList
 
     public RefObject remove(int index)
     {
-        throw new UnsupportedOperationException();
+        RefAssociationLinkImpl link = linksList.get(index);
+        RefObject other;
+        if (fixedIsFirstEnd) {
+            other = link.refSecondEnd();
+            assoc.refRemoveLink(fixedEnd, other);
+        } else {
+            other = link.refFirstEnd();
+            assoc.refRemoveLink(other, fixedEnd);
+        }
+        
+        return other;
     }
 
     public RefObject set(int index, RefObject element)
     {
-        throw new UnsupportedOperationException();
+        RefObject old = remove(index);
+        add(index, element);
+        return old;
     }
 
     public List<RefObject> subList(int fromIndex, int toIndex)
@@ -159,19 +171,28 @@ public class AssocQueryList
     private class ListIter implements ListIterator<RefObject>
     {
         private ListIterator<RefAssociationLinkImpl> iter;
+        private boolean blockMods;
         
         private ListIter()
         {
             this.iter = linksList.listIterator();
+            this.blockMods = true;
         }
         
         private ListIter(int index)
         {
             this.iter = linksList.listIterator(index);            
+            this.blockMods = true;
         }
 
         public void add(RefObject o)
         {
+            if (blockMods) {
+                throw new IllegalStateException();
+            }
+            
+            blockMods = true;
+            
             // Update the underlying list and then re-initialize the 
             // delegation ListIterator to point at the right spot.
             int index = iter.nextIndex();
@@ -191,11 +212,16 @@ public class AssocQueryList
 
         public RefObject next()
         {
+            RefObject result;
             if (fixedIsFirstEnd) {
-                return iter.next().refSecondEnd();
+                result = iter.next().refSecondEnd();
             } else {
-                return iter.next().refFirstEnd();
+                result = iter.next().refFirstEnd();
             }
+
+            blockMods = false;
+
+            return result;
         }
 
         public int nextIndex()
@@ -205,11 +231,16 @@ public class AssocQueryList
 
         public RefObject previous()
         {
+            RefObject result;
             if (fixedIsFirstEnd) {
-                return iter.previous().refSecondEnd();
+                result = iter.previous().refSecondEnd();
             } else {
-                return iter.previous().refFirstEnd();
+                result = iter.previous().refFirstEnd();
             }
+            
+            blockMods = false;
+            
+            return result;
         }
 
         public int previousIndex()
@@ -219,7 +250,17 @@ public class AssocQueryList
 
         public void remove()
         {
-            throw new UnsupportedOperationException();
+            if (blockMods) {
+                throw new IllegalStateException();
+            }
+            
+            blockMods = true;
+            
+            // Update the underlying list and then re-initialize the 
+            // delegation ListIterator to point at the right spot.
+            int index = iter.nextIndex() - 1;
+            AssocQueryList.this.remove(index);
+            iter = linksList.listIterator(index);
         }
 
         public void set(RefObject o)
@@ -231,8 +272,7 @@ public class AssocQueryList
     /**
      * SubList implements the result of {@link List#subList(int, int)} for
      * AssocQueryList.  Depends on the underlying {@link AbstractList} 
-     * implementation throwing {@link UnsupportedOperationException} for
-     * list modification operations other than those that add new members.
+     * implementation.
      */
     private class SubList 
         extends AbstractList<RefObject> 
@@ -271,6 +311,26 @@ public class AssocQueryList
             toIndex++;
         }
 
+        @Override
+        public RefObject set(int index, RefObject o)
+        {
+            index = computeIndex(index);
+            
+            return AssocQueryList.this.set(index, o);
+        }
+        
+        @Override
+        public RefObject remove(int index)
+        {
+            index = computeIndex(index);
+            
+            RefObject old = AssocQueryList.this.remove(index);
+            
+            toIndex--;
+            
+            return old;
+        }
+        
         private int computeIndex(int index)
         {
             index += fromIndex;

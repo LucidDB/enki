@@ -58,17 +58,6 @@ public interface Generator
     public void setOutputDirectory(File outputDir);
 
     /**
-     * Enables or disables generic types.  If enabled, collections include 
-     * generic type specifications.  If disabled, the generic types are 
-     * commented out (e.g., <tt>List/*&lt;SomeType&gt;*&#x2f;</tt>) 
-     * 
-     * @param enable controls whether generic types are enabled (true) or not 
-     *               (false)
-     * @return the previous value of the setting
-     */
-    public boolean setUseGenerics(boolean enable);
-
-    /**
      * Configures implementation-specific options for this Generator.  Unknown
      * options should be ignored.
      * 

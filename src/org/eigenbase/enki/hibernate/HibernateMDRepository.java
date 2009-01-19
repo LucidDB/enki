@@ -123,13 +123,6 @@ public class HibernateMDRepository
                EnkiChangeEventThread.ListenerSource
 {
     /** 
-     * The name of the HibernateMDRepository metamodel configuration properties
-     * file. Stored in the <code>META-INF/enki</code> directory of an Enki 
-     * model JAR file.
-     */
-    public static final String CONFIG_PROPERTIES = "configurator.properties";
-
-    /** 
      * The name of the metamodel-specific Hibernate mapping file. Stored in 
      * the <code>META-INF/enki</code> directory of an Enki model JAR file.
      */
@@ -502,7 +495,10 @@ public class HibernateMDRepository
     private static final LinkedList<MdrSession> globalSessionStack
         = new LinkedList<MdrSession>();
         
-    /**
+    static final Logger log = 
+        Logger.getLogger(HibernateMDRepository.class.getName());
+
+   /**
      * Whether {@link #enableMultipleExtentsForSameModel} has been called.
      */
     private boolean multipleExtentsEnabled;
@@ -535,8 +531,6 @@ public class HibernateMDRepository
     /** The SQL dialect in use by the configured database. */
     private Dialect sqlDialect;
     
-    final Logger log;
-
     private boolean previewDelete;
 
     private ObjectName mbeanName;
@@ -546,7 +540,6 @@ public class HibernateMDRepository
         Properties storageProperties,
         ClassLoader classLoader)
     {
-        this.log = Logger.getLogger(HibernateMDRepository.class.getName());
         this.txnLock = new ReentrantReadWriteLock();
         this.storageProperties = storageProperties;
         this.classLoader = classLoader;
@@ -883,7 +876,7 @@ public class HibernateMDRepository
         }
         
         if (write && !isCommitter && !isNestedWriteTransaction(mdrSession)) {
-            throw new HibernateException(
+            throw new EnkiHibernateException(
                 "cannot start write transaction within read transaction");
         }
         
@@ -1830,6 +1823,7 @@ public class HibernateMDRepository
     }
 
     // Implement EnkiMDRepository
+    @Deprecated
     public void setRestoreExtentXmiFilter(Class<? extends InputStream> cls)
     {
         // Ignored

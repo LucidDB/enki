@@ -75,7 +75,10 @@ class AssocQueryCollection implements Collection<RefObject>
 
     public void clear()
     {
-        throw new UnsupportedOperationException();
+        for(Iterator<RefObject> iter = iterator(); iter.hasNext(); ) {
+            iter.next();
+            iter.remove();
+        }
     }
 
     public boolean contains(Object o)
@@ -114,17 +117,36 @@ class AssocQueryCollection implements Collection<RefObject>
 
     public boolean remove(Object o)
     {
-        throw new UnsupportedOperationException();
+        if (fixedIsFirstEnd) {
+            return assoc.refRemoveLink(fixedEnd, (RefObject)o);
+        } else {
+            return assoc.refRemoveLink((RefObject)o, fixedEnd);            
+        }
     }
 
     public boolean removeAll(Collection<?> c)
     {
-        throw new UnsupportedOperationException();
+        boolean any = false;
+        for(Object o: c) {
+            if (remove(o)) {
+                any = true;
+            }
+        }
+        return any;
     }
 
     public boolean retainAll(Collection<?> c)
     {
-        throw new UnsupportedOperationException();
+        boolean removed = false;
+        RefObject[] all = toArray(new RefObject[size()]);
+        for(RefObject o: all) {
+            if (!c.contains(o)) {
+                if (remove(o)) {
+                    removed = true;
+                }
+            }
+        }
+        return removed;
     }
 
     public int size()
@@ -179,11 +201,14 @@ class AssocQueryCollection implements Collection<RefObject>
     
     private class Iter implements Iterator<RefObject>
     {
+        private final List<RefAssociationLinkImpl> linksCopy;
         private final Iterator<RefAssociationLinkImpl> iter;
+        private RefObject last;
         
         Iter()
         {
-            this.iter = links.iterator();
+            this.linksCopy = new ArrayList<RefAssociationLinkImpl>(links);
+            this.iter = linksCopy.iterator();
         }
         
         public boolean hasNext()
@@ -196,15 +221,20 @@ class AssocQueryCollection implements Collection<RefObject>
             RefAssociationLinkImpl link = iter.next();
             
             if (fixedIsFirstEnd) {
-                return link.refSecondEnd();
+                last = link.refSecondEnd();
             } else {
-                return link.refFirstEnd();
+                last = link.refFirstEnd();
             }
+            
+            return last;
         }
 
         public void remove()
         {
-            throw new UnsupportedOperationException();
+            iter.remove();
+            
+            AssocQueryCollection.this.remove(last);
+            last = null;
         }
     }
 }

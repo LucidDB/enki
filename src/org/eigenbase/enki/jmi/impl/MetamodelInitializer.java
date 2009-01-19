@@ -47,7 +47,7 @@ public abstract class MetamodelInitializer
     
     private final String metaModelExtent;
     
-    private final Map<RefClassBase, Collection<RefObjectBase>> objectMap;
+    private final Set<RefClassBase> allClasses;
     private final Map<String, Object> propertyMap;
     
     private ModelPackage modelPackage;
@@ -61,9 +61,7 @@ public abstract class MetamodelInitializer
     public MetamodelInitializer(String metaModelExtent)
     {
         this.metaModelExtent = metaModelExtent;
-        this.objectMap = 
-            new TreeMap<RefClassBase, Collection<RefObjectBase>>(
-                RefBaseObjectComparator.instance);
+        this.allClasses = new HashSet<RefClassBase>();
         this.propertyMap = new HashMap<String, Object>();
     }
     
@@ -72,9 +70,9 @@ public abstract class MetamodelInitializer
         this.owningRepository = repos;
     }
     
-    public final void init(ModelPackage metaModelPackage)
+    public final void init(ModelPackage metamodelPackageInit)
     {
-        this.metaModelPackage = metaModelPackage;
+        this.metaModelPackage = metamodelPackageInit;
         
         initializerTls.set(this);
         
@@ -84,9 +82,10 @@ public abstract class MetamodelInitializer
     }
     
     public final void initPlugin(
-        ModelPackage metaModelPackage, MetamodelInitializer parentInitializer)
+        ModelPackage metaModelPackageInit,
+        MetamodelInitializer parentInitializer)
     {
-        this.metaModelPackage = metaModelPackage;
+        this.metaModelPackage = metaModelPackageInit;
         
         initializerTls.set(parentInitializer);
         
@@ -154,48 +153,9 @@ public abstract class MetamodelInitializer
         }
     }
     
-    Collection<? extends RefObject> getAllInstancesOf(
-        RefClassBase refClass, boolean includeSubtypes)
-    {
-        log.finest(
-            "Looking up all instances of " + 
-            refClass.getClass() + "/" + refClass.refMofId());
-        
-        Collection<RefObjectBase> instances = objectMap.get(refClass);
-        
-        if (!includeSubtypes) {
-            if (instances != null) {
-                return Collections.unmodifiableCollection(instances);
-            } else {
-                return Collections.emptySet();
-            }
-        }
-
-        ArrayList<RefObject> allInstances = new ArrayList<RefObject>();
-        if (instances != null) {
-            allInstances.addAll(instances);
-        }
-        
-        MofClass mofCls = (MofClass)refClass.refMetaObject();
-        Generalizes generalizesAssoc = getModelPackage().getGeneralizes();
-        
-        Collection<MofClass> subClasses = 
-            GenericCollections.asTypedCollection(
-                generalizesAssoc.getSubtype(mofCls), MofClass.class);
-        for(MofClass subClass: subClasses) {
-            RefClassBase refSubClass = 
-                (RefClassBase)refClass.refImmediatePackage().refClass(
-                    subClass.getName());
-            
-            allInstances.addAll(getAllInstancesOf(refSubClass, true));
-        }
-
-        return Collections.unmodifiableCollection(allInstances);
-    }
-    
     Collection<RefClassBase> getAllRefClasses()
     {
-        return Collections.unmodifiableCollection(objectMap.keySet());
+        return Collections.unmodifiableCollection(allClasses);
     }
     
     public RefBaseObject getByMofId(String mofId)
@@ -259,17 +219,7 @@ public abstract class MetamodelInitializer
             "Registering " + refClass.getClass() + "/" + refObject.refMofId() + 
             " with " + getClass());
         
-        Collection<RefObjectBase> instances = objectMap.get(refClass);
-        if (instances == null) {
-            instances = 
-                new TreeSet<RefObjectBase>(RefBaseObjectComparator.instance);
-            objectMap.put(refClass, instances);
-        }
-        
-        if (!instances.add(refObject)) {
-            throw new InternalJmiError(
-                "multiple objects with same mofId: " + refObject.refMofId());
-        }
+        allClasses.add(refClass);
     }
     
     protected MofClass findMofClassByName(

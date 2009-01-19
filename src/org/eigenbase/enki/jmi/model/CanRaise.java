@@ -1,9 +1,9 @@
 /*
 //  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2008 The Eigenbase Project
-//  Copyright (C) 2007-2008 Disruptive Tech
-//  Copyright (C) 2007-2008 LucidEra, Inc.
+//  Copyright (C) 2007-2009 The Eigenbase Project
+//  Copyright (C) 2007-2009 Disruptive Tech
+//  Copyright (C) 2007-2009 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -81,6 +81,16 @@ public class CanRaise
         javax.jmi.model.MofException except)
     {
         return super.refRemoveLink(operation, except);
+    }
+
+    protected Class<? extends javax.jmi.reflect.RefObject> getFirstEndType()
+    {
+        return javax.jmi.model.Operation.class;
+    }
+
+    protected Class<? extends javax.jmi.reflect.RefObject> getSecondEndType()
+    {
+        return javax.jmi.model.MofException.class;
     }
 }
 

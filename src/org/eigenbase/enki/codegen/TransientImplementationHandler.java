@@ -108,13 +108,13 @@ public abstract class TransientImplementationHandler
     private static final JavaClassReference JAVA_UTIL_LIST_CLASS =
         new JavaClassReference(List.class, true);
     
-    private static final JavaClassReference JAVA_UTIL_COLLECTION_CLASS =
+    public static final JavaClassReference JAVA_UTIL_COLLECTION_CLASS =
         new JavaClassReference(Collection.class, true);
 
     private static final JavaClassReference JAVA_UTIL_COLLECTIONS_CLASS =
         new JavaClassReference(Collections.class, true);
     
-    private static final JavaClassReference JAVA_UTIL_ITERATOR_CLASS =
+    public static final JavaClassReference JAVA_UTIL_ITERATOR_CLASS =
         new JavaClassReference(Iterator.class, true);
 
     private static final JavaClassReference JAVA_UTIL_ARRAYS_CLASS =
@@ -160,11 +160,21 @@ public abstract class TransientImplementationHandler
     private final Logger log = 
         Logger.getLogger(MofImplementationHandler.class.getName());
 
+    /** Map of {@link Association} to {@link AssociationInfo}. */
+    private Map<Association, AssociationInfo> assocInfoMap;
+    
     public TransientImplementationHandler()
     {
         super();
         
         setDisplayHeaderWarning(false);
+        
+        this.assocInfoMap = new HashMap<Association, AssociationInfo>();
+    }
+    
+    public int getNumPasses()
+    {
+        return 2;
     }
     
     public void generateAssociation(Association assoc)
@@ -174,6 +184,13 @@ public abstract class TransientImplementationHandler
         
         String typeName = convertToTypeName(interfaceName);
 
+        AssociationInfo assocInfo = new AssociationInfoImpl(assoc);
+                
+        if (getPassIndex() == 0) {
+            assocInfoMap.put(assoc, assocInfo);
+            return;
+        }
+        
         if (!isIncluded(assoc)) {
             log.fine(
                 "Skipping Excluded Association Implementation '" 
@@ -183,8 +200,6 @@ public abstract class TransientImplementationHandler
         
         log.fine("Generating Association Implementation '" + typeName + "'");
 
-        AssociationInfo assocInfo = new AssociationInfoImpl(assoc);
-        
         String baseClass = REF_ASSOC_IMPL_CLASS.toString();
         if (!assocInfo.isChangeable(0) && !assocInfo.isChangeable(1)) {
             // DependsOn Associations require special handling: the existence
@@ -285,7 +300,29 @@ public abstract class TransientImplementationHandler
                     assocInfo.getEndIdentifier(1), ");");
                 endBlock();
             }
+
+            newLine();
+            startBlock(
+                "protected Class<? extends ", 
+                REF_OBJECT_CLASS,
+                "> getFirstEndType()");
+            writeln(
+                "return ", 
+                CodeGenUtils.getTypeName(assocInfo.getEnd(0).getType()), 
+                ".class;");
+            endBlock();
             
+            newLine();
+            startBlock(
+                "protected Class<? extends ", 
+                REF_OBJECT_CLASS,
+                "> getSecondEndType()");
+            writeln(
+                "return ", 
+                CodeGenUtils.getTypeName(assocInfo.getEnd(1).getType()), 
+                ".class;");
+            endBlock();
+
             writeEntityFooter();
         }
         finally {
@@ -293,7 +330,14 @@ public abstract class TransientImplementationHandler
         }            
     }
 
+    /**
+     * Allows subclasses to perform additional initialization during 
+     * construction of a association proxy object.
+     * 
+     * @param assoc Association proxy being generated
+     */
     protected void generateCustomAssociationInit(Association assoc)
+        throws GenerationException
     {
     }
     
@@ -358,6 +402,10 @@ public abstract class TransientImplementationHandler
     public void generateClassInstance(MofClass cls)
         throws GenerationException
     {
+        if (getPassIndex() == 0) {
+            return;
+        }
+        
         String interfaceName = CodeGenUtils.getTypeName(cls);
         
         String typeName = convertToTypeName(interfaceName);
@@ -386,15 +434,28 @@ public abstract class TransientImplementationHandler
                 Reference.class);
 
         open(typeName);
-        try {            
-            String[] interfaces = new String[] { interfaceName };
+        try {
+            JavaClassReference[] extraInterfaces = getCustomInterfaces();
+            
+            String[] interfaces = new String[extraInterfaces.length + 1];
+            interfaces[0] = interfaceName;
+            int iface = 1;
+            for(JavaClassReference extraInterface: extraInterfaces) {
+                interfaces[iface++] = extraInterface.toString();
+            }
+            
+            List<JavaClassReference> imports = 
+                new ArrayList<JavaClassReference>();
+            imports.addAll(Arrays.asList(CLASS_INSTANCE_REFS));
+            imports.addAll(Arrays.asList(extraInterfaces));
             
             writeClassHeader(
                 cls, 
                 typeName,
                 REF_OBJECT_IMPL_CLASS.toString(),
                 interfaces,
-                JavaClassReference.computeImports(CLASS_INSTANCE_REFS),
+                JavaClassReference.computeImports(
+                    imports.toArray(new JavaClassReference[0])),
                 false,
                 MOF_CLASS_COMMENT);
             
@@ -450,6 +511,32 @@ public abstract class TransientImplementationHandler
             }
             newLine();
             
+            // Association fields
+            writeln("// Association Fields");
+            Map<Association, ReferenceInfo> unrefAssocRefInfoMap =
+                new HashMap<Association, ReferenceInfo>();
+
+            Collection<Association> unreferencedAssociations = 
+                CodeGenUtils.findUnreferencedAssociations(
+                    assocInfoMap,
+                    cls,
+                    instanceReferences, 
+                    unrefAssocRefInfoMap);
+
+            for(Association assoc: unreferencedAssociations) {
+                ReferenceInfo refInfo = unrefAssocRefInfoMap.get(assoc);
+                
+                writeField(
+                    refInfo.getAssocInterfaceName(),
+                    generator.transformIdentifier(refInfo.getFieldName()),
+                    "private", 
+                    false, 
+                    false);
+            }
+            newLine();
+            
+            generateCustomClassInstanceFields(cls);
+            
             // "zero-arg" constructor
             if (hasCollectionField) {
                 emitSuppressWarningsAnnotation();
@@ -495,15 +582,30 @@ public abstract class TransientImplementationHandler
                 for(Reference ref: instanceReferences) {
                     ReferenceInfo refInfo = refInfoMap.get(ref);
 
-                    writeln(
+                    write(
                         "this.",
                         generator.transformIdentifier(refInfo.getFieldName()),
                         " = (", refInfo.getAssocInterfaceName(), 
-                        ")refImmediatePackage().refAssociation(",
-                        QUOTE, refInfo.getAssoc().getName(), QUOTE,
-                        ");");
+                        ")");
+                    generateAssocExpression(cls, refInfo.getAssoc());
+                    writeln(";");
                 }
             }
+            if (!unreferencedAssociations.isEmpty()) {
+                newLine();
+                for(Association assoc: unreferencedAssociations) {
+                    ReferenceInfo refInfo = unrefAssocRefInfoMap.get(assoc);
+                    
+                    write(
+                        "this.",
+                        generator.transformIdentifier(refInfo.getFieldName()),
+                        " = (", refInfo.getAssocInterfaceName(), 
+                        ")");
+                    generateAssocExpression(cls, refInfo.getAssoc());
+                    writeln(";");
+                }
+            }
+            generateCustomClassInstanceInit(cls);
             endBlock();
             
             // constructor
@@ -550,6 +652,7 @@ public abstract class TransientImplementationHandler
                             ";");
                     }       
                 }
+                generateCustomClassInstanceInit(cls);
                 endBlock();
             }
             
@@ -579,17 +682,36 @@ public abstract class TransientImplementationHandler
                     continue;
                 }
                 
+                boolean primitiveConversionRequired = false;
+                String fieldTypeName = CodeGenUtils.getTypeName(attrib);
+                if (Primitives.isPrimitiveType(fieldTypeName) &&
+                    attrib.getMultiplicity().getLower() != 0)
+                {
+                    primitiveConversionRequired = true;
+                }
+                
                 String fieldName = nonDerivedAttribNames.get(attrib);
                 
                 if (upper == 1) {
                     newLine();
                     startAccessorBlock(attrib, true);
+                    if (primitiveConversionRequired) {
+                        startConditionalBlock(
+                            CondType.IF, fieldName, " == null");
+                        writeln(
+                            "return ", 
+                            Primitives.getPrimitiveDefaultLiteral(
+                                fieldTypeName),
+                            ";");
+                        endBlock();
+                    }
                     writeln("return ", fieldName, ";");
                     endBlock();
                     
                     if (attrib.isChangeable()) {
                         newLine();
                         startMutatorBlock(attrib);
+                        generateCustomClassInstanceMutator(cls, attrib);
                         writeln("this.", fieldName, " = newValue;");
                         endBlock();                        
                     }
@@ -634,9 +756,12 @@ public abstract class TransientImplementationHandler
                     emitSuppressWarningsAnnotation();
                 }
                 startAccessorBlock(ref, true);
+                String assocFieldName = 
+                    generator.transformIdentifier(refInfo.getFieldName());
+                
                 writeln(
                     "return ",
-                    generator.transformIdentifier(refInfo.getFieldName()),
+                    assocFieldName,
                     ".",
                     refInfo.getAccessorName(generator), "(this);");
                 endBlock();
@@ -644,17 +769,18 @@ public abstract class TransientImplementationHandler
                 if (refInfo.isSingle() && refInfo.isChangeable()) {
                     newLine();
                     startMutatorBlock(ref);
+                    String endName = 
+                        refInfo.getEndName(refInfo.getExposedEndIndex());
+                    writeln(
+                        assocFieldName, ".refQuery(", 
+                        QUOTE, endName, QUOTE, ", this).clear();");
+                    startConditionalBlock(CondType.IF, "newValue != null");
                     if (refInfo.isReferencedEndFirst()) {
-                        writeln(
-                            generator.transformIdentifier(
-                                refInfo.getFieldName()),
-                            ".add(newValue, this);");
+                        writeln(assocFieldName, ".add(newValue, this);");
                     } else {
-                        writeln(
-                            generator.transformIdentifier(
-                                refInfo.getFieldName()),
-                            ".add(this, newValue);");                        
+                        writeln(assocFieldName, ".add(this, newValue);");                        
                     }
+                    endBlock();
                     endBlock();
                 }
             }
@@ -781,6 +907,8 @@ public abstract class TransientImplementationHandler
             
             newLine();
             writeCheckConstraints(instanceAttributes, instanceReferences);
+            
+            generateCustomClassInstanceMethods(cls, refInfoMap.values(), unrefAssocRefInfoMap.values());
             writeEntityFooter();
         }
         finally {
@@ -788,6 +916,41 @@ public abstract class TransientImplementationHandler
         }
     }
 
+    private void generateAssocExpression(MofClass fromCls, Association toAssoc)
+    {
+        if (fromCls.getContainer().equals(toAssoc.getContainer())) {
+            write(
+                "refImmediatePackage().refAssociation(",
+                QUOTE, toAssoc.getName(), QUOTE, ")");
+        } else {
+            List<String> containerNames = new ArrayList<String>();
+            MofPackage outerMostPkg = (MofPackage)fromCls.getContainer();
+            while(outerMostPkg.getContainer() != null) {
+                outerMostPkg = (MofPackage)outerMostPkg.getContainer();
+            }
+            MofPackage container = (MofPackage)toAssoc.getContainer();
+            while(!container.equals(outerMostPkg)) {
+                containerNames.add(container.getName());
+                container = (MofPackage)container.getContainer();
+            }
+            
+            Collections.reverse(containerNames);
+            
+            write("refOutermostPackage()");
+            increaseIndent();
+            for(String containerName: containerNames) {
+                writeln();
+                write(".refPackage(", QUOTE, containerName, QUOTE, ")");
+            }
+            if (!containerNames.isEmpty()) {
+                writeln();
+            }
+            write(".refAssociation(",QUOTE, toAssoc.getName(), QUOTE, ")");
+            decreaseIndent();
+        }
+        
+    }
+    
     protected void writeCheckConstraints(
         Collection<Attribute> attribs, Collection<Reference> refs)
     {
@@ -879,10 +1042,78 @@ public abstract class TransientImplementationHandler
         endBlock();
     }
     
+    /**
+     * Allows subclasses to add additional interfaces to the implementation.
+     * 
+     * @return an array of JavaClassReferences: may be empty, must not be null
+     */
+    protected JavaClassReference[] getCustomInterfaces()
+    {
+        return new JavaClassReference[0];
+    }
+    
+    /**
+     * Allows subclasses to generate additional fields for class instance
+     * objects.
+     * 
+     * @param cls class instance being generated
+     */
+    protected void generateCustomClassInstanceFields(MofClass cls)
+        throws GenerationException
+    {
+    }
+    
+    /**
+     * Allows subclasses to generate additional initialization for class 
+     * instance objects. This method is invoked during the generation of the
+     * given class's constructor.
+     * 
+     * @param cls class instance being generated
+     */
+    protected void generateCustomClassInstanceInit(MofClass cls)
+        throws GenerationException
+    {
+    }
+    
+    /**
+     * Allows subclasses to generate additional code for class instance mutator
+     * methods. 
+     * 
+     * @param cls class instance being generated
+     * @param attrib attribute for which a mutator is being generated
+     */
+    protected void generateCustomClassInstanceMutator(
+        MofClass cls, Attribute attrib)
+    throws GenerationException
+    {
+    }
+
+    /**
+     * Allows subclasses to generate additional methods for class instance
+     * objects.
+     * 
+     * @param cls class instance being generated
+     * @param references a collection of references to associations
+     * @param unreferencedAssocs a collection of faked references to 
+     *                           associations which have no References 
+     */
+    protected void generateCustomClassInstanceMethods(
+        MofClass cls,
+        Collection<ReferenceInfo> references,
+        Collection<ReferenceInfo> unreferencedAssocs)
+    throws GenerationException
+    {
+    }
+    
     public void generateClassProxy(MofClass cls)
         throws GenerationException
     {
-        String interfaceName = CodeGenUtils.getTypeName(cls, CLASS_PROXY_SUFFIX);
+        if (getPassIndex() == 0) {
+            return;
+        }
+
+        String interfaceName = 
+            CodeGenUtils.getTypeName(cls, CLASS_PROXY_SUFFIX);
         
         String typeName = convertToTypeName(interfaceName);
 
@@ -924,7 +1155,12 @@ public abstract class TransientImplementationHandler
                 // No-arg factory method
                 newLine();
                 startCreatorBlock(cls, null, "");
-                writeln("return new ", instImplTypeName, "(this);");
+                writeln(instImplTypeName, " instance = ");
+                increaseIndent();
+                writeln("new ", instImplTypeName, "(this);");
+                decreaseIndent();
+                writeln("register(instance);");
+                writeln("return instance;");
                 endBlock();
                 
                 Collection<Attribute> allAttributes =
@@ -961,10 +1197,9 @@ public abstract class TransientImplementationHandler
                         allAttributes.toArray(
                             new ModelElement[allAttributes.size()]);
                     startCreatorBlock(cls, params, "");  
-                    writeln(
-                        "return new ",
-                        instImplTypeName,
-                        "(");
+                    writeln(instImplTypeName, " instance =");
+                    increaseIndent();
+                    writeln("new ", instImplTypeName, "(");
                     increaseIndent();
                     writeln("this,");
                     for(Iterator<Attribute> i = allAttributes.iterator(); 
@@ -977,6 +1212,9 @@ public abstract class TransientImplementationHandler
                         writeln(paramInfo[1], i.hasNext() ? "," : ");");
                     }
                     decreaseIndent();
+                    decreaseIndent();
+                    writeln("register(instance);");
+                    writeln("return instance;");
                     endBlock();
                 }
             }
@@ -993,6 +1231,8 @@ public abstract class TransientImplementationHandler
             }
             endBlock();
             
+            generateCustomClassProxyMethods(cls);
+            
             writeEntityFooter();
         }
         finally {
@@ -1000,13 +1240,35 @@ public abstract class TransientImplementationHandler
         }
     }
     
+    /**
+     * Allows subclasses to perform additional initialization during 
+     * construction of a class proxy object.
+     * 
+     * @param cls Class proxy constructor being generated
+     */
     protected void generateCustomClassProxyInit(MofClass cls)
+        throws GenerationException
     {
     }
-
+    
+    /**
+     * Allows subclasses to generate additional methods for class proxy 
+     * objects.
+     * 
+     * @param cls class proxy being generated
+     */
+    protected void generateCustomClassProxyMethods(MofClass cls)
+        throws GenerationException
+    {
+    }
+        
     public void generatePackage(MofPackage pkg)
         throws GenerationException
     {
+        if (getPassIndex() == 0) {
+            return;
+        }
+        
         // TODO: SWZ: 2008-07-07: Modify this to deal with aliased packages
         // in a manner similar to HibernateJavaHandler.  Currently does not
         // generate an addAliasedPackages() method.
@@ -1122,7 +1384,7 @@ public abstract class TransientImplementationHandler
                     "this.",
                     fieldName,
                     " = new ",
-                    CodeGenUtils.getSimpleTypeName(
+                    CodeGenUtils.getTypeName(
                         nestedPkg, computeSuffix(PACKAGE_SUFFIX)),
                     "(this);");
                 writeln(
@@ -1301,7 +1563,8 @@ public abstract class TransientImplementationHandler
             // TODO: MOF exceptions?
             
             newLine();
-            writeCheckConstraints();
+            writeCheckConstraints();            
+            generateCustomPackageMethods(pkg);
             writeEntityFooter();
         }
         finally {
@@ -1309,7 +1572,25 @@ public abstract class TransientImplementationHandler
         }
     }
     
+    /**
+     * Allows subclasses to perform additional initialization during 
+     * construction of a package proxy object.
+     * 
+     * @param pkg package being generated
+     */
     protected void generateCustomPackageInit(MofPackage pkg)
+        throws GenerationException
+    {
+    }
+    
+    /**
+     * Allows subclasses to generate additional methods during package proxy 
+     * generation.
+     * 
+     * @param pkg package being generated
+     */
+    protected void generateCustomPackageMethods(MofPackage pkg)
+        throws GenerationException
     {
     }
     
@@ -1425,7 +1706,7 @@ public abstract class TransientImplementationHandler
             for(StructureField field: fields) {
                 String fieldName = 
                     CodeGenUtils.getClassFieldName(field.getName());
-                writeln(fieldName, ",");
+                writeln(QUOTE, fieldName, QUOTE, ",");
             }
             decreaseIndent();
             writeln("});");

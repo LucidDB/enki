@@ -169,7 +169,7 @@ public abstract class MdrGenerator
             setXmiFile(new File(xmiFileName));
             setOutputDirectory(new File(outputDirName));
             setExtentName(DEFAULT_ENKI_MODEL_EXTENT_NAME);
-            setUseGenerics(useGenerics);
+            CodeGenUtils.setEnableGenerics(useGenerics);
             if (!options.isEmpty()) {
                 setOptions(options);
             }
@@ -179,7 +179,7 @@ public abstract class MdrGenerator
         catch(Exception e) {
             System.err.println(
                 "Usage: java " + getClass().toString() + 
-                " <xmi-file> <out-dir>");
+                " <xmi-file> <out-dir> [name=value ...]");
             System.err.println();
             e.printStackTrace();
         }        

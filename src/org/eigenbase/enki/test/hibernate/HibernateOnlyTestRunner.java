@@ -21,14 +21,10 @@
 */
 package org.eigenbase.enki.test.hibernate;
 
-import java.io.*;
-import java.util.*;
-
 import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.test.*;
 import org.junit.internal.runners.*;
 import org.junit.runner.*;
-import org.junit.runner.notification.*;
 
 /**
  * HibernateOnlyTestRunner is an implementation of {@link Runner} that only
@@ -38,66 +34,24 @@ import org.junit.runner.notification.*;
  * @author Stephan Zuercher
  */
 public class HibernateOnlyTestRunner
-    extends LoggingTestRunner
+    extends SelectiveLoggingTestRunner
 {
-    private final boolean runTests;
-    
     public HibernateOnlyTestRunner(Class<?> klass) 
         throws InitializationError
     {
         super(klass);
-        
-        this.runTests = checkForHibernate();
     }
 
     public HibernateOnlyTestRunner(Class<?> klass, Runner runner)
         throws InitializationError
     {
         super(klass, runner);
-
-        this.runTests = checkForHibernate();
-    }
-
-    private boolean checkForHibernate()
-    {
-        Properties props = new Properties();
-        try {
-            FileInputStream in = 
-                new FileInputStream(
-                    ModelTestBase.getStoragePropertiesPath());
-            props.load(in);
-            in.close();
-        }
-        catch(IOException e) {
-            return false;
-        }
-        
-        String providerName = 
-            props.getProperty(MDRepositoryFactory.ENKI_IMPL_TYPE);
-        
-        MdrProvider provider = MdrProvider.valueOf(providerName);
-        
-        return provider == MdrProvider.ENKI_HIBERNATE;
-    }
-    
-    @Override
-    public void run(RunNotifier notifier)
-    {
-        if (runTests) {
-            super.run(notifier);
-        } else {
-            getLogger().info("Skipping " + getTestClass());
-        }
     }
 
     @Override
-    public int testCount()
+    protected boolean shouldTestsRun(Class<?> klass)
     {
-        if (runTests) {
-            return super.testCount();
-        }
-        
-        return 0;
+        return mdrProvider == MdrProvider.ENKI_HIBERNATE;
     }
 }
 

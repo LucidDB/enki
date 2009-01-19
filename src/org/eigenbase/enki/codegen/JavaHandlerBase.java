@@ -636,6 +636,7 @@ public abstract class JavaHandlerBase
         GeneralizableElement entity,
         ModelElement[] params,
         String suffix)
+    throws GenerationException
     {
         writeCreator(entity, null, null, params, suffix, false, true);
         writeln("{");
@@ -647,6 +648,7 @@ public abstract class JavaHandlerBase
         ModelElement[] params,
         boolean returnSimpleType,
         String suffix)
+    throws GenerationException
     {
         writeCreator(
             entity, null, null, params, suffix, false, returnSimpleType);
@@ -1320,7 +1322,8 @@ public abstract class JavaHandlerBase
         ModelElement type, 
         String scope, 
         boolean isFinal, 
-        boolean isStatic, String typeSuffix)
+        boolean isStatic,
+        String typeSuffix)
     {
         String fieldName = CodeGenUtils.getSimpleTypeName(type, typeSuffix);
         fieldName = CodeGenUtils.getClassFieldName(fieldName);
@@ -1525,8 +1528,15 @@ public abstract class JavaHandlerBase
     
     protected void close() throws GenerationException
     {
-        newLine();
-        writeln("// End ", currentFile.getName());
+        close(true);
+    }
+    
+    protected void close(boolean eofComment) throws GenerationException
+    {
+        if (eofComment) {
+            newLine();
+            writeln("// End ", currentFile.getName());
+        }
 
         super.close();
     }

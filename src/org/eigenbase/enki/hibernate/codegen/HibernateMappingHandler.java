@@ -409,7 +409,7 @@ public class HibernateMappingHandler
             
             File enkiConfigFile = 
                 new File(
-                    metaInfEnkiDir, HibernateMDRepository.CONFIG_PROPERTIES);
+                    metaInfEnkiDir, MDRepositoryFactory.CONFIG_PROPERTIES);
             open(enkiConfigFile);
 
             writeln("# Generated Enki Metamodel Properties");

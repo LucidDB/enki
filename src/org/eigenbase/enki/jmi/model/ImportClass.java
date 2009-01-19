@@ -1,9 +1,9 @@
 /*
 //  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2008 The Eigenbase Project
-//  Copyright (C) 2007-2008 Disruptive Tech
-//  Copyright (C) 2007-2008 LucidEra, Inc.
+//  Copyright (C) 2007-2009 The Eigenbase Project
+//  Copyright (C) 2007-2009 Disruptive Tech
+//  Copyright (C) 2007-2009 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -44,7 +44,10 @@ public class ImportClass
 
     public Import createImport()
     {
-        return new org.eigenbase.enki.jmi.model.Import(this);
+        org.eigenbase.enki.jmi.model.Import instance = 
+            new org.eigenbase.enki.jmi.model.Import(this);
+        register(instance);
+        return instance;
     }
 
     public Import createImport(
@@ -53,12 +56,15 @@ public class ImportClass
         javax.jmi.model.VisibilityKind visibility,
         boolean isClustered)
     {
-        return new org.eigenbase.enki.jmi.model.Import(
-            this,
-            name,
-            annotation,
-            visibility,
-            isClustered);
+        org.eigenbase.enki.jmi.model.Import instance =
+            new org.eigenbase.enki.jmi.model.Import(
+                this,
+                name,
+                annotation,
+                visibility,
+                isClustered);
+        register(instance);
+        return instance;
     }
 
     protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)

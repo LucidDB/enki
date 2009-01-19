@@ -133,10 +133,11 @@ public class MapJavaSubTask extends EnkiTask.SubTask
         File xmi = new File(xmiFile);
         File dir = new File(outputDir);
         
+        CodeGenUtils.setEnableGenerics(true);
+        
         generator.setOutputDirectory(dir);
         generator.setXmiFile(xmi);
         generator.setExtentName(extent);
-        generator.setUseGenerics(true);
         generator.setOptions(generatorOpts);
         
         try {

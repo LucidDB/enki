@@ -23,9 +23,11 @@ package org.eigenbase.enki.jmi.impl;
 
 import java.util.*;
 
+import javax.jmi.model.*;
 import javax.jmi.reflect.*;
 
 import org.eigenbase.enki.mdr.*;
+import org.eigenbase.enki.util.*;
 
 /**
  * RefClassBase is a base class for {@link RefClass} implementations.
@@ -37,12 +39,16 @@ public abstract class RefClassBase extends RefFeaturedBase implements RefClass
     private final RefPackage container;
     private final EnkiMDRepository repos;
     
+    private final Set<RefObject> allOfClass;
+    
     protected RefClassBase(RefPackage container)
     {
         super();
         
         this.container = container;
         this.repos = getCurrentInitializer().getRepository();
+        
+        this.allOfClass = new HashSet<RefObject>();
     }
     
     // Implement RefBaseObject
@@ -56,7 +62,9 @@ public abstract class RefClassBase extends RefFeaturedBase implements RefClass
     {
         logJmi("refAllOfClass");
         
-        return getInitializer().getAllInstancesOf(this, false);
+        return 
+            Collections.unmodifiableCollection(
+                new HashSet<RefObject>(allOfClass));
     }
 
     @SuppressWarnings("unchecked")
@@ -64,7 +72,26 @@ public abstract class RefClassBase extends RefFeaturedBase implements RefClass
     {
         logJmi("refAllOfClass");
         
-        return getInitializer().getAllInstancesOf(this, true);
+        Set<RefObject> allOfType = new HashSet<RefObject>();
+        
+        allOfType.addAll(allOfClass);
+
+        MofClass mofCls = (MofClass)refMetaObject();
+        Generalizes generalizesAssoc = 
+            ((ModelPackage)mofCls.refOutermostPackage()).getGeneralizes();
+        
+        Collection<MofClass> subClasses = 
+            GenericCollections.asTypedCollection(
+                generalizesAssoc.getSubtype(mofCls), MofClass.class);
+        for(MofClass subClass: subClasses) {
+            RefClassBase refSubClass = 
+                (RefClassBase)refImmediatePackage().refClass(
+                    subClass.getName());
+            
+            allOfType.addAll(refSubClass.refAllOfType());
+        }
+        
+        return allOfType;
     }
 
     @SuppressWarnings("unchecked")
@@ -105,6 +132,16 @@ public abstract class RefClassBase extends RefFeaturedBase implements RefClass
     public EnkiMDRepository getRepository()
     {
         return repos;
+    }
+    
+    protected void register(RefObject instance)
+    {
+        allOfClass.add(instance);
+    }
+    
+    protected void unregister(RefObject instance)
+    {
+        allOfClass.remove(instance);
     }
     
     public abstract Class<?> getInstanceClass();

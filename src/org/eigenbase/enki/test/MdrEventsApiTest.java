@@ -42,7 +42,8 @@ import eem.sample.special.*;
  * 
  * @author Stephan Zuercher
  */
-@RunWith(LoggingTestRunner.class)
+@RunWith(SelectiveLoggingTestRunner.class)
+@SelectiveLoggingTestRunner.Exclude(MdrProvider.ENKI_TRANSIENT)
 public class MdrEventsApiTest extends SampleModelTestBase
 {
     private static final boolean PRINT_EVENTS = true;

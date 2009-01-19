@@ -1,9 +1,9 @@
 /*
 //  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2008 The Eigenbase Project
-//  Copyright (C) 2007-2008 Disruptive Tech
-//  Copyright (C) 2007-2008 LucidEra, Inc.
+//  Copyright (C) 2007-2009 The Eigenbase Project
+//  Copyright (C) 2007-2009 Disruptive Tech
+//  Copyright (C) 2007-2009 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -44,7 +44,10 @@ public class OperationClass
 
     public Operation createOperation()
     {
-        return new org.eigenbase.enki.jmi.model.Operation(this);
+        org.eigenbase.enki.jmi.model.Operation instance = 
+            new org.eigenbase.enki.jmi.model.Operation(this);
+        register(instance);
+        return instance;
     }
 
     public Operation createOperation(
@@ -54,13 +57,16 @@ public class OperationClass
         javax.jmi.model.VisibilityKind visibility,
         boolean isQuery)
     {
-        return new org.eigenbase.enki.jmi.model.Operation(
-            this,
-            name,
-            annotation,
-            scope,
-            visibility,
-            isQuery);
+        org.eigenbase.enki.jmi.model.Operation instance =
+            new org.eigenbase.enki.jmi.model.Operation(
+                this,
+                name,
+                annotation,
+                scope,
+                visibility,
+                isQuery);
+        register(instance);
+        return instance;
     }
 
     protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)

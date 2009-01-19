@@ -45,7 +45,7 @@ public class CodeGenUtils
     private static final String ORDERED_COLLECTION_INTERFACE = 
         List.class.getName();
 
-    private static final boolean enableGenerics = true;
+    private static boolean enableGenerics = true;
     
     /** 
      * Tag identifier for a custom Enki tag to override the default column 
@@ -86,6 +86,19 @@ public class CodeGenUtils
     
     private CodeGenUtils()
     {
+    }
+    
+    /**
+     * Enables or disables generic types.  If enabled, collections include 
+     * generic type specifications.  If disabled, the generic types are 
+     * commented out (e.g., <tt>List/*&lt;SomeType&gt;*&#x2f;</tt>) 
+     * 
+     * @param enableGenericsInit controls whether generic types are enabled 
+     *                           (true) or not (false)
+     */
+    public static void setEnableGenerics(boolean enableGenericsInit)
+    {
+        enableGenerics = enableGenericsInit;
     }
 
     /**

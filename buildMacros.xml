@@ -32,6 +32,7 @@
   <!-- Generator class names.  Normally not overriden. -->
   <property name="enki.generator.hibernate" value="org.eigenbase.enki.hibernate.codegen.HibernateGenerator"/>
   <property name="enki.generator.netbeans" value="org.eigenbase.enki.netbeans.codegen.NetbeansGenerator"/>
+  <property name="enki.generator.transient" value="org.eigenbase.enki.trans.codegen.TransientGenerator"/>
 
   <property name="classes.dir" location="${enki.dir}/classes"/>
   <property name="src.dir" location="${enki.dir}/src"/>
@@ -340,6 +341,9 @@
       </condition>
       <condition property="@{property}" value="${enki.generator.netbeans}">
         <equals arg1="@{impl}" arg2="netbeans"/>
+      </condition>
+      <condition property="@{property}" value="${enki.generator.transient}">
+        <equals arg1="@{impl}" arg2="transient"/>
       </condition>
       <fail message="Unknown impl '@{impl}'" unless="@{property}"/>
     </sequential>

@@ -1,9 +1,9 @@
 /*
 //  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2008 The Eigenbase Project
-//  Copyright (C) 2007-2008 Disruptive Tech
-//  Copyright (C) 2007-2008 LucidEra, Inc.
+//  Copyright (C) 2007-2009 The Eigenbase Project
+//  Copyright (C) 2007-2009 Disruptive Tech
+//  Copyright (C) 2007-2009 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -50,6 +50,12 @@ public class AssociationEnd
     private javax.jmi.model.Constrains constraint;
     private javax.jmi.model.IsOfType type;
 
+    // Association Fields
+    private javax.jmi.model.Exposes exposes_Referrer;
+    private javax.jmi.model.RefersTo refersTo_Referent;
+    private javax.jmi.model.AttachesTo attachesTo_Tag;
+    private javax.jmi.model.DependsOn dependsOn_Dependent;
+
     AssociationEnd(
         RefClass refClass)
     {
@@ -59,6 +65,11 @@ public class AssociationEnd
         this.container = (javax.jmi.model.Contains)refImmediatePackage().refAssociation("Contains");
         this.constraint = (javax.jmi.model.Constrains)refImmediatePackage().refAssociation("Constrains");
         this.type = (javax.jmi.model.IsOfType)refImmediatePackage().refAssociation("IsOfType");
+
+        this.exposes_Referrer = (javax.jmi.model.Exposes)refImmediatePackage().refAssociation("Exposes");
+        this.refersTo_Referent = (javax.jmi.model.RefersTo)refImmediatePackage().refAssociation("RefersTo");
+        this.attachesTo_Tag = (javax.jmi.model.AttachesTo)refImmediatePackage().refAssociation("AttachesTo");
+        this.dependsOn_Dependent = (javax.jmi.model.DependsOn)refImmediatePackage().refAssociation("DependsOn");
     }
 
     AssociationEnd(
@@ -163,7 +174,10 @@ public class AssociationEnd
 
     public void setContainer(javax.jmi.model.Namespace newValue)
     {
-        container.add(newValue, this);
+        container.refQuery("containedElement", this).clear();
+        if (newValue != null) {
+            container.add(newValue, this);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -179,7 +193,10 @@ public class AssociationEnd
 
     public void setType(javax.jmi.model.Classifier newValue)
     {
-        type.add(newValue, this);
+        type.refQuery("typedElements", this).clear();
+        if (newValue != null) {
+            type.add(newValue, this);
+        }
     }
 
     // Operation Methods

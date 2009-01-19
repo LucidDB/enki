@@ -88,11 +88,12 @@ public class ModelDetailsGenerator extends ModelGraphGenerator
                 showAttribsOfTypeParam = null;
             }
             
+            CodeGenUtils.setEnableGenerics(true);
+            
             ModelDetailsGenerator g = new ModelDetailsGenerator();
             g.setXmiFile(new File(xmiFileName));
             g.setOutputDirectory(new File(outputDir));
             g.setExtentName(DEFAULT_ENKI_MODEL_EXTENT_NAME);
-            g.setUseGenerics(true);
             g.execute();
         }
         catch(Exception e) {

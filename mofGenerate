@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# $Id: $
+
+# Generates the Enki MOF built-in model:
+#   org.eigenbase.enki.jmi.model
+#   org.eigenbase.enki.jmi.model.init
+#   org.eigenbase.enki.jmi.primitivetypes
+#   org.eigenbase.enki.jmi.corbaidltypes
+
+# To regenerate MOF implementations into directory tmp-src:
+#   mofGenerate tmp-src
+
+# All options after the output directory are passed to the generator class's
+# main entry point.
+
+if [ -z "$1" -o "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
+    echo "Usage: $0 <output-dir> [name=value ...]"
+    exit 1;
+fi
+OUTPUT=$(cd "$1"; pwd)
+shift
+
+set -e
+
+DIR=$(cd `dirname $0`; pwd)
+cd "$DIR"
+source ./defineEnkiRuntime.sh
+
+TMPDIR="$DIR/tmp.$$"
+
+if [ -e "$TMPDIR" ]; then
+    echo "Temporary directory $TMPDIR already exists, aborting"
+    exit 1;
+fi
+
+mkdir "$TMPDIR"
+
+MOFJAR="$DIR/thirdparty/mdrlibs/mof.jar"
+if [ ! -f "$MOFJAR" ]; then
+    echo "Cannot find mof.jar in $MOFJAR, aborting"
+    exit 1;
+fi
+
+echo "Extracting MOF model XMI from ${MOFJAR}..."
+
+cp "$MOFJAR" "$TMPDIR"
+cd "$TMPDIR"
+jar xf mof.jar
+cp javax/jmi/model/resources/mof.xml "$TMPDIR"
+
+MOFXML="$TMPDIR/mof.xml"
+
+echo "Generating code in ${OUTPUT} from ${MOFXML}..."
+
+cd "$DIR"
+java ${BASE_JAVA_ARGS} org.eigenbase.enki.codegen.MofImplementationGenerator "$MOFXML" "$OUTPUT" "$@"
+
+echo "Removing ${TMPDIR}"
+rm -rf "$TMPDIR"

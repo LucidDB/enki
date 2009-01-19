@@ -52,11 +52,12 @@ public class ModelGraphGenerator
             String xmiFileName = args[0];
             String outputDir = args[1];
             
+            CodeGenUtils.setEnableGenerics(true);
+            
             ModelGraphGenerator g = new ModelGraphGenerator();
             g.setXmiFile(new File(xmiFileName));
             g.setOutputDirectory(new File(outputDir));
             g.setExtentName(DEFAULT_ENKI_MODEL_EXTENT_NAME);
-            g.setUseGenerics(true);
             g.execute();
         }
         catch(Exception e) {

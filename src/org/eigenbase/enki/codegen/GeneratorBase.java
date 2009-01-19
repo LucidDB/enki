@@ -44,7 +44,6 @@ public abstract class GeneratorBase implements Generator
 {
     protected File xmiFile;
     protected File outputDir;
-    protected boolean enableGenerics;
     
     private Set<RefObject> visited;
     
@@ -63,7 +62,6 @@ public abstract class GeneratorBase implements Generator
         this.visited = new HashSet<RefObject>();
         this.allHandlers = new ArrayList<Handler>();
         this.handlers = new ArrayList<Handler>();
-        this.enableGenerics = false;
         this.passIndex = -1;
     }
 
@@ -88,14 +86,6 @@ public abstract class GeneratorBase implements Generator
     // implements Generator
     public void setOptions(Map<String, String> options)
     {
-    }
-    
-    // implements Generator
-    public boolean setUseGenerics(boolean enableGenerics)
-    {
-        boolean oldSetting = this.enableGenerics;
-        this.enableGenerics = enableGenerics;
-        return oldSetting;
     }
     
     // implements Generator

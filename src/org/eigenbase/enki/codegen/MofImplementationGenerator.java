@@ -73,7 +73,7 @@ public class MofImplementationGenerator
         addHandler(mofHandler);
         
         MofInitHandler initHandler = new MofInitHandler();
-        mofHandler.setCommonHeader(header);
+        initHandler.setCommonHeader(header);
         addHandler(initHandler);
     }
 

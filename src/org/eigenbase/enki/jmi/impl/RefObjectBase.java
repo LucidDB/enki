@@ -62,7 +62,10 @@ public abstract class RefObjectBase
         super();
         
         this.refClass = refClass;
-        getCurrentInitializer().register(this);
+        MetamodelInitializer currInitializer = getCurrentInitializer();
+        if (currInitializer != null) {
+            currInitializer.register(this);
+        }
     }
     
     protected RefObjectBase()
@@ -110,6 +113,16 @@ public abstract class RefObjectBase
         
         throw new UnsupportedOperationException("RefObject.refDelete()");
     }
+    
+    /**
+     * Unregisters this object.  Must be called explicitly by generated code
+     * to avoid allowing deletion of metamodel objects, which is not
+     * supported.
+     */
+    protected void unregister()
+    {
+        ((RefClassBase)refClass()).unregister(this);
+    }
 
     public boolean refIsInstanceOf(RefObject objType, boolean considerSubtypes)
     {
@@ -152,22 +165,16 @@ public abstract class RefObjectBase
     public RefFeatured refOutermostComposite()
     {
         logJmi("refOutermostComposite");
-        
-        // This is cheating:  The only composite aggregation in the M3 is
-        // Contains, so just return the outermost container if this is a 
-        // ModelElement and null otherwise.
-        if (this instanceof ModelElement) {
-            ModelElement modelElement = (ModelElement)this;
-            Namespace container = modelElement.getContainer();
-            if (container != null) {
-                return container.refOutermostComposite();
-            }
+
+        RefFeatured immediateComposite = refImmediateComposite();
+        if (immediateComposite == null) {
+            return this;
+        } else if (immediateComposite instanceof RefObject) {
+            return ((RefObject)immediateComposite).refOutermostComposite();
         }
         
-        // Either not a ModelElement (in which case no composite) or a
-        // ModelElement not contained (e.g. top-most container).  Semantics
-        // of this method say return "this".
-        return this;
+        // must be a RefClass
+        return immediateComposite;
     }
     
     // Implement ModelElement

@@ -1,9 +1,9 @@
 /*
 //  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2008 The Eigenbase Project
-//  Copyright (C) 2007-2008 Disruptive Tech
-//  Copyright (C) 2007-2008 LucidEra, Inc.
+//  Copyright (C) 2007-2009 The Eigenbase Project
+//  Copyright (C) 2007-2009 Disruptive Tech
+//  Copyright (C) 2007-2009 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -44,7 +44,10 @@ public class AssociationEndClass
 
     public AssociationEnd createAssociationEnd()
     {
-        return new org.eigenbase.enki.jmi.model.AssociationEnd(this);
+        org.eigenbase.enki.jmi.model.AssociationEnd instance = 
+            new org.eigenbase.enki.jmi.model.AssociationEnd(this);
+        register(instance);
+        return instance;
     }
 
     public AssociationEnd createAssociationEnd(
@@ -55,14 +58,17 @@ public class AssociationEndClass
         javax.jmi.model.MultiplicityType multiplicity,
         boolean isChangeable)
     {
-        return new org.eigenbase.enki.jmi.model.AssociationEnd(
-            this,
-            name,
-            annotation,
-            isNavigable,
-            aggregation,
-            multiplicity,
-            isChangeable);
+        org.eigenbase.enki.jmi.model.AssociationEnd instance =
+            new org.eigenbase.enki.jmi.model.AssociationEnd(
+                this,
+                name,
+                annotation,
+                isNavigable,
+                aggregation,
+                multiplicity,
+                isChangeable);
+        register(instance);
+        return instance;
     }
 
     protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)

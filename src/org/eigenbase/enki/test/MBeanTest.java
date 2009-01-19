@@ -29,12 +29,15 @@ import javax.management.openmbean.*;
 
 import org.eigenbase.enki.mdr.*;
 import org.junit.*;
+import org.junit.runner.*;
 
 /**
  * MBeanTest tests Enki's JMX MBeans.
  * 
  * @author Stephan Zuercher
  */
+@RunWith(SelectiveLoggingTestRunner.class)
+@SelectiveLoggingTestRunner.Exclude(MdrProvider.ENKI_TRANSIENT)
 public class MBeanTest extends SampleModelTestBase
 {
     private static MBeanServer mbeanServer;

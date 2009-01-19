@@ -1,9 +1,9 @@
 /*
 //  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2008 The Eigenbase Project
-//  Copyright (C) 2007-2008 Disruptive Tech
-//  Copyright (C) 2007-2008 LucidEra, Inc.
+//  Copyright (C) 2007-2009 The Eigenbase Project
+//  Copyright (C) 2007-2009 Disruptive Tech
+//  Copyright (C) 2007-2009 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -24,8 +24,6 @@
 package org.eigenbase.enki.jmi.model;
 
 import java.util.*;
-
-import javax.jmi.reflect.*;
 import org.eigenbase.enki.jmi.impl.*;
 
 /**
@@ -57,22 +55,22 @@ public class MultiplicityType
         this.isUnique = isUnique;
     }
 
-    public int getLower() throws JmiException
+    public int getLower() throws javax.jmi.reflect.JmiException
     {
         return lower;
     }
 
-    public int getUpper() throws JmiException
+    public int getUpper() throws javax.jmi.reflect.JmiException
     {
         return upper;
     }
 
-    public boolean isOrdered() throws JmiException
+    public boolean isOrdered() throws javax.jmi.reflect.JmiException
     {
         return isOrdered;
     }
 
-    public boolean isUnique() throws JmiException
+    public boolean isUnique() throws javax.jmi.reflect.JmiException
     {
         return isUnique;
     }
@@ -82,7 +80,7 @@ public class MultiplicityType
     protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)
     {
     }
-    
+
     // Implement RefStruct
     public List<?> refFieldNames()
     {
@@ -91,7 +89,7 @@ public class MultiplicityType
                 "lower",
                 "upper",
                 "isOrdered",
-                "isUnique"
+                "isUnique",
             });
     }
 }

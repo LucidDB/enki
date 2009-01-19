@@ -1,9 +1,9 @@
 /*
 //  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2008 The Eigenbase Project
-//  Copyright (C) 2007-2008 Disruptive Tech
-//  Copyright (C) 2007-2008 LucidEra, Inc.
+//  Copyright (C) 2007-2009 The Eigenbase Project
+//  Copyright (C) 2007-2009 Disruptive Tech
+//  Copyright (C) 2007-2009 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -48,6 +48,10 @@ public class Import
     private javax.jmi.model.Constrains constraint;
     private javax.jmi.model.Aliases imported;
 
+    // Association Fields
+    private javax.jmi.model.AttachesTo attachesTo_Tag;
+    private javax.jmi.model.DependsOn dependsOn_Dependent;
+
     Import(
         RefClass refClass)
     {
@@ -57,6 +61,9 @@ public class Import
         this.container = (javax.jmi.model.Contains)refImmediatePackage().refAssociation("Contains");
         this.constraint = (javax.jmi.model.Constrains)refImmediatePackage().refAssociation("Constrains");
         this.imported = (javax.jmi.model.Aliases)refImmediatePackage().refAssociation("Aliases");
+
+        this.attachesTo_Tag = (javax.jmi.model.AttachesTo)refImmediatePackage().refAssociation("AttachesTo");
+        this.dependsOn_Dependent = (javax.jmi.model.DependsOn)refImmediatePackage().refAssociation("DependsOn");
     }
 
     Import(
@@ -137,7 +144,10 @@ public class Import
 
     public void setContainer(javax.jmi.model.Namespace newValue)
     {
-        container.add(newValue, this);
+        container.refQuery("containedElement", this).clear();
+        if (newValue != null) {
+            container.add(newValue, this);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -153,7 +163,10 @@ public class Import
 
     public void setImportedNamespace(javax.jmi.model.Namespace newValue)
     {
-        imported.add(this, newValue);
+        imported.refQuery("importer", this).clear();
+        if (newValue != null) {
+            imported.add(this, newValue);
+        }
     }
 
     // Operation Methods

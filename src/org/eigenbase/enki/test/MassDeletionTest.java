@@ -511,9 +511,10 @@ public class MassDeletionTest extends SampleModelTestBase
     @Test
     public void testMassDeleteWithPendingChanges()
     {
-        if (getMdrProvider() == MdrProvider.NETBEANS_MDR) {
-            // Netbeans places no restrictions on the mass deletion API, since
-            // it is simply converted to a series of single object deletions.
+        if (getMdrProvider() != MdrProvider.ENKI_HIBERNATE) {
+            // Netbeans/Transient places no restrictions on the mass deletion 
+            // API, since it is simply converted to a series of single object 
+            // deletions.
             return;
         }
         

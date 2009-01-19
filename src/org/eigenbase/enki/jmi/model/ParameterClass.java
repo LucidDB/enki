@@ -1,9 +1,9 @@
 /*
 //  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2008 The Eigenbase Project
-//  Copyright (C) 2007-2008 Disruptive Tech
-//  Copyright (C) 2007-2008 LucidEra, Inc.
+//  Copyright (C) 2007-2009 The Eigenbase Project
+//  Copyright (C) 2007-2009 Disruptive Tech
+//  Copyright (C) 2007-2009 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -44,7 +44,10 @@ public class ParameterClass
 
     public Parameter createParameter()
     {
-        return new org.eigenbase.enki.jmi.model.Parameter(this);
+        org.eigenbase.enki.jmi.model.Parameter instance = 
+            new org.eigenbase.enki.jmi.model.Parameter(this);
+        register(instance);
+        return instance;
     }
 
     public Parameter createParameter(
@@ -53,12 +56,15 @@ public class ParameterClass
         javax.jmi.model.DirectionKind direction,
         javax.jmi.model.MultiplicityType multiplicity)
     {
-        return new org.eigenbase.enki.jmi.model.Parameter(
-            this,
-            name,
-            annotation,
-            direction,
-            multiplicity);
+        org.eigenbase.enki.jmi.model.Parameter instance =
+            new org.eigenbase.enki.jmi.model.Parameter(
+                this,
+                name,
+                annotation,
+                direction,
+                multiplicity);
+        register(instance);
+        return instance;
     }
 
     protected void checkConstraints(java.util.List<javax.jmi.reflect.JmiException> errors, boolean deepVerify)

@@ -21,6 +21,7 @@
 */
 package org.eigenbase.enki.test;
 
+import org.eigenbase.enki.mdr.*;
 import org.hibernate.*;
 import org.junit.*;
 import org.junit.runner.*;
@@ -32,7 +33,8 @@ import eem.sample.*;
  * 
  * @author Stephan Zuercher
  */
-@RunWith(LoggingTestRunner.class)
+@RunWith(SelectiveLoggingTestRunner.class)
+@SelectiveLoggingTestRunner.Exclude(MdrProvider.ENKI_TRANSIENT)
 public class TransactionTest extends SampleModelTestBase
 {
     @Test

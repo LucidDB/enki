@@ -1,9 +1,9 @@
 /*
 //  $Id$
 //  Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-//  Copyright (C) 2007-2008 The Eigenbase Project
-//  Copyright (C) 2007-2008 Disruptive Tech
-//  Copyright (C) 2007-2008 LucidEra, Inc.
+//  Copyright (C) 2007-2009 The Eigenbase Project
+//  Copyright (C) 2007-2009 Disruptive Tech
+//  Copyright (C) 2007-2009 LucidEra, Inc.
 // 
 //  This library is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU Lesser General Public License as published by
@@ -52,6 +52,10 @@ public class Reference
     private javax.jmi.model.Exposes exposedEnd;
     private javax.jmi.model.RefersTo referencedEnd;
 
+    // Association Fields
+    private javax.jmi.model.AttachesTo attachesTo_Tag;
+    private javax.jmi.model.DependsOn dependsOn_Dependent;
+
     Reference(
         RefClass refClass)
     {
@@ -63,6 +67,9 @@ public class Reference
         this.type = (javax.jmi.model.IsOfType)refImmediatePackage().refAssociation("IsOfType");
         this.exposedEnd = (javax.jmi.model.Exposes)refImmediatePackage().refAssociation("Exposes");
         this.referencedEnd = (javax.jmi.model.RefersTo)refImmediatePackage().refAssociation("RefersTo");
+
+        this.attachesTo_Tag = (javax.jmi.model.AttachesTo)refImmediatePackage().refAssociation("AttachesTo");
+        this.dependsOn_Dependent = (javax.jmi.model.DependsOn)refImmediatePackage().refAssociation("DependsOn");
     }
 
     Reference(
@@ -167,7 +174,10 @@ public class Reference
 
     public void setContainer(javax.jmi.model.Namespace newValue)
     {
-        container.add(newValue, this);
+        container.refQuery("containedElement", this).clear();
+        if (newValue != null) {
+            container.add(newValue, this);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -183,7 +193,10 @@ public class Reference
 
     public void setType(javax.jmi.model.Classifier newValue)
     {
-        type.add(newValue, this);
+        type.refQuery("typedElements", this).clear();
+        if (newValue != null) {
+            type.add(newValue, this);
+        }
     }
 
     public javax.jmi.model.AssociationEnd getExposedEnd()
@@ -193,7 +206,10 @@ public class Reference
 
     public void setExposedEnd(javax.jmi.model.AssociationEnd newValue)
     {
-        exposedEnd.add(this, newValue);
+        exposedEnd.refQuery("referrer", this).clear();
+        if (newValue != null) {
+            exposedEnd.add(this, newValue);
+        }
     }
 
     public javax.jmi.model.AssociationEnd getReferencedEnd()
@@ -203,7 +219,10 @@ public class Reference
 
     public void setReferencedEnd(javax.jmi.model.AssociationEnd newValue)
     {
-        referencedEnd.add(this, newValue);
+        referencedEnd.refQuery("referent", this).clear();
+        if (newValue != null) {
+            referencedEnd.add(this, newValue);
+        }
     }
 
     // Operation Methods
