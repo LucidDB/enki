@@ -443,6 +443,22 @@ public class HibernateJavaHandler
     }
     
     @Override
+    public void beginPass(int passIndex) throws GenerationException
+    {
+        super.beginPass(passIndex);
+        
+        transientHandler.beginPass(passIndex);
+    }
+    
+    @Override
+    public void endPass(int passIndex) throws GenerationException
+    {        
+        transientHandler.endPass(passIndex);
+
+        super.endPass(passIndex);
+    }
+    
+    @Override
     public void beginGeneration()
         throws GenerationException
     {
