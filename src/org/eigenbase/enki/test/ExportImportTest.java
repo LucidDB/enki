@@ -186,7 +186,7 @@ public class ExportImportTest extends SampleModelTestBase
         // one of them, because we can't rely on package export yet with
         // Hibernate (currently, it would incorrectly include both extents
         // since it's not able to discriminate them).
-        Collection rootsX = importExtent(refPackageX, file);
+        Collection<?> rootsX = importExtent(refPackageX, file);
         importExtent(refPackageY, file);
 
         File file2 = new File("test/results/ExportImportTestMultiple.xmi");
@@ -237,7 +237,7 @@ public class ExportImportTest extends SampleModelTestBase
     }
     
     private static void exportXmi(
-        RefPackage refPackage, File exportFile, Collection roots) 
+        RefPackage refPackage, File exportFile, Collection<?> roots) 
         throws IOException
     {
         getRepository().beginTrans(false);
@@ -307,7 +307,7 @@ public class ExportImportTest extends SampleModelTestBase
         }
     }
     
-    private Collection importExtent(
+    private Collection<?> importExtent(
         RefPackage extent, File importFile) throws Exception
     {
         MDRepository mdrRepos = getRepository();
@@ -318,7 +318,7 @@ public class ExportImportTest extends SampleModelTestBase
             mdrRepos.beginTrans(true);
             rollback = true;
             
-            Collection roots = xmiReader.read(
+            Collection<?> roots = xmiReader.read(
                 importFile.toURL().toString(),
                 extent);
             

@@ -21,15 +21,14 @@
 */
 package org.eigenbase.enki.test.hibernate;
 
+import java.util.*;
+
 import org.eigenbase.enki.hibernate.*;
-import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.test.*;
 import org.junit.*;
 import org.junit.runner.*;
 
 import eem.sample.*;
-
-import java.util.*;
 
 /**
  * HibernateInterThreadSessionTest tests
@@ -71,7 +70,7 @@ public class HibernateInterThreadSessionTest extends SampleModelTestBase
                 {
                     public void run() 
                     {
-                        Collection c =
+                        Collection<?> c =
                             getSamplePackage().getCar().refAllOfType();
                         Assert.assertEquals(1, c.size());
                         Car car = (Car) c.iterator().next();
