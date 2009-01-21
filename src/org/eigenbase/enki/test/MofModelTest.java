@@ -109,9 +109,9 @@ public class MofModelTest extends ProviderComparisonTestBase
                     expectedIfaceName = 
                         "javax.jmi.model." + cls.getSimpleName();
                 } else {
-                    Assert.assertTrue(clsName.endsWith("$Impl"));
-                    expectedIfaceName = 
-                        clsName.substring(0, clsName.length() - 5);
+                    int dollarPos = clsName.lastIndexOf("$");
+                    Assert.assertTrue(dollarPos > 0);
+                    expectedIfaceName = clsName.substring(0, dollarPos);
                 }
                 
                 // find the interface class

@@ -58,6 +58,15 @@ public interface Generator
     public void setOutputDirectory(File outputDir);
 
     /**
+     * Retrieves implementation class suffix for this generator.  The suffix
+     * must always begin with a dollar sign ($). If no special suffix is
+     * desired, returns the empty string.
+     * 
+     * @return implementation class suffix, never null
+     */
+    public String getImplSuffix();
+    
+    /**
      * Configures implementation-specific options for this Generator.  Unknown
      * options should be ignored.
      * 

@@ -68,6 +68,9 @@ public class NetbeansGenerator
      */
     public static final String INCLUDE_PACKAGE_OPTION = "include";
 
+    // N.B.: This value is used by Netbeans MDR for run-time generated code.
+    public static final String IMPL_SUFFIX = "$Impl";
+    
     /**
      * Included package list.
      */
@@ -78,6 +81,12 @@ public class NetbeansGenerator
         super();
     }
 
+    @Override
+    public String getImplSuffix()
+    {
+        return IMPL_SUFFIX;
+    }
+    
     /**
      * Accepts the {@link #INCLUDE_PACKAGE_OPTION} option and ignores all others.
      * 

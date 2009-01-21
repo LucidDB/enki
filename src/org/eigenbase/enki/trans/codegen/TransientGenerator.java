@@ -67,6 +67,8 @@ public class TransientGenerator
      */
     public static final String INCLUDE_PACKAGE_OPTION = "include";
 
+    public static final String IMPL_SUFFIX = "$Trans";
+    
     /** Plug-in flag. */
     private boolean pluginMode;
     
@@ -80,6 +82,12 @@ public class TransientGenerator
         super();
     }
 
+    @Override
+    public String getImplSuffix()
+    {
+        return IMPL_SUFFIX;
+    }
+    
     /**
      * Accepts the options described in {@link HibernateGenerator} and ignores 
      * all others.

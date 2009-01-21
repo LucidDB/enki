@@ -984,7 +984,7 @@ public class HibernateMappingHandler
         }
         
         String typeName = 
-            CodeGenUtils.getTypeName(cls, HibernateJavaHandler.IMPL_SUFFIX);
+            CodeGenUtils.getTypeName(cls, generator.getImplSuffix());
         
         String tableName = computeBaseTableName(cls);
         
@@ -1034,7 +1034,7 @@ public class HibernateMappingHandler
             String fieldName = attrib.getName();
             fieldName = CodeGenUtils.getClassFieldName(fieldName);
             
-            String propertyName = fieldName + HibernateJavaHandler.IMPL_SUFFIX;
+            String propertyName = fieldName + generator.getImplSuffix();
             
             final Classifier attribType = attrib.getType();
             MappingType mappingType = 
@@ -1256,7 +1256,7 @@ public class HibernateMappingHandler
         
         writeEmptyElem(
             "many-to-one",
-            "name", fieldName + HibernateJavaHandler.IMPL_SUFFIX,
+            "name", fieldName + generator.getImplSuffix(),
             "column", hibernateQuote(fieldName),
             "not-null", "false",
             "cascade", "save-update");
@@ -1431,7 +1431,7 @@ public class HibernateMappingHandler
         {
             topLevelPackage =
                 CodeGenUtils.getTypeName(
-                    pkg, PACKAGE_SUFFIX + HibernateJavaHandler.IMPL_SUFFIX);
+                    pkg, PACKAGE_SUFFIX + generator.getImplSuffix());
         }
     }
     

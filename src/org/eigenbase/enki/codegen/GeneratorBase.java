@@ -84,6 +84,12 @@ public abstract class GeneratorBase implements Generator
     }
     
     // implements Generator
+    public String getImplSuffix()
+    {
+        return "";
+    }
+    
+    // implements Generator
     public void setOptions(Map<String, String> options)
     {
     }

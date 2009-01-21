@@ -130,6 +130,8 @@ public class HibernateGenerator extends MdrGenerator
      */
     public static final String GENERATE_VIEWS_OPTION = "generateViews";
     
+    public static final String IMPL_SUFFIX = "$Hib";
+    
     /** Prefix for all table names in this metamodel. */
     private String tablePrefix;
     
@@ -159,6 +161,12 @@ public class HibernateGenerator extends MdrGenerator
     public HibernateGenerator()
     {
         super();
+    }
+    
+    @Override
+    public String getImplSuffix()
+    {
+        return IMPL_SUFFIX;
     }
     
     /**

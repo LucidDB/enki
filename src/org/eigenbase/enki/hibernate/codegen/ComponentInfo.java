@@ -178,9 +178,7 @@ public class ComponentInfo implements ReferenceInfo
 
     public String getAccessorName(Generator generator)
     {
-        return 
-            CodeGenUtils.getAccessorName(generator, attrib) + 
-            HibernateJavaHandler.IMPL_SUFFIX;
+        return CodeGenUtils.getAccessorName(generator, attrib);
     }
 
     public int getExposedEndIndex()

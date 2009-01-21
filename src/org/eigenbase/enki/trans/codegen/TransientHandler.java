@@ -60,12 +60,6 @@ public class TransientHandler
     private static final JavaClassReference TRANSIENT_REF_OBJECT =
         new JavaClassReference(TransientRefObject.class, false);
     
-    /** 
-     * Suffix for implementation class names and association implementation
-     * methods.
-     */
-    public static final String IMPL_SUFFIX = "$Impl";
-
     private static final String OWNER_FIELD = "_owner";
     private static final String ANNOTATION_FIELD = "_annotation";
     
@@ -168,7 +162,8 @@ public class TransientHandler
             !pkg.getName().equals("PrimitiveTypes"))
         {
             topLevelPackage =
-                CodeGenUtils.getTypeName(pkg, PACKAGE_SUFFIX + IMPL_SUFFIX);
+                CodeGenUtils.getTypeName(
+                    pkg, PACKAGE_SUFFIX + generator.getImplSuffix());
         }
     }
 
@@ -176,16 +171,16 @@ public class TransientHandler
     protected String convertToTypeName(String entityName)
         throws GenerationException
     {
-        return entityName + IMPL_SUFFIX;
+        return entityName + generator.getImplSuffix();
     }
 
     @Override
     protected String computeSuffix(String baseSuffix)
     {
         if (baseSuffix != null) {
-            return baseSuffix + IMPL_SUFFIX;
+            return baseSuffix + generator.getImplSuffix();
         }
-        return IMPL_SUFFIX;
+        return generator.getImplSuffix();
     }
 
     @Override

@@ -111,7 +111,7 @@ public class HibernateMofInitHandler extends MofInitHandler
                     CodeGenUtils.getTypeName(
                         pkg, 
                         PackageHandler.PACKAGE_SUFFIX 
-                        + HibernateJavaHandler.IMPL_SUFFIX);
+                            + generator.getImplSuffix());
                 
                 packageStitchingDetails.add(psd);
             }
@@ -208,7 +208,7 @@ public class HibernateMofInitHandler extends MofInitHandler
             String simpleTypeName = CodeGenUtils.getSimpleTypeName(subtype);
             String implTypeName = 
                 CodeGenUtils.getTypeName(subtype) + 
-                HibernateJavaHandler.IMPL_SUFFIX;
+                generator.getImplSuffix();
             
             typeMap.put(implTypeName, simpleTypeName);
         }

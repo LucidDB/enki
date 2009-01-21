@@ -58,12 +58,6 @@ public class HibernateJavaHandler
 
     private static final String PRIVATE_SCOPE = "private";
 
-    /** 
-     * Suffix for implementation class names and association implementation
-     * methods.
-     */
-    public static final String IMPL_SUFFIX = "$Impl";
-
     /**
      * Name of the base class for classes that implement {@link RefObject}.
      */
@@ -363,16 +357,16 @@ public class HibernateJavaHandler
             protected String convertToTypeName(String entityName)
                 throws GenerationException
             {
-                return entityName + IMPL_SUFFIX;
+                return entityName + generator.getImplSuffix();
             }
             
             @Override
             protected String computeSuffix(String baseSuffix)
             {
                 if (baseSuffix != null) {
-                    return baseSuffix + IMPL_SUFFIX;
+                    return baseSuffix + generator.getImplSuffix();
                 }
-                return IMPL_SUFFIX;
+                return generator.getImplSuffix();
             }
             
             @Override
@@ -650,7 +644,7 @@ public class HibernateJavaHandler
         
         String interfaceName = CodeGenUtils.getTypeName(assoc);
         
-        String typeName = interfaceName + IMPL_SUFFIX;
+        String typeName = interfaceName + generator.getImplSuffix();
 
         log.fine("Generating Association Implementation '" + typeName + "'");
 
@@ -770,7 +764,7 @@ public class HibernateJavaHandler
                 new String[] { REF_PACKAGE_CLASS.toString() }, 
                 new String[] { "container" },
                 true,
-                IMPL_SUFFIX);
+                generator.getImplSuffix());
             writeln(
                 "super(container, ", 
                 QUOTE, assocInfo.getBaseName(), QUOTE, ", ",
@@ -1076,7 +1070,7 @@ public class HibernateJavaHandler
         
         String interfaceName = CodeGenUtils.getTypeName(cls);
         
-        String typeName = interfaceName + IMPL_SUFFIX;
+        String typeName = interfaceName + generator.getImplSuffix();
 
         if (cls.isAbstract()) {
             log.fine(
@@ -1150,7 +1144,7 @@ public class HibernateJavaHandler
                     String fieldName = 
                         writeField(
                             attrib,
-                            IMPL_SUFFIX,
+                            generator.getImplSuffix(),
                             PROTECTED_SCOPE, 
                             false, 
                             false,
@@ -1169,7 +1163,7 @@ public class HibernateJavaHandler
                     writeField(
                         makeType(refInfo),
                         generator.transformIdentifier(refInfo.getFieldName())
-                            + IMPL_SUFFIX, 
+                            + generator.getImplSuffix(), 
                         PROTECTED_SCOPE, 
                         false,
                         false);
@@ -1189,7 +1183,7 @@ public class HibernateJavaHandler
                     writeField(
                         makeType(refInfo),
                         generator.transformIdentifier(refInfo.getFieldName())
-                            + IMPL_SUFFIX,
+                            + generator.getImplSuffix(),
                         PROTECTED_SCOPE,
                         false,
                         false);
@@ -1204,7 +1198,8 @@ public class HibernateJavaHandler
                 for(ComponentInfo comonentInfo: componentInfoMap.values()) {
                     writeField(
                         makeType(comonentInfo),
-                        comonentInfo.getFieldName() + IMPL_SUFFIX,
+                        comonentInfo.getFieldName() 
+                            + generator.getImplSuffix(),
                         PROTECTED_SCOPE,
                         false,
                         false);
@@ -2223,7 +2218,8 @@ public class HibernateJavaHandler
             "()");
         writeln(
             "return ", 
-            generator.transformIdentifier(refInfo.getFieldName()), IMPL_SUFFIX,
+            generator.transformIdentifier(refInfo.getFieldName()),
+            generator.getImplSuffix(),
             ";");
         endBlock();
         
@@ -2237,7 +2233,8 @@ public class HibernateJavaHandler
             " newValue)");
         writeln(
             "this.", 
-            generator.transformIdentifier(refInfo.getFieldName()), IMPL_SUFFIX,
+            generator.transformIdentifier(refInfo.getFieldName()),
+            generator.getImplSuffix(),
             " = newValue;");
         endBlock();
     }
@@ -2595,7 +2592,7 @@ public class HibernateJavaHandler
         Map<Attribute, ComponentInfo> componentInfoMap)
     {
         // zero argument constructor
-        startConstructorBlock(cls, null, null, IMPL_SUFFIX);
+        startConstructorBlock(cls, null, null, generator.getImplSuffix());
         writeln("super();");
         
         for(Attribute attrib: nonDerivedAttribs) {
@@ -2642,7 +2639,7 @@ public class HibernateJavaHandler
         ModelElement[] params = 
             nonDerivedAttribs.toArray(
                 new ModelElement[nonDerivedAttribs.size()]);
-        startConstructorBlock(cls, params, IMPL_SUFFIX);
+        startConstructorBlock(cls, params, generator.getImplSuffix());
         writeln("this();");
         newLine();
         writeln("// Make sure MOFID is assigned before any associations are");
@@ -2766,7 +2763,7 @@ public class HibernateJavaHandler
                 internalTypeName,
                 " ",
                 CodeGenUtils.getAccessorName(generator, attrib, false),
-                IMPL_SUFFIX,
+                generator.getImplSuffix(),
                 "()");
             writeln("return ", fieldName, ";");
             endBlock();
@@ -2779,7 +2776,8 @@ public class HibernateJavaHandler
             writeln("// Internal use only");
             startBlock(
                 "public void ",
-                CodeGenUtils.getMutatorName(generator, attrib, false), IMPL_SUFFIX,
+                CodeGenUtils.getMutatorName(generator, attrib, false), 
+                generator.getImplSuffix(),
                 "(", internalTypeName, " newValue)");
             writeln("this.", fieldName, " = newValue;");
             endBlock();
@@ -2798,7 +2796,7 @@ public class HibernateJavaHandler
                     writeln(
                         internalTypeName, " value = ", 
                         CodeGenUtils.getAccessorName(generator, attrib, false), 
-                        IMPL_SUFFIX, 
+                        generator.getImplSuffix(), 
                         "();");
                     startConditionalBlock(CondType.IF, "value == null");
                     String primTypeName = 
@@ -2815,7 +2813,7 @@ public class HibernateJavaHandler
                     writeln(
                         internalTypeName, " value = ",
                         CodeGenUtils.getAccessorName(generator, attrib, false),
-                        IMPL_SUFFIX,
+                        generator.getImplSuffix(),
                         "();");
                     startConditionalBlock(CondType.IF, "value == null");
                     writeln("return null;");
@@ -2831,7 +2829,7 @@ public class HibernateJavaHandler
                     writeln(
                         "return ", 
                         CodeGenUtils.getAccessorName(generator, attrib, false), 
-                        IMPL_SUFFIX,
+                        generator.getImplSuffix(),
                         "();");
                 }
                 endBlock();
@@ -2861,7 +2859,7 @@ public class HibernateJavaHandler
                     }
                     writeln(
                         CodeGenUtils.getMutatorName(generator, attrib, false), 
-                        IMPL_SUFFIX,
+                        generator.getImplSuffix(),
                         "(", newValueExp, ");");
                     endBlock();
                 }
@@ -2877,7 +2875,10 @@ public class HibernateJavaHandler
 
                 writeln(
                     "logJmi(", 
-                    QUOTE, CodeGenUtils.getAccessorName(generator, attrib), QUOTE, ");");
+                    QUOTE, 
+                    CodeGenUtils.getAccessorName(generator, attrib), 
+                    QUOTE,
+                    ");");
 
                 if (attrib.isChangeable()) {
                     if (isOrdered) {
@@ -2887,8 +2888,9 @@ public class HibernateJavaHandler
                             "<", CodeGenUtils.getTypeName(attrib.getType()), ">",
                             "(this, ", 
                             QUOTE, attrib.getName(), QUOTE, ", ",
-                            CodeGenUtils.getAccessorName(generator, attrib, false), 
-                            IMPL_SUFFIX, 
+                            CodeGenUtils.getAccessorName(
+                                generator, attrib, false), 
+                            generator.getImplSuffix(), 
                             "());");
                     } else {
                         writeln(
@@ -2897,8 +2899,9 @@ public class HibernateJavaHandler
                             "<", CodeGenUtils.getTypeName(attrib.getType()), ">",
                             "(this, ", 
                             QUOTE, attrib.getName(), QUOTE, ", ",
-                            CodeGenUtils.getAccessorName(generator, attrib, false), 
-                            IMPL_SUFFIX, 
+                            CodeGenUtils.getAccessorName(
+                                generator, attrib, false), 
+                            generator.getImplSuffix(), 
                             "());");
                     }
                 } else {
@@ -2907,16 +2910,18 @@ public class HibernateJavaHandler
                             "return ", 
                             JAVA_UTIL_COLLECTIONS_CLASS, 
                             ".unmodifiableList(", 
-                            CodeGenUtils.getAccessorName(generator, attrib, false),
-                            IMPL_SUFFIX,
+                            CodeGenUtils.getAccessorName(
+                                generator, attrib, false),
+                            generator.getImplSuffix(),
                             "());");
                     } else {
                         writeln(
                             "return ",
                             JAVA_UTIL_COLLECTIONS_CLASS, 
                             ".unmodifiableSet(",
-                            CodeGenUtils.getAccessorName(generator, attrib, false),
-                            IMPL_SUFFIX,
+                            CodeGenUtils.getAccessorName(
+                                generator, attrib, false),
+                            generator.getImplSuffix(),
                             "());");                            
                     }
                 }
@@ -2948,7 +2953,7 @@ public class HibernateJavaHandler
                 // magic of lookup), otherwise do it via the internal accessor.
                 String suffix = "";
                 if (!componentAttribs.contains(attrib)) {
-                    suffix = IMPL_SUFFIX;
+                    suffix = generator.getImplSuffix();
                 }
                 
                 startConditionalBlock(
@@ -3048,10 +3053,11 @@ public class HibernateJavaHandler
         
         String interfaceName = CodeGenUtils.getTypeName(cls, CLASS_PROXY_SUFFIX);
         
-        String typeName = interfaceName + IMPL_SUFFIX;
+        String typeName = interfaceName + generator.getImplSuffix();
 
         String instanceInterfaceTypeName = CodeGenUtils.getTypeName(cls);
-        String instanceImplTypeName = CodeGenUtils.getTypeName(cls, IMPL_SUFFIX);
+        String instanceImplTypeName = 
+            CodeGenUtils.getTypeName(cls, generator.getImplSuffix());
         
         log.fine("Generating Class Proxy Implementation '" + typeName + "'");
 
@@ -3098,7 +3104,7 @@ public class HibernateJavaHandler
                 new String[] { REF_PACKAGE_CLASS.toString() },
                 new String[] { "container" },
                 true,
-                CLASS_PROXY_SUFFIX + IMPL_SUFFIX);
+                CLASS_PROXY_SUFFIX + generator.getImplSuffix());
             if (cls.isAbstract()) {
                 writeln(
                     "super(container, null, ",
@@ -3126,7 +3132,8 @@ public class HibernateJavaHandler
                 generateInstanceEventCall(null);
                 
                 String entityImplName = 
-                    CodeGenUtils.getSimpleTypeName(cls, IMPL_SUFFIX);
+                    CodeGenUtils.getSimpleTypeName(
+                        cls, generator.getImplSuffix());
                 writeln(
                     entityImplName,
                     " obj = new ", instanceImplTypeName, "();");
@@ -3349,7 +3356,7 @@ public class HibernateJavaHandler
         String interfaceName = 
             CodeGenUtils.getTypeName(pkg, PACKAGE_SUFFIX);
         
-        String typeName = interfaceName + IMPL_SUFFIX;
+        String typeName = interfaceName + generator.getImplSuffix();
 
         log.fine("Generating Package Implementation '" + typeName + "'");
 
@@ -3456,7 +3463,8 @@ public class HibernateJavaHandler
             // constructor (initializes fields)       
             startBlock(
                 "public ",
-                CodeGenUtils.getSimpleTypeName(pkg, PACKAGE_SUFFIX + IMPL_SUFFIX),
+                CodeGenUtils.getSimpleTypeName(
+                    pkg, PACKAGE_SUFFIX + generator.getImplSuffix()),
                 "(",
                 REF_PACKAGE_CLASS.toString(), " container)");
             writeln("super(container);");
@@ -3483,7 +3491,7 @@ public class HibernateJavaHandler
                     fieldName,
                     " = new ",
                     CodeGenUtils.getTypeName(
-                        nestedPkg, PACKAGE_SUFFIX + IMPL_SUFFIX),
+                        nestedPkg, PACKAGE_SUFFIX + generator.getImplSuffix()),
                     "(this);");
                 writeln(
                     "super.addPackage(", 
@@ -3522,7 +3530,8 @@ public class HibernateJavaHandler
                     fieldName,
                     " = new ",
                     CodeGenUtils.getTypeName(
-                        nestedCls, CLASS_PROXY_SUFFIX + IMPL_SUFFIX),
+                        nestedCls, 
+                        CLASS_PROXY_SUFFIX + generator.getImplSuffix()),
                     "(this);");
                 writeln(
                     "super.addClass(", 
@@ -3547,7 +3556,7 @@ public class HibernateJavaHandler
                     "this.",
                     fieldName,
                     " = new ",
-                    CodeGenUtils.getTypeName(assoc, IMPL_SUFFIX),
+                    CodeGenUtils.getTypeName(assoc, generator.getImplSuffix()),
                     "(this);");
                 writeln(
                     "super.addAssociation(", 
@@ -3980,7 +3989,7 @@ public class HibernateJavaHandler
         return 
             "get" + 
             generator.transformIdentifier(refInfo.getReferencedEndBaseName()) +
-            IMPL_SUFFIX;
+            generator.getImplSuffix();
     }
 
     private String getReferenceMutatorName(ReferenceInfo refInfo)
@@ -3988,7 +3997,7 @@ public class HibernateJavaHandler
         return 
             "set" + 
             generator.transformIdentifier(refInfo.getReferencedEndBaseName()) +
-            IMPL_SUFFIX;
+            generator.getImplSuffix();
     }
     
     /**
