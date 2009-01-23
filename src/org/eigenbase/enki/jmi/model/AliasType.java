@@ -127,6 +127,9 @@ public class AliasType
 
     public boolean isRoot()
     {
+        if (isRoot == null) {
+            return false;
+        }
         return isRoot;
     }
 
@@ -137,6 +140,9 @@ public class AliasType
 
     public boolean isLeaf()
     {
+        if (isLeaf == null) {
+            return false;
+        }
         return isLeaf;
     }
 
@@ -147,6 +153,9 @@ public class AliasType
 
     public boolean isAbstract()
     {
+        if (isAbstract == null) {
+            return false;
+        }
         return isAbstract;
     }
 

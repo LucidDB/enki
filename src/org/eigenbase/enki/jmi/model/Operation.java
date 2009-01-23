@@ -138,6 +138,9 @@ public class Operation
 
     public boolean isQuery()
     {
+        if (isQuery == null) {
+            return false;
+        }
         return isQuery;
     }
 

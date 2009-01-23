@@ -40,8 +40,10 @@ public class Constrains
         super(
             container,
             "constraint",
+            javax.jmi.model.Constraint.class,
             new Multiplicity(0, -1, false, true),
             "constrainedElement",
+            javax.jmi.model.ModelElement.class,
             new Multiplicity(1, -1, false, true));
 
     }
@@ -81,16 +83,6 @@ public class Constrains
         javax.jmi.model.ModelElement constrainedElement)
     {
         return super.refRemoveLink(constraint, constrainedElement);
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getFirstEndType()
-    {
-        return javax.jmi.model.Constraint.class;
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getSecondEndType()
-    {
-        return javax.jmi.model.ModelElement.class;
     }
 }
 

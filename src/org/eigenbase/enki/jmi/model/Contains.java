@@ -40,8 +40,10 @@ public class Contains
         super(
             container,
             "container",
+            javax.jmi.model.Namespace.class,
             new Multiplicity(0, 1, false, false),
             "containedElement",
+            javax.jmi.model.ModelElement.class,
             new Multiplicity(0, -1, true, true));
 
     }
@@ -85,16 +87,6 @@ public class Contains
         javax.jmi.model.ModelElement containedElement)
     {
         return super.refRemoveLink(container, containedElement);
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getFirstEndType()
-    {
-        return javax.jmi.model.Namespace.class;
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getSecondEndType()
-    {
-        return javax.jmi.model.ModelElement.class;
     }
 }
 

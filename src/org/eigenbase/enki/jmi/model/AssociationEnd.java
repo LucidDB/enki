@@ -121,6 +121,9 @@ public class AssociationEnd
 
     public boolean isNavigable()
     {
+        if (isNavigable == null) {
+            return false;
+        }
         return isNavigable;
     }
 
@@ -151,6 +154,9 @@ public class AssociationEnd
 
     public boolean isChangeable()
     {
+        if (isChangeable == null) {
+            return false;
+        }
         return isChangeable;
     }
 

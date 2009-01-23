@@ -40,8 +40,10 @@ public class AttachesTo
         super(
             container,
             "modelElement",
+            javax.jmi.model.ModelElement.class,
             new Multiplicity(1, -1, false, true),
             "tag",
+            javax.jmi.model.Tag.class,
             new Multiplicity(0, -1, true, true));
 
     }
@@ -81,16 +83,6 @@ public class AttachesTo
         javax.jmi.model.Tag tag)
     {
         return super.refRemoveLink(modelElement, tag);
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getFirstEndType()
-    {
-        return javax.jmi.model.ModelElement.class;
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getSecondEndType()
-    {
-        return javax.jmi.model.Tag.class;
     }
 }
 

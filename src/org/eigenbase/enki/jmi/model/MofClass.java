@@ -128,6 +128,9 @@ public class MofClass
 
     public boolean isRoot()
     {
+        if (isRoot == null) {
+            return false;
+        }
         return isRoot;
     }
 
@@ -138,6 +141,9 @@ public class MofClass
 
     public boolean isLeaf()
     {
+        if (isLeaf == null) {
+            return false;
+        }
         return isLeaf;
     }
 
@@ -148,6 +154,9 @@ public class MofClass
 
     public boolean isAbstract()
     {
+        if (isAbstract == null) {
+            return false;
+        }
         return isAbstract;
     }
 
@@ -168,6 +177,9 @@ public class MofClass
 
     public boolean isSingleton()
     {
+        if (isSingleton == null) {
+            return false;
+        }
         return isSingleton;
     }
 

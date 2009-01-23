@@ -40,8 +40,10 @@ public class Aliases
         super(
             container,
             "importer",
+            javax.jmi.model.Import.class,
             new Multiplicity(0, -1, false, true),
             "imported",
+            javax.jmi.model.Namespace.class,
             new Multiplicity(1, 1, false, false));
 
     }
@@ -85,16 +87,6 @@ public class Aliases
         javax.jmi.model.Namespace imported)
     {
         return super.refRemoveLink(importer, imported);
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getFirstEndType()
-    {
-        return javax.jmi.model.Import.class;
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getSecondEndType()
-    {
-        return javax.jmi.model.Namespace.class;
     }
 }
 

@@ -241,8 +241,14 @@ public abstract class TransientImplementationHandler
             increaseIndent();
             writeln("container,");
             writeln(QUOTE, assocInfo.getEndName(0), QUOTE, ",");
+            writeln(
+                CodeGenUtils.getTypeName(assocInfo.getEnd(0).getType()), 
+                ".class,");
             writeln(end1Multiplicity.toInstantiationString(true), ",");
             writeln(QUOTE, assocInfo.getEndName(1), QUOTE, ",");
+            writeln(
+                CodeGenUtils.getTypeName(assocInfo.getEnd(1).getType()), 
+                ".class,");
             writeln(end2Multiplicity.toInstantiationString(true), ");");
             newLine();
             generateCustomAssociationInit(assoc);
@@ -300,28 +306,6 @@ public abstract class TransientImplementationHandler
                     assocInfo.getEndIdentifier(1), ");");
                 endBlock();
             }
-
-            newLine();
-            startBlock(
-                "protected Class<? extends ", 
-                REF_OBJECT_CLASS,
-                "> getFirstEndType()");
-            writeln(
-                "return ", 
-                CodeGenUtils.getTypeName(assocInfo.getEnd(0).getType()), 
-                ".class;");
-            endBlock();
-            
-            newLine();
-            startBlock(
-                "protected Class<? extends ", 
-                REF_OBJECT_CLASS,
-                "> getSecondEndType()");
-            writeln(
-                "return ", 
-                CodeGenUtils.getTypeName(assocInfo.getEnd(1).getType()), 
-                ".class;");
-            endBlock();
 
             writeEntityFooter();
         }
@@ -637,12 +621,15 @@ public abstract class TransientImplementationHandler
                     int upper = mult.getUpper();
                     if (upper == -1 || upper > 1) {
                         // Copy the collection
+                        startConditionalBlock(
+                            CondType.IF, paramInfo[1], " != null");
                         writeln(
                             "this.",
                             fieldName,
                             ".addAll(",
                             paramInfo[1],
                             ");");
+                        endBlock();
                     } else {
                         writeln(
                             "this.",

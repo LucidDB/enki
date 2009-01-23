@@ -33,10 +33,16 @@ public class RefAssociationLinkImpl implements RefAssociationLink
     private final RefObject firstEnd;
     private final RefObject secondEnd;
     
+    private final long firstEndMofId;
+    private final long secondEndMofId;
+    
     public RefAssociationLinkImpl(RefObject firstEnd, RefObject secondEnd)
     {
         this.firstEnd = firstEnd;
         this.secondEnd = secondEnd;
+        
+        this.firstEndMofId = ((RefBaseObjectBase)firstEnd).getMofId();
+        this.secondEndMofId = ((RefBaseObjectBase)secondEnd).getMofId();        
     }
     
     public RefObject refFirstEnd()
@@ -54,13 +60,13 @@ public class RefAssociationLinkImpl implements RefAssociationLink
         RefAssociationLinkImpl that = (RefAssociationLinkImpl)other;
         
         return 
-            this.firstEnd.equals(that.firstEnd) &&
-            this.secondEnd.equals(that.secondEnd);
+            this.firstEndMofId == that.firstEndMofId &&
+            this.secondEndMofId == that.secondEndMofId;
     }
     
     public int hashCode()
     {
-        return firstEnd.hashCode() ^ secondEnd.hashCode();
+        return (int)firstEndMofId ^ (int)secondEndMofId;
     }
 }
 

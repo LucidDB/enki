@@ -49,15 +49,19 @@ public abstract class HibernateRefAssociation
         RefPackage container,
         String type,
         String end1Name,
+        Class<? extends RefObject> end1Class,
         Multiplicity end1Multiplicity,
         String end2Name,
+        Class<? extends RefObject> end2Class,
         Multiplicity end2Multiplicity)
     {
         super(
             container, 
             end1Name,
+            end1Class,
             end1Multiplicity,
             end2Name,
+            end2Class,
             end2Multiplicity);
         
         this.type = type;

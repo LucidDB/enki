@@ -38,11 +38,15 @@ import org.eigenbase.enki.jmi.impl.*;
 public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 extends RefObject>
     extends HibernateRefAssociation
 {
-    /** Expected end 1 type. */
-    private final Class<E1> end1Class;
+    // REVIEW: SWZ: 2008-01-22: Consider whether generic type info can be
+    // pushed all the way down to RefAssociationBase, eliminating the need
+    // to double-store these classes.
 
     /** Expected end 1 type. */
-    private final Class<E2> end2Class;
+    private final Class<E1> end1GenericClass;
+
+    /** Expected end 1 type. */
+    private final Class<E2> end2GenericClass;
 
     /** If true end 1 is the single end.  If false, end 2 is the single end. */
     private final boolean end1IsParent;
@@ -61,15 +65,17 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
             container, 
             type,
             end1Name,
+            end1Class,
             end1Multiplicity, 
             end2Name,
+            end2Class,
             end2Multiplicity);
 
         assert(end1Multiplicity.isSingle() || end2Multiplicity.isSingle());
         assert(!end1Multiplicity.isSingle() || !end2Multiplicity.isSingle());
         
-        this.end1Class = end1Class;
-        this.end2Class = end2Class;
+        this.end1GenericClass = end1Class;
+        this.end2GenericClass = end2Class;
         
         this.end1IsParent = end1Multiplicity.isSingle();
     }
@@ -86,9 +92,9 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
         RefObject child, Class<EX> cls)
     {
         if (end1IsParent) {
-            assert(cls.equals(end1Class));
+            assert(cls.equals(end1GenericClass));
         } else {
-            assert(cls.equals(end2Class));
+            assert(cls.equals(end2GenericClass));
         }
         
         Collection<? extends RefObject> c = super.query(!end1IsParent, child);
@@ -104,12 +110,12 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
         RefObject parent, Class<EX> cls)
     {
         if (end1IsParent) {
-            assert(cls.equals(end2Class)):
-                "expected '" + end2Class.getName() + 
+            assert(cls.equals(end2GenericClass)):
+                "expected '" + end2GenericClass.getName() + 
                 "', got '" + cls.getName() + "'";
         } else {
-            assert(cls.equals(end1Class)):
-                "expected '" + end1Class.getName() + 
+            assert(cls.equals(end1GenericClass)):
+                "expected '" + end1GenericClass.getName() + 
                 "', got '" + cls.getName() + "'";
         }
 
@@ -143,18 +149,6 @@ public abstract class HibernateOneToManyRefAssociation<E1 extends RefObject, E2 
         }
     }
 
-    @Override
-    protected Class<? extends RefObject> getFirstEndType()
-    {
-        return end1Class;
-    }
-    
-    @Override
-    protected Class<? extends RefObject> getSecondEndType()
-    {
-        return end2Class;
-    }
-    
     /**
      * Delegates to {@link #refAddLink(RefObject, RefObject)}.
      */

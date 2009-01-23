@@ -151,6 +151,9 @@ public class Reference
 
     public boolean isChangeable()
     {
+        if (isChangeable == null) {
+            return false;
+        }
         return isChangeable;
     }
 

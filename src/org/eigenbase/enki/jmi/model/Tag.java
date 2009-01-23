@@ -82,7 +82,9 @@ public class Tag
         this.name = name;
         this.annotation = annotation;
         this.tagId = tagId;
-        this.values.addAll(values);
+        if (values != null) {
+            this.values.addAll(values);
+        }
     }
 
     // Attribute Methods

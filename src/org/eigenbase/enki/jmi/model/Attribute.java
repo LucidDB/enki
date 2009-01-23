@@ -150,6 +150,9 @@ public class Attribute
 
     public boolean isChangeable()
     {
+        if (isChangeable == null) {
+            return false;
+        }
         return isChangeable;
     }
 
@@ -160,6 +163,9 @@ public class Attribute
 
     public boolean isDerived()
     {
+        if (isDerived == null) {
+            return false;
+        }
         return isDerived;
     }
 

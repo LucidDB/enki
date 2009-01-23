@@ -44,12 +44,20 @@ public abstract class DependsOnBase extends RefAssociationBase
     public DependsOnBase(
         RefPackage container,
         String end1Name,
+        Class<? extends RefObject> end1Class,
         Multiplicity end1Multiplicity,
         String end2Name,
+        Class<? extends RefObject> end2Class,
         Multiplicity end2Multiplicity)
     {
         super(
-            container, end1Name, end1Multiplicity, end2Name, end2Multiplicity);
+            container, 
+            end1Name, 
+            end1Class, 
+            end1Multiplicity, 
+            end2Name,
+            end2Class,
+            end2Multiplicity);
 
         assert(!end1Multiplicity.isSingle() && end1Multiplicity.isUnique());
         assert(!end2Multiplicity.isSingle() && end2Multiplicity.isUnique());

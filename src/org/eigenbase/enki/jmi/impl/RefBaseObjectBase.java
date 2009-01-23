@@ -49,6 +49,9 @@ public abstract class RefBaseObjectBase implements RefBaseObject
     private long mofId;
     private String refMofId;
     private RefObject metaObj;
+
+    private final Method[] cachedMethods;
+    private final Map<String, Method> createMethodCache;
     
     protected RefBaseObjectBase()
     {
@@ -64,6 +67,14 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         }
 
         loggingEnabled = log.isLoggable(Level.FINER);
+        
+        if (this instanceof RefClass || this instanceof RefPackage) {
+            this.cachedMethods = getClass().getMethods();
+            this.createMethodCache = new HashMap<String, Method>();
+        } else {
+            this.cachedMethods = null;
+            this.createMethodCache = null;
+        }
     }
     
     /**
@@ -237,7 +248,10 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         List<?> params,
         Class<E> resultType)
     {
-        if (!(this instanceof RefClass || this instanceof RefPackage)) {
+        if (cachedMethods == null) {
+            // We only initialize this field for RefClass of RefPackage 
+            // instances, so if it's no initialized, it's an error.  (Only
+            // RefClass and RefPackage have refCreateXXX methods.)
             throw new InternalJmiError(
                 "bad call: createInstance only valid on RefClass/RefPackage");
         }
@@ -256,54 +270,48 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         
         if (params == null) {
             params = Collections.emptyList();
-        }
-        
-        Method[] methods = getClass().getMethods();
-        
+        }        
+
         WrongSizeException wse = null;
         TypeMismatchException tme = null;
+
+        String cacheKey = 
+            new StringBuilder(typeName)
+                .append('/')
+                .append(params.size())
+                .toString();
         
-        METHOD_SEARCH:
-        for(Method method: methods) {
-            if (resultType.isAssignableFrom(method.getReturnType()) &&
-                method.getName().startsWith("create")) {
-    
-                Class<?>[] paramTypes = method.getParameterTypes();
-                if (paramTypes.length != params.size()) {
-                    if (wse == null) {
-                        wse = new WrongSizeException(type, typeName);
-                    }
-                    continue;
-                }
-    
-                for(int i = 0; i < paramTypes.length; i++) {
-                    Object param = params.get(i);
-                    if (param == null) {
-                        // Assume a type match.
-                        continue;
-                    }
-                    
-                    Class<?> callerParamType = param.getClass();
-                    Class<?> paramType = paramTypes[i];
-                    
-                    if (paramType.isPrimitive()) {
-                        paramType = Primitives.getWrapper(paramType);
-                    }
-                    
-                    if (!paramType.isAssignableFrom(callerParamType)) {
-                        if (tme == null) {
-                            tme = 
-                                new TypeMismatchException(
-                                    paramType, params.get(i), type, typeName);
-                        }
-                        continue METHOD_SEARCH;
-                    }
-                }
-                
-                // All param types are assignable, so this must be the
-                // factory method we want to call.
+        Method cachedCreateMethod = createMethodCache.get(cacheKey);
+        if (cachedCreateMethod != null) {
+            // Validate that the given parameters match the cached method.
+            JmiException ex = 
+                checkCreateMethod(
+                    cachedCreateMethod, resultType, type, typeName, params);
+            if (ex != null) {
+                throw ex;
+            }
+
+            return invokeMethod(
+                resultType, this, cachedCreateMethod, params.toArray());
+        }
+
+        // Search all methods for one that matches.
+        for(Method method: cachedMethods) {
+            JmiException ex =
+                checkCreateMethod(method, resultType, type, typeName, params);
+            if (ex == null) {
+                createMethodCache.put(cacheKey, method);
+
                 return invokeMethod(
                     resultType, this, method, params.toArray());
+            }
+
+            // If the returned exception is one of these types, then it must
+            // have matched the name check 
+            if (tme == null && ex instanceof TypeMismatchException) {
+                tme = (TypeMismatchException)ex;
+            } else if (wse == null && ex instanceof WrongSizeException) {
+                wse = (WrongSizeException)ex;
             }
         }
         
@@ -320,6 +328,62 @@ public abstract class RefBaseObjectBase implements RefBaseObject
         } else {
             throw new InvalidNameException(typeName);
         }
+    }
+
+    /**
+     * Tests the given method to see if it is a factory method for the given
+     * type and parameters.  If the method returns null, the method is the
+     * correct factory method and may be invoked with the given parameters.
+     * Otherwise the result is the appropriate {@link WrongSizeException},
+     * {@link TypeMismatchException}, {@link InvalidCallException}, or
+     * {@link InvalidNameException} which should be thrown if no other 
+     * appropriate method can be found through further searching.
+     *
+     * @param method the method to test
+     * @param type the excepted result type as a RefObject
+     * @param typeName the excepted result type's name, may be null
+     * @param params params passed by the caller
+     * @return null if method matches type/params; an exception otherwise
+     */
+    private JmiException checkCreateMethod(
+        Method method,
+        Class<?> resultType,
+        RefObject type,
+        String typeName,
+        List<?> params)
+    {
+        if (resultType.isAssignableFrom(method.getReturnType()) &&
+            method.getName().startsWith("create")) {
+    
+            Class<?>[] paramTypes = method.getParameterTypes();
+            if (paramTypes.length != params.size()) {
+                return new WrongSizeException(type, typeName);
+            }
+    
+            for(int i = 0; i < paramTypes.length; i++) {
+                Object param = params.get(i);
+                if (param == null) {
+                    // Assume a type match.
+                    continue;
+                }
+                
+                Class<?> callerParamType = param.getClass();
+                Class<?> paramType = paramTypes[i];
+                
+                if (paramType.isPrimitive()) {
+                    paramType = Primitives.getWrapper(paramType);
+                }
+                
+                if (!paramType.isAssignableFrom(callerParamType)) {
+                    return new TypeMismatchException(
+                        paramType, params.get(i), type, typeName);
+                }
+            }
+
+            return null;
+        }
+
+        return new InvalidNameException(typeName);
     }
 
     /**

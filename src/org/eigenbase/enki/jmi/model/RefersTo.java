@@ -40,8 +40,10 @@ public class RefersTo
         super(
             container,
             "referent",
+            javax.jmi.model.Reference.class,
             new Multiplicity(0, -1, false, true),
             "referencedEnd",
+            javax.jmi.model.AssociationEnd.class,
             new Multiplicity(1, 1, false, false));
 
     }
@@ -85,16 +87,6 @@ public class RefersTo
         javax.jmi.model.AssociationEnd referencedEnd)
     {
         return super.refRemoveLink(referent, referencedEnd);
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getFirstEndType()
-    {
-        return javax.jmi.model.Reference.class;
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getSecondEndType()
-    {
-        return javax.jmi.model.AssociationEnd.class;
     }
 }
 

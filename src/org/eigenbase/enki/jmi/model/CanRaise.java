@@ -40,8 +40,10 @@ public class CanRaise
         super(
             container,
             "operation",
+            javax.jmi.model.Operation.class,
             new Multiplicity(0, -1, false, true),
             "except",
+            javax.jmi.model.MofException.class,
             new Multiplicity(0, -1, true, true));
 
     }
@@ -81,16 +83,6 @@ public class CanRaise
         javax.jmi.model.MofException except)
     {
         return super.refRemoveLink(operation, except);
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getFirstEndType()
-    {
-        return javax.jmi.model.Operation.class;
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getSecondEndType()
-    {
-        return javax.jmi.model.MofException.class;
     }
 }
 

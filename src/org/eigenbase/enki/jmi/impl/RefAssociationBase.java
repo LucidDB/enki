@@ -50,15 +50,19 @@ public abstract class RefAssociationBase
     private final Map<RefObject, Collection<RefAssociationLinkImpl>> secondToFirstMap;
     
     protected final String end1Name;
+    protected final Class<? extends RefObject> end1Class;
     protected final Multiplicity end1Multiplicity;
     protected final String end2Name;
+    protected final Class<? extends RefObject> end2Class;
     protected final Multiplicity end2Multiplicity;
     
     protected RefAssociationBase(
         RefPackage container, 
         String end1Name,
+        Class<? extends RefObject> end1Class,
         Multiplicity end1Multiplicity,
         String end2Name,
+        Class<? extends RefObject> end2Class,
         Multiplicity end2Multiplicity)
     {
         this.container = container;
@@ -71,9 +75,29 @@ public abstract class RefAssociationBase
             new HashMap<RefObject, Collection<RefAssociationLinkImpl>>();
 
         this.end1Name = end1Name;
+        this.end1Class = end1Class;
         this.end1Multiplicity = end1Multiplicity;
         this.end2Name = end2Name;
+        this.end2Class = end2Class;
         this.end2Multiplicity = end2Multiplicity;
+    }
+    
+    @Deprecated
+    protected RefAssociationBase(
+        RefPackage container, 
+        String end1Name,
+        Multiplicity end1Multiplicity,
+        String end2Name,
+        Multiplicity end2Multiplicity)
+    {
+        this(
+            container, 
+            end1Name,
+            null,
+            end1Multiplicity, 
+            end2Name,
+            null,
+            end2Multiplicity);
     }
     
     // Implement RefBaseObjectBase/RefBaseObject
@@ -183,19 +207,16 @@ public abstract class RefAssociationBase
     private void addToMap(
         RefAssociationLinkImpl link, boolean isFirstEnd, int index)
     {
-        RefObject end1 = link.refFirstEnd();
-        RefObject end2 = link.refSecondEnd();
-        
         Map<RefObject, Collection<RefAssociationLinkImpl>> map;
         RefObject key;
         Multiplicity multiplicity;
         if (isFirstEnd) {
             map = firstToSecondMap;
-            key = end1;
+            key = link.refFirstEnd();
             multiplicity = end2Multiplicity;
         } else {
             map = secondToFirstMap;
-            key = end2;
+            key = link.refSecondEnd();
             multiplicity = end1Multiplicity;
         }
         
@@ -335,9 +356,6 @@ public abstract class RefAssociationBase
         }
     }
     
-    protected abstract Class<? extends RefObject> getFirstEndType();
-    protected abstract Class<? extends RefObject> getSecondEndType();
-    
     protected void checkTypes(RefObject end1, RefObject end2)
     {
         checkFirstEndType(end1);
@@ -346,17 +364,15 @@ public abstract class RefAssociationBase
 
     protected void checkFirstEndType(RefObject end1)
     {
-        Class<?> end1Type = getFirstEndType();
-        if (!end1Type.isAssignableFrom(end1.getClass())) {
-            throw new TypeMismatchException(end1Type, this, end1);
+        if (!end1Class.isAssignableFrom(end1.getClass())) {
+            throw new TypeMismatchException(end1Class, this, end1);
         }
     }    
     
     protected void checkSecondEndType(RefObject end2)
     {
-        Class<?> end2Type = getSecondEndType();
-        if (!end2Type.isAssignableFrom(end2.getClass())) {
-            throw new TypeMismatchException(end2Type, this, end2);
+        if (!end2Class.isAssignableFrom(end2.getClass())) {
+            throw new TypeMismatchException(end2Class, this, end2);
         }
     }
     

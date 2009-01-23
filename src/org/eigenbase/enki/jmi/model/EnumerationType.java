@@ -99,7 +99,9 @@ public class EnumerationType
         this.isLeaf = isLeaf;
         this.isAbstract = isAbstract;
         this.visibility = visibility;
-        this.labels.addAll(labels);
+        if (labels != null) {
+            this.labels.addAll(labels);
+        }
     }
 
     // Attribute Methods
@@ -132,6 +134,9 @@ public class EnumerationType
 
     public boolean isRoot()
     {
+        if (isRoot == null) {
+            return false;
+        }
         return isRoot;
     }
 
@@ -142,6 +147,9 @@ public class EnumerationType
 
     public boolean isLeaf()
     {
+        if (isLeaf == null) {
+            return false;
+        }
         return isLeaf;
     }
 
@@ -152,6 +160,9 @@ public class EnumerationType
 
     public boolean isAbstract()
     {
+        if (isAbstract == null) {
+            return false;
+        }
         return isAbstract;
     }
 

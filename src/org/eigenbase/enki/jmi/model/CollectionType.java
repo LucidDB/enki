@@ -130,6 +130,9 @@ public class CollectionType
 
     public boolean isRoot()
     {
+        if (isRoot == null) {
+            return false;
+        }
         return isRoot;
     }
 
@@ -140,6 +143,9 @@ public class CollectionType
 
     public boolean isLeaf()
     {
+        if (isLeaf == null) {
+            return false;
+        }
         return isLeaf;
     }
 
@@ -150,6 +156,9 @@ public class CollectionType
 
     public boolean isAbstract()
     {
+        if (isAbstract == null) {
+            return false;
+        }
         return isAbstract;
     }
 

@@ -36,11 +36,15 @@ import org.eigenbase.enki.jmi.impl.*;
 public abstract class HibernateOneToOneRefAssociation<E1 extends RefObject, E2 extends RefObject>
     extends HibernateRefAssociation
 {
+    // REVIEW: SWZ: 2008-01-22: Consider whether generic type info can be
+    // pushed all the way down to RefAssociationBase, eliminating the need
+    // to double-store these classes.
+    
     /** Expected end 1 type. */
-    private final Class<E1> end1Class;
+    private final Class<E1> end1GenericClass;
     
     /** Expected end 2 type. */
-    private final Class<E2> end2Class;
+    private final Class<E2> end2GenericClass;
     
     protected HibernateOneToOneRefAssociation(
         RefPackage container,
@@ -56,12 +60,14 @@ public abstract class HibernateOneToOneRefAssociation<E1 extends RefObject, E2 e
             container,
             type,
             end1Name, 
+            end1Class,
             end1Multiplicity,
-            end2Name, 
+            end2Name,
+            end2Class,
             end2Multiplicity);
         
-        this.end1Class = end1Class;
-        this.end2Class = end2Class;
+        this.end1GenericClass = end1Class;
+        this.end2GenericClass = end2Class;
         
         assert(end1Multiplicity.isSingle());
         assert(end2Multiplicity.isSingle());
@@ -82,7 +88,7 @@ public abstract class HibernateOneToOneRefAssociation<E1 extends RefObject, E2 e
         if (c.isEmpty()) {
             return null;
         } else {
-            return end1Class.cast(c.iterator().next());
+            return end1GenericClass.cast(c.iterator().next());
         }
     }
 
@@ -93,20 +99,8 @@ public abstract class HibernateOneToOneRefAssociation<E1 extends RefObject, E2 e
         if (c.isEmpty()) {
             return null;
         } else {
-            return end2Class.cast(c.iterator().next());
+            return end2GenericClass.cast(c.iterator().next());
         }
-    }
-    
-    @Override
-    protected Class<? extends RefObject> getFirstEndType()
-    {
-        return end1Class;
-    }
-    
-    @Override
-    protected Class<? extends RefObject> getSecondEndType()
-    {
-        return end2Class;
     }
     
     /**

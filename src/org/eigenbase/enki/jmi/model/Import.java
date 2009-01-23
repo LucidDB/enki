@@ -121,6 +121,9 @@ public class Import
 
     public boolean isClustered()
     {
+        if (isClustered == null) {
+            return false;
+        }
         return isClustered;
     }
 

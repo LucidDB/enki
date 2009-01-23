@@ -40,8 +40,10 @@ public class Exposes
         super(
             container,
             "referrer",
+            javax.jmi.model.Reference.class,
             new Multiplicity(0, -1, false, true),
             "exposedEnd",
+            javax.jmi.model.AssociationEnd.class,
             new Multiplicity(1, 1, false, false));
 
     }
@@ -85,16 +87,6 @@ public class Exposes
         javax.jmi.model.AssociationEnd exposedEnd)
     {
         return super.refRemoveLink(referrer, exposedEnd);
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getFirstEndType()
-    {
-        return javax.jmi.model.Reference.class;
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getSecondEndType()
-    {
-        return javax.jmi.model.AssociationEnd.class;
     }
 }
 

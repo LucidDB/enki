@@ -38,11 +38,11 @@ import org.eigenbase.enki.jmi.impl.*;
 public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2 extends RefObject>
     extends HibernateRefAssociation
 {
-    /** Expected end 1 type. */
-    private final Class<E1> end1Class;
-
-    /** Expected end 2 type. */
-    private final Class<E2> end2Class;
+    // REVIEW: SWZ: 2008-01-22: Consider whether generic type info can be
+    // pushed all the way down to RefAssociationBase, eliminating the need
+    // to double-store these classes.
+    private final Class<E1> end1GenericClass;
+    private final Class<E2> end2GenericClass;
     
     protected HibernateManyToManyRefAssociation(
         RefPackage container,
@@ -58,15 +58,17 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
             container,
             type, 
             end1Name,
+            end1Class,
             end1Multiplicity, 
-            end2Name, 
+            end2Name,
+            end2Class,
             end2Multiplicity);
      
         assert(!end1Multiplicity.isSingle());
         assert(!end2Multiplicity.isSingle());
         
-        this.end1Class = end1Class;
-        this.end2Class = end2Class;
+        this.end1GenericClass = end1Class;
+        this.end2GenericClass = end2Class;
     }
 
     /**
@@ -92,14 +94,14 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
                 t,
                 false,
                 getAssociationIdentifier(),
-                end1Class);
+                end1GenericClass);
         } else {
             return new CollectionProxy<E1>(
                 assoc,
                 (HibernateAssociable)t,
                 false,
                 getAssociationIdentifier(),
-                end1Class);
+                end1GenericClass);
         }
     }
 
@@ -118,25 +120,13 @@ public abstract class HibernateManyToManyRefAssociation<E1 extends RefObject, E2
                 s,
                 true,
                 getAssociationIdentifier(),
-                end2Class);
+                end2GenericClass);
         } else {
             return new CollectionProxy<E2>(
-                assoc, s, true, getAssociationIdentifier(), end2Class);
+                assoc, s, true, getAssociationIdentifier(), end2GenericClass);
         }
     }
 
-    @Override
-    protected Class<? extends RefObject> getFirstEndType()
-    {
-        return end1Class;
-    }
-    
-    @Override
-    protected Class<? extends RefObject> getSecondEndType()
-    {
-        return end2Class;
-    }
-    
     /**
      * Delegates to {@link #refAddLink(RefObject, RefObject)}.
      */

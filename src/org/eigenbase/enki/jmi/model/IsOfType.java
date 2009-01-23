@@ -40,8 +40,10 @@ public class IsOfType
         super(
             container,
             "type",
+            javax.jmi.model.Classifier.class,
             new Multiplicity(1, 1, false, false),
             "typedElements",
+            javax.jmi.model.TypedElement.class,
             new Multiplicity(0, -1, false, true));
 
     }
@@ -85,16 +87,6 @@ public class IsOfType
         javax.jmi.model.TypedElement typedElements)
     {
         return super.refRemoveLink(type, typedElements);
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getFirstEndType()
-    {
-        return javax.jmi.model.Classifier.class;
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getSecondEndType()
-    {
-        return javax.jmi.model.TypedElement.class;
     }
 }
 

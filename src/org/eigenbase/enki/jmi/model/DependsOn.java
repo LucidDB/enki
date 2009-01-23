@@ -40,8 +40,10 @@ public class DependsOn
         super(
             container,
             "dependent",
+            javax.jmi.model.ModelElement.class,
             new Multiplicity(0, -1, false, true),
             "provider",
+            javax.jmi.model.ModelElement.class,
             new Multiplicity(0, -1, false, true));
 
     }
@@ -69,16 +71,6 @@ public class DependsOn
             "dependent", dependent);
     }
 
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getFirstEndType()
-    {
-        return javax.jmi.model.ModelElement.class;
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getSecondEndType()
-    {
-        return javax.jmi.model.ModelElement.class;
-    }
 }
 
 // End DependsOn.java

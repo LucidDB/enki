@@ -40,8 +40,10 @@ public class Generalizes
         super(
             container,
             "supertype",
+            javax.jmi.model.GeneralizableElement.class,
             new Multiplicity(0, -1, true, true),
             "subtype",
+            javax.jmi.model.GeneralizableElement.class,
             new Multiplicity(0, -1, false, true));
 
     }
@@ -81,16 +83,6 @@ public class Generalizes
         javax.jmi.model.GeneralizableElement subtype)
     {
         return super.refRemoveLink(supertype, subtype);
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getFirstEndType()
-    {
-        return javax.jmi.model.GeneralizableElement.class;
-    }
-
-    protected Class<? extends javax.jmi.reflect.RefObject> getSecondEndType()
-    {
-        return javax.jmi.model.GeneralizableElement.class;
     }
 }
 

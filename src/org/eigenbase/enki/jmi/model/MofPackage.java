@@ -123,6 +123,9 @@ public class MofPackage
 
     public boolean isRoot()
     {
+        if (isRoot == null) {
+            return false;
+        }
         return isRoot;
     }
 
@@ -133,6 +136,9 @@ public class MofPackage
 
     public boolean isLeaf()
     {
+        if (isLeaf == null) {
+            return false;
+        }
         return isLeaf;
     }
 
@@ -143,6 +149,9 @@ public class MofPackage
 
     public boolean isAbstract()
     {
+        if (isAbstract == null) {
+            return false;
+        }
         return isAbstract;
     }
 
