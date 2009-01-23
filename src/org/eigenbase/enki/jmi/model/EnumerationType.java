@@ -33,7 +33,7 @@ import org.eigenbase.enki.jmi.impl.*;
  * @author {@link org.eigenbase.enki.codegen.MofImplementationHandler}
  */
 public class EnumerationType
-    extends RefObjectBase
+    extends org.eigenbase.enki.jmi.impl.GeneralizableElementBase
     implements javax.jmi.model.EnumerationType
 {
     // Attribute Fields

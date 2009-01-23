@@ -33,7 +33,7 @@ import org.eigenbase.enki.jmi.impl.*;
  * @author {@link org.eigenbase.enki.codegen.MofImplementationHandler}
  */
 public class MofException
-    extends RefObjectBase
+    extends org.eigenbase.enki.jmi.impl.NamespaceBase
     implements javax.jmi.model.MofException
 {
     // Attribute Fields

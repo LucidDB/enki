@@ -23,6 +23,13 @@ package org.eigenbase.enki.codegen;
 
 import java.util.*;
 
+import javax.jmi.model.*;
+
+import org.eigenbase.enki.jmi.impl.*;
+import org.eigenbase.enki.util.*;
+
+import sun.security.action.*;
+
 /**
  * MofImplementationHandler is used to generate classes in the
  * {@link org.eigenbase.enki.jmi.impl} package.  This generator is typically 
@@ -33,6 +40,21 @@ import java.util.*;
 public class MofImplementationHandler
     extends TransientImplementationHandler
 {
+    private static final JavaClassReference DEPENDS_ON_BASE_CLASS =
+        new JavaClassReference(DependsOnBase.class, false);
+    
+    private static final JavaClassReference MODEL_ELEMENT_BASE_CLASS =
+        new JavaClassReference(ModelElementBase.class, false);
+    
+    private static final JavaClassReference GENERALIZABLE_ELEMENT_BASE_CLASS =
+        new JavaClassReference(GeneralizableElementBase.class, false);
+
+    private static final JavaClassReference NAMESPACE_BASE_CLASS =
+        new JavaClassReference(NamespaceBase.class, false);
+    
+    private static final JavaClassReference ASSOCIATION_END_BASE_CLASS =
+        new JavaClassReference(AssociationEndBase.class, false);
+    
     public MofImplementationHandler()
     {
         super();
@@ -64,6 +86,57 @@ public class MofImplementationHandler
     protected String computeSuffix(String baseSuffix)
     {
         return baseSuffix;
+    }
+    
+    protected JavaClassReference getAssociationBaseClass(
+        AssociationInfo assocInfo)
+    throws GenerationException
+    {
+        JavaClassReference baseClass = REF_ASSOC_IMPL_CLASS;
+        if (!assocInfo.isChangeable(0) && !assocInfo.isChangeable(1)) {
+            // DependsOn Associations require special handling: the existence
+            // of dependencies between objects is intrinsic to the model, 
+            // rather than the creation of arbitrary associations.
+            if (!assocInfo.getAssoc().getName().equals("DependsOn")) {
+                throw new GenerationException(
+                    "Unhandled derived association: " + 
+                    assocInfo.getAssoc().getName());
+            }
+            baseClass = DEPENDS_ON_BASE_CLASS;
+        }
+
+        return baseClass;
+    }
+    
+    protected JavaClassReference getClassInstanceBaseClass(MofClass cls)
+        throws GenerationException
+    {
+        List<?> supertypes = cls.allSupertypes();
+        Set<String> supertypeNames = new HashSet<String>();
+        for(MofClass supertype: 
+                GenericCollections.asTypedList(supertypes, MofClass.class))
+        {
+            supertypeNames.add(supertype.getName());
+        }
+        supertypeNames.add(cls.getName());
+
+        if (supertypeNames.contains("GeneralizableElement")) {
+            return GENERALIZABLE_ELEMENT_BASE_CLASS;
+        }
+        
+        if (supertypeNames.contains("Namespace")) {
+            return NAMESPACE_BASE_CLASS;
+        }
+        
+        if (supertypeNames.contains("AssociationEnd")) {
+            return ASSOCIATION_END_BASE_CLASS;
+        }
+        
+        if (supertypeNames.contains("ModelElement")) {
+            return MODEL_ELEMENT_BASE_CLASS;
+        }
+        
+        return REF_OBJECT_IMPL_CLASS;
     }
 }
 

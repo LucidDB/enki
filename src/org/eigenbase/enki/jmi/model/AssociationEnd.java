@@ -33,7 +33,7 @@ import org.eigenbase.enki.jmi.impl.*;
  * @author {@link org.eigenbase.enki.codegen.MofImplementationHandler}
  */
 public class AssociationEnd
-    extends RefObjectBase
+    extends org.eigenbase.enki.jmi.impl.AssociationEndBase
     implements javax.jmi.model.AssociationEnd
 {
     // Attribute Fields

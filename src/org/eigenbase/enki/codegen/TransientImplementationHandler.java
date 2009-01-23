@@ -69,10 +69,10 @@ public abstract class TransientImplementationHandler
     private static final String MOF_CLASS_PROXY_COMMENT = 
         "Implements MOF''s {0} class proxy interface." + AUTHOR_NOTE;
 
-    private static final JavaClassReference REF_OBJECT_IMPL_CLASS =
+    protected static final JavaClassReference REF_OBJECT_IMPL_CLASS =
         new JavaClassReference(RefObjectBase.class, true);
     
-    private static final JavaClassReference REF_ASSOC_IMPL_CLASS =
+    protected static final JavaClassReference REF_ASSOC_IMPL_CLASS =
         new JavaClassReference(RefAssociationBase.class, true);
     
     private static final JavaClassReference REF_CLASS_IMPL_CLASS =
@@ -83,9 +83,6 @@ public abstract class TransientImplementationHandler
     
     private static final JavaClassReference REF_STRUCT_IMPL_CLASS =
         new JavaClassReference(RefStructBase.class, true);
-    
-    private static final JavaClassReference DEPENDS_ON_BASE_CLASS =
-        new JavaClassReference(DependsOnBase.class, true);
     
     /**
      * Name of the class used to stored unordered collections of attributes.
@@ -138,7 +135,6 @@ public abstract class TransientImplementationHandler
         MULTIPLICITY_CLASS,
         COLLECTION_CLASS,
         ORDERED_COLLECTION_CLASS,
-        DEPENDS_ON_BASE_CLASS,
     };
     
     private static final JavaClassReference[] CLASS_PROXY_REFS = {
@@ -200,17 +196,7 @@ public abstract class TransientImplementationHandler
         
         log.fine("Generating Association Implementation '" + typeName + "'");
 
-        String baseClass = REF_ASSOC_IMPL_CLASS.toString();
-        if (!assocInfo.isChangeable(0) && !assocInfo.isChangeable(1)) {
-            // DependsOn Associations require special handling: the existence
-            // of dependencies between objects is intrinsic to the model, 
-            // rather than the creation of arbitrary associations.
-            if (!assoc.getName().equals("DependsOn")) {
-                throw new GenerationException(
-                    "Unhandled derived association: " + assoc.getName());
-            }
-            baseClass = DEPENDS_ON_BASE_CLASS.toString();
-        }
+        String baseClass = getAssociationBaseClass(assocInfo).toString();
         
         open(typeName);
         try {
@@ -314,6 +300,13 @@ public abstract class TransientImplementationHandler
         }            
     }
 
+    protected JavaClassReference getAssociationBaseClass(
+        AssociationInfo assocInfo)
+    throws GenerationException
+    {
+        return REF_ASSOC_IMPL_CLASS;
+    }
+    
     /**
      * Allows subclasses to perform additional initialization during 
      * construction of a association proxy object.
@@ -433,10 +426,12 @@ public abstract class TransientImplementationHandler
             imports.addAll(Arrays.asList(CLASS_INSTANCE_REFS));
             imports.addAll(Arrays.asList(extraInterfaces));
             
+            JavaClassReference baseClass = getClassInstanceBaseClass(cls);
+            
             writeClassHeader(
                 cls, 
                 typeName,
-                REF_OBJECT_IMPL_CLASS.toString(),
+                baseClass.toString(),
                 interfaces,
                 JavaClassReference.computeImports(
                     imports.toArray(new JavaClassReference[0])),
@@ -901,6 +896,12 @@ public abstract class TransientImplementationHandler
         finally {
             close();
         }
+    }
+    
+    protected JavaClassReference getClassInstanceBaseClass(MofClass cls)
+        throws GenerationException
+    {
+        return REF_OBJECT_IMPL_CLASS;
     }
 
     private void generateAssocExpression(MofClass fromCls, Association toAssoc)

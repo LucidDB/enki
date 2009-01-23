@@ -122,7 +122,7 @@ public abstract class RefFeaturedBase
         
         Method method = findMethod(type, null, false, 1);
         
-        if (method != null&& isMutable(method, value.getClass())) {
+        if (method != null && isMutable(method, value.getClass())) {
             invokeMethod(Void.class, this, method, value);
             return;
         }
@@ -136,7 +136,7 @@ public abstract class RefFeaturedBase
 
         Method method = findMethod(null, typeName, false, 1);
         
-        if (method != null&& isMutable(method, value.getClass())) {
+        if (method != null && isMutable(method, value.getClass())) {
             invokeMethod(Void.class, this, method, value);
             return;
         }
@@ -236,9 +236,8 @@ public abstract class RefFeaturedBase
     private boolean isMutable(Method method, Class<?> valueType)
     {
         Class<?>[] paramTypes = method.getParameterTypes();
-        assert(paramTypes.length == 1);
 
-        // Value type must by assignable to the methods single parameter
+        // Value type must by assignable to the method's single parameter
         Class<?> paramType = paramTypes[0];
         
         if (paramType.isPrimitive()) {
@@ -246,8 +245,7 @@ public abstract class RefFeaturedBase
         }
         
         return 
-            paramType.isAssignableFrom(valueType) &&
-            !Collection.class.isAssignableFrom(paramType);
+            paramType.isAssignableFrom(valueType);
     }
     
     private Method findOperationMethod(

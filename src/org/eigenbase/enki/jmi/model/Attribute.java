@@ -33,7 +33,7 @@ import org.eigenbase.enki.jmi.impl.*;
  * @author {@link org.eigenbase.enki.codegen.MofImplementationHandler}
  */
 public class Attribute
-    extends RefObjectBase
+    extends org.eigenbase.enki.jmi.impl.ModelElementBase
     implements javax.jmi.model.Attribute
 {
     // Attribute Fields
