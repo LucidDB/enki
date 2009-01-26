@@ -68,8 +68,10 @@ if [ $LAST_CHANGE -ne $LAST_SYNCED ]; then
 	**********************************************************************
 	Warning: The lastest change on this source tree appears to be $LAST_CHANGE,
 	but the latest change synchronized on this source tree appears to be
-	$LAST_SYNCED. Note that partially synchronized	changes cannot be
-	detected.
+	$LAST_SYNCED. Note that partially synchronized changes cannot be
+	detected.  Also note that if the last change contained only deletes,
+	it will not be detected and the wrong change number will be embedded
+	into the build.
 
 	Change $LAST_SYNCED will be embedded into the build.
 	**********************************************************************
