@@ -24,7 +24,6 @@ package org.eigenbase.enki.trans.codegen;
 import java.util.*;
 
 import org.eigenbase.enki.codegen.*;
-import org.eigenbase.enki.hibernate.codegen.*;
 
 /**
  * TransientGenerator is the main entry point for generating code to work
@@ -52,6 +51,14 @@ import org.eigenbase.enki.hibernate.codegen.*;
  *     Optional.
  *   </td>
  * </tr>
+ * <tr>
+ *   <td align="left">{@value #JMI_INTERFACES_OPTION}</td>
+ *   <td align="left">
+ *     Boolean flag to control whether the generated code includes the JMI
+ *     interfaces (requiring them to be generated separately).  Defaults to
+ *     false. Optional, defaults to {@value #DEFAULT_JMI_INTERFACES_OPTION}.
+ *   </td>
+ * </tr>
  * </table>
  * 
  * @author Stephan Zuercher
@@ -67,10 +74,24 @@ public class TransientGenerator
      */
     public static final String INCLUDE_PACKAGE_OPTION = "include";
 
+    /**
+     * Name of the generator option that controls whether JMI interfaces are
+     * generated.  Defaults to {@link #DEFAULT_JMI_INTERFACES_OPTION}.
+     */
+    public static final String JMI_INTERFACES_OPTION = "jmiInterfaces";
+
+    /**
+     * Default value for {@link #JMI_INTERFACES_OPTION}.
+     */
+    public static final boolean DEFAULT_JMI_INTERFACES_OPTION = true;
+
     public static final String IMPL_SUFFIX = "$Trans";
     
     /** Plug-in flag. */
     private boolean pluginMode;
+
+    /** JMI interfaces option. */
+    private boolean jmiInterfaces;
     
     /**
      * Included package list.
@@ -89,7 +110,7 @@ public class TransientGenerator
     }
     
     /**
-     * Accepts the options described in {@link HibernateGenerator} and ignores 
+     * Accepts the options described in {@link TransientGenerator} and ignores 
      * all others.
      * 
      * @param options map of option name to option value
@@ -114,14 +135,23 @@ public class TransientGenerator
             includedPackageList = 
                 Collections.unmodifiableList(includedPackageList);
         }
+
+        String jmiInterfacesOption = options.get(JMI_INTERFACES_OPTION);
+        if (jmiInterfacesOption != null) {
+            jmiInterfaces = Boolean.parseBoolean(jmiInterfacesOption);
+        } else {
+            jmiInterfaces = DEFAULT_JMI_INTERFACES_OPTION;
+        }
     }
     
     @Override
     protected void configureHandlers()
     {
-        JmiTemplateHandler jmiTemplateHandler = new JmiTemplateHandler();
-        jmiTemplateHandler.setIncludes(includedPackageList);
-        addHandler(jmiTemplateHandler);
+        if (jmiInterfaces) {
+            JmiTemplateHandler jmiTemplateHandler = new JmiTemplateHandler();
+            jmiTemplateHandler.setIncludes(includedPackageList);
+            addHandler(jmiTemplateHandler);
+        }
         
         TransientHandler transientHandler = new TransientHandler();
         transientHandler.setExtentName(getExtentName());
@@ -129,14 +159,11 @@ public class TransientGenerator
         transientHandler.setIncludes(includedPackageList);
         addHandler(transientHandler);
         
-        // TODO: HibernateMofInitHandler is actually pretty generic. Factor
-        // out the one Hibernate-ism (IMPL_SUFFIX from HibernateJavaHandler)
-        // and move it elsewhere.
-        MofInitHandler mofInitHandler = 
-            new HibernateMofInitHandler(transientHandler);
-        mofInitHandler.setPluginMode(pluginMode);
-        mofInitHandler.setIncludes(includedPackageList);
-        addHandler(mofInitHandler);
+        MetamodelInitHandler metamodelInitHandler =
+            new MetamodelInitHandler(transientHandler);
+        metamodelInitHandler.setPluginMode(pluginMode);
+        metamodelInitHandler.setIncludes(includedPackageList);
+        addHandler(metamodelInitHandler);
     }
 
     public static void main(String[] args)

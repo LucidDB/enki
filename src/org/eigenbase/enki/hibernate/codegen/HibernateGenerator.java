@@ -249,8 +249,8 @@ public class HibernateGenerator extends MdrGenerator
         }
         addHandler(mappingHandler);
         
-        HibernateMofInitHandler metamodelInitHandler = 
-            new HibernateMofInitHandler(mappingHandler);
+        MetamodelInitHandler metamodelInitHandler = 
+            new MetamodelInitHandler(mappingHandler);
         metamodelInitHandler.setIncludes(includedPackageList);
         metamodelInitHandler.setPluginMode(pluginMode);
         addHandler(metamodelInitHandler);
