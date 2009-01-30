@@ -1,4 +1,4 @@
 # Sample customBuild.properties file.
 
-# Default test subsystem.  Possible values: hibernate, netbeans, hibernate-hsqldb
+# Default test subsystem.  Possible values: hibernate, netbeans, hibernate-hsqldb, transient
 enki.impl.default=hibernate
