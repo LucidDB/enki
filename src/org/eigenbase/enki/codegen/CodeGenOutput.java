@@ -57,7 +57,7 @@ public interface CodeGenOutput
      * Equivalent to calling {@link #write(Object...)} followed by
      * {@link #newLine()}.
      * 
-     * @param strings objects to conver to strings and write to the output
+     * @param strings objects to convert to strings and write to the output
      */
     public void writeln(Object... strings);
 
