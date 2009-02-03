@@ -106,6 +106,8 @@ public class ApplyTablePrefixSubTask extends EnkiTask.SubTask
         if (tablePrefix == null) {
             tablePrefix = "";
         }
+
+        verbose("Table Prefix: [" + tablePrefix + "]");
         
         List<File> files = new ArrayList<File>();
         
@@ -132,11 +134,12 @@ public class ApplyTablePrefixSubTask extends EnkiTask.SubTask
                 throw new BuildException("Cannot read file: " + f);
             }
         }
-        
+
         byte[] buffer = new byte[8192];
         for(File f: files) {
             File outputFile = new File(output, f.getName());
             
+            verbose(f.toString() + " - > " + outputFile.toString());
             try {
                 TablePrefixInputStream in = 
                     new TablePrefixInputStream(

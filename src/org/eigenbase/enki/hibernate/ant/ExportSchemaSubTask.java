@@ -171,7 +171,9 @@ public class ExportSchemaSubTask
         
         Properties storageProps = getStorageProperties();
         
-        // Emit DDL with the prefix reference as the prefix.
+        // Emit DDL with the prefix reference as the prefix.  Clone the 
+        // properties to avoid side effects on other sub tasks.
+        storageProps = (Properties)storageProps.clone();
         storageProps.setProperty(
             HibernateMDRepository.PROPERTY_STORAGE_TABLE_PREFIX, 
             HibernateMappingHandler.TABLE_REF);
