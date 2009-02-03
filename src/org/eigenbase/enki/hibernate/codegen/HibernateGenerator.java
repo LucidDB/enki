@@ -43,14 +43,6 @@ import org.eigenbase.enki.codegen.*;
  *   <th align="left">Description</th>
  * </tr>
  * <tr>
- *   <td align="left">{@value #TABLE_PREFIX_OPTION}</td>
- *   <td align="left">
- *     A prefix to be used for all metamodel-specific tables.  Use is optional,
- *     but highly recommended.  Without this option only a single metamodel
- *     can be stored in a particular database schema.
- *   </td>
- * </tr>
- * <tr>
  *   <td align="left">{@value #DEFAULT_STRING_LENGTH_OPTION}</td>
  *   <td align="left">
  *     Controls the default length of string columns.  If unspecified, 
@@ -103,9 +95,6 @@ import org.eigenbase.enki.codegen.*;
  */
 public class HibernateGenerator extends MdrGenerator
 {
-    /** Name of the generator option that controls the table prefix. */
-    public static final String TABLE_PREFIX_OPTION = "tablePrefix";
-    
     /** 
      * Name of the generator option that controls the default string length. 
      */
@@ -178,14 +167,6 @@ public class HibernateGenerator extends MdrGenerator
     @Override
     public void setOptions(Map<String, String> options)
     {
-        tablePrefix = options.get(TABLE_PREFIX_OPTION);
-        
-        if (tablePrefix == null || tablePrefix.length() == 0) {
-            System.err.println(
-                "WARNING: use of tablePrefix option is highly recommended");
-            tablePrefix = null;
-        }
-        
         String lengthValue = options.get(DEFAULT_STRING_LENGTH_OPTION);
         if (lengthValue != null) {
             defaultStringLength = Integer.parseInt(lengthValue);
@@ -240,7 +221,6 @@ public class HibernateGenerator extends MdrGenerator
         
         HibernateMappingHandler mappingHandler = new HibernateMappingHandler();
         mappingHandler.setExtentName(getExtentName());
-        mappingHandler.setTablePrefix(tablePrefix);
         mappingHandler.setIncludes(includedPackageList);
         mappingHandler.setPluginMode(pluginMode);
         mappingHandler.setGenerateViews(generateViews);

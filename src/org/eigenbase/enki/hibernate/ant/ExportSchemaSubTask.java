@@ -28,6 +28,7 @@ import java.util.*;
 import org.apache.tools.ant.*;
 import org.eigenbase.enki.ant.*;
 import org.eigenbase.enki.hibernate.*;
+import org.eigenbase.enki.hibernate.codegen.*;
 import org.eigenbase.enki.hibernate.config.*;
 import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.mdr.*;
@@ -169,6 +170,11 @@ public class ExportSchemaSubTask
         }
         
         Properties storageProps = getStorageProperties();
+        
+        // Emit DDL with the prefix reference as the prefix.
+        storageProps.setProperty(
+            HibernateMDRepository.PROPERTY_STORAGE_TABLE_PREFIX, 
+            HibernateMappingHandler.TABLE_REF);
         
         List<Properties> modelProperties = 
             MDRepositoryFactory.getRepositoryProperties(storageProps);

@@ -177,13 +177,6 @@ public class HibernateMDRepository
         "enki.model.plugin";
 
     /**
-     * Configuration file property that specifies the table name prefix for
-     * a given model's schema.
-     */
-    public static final String PROPERTY_MODEL_TABLE_PREFIX =
-        "enki.model.tablePrefix";
-    
-    /**
      * Configuration file property that specifies a packaging version for
      * the model's schema.  This value may change from release to release.
      * Compatibility between versions will be documented elsewhere.  
@@ -445,6 +438,19 @@ public class HibernateMDRepository
     public static final String DEFAULT_CREATE_SCHEMA = "DISABLED";
     
     /**
+     * Storage property that controls the table prefix used for tables in
+     * this repository's storage. efaults to {@link #DEFAULT_TABLE_PREFIX}.
+     */
+    public static final String PROPERTY_STORAGE_TABLE_PREFIX =
+        "org.eigenbase.enki.hibernate.tablePrefix";
+    
+    /**
+     * The default value of {@link #PROPERTY_STORAGE_TABLE_PREFIX}.
+     * The default is {@value}.
+     */
+    public static final String DEFAULT_TABLE_PREFIX = "";
+    
+    /**
      * Identifier for the built-in MOF extent.
      */
     public static final String MOF_EXTENT = "MOF";
@@ -530,6 +536,9 @@ public class HibernateMDRepository
     
     /** The SQL dialect in use by the configured database. */
     private Dialect sqlDialect;
+
+    /** The prefix for all tables in this repository. */
+    private final String tablePrefix;
     
     private boolean previewDelete;
 
@@ -549,7 +558,7 @@ public class HibernateMDRepository
             new IdentityHashMap<MDRChangeListener, EnkiMaskedMDRChangeListener>();
         this.classRegistry = new HashMap<String, HibernateRefClass>();
         this.assocRegistry = new HashMap<String, HibernateRefAssociation>();
-        
+
         int jdbcBatchSize = 
             readStorageProperty(
                 PROPERTY_STORAGE_HIBERNATE_JDBC_BATCH_SIZE, -1, Integer.class);
@@ -612,6 +621,12 @@ public class HibernateMDRepository
             this.createSchema = false;
             this.createViews = false;
         }
+
+        this.tablePrefix = 
+            readStorageProperty(
+                PROPERTY_STORAGE_TABLE_PREFIX, 
+                DEFAULT_TABLE_PREFIX, 
+                String.class);
         
         // Initialize our data source as necessary.
         this.dataSourceConfigurator = 
@@ -1035,6 +1050,7 @@ public class HibernateMDRepository
                                 }
                                 MofIdTypeMapping mapping = new MofIdTypeMapping();
                                 mapping.setMofId(entry.getKey());
+                                mapping.setTablePrefix(tablePrefix);
                                 mapping.setTypeName(entry.getValue().getName());
                                 mdrSession.session.save(mapping);
                             }
@@ -1841,6 +1857,11 @@ public class HibernateMDRepository
         return props;
     }
     
+    public String getTablePrefix()
+    {
+        return tablePrefix;
+    }
+    
     private MdrSession getMdrSession()
     {
         MdrSession session = sessionStack.peek(this);
@@ -2329,6 +2350,15 @@ public class HibernateMDRepository
             String extentName = extent.getExtentName();
             String modelExtentName = extent.getModelExtentName();
             String annotation = extent.getAnnotation();
+            String extentTablePrefix = extent.getTablePrefix();
+            
+            if (extentTablePrefix != null &&
+                !tablePrefix.equals(extentTablePrefix))
+            {
+                log.warning(
+                    "Ignoring extent '" + extentName + "': wrong prefix");
+                continue;
+            }
             
             if (modelExtentName.equals(MOF_EXTENT)) {
                 initModelExtent(extentName, false);                
@@ -2357,7 +2387,8 @@ public class HibernateMDRepository
                         modelExtentName + "'");
                 }
                 
-                ExtentDescriptor extentDesc = new ExtentDescriptor(extentName);
+                ExtentDescriptor extentDesc = 
+                    new ExtentDescriptor(extentName);
                 extentDesc.modelDescriptor = modelDesc;
                 extentDesc.annotation = annotation;
 
@@ -2368,10 +2399,42 @@ public class HibernateMDRepository
                         modelDesc.topLevelPkgCons.newInstance(
                             (Object)null);
                     
-                    for(MetamodelInitializer init: 
-                            modelExtentDesc.pluginInitializers)
-                    {
-                        init.stitchPackages(extentDesc.extent);
+                    Set<String> pluginNames = extent.getPlugins();
+                    if (pluginNames == null) {
+                        pluginNames = new HashSet<String>();
+                    } else {
+                        pluginNames = new HashSet<String>(pluginNames);
+                    }
+
+                    log.fine(
+                        "Configured plugins for extent '" + extentName + "': " 
+                        + pluginNames.toString());
+                    
+                    Iterator<ModelPluginDescriptor> pluginIter = 
+                        modelDesc.plugins.iterator();
+                    Iterator<MetamodelInitializer> initializerIter =
+                        modelExtentDesc.pluginInitializers.iterator();
+                    while(pluginIter.hasNext() && initializerIter.hasNext()) {
+                        ModelPluginDescriptor plugin = pluginIter.next();
+                        MetamodelInitializer init = initializerIter.next();
+                        
+                        if (pluginNames.contains(plugin.name)) {
+                            log.fine(
+                                "Stitching plugin '" + plugin.name 
+                                + "' to extent '" + extentName + "'");
+                            init.stitchPackages(extentDesc.extent);
+                            
+                            pluginNames.remove(plugin.name);
+                        }
+                    }
+                    
+                    // Warn that some plugins that existed during creation
+                    // are now gone.
+                    // REVIEW: SWZ: 2009-01-30: Throw instead?
+                    if (!pluginNames.isEmpty()) {
+                        log.warning(
+                            "Extent '" + extentName 
+                            + "': Missing model plugin(s): " + pluginNames);
                     }
                 } catch (Exception e) {
                     throw new ProviderInstantiationException(
@@ -2426,6 +2489,11 @@ public class HibernateMDRepository
         
         initModelStorage(modelDesc);
         
+        Set<String> configuredPlugins = new HashSet<String>();
+        for(ModelPluginDescriptor pluginDesc: modelDesc.plugins) {
+            configuredPlugins.add(pluginDesc.name);
+        }
+        
         ExtentDescriptor modelExtentDesc = extentMap.get(modelDesc.name);
         
         ExtentDescriptor extentDesc = new ExtentDescriptor(name);
@@ -2455,14 +2523,22 @@ public class HibernateMDRepository
 
         initModelViews(modelDesc, extentDesc.extent);
         
-        createExtentRecord(extentDesc.name, modelDesc.name);
+        createExtentRecord(
+            extentDesc.name, 
+            modelDesc.name, 
+            true, 
+            configuredPlugins);
         
         extentMap.put(name, extentDesc);
 
         return extentDesc;
     }
 
-    private void createExtentRecord(String extentName, String modelExtentName)
+    private void createExtentRecord(
+        String extentName, 
+        String modelExtentName, 
+        boolean setTablePrefix,
+        Set<String> existingPluginIdentifiers)
     {
         Session session = getCurrentSession();
         
@@ -2470,6 +2546,12 @@ public class HibernateMDRepository
         extentDbObj.setExtentName(extentName);
         extentDbObj.setModelExtentName(modelExtentName);
         extentDbObj.setAnnotation(null);
+        
+        if (setTablePrefix) {
+            extentDbObj.setTablePrefix(tablePrefix);
+        }
+        
+        extentDbObj.setPlugins(existingPluginIdentifiers);
         
         session.save(extentDbObj);
     }
@@ -2498,18 +2580,18 @@ public class HibernateMDRepository
             Query query = session.getNamedQuery("AllExtents");
             extents = 
                 GenericCollections.asTypedList(query.list(), Extent.class);
+            
+            // NOTE jvs 1-Dec-2008:  While loading an existing repository,
+            // we have to allow for the fact that it may have been created with
+            // multipleExtentsEnabled=true, since the application hasn't
+            // had a chance to enable this flag yet.
+            multipleExtentsEnabled = true;
+            loadExistingExtents(extents);
+            multipleExtentsEnabled = false;            
         } finally {
             trans.commit();
         }
 
-        // NOTE jvs 1-Dec-2008:  While loading an existing repository,
-        // we have to allow for the fact that it may have been created with
-        // multipleExtentsEnabled=true, since the application hasn't
-        // had a chance to enable this flag yet.
-        multipleExtentsEnabled = true;
-        loadExistingExtents(extents);
-        multipleExtentsEnabled = false;
-        
         thread = new EnkiChangeEventThread(this);
         thread.start();
     }
@@ -2727,7 +2809,7 @@ public class HibernateMDRepository
             new HibernateViewMappingUtil(
                 mappingOutput,
                 new Dialect[][] { { sqlDialect }},
-                modelDesc.properties.getProperty(PROPERTY_MODEL_TABLE_PREFIX));
+                tablePrefix);
 
         Set<Classifier> classes = new HashSet<Classifier>();
         LinkedList<RefPackage> pkgs = new LinkedList<RefPackage>();
@@ -2899,7 +2981,7 @@ public class HibernateMDRepository
         extentDesc.builtIn = true;
         
         if (isNew && !isMof) {
-            createExtentRecord(extentDesc.name, MOF_EXTENT);
+            createExtentRecord(extentDesc.name, MOF_EXTENT, false, null);
         }
         
         extentMap.put(name, extentDesc);

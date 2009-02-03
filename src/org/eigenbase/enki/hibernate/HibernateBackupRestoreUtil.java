@@ -75,11 +75,13 @@ public class HibernateBackupRestoreUtil
     
     private final HibernateMDRepository repos;
     private final Dialect dialect;
+    private final String tablePrefix;
     
     HibernateBackupRestoreUtil(HibernateMDRepository repos)
     {
         this.repos = repos;
         this.dialect = repos.getSqlDialect();
+        this.tablePrefix = repos.getTablePrefix();
     }
     
     /**
@@ -261,11 +263,12 @@ public class HibernateBackupRestoreUtil
                 }
                 assocTypesSeen.add(kind);
                 
-                String table = assoc.getTable();
+                String table = tablePrefix + assoc.getTable();
                 assocTables.add(table);
                 assocTableMofIdCols.putValues(table, assocColList);
                 String collectionTable = assoc.getCollectionTable();
                 if (collectionTable != null) {
+                    collectionTable = tablePrefix + collectionTable;
                     assocTables.add(collectionTable);
                     assocTableMofIdCols.putValues(
                         collectionTable, assocColList);
@@ -281,7 +284,7 @@ public class HibernateBackupRestoreUtil
                     continue;
                 }
 
-                String table = cls.getTable();
+                String table = tablePrefix + cls.getTable();
                 objectTables.add(table);
                 
                 objectTableMofIdCols.put(table, MOF_ID_COLUMN_NAME);
@@ -655,7 +658,8 @@ public class HibernateBackupRestoreUtil
                     continue;
                 }
     
-                tableClassMap.put(cls.getTable(), cls.getInstanceClass());
+                tableClassMap.put(
+                    tablePrefix + cls.getTable(), cls.getInstanceClass());
             }
             
             for(HibernateRefAssociation assoc:
@@ -663,10 +667,10 @@ public class HibernateBackupRestoreUtil
                         pkg.refAllAssociations(), 
                         HibernateRefAssociation.class))
             {
-                assocTables.add(assoc.getTable());
+                assocTables.add(tablePrefix + assoc.getTable());
                 String collectionTable = assoc.getCollectionTable();
                 if (collectionTable != null) {
-                    assocChildTables.add(collectionTable);
+                    assocChildTables.add(tablePrefix + collectionTable);
                 }
             }
         }

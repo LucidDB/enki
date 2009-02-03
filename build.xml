@@ -191,10 +191,16 @@
     <!-- Automatically create all tables and views. -->
     <replace file="${test.dir}/TestStorage.properties"
       token ="VIEW" value="AUTO"/>
+    <replace file="${test.dir}/TestStorage.properties"
+      token ="tablePrefix=SMPL_" value="tablePrefix=UMLM2_"/>
     <replace file="${test.dir}/TestPluginStorage.properties"
       token ="VIEW" value="AUTO"/>
+    <replace file="${test.dir}/TestPluginStorage.properties"
+      token ="tablePrefix=SMPL_" value="tablePrefix=UMLM2_"/>
     <replace file="${test.dir}/ComparisonTestStorage.properties"
       token ="VIEW" value="AUTO"/>
+    <replace file="${test.dir}/ComparisonTestStorage.properties"
+      token ="tablePrefix=SMPL_" value="tablePrefix=UMLM2_"/>
   </target>
 
   <target 
@@ -390,8 +396,7 @@
             file="${sample.model.xmi}"
             dir="${sample.catalog.dir}/java"
             extent="SampleMetamodel"
-            generatorClass="${gen.cls}"
-            generatorOptions="tablePrefix='SMPL_'"/>
+            generatorClass="${gen.cls}"/>
       </mdr-tasks>
     </enki.mdr>
   </target>
@@ -481,7 +486,7 @@
             dir="${sample.catalog.dir}/plugin/java"
             extent="SampleMetamodel"
             generatorClass="${gen.cls}"
-            generatorOptions="tablePrefix='SMPL_',plugin='true',include='eem.sample.plugin'"/>
+            generatorOptions="plugin='true',include='eem.sample.plugin'"/>
       </mdr-tasks>
     </enki.mdr>
   </target>
@@ -511,6 +516,17 @@
     <if>
       <matches string="${enki.impl}" pattern="^hibernate.*"/>
       <then>
+        <mkdir dir="${sample.catalog.dir}/sql"/>
+        <enki.mdr propertiesFile="${test.dir}/TestStorage.properties">
+          <mdr-tasks>
+            <applyTablePrefix output="${sample.catalog.dir}/sql">
+              <fileset dir="${sample.catalog.dir}/java">
+                <include name="**/*.sql"/>
+              </fileset>
+            </applyTablePrefix>
+          </mdr-tasks>
+        </enki.mdr>
+
         <property 
           file="${test.dir}/TestStorage.properties" 
           prefix="genSampleSchema"/>
@@ -521,10 +537,10 @@
           userid="${genSampleSchema.org.eigenbase.enki.hibernate.connection.username}"
           password="${genSampleSchema.org.eigenbase.enki.hibernate.connection.password}">
           <path>
-            <fileset dir="${sample.catalog.dir}/java">
+            <fileset dir="${sample.catalog.dir}/sql">
               <include name="**/provider.sql"/>
             </fileset>
-            <fileset dir="${sample.catalog.dir}/java">
+            <fileset dir="${sample.catalog.dir}/sql">
               <include name="**/create.sql"/>
             </fileset>
           </path>
@@ -551,6 +567,25 @@
     <if>
       <matches string="${enki.impl}" pattern="^hibernate.*"/>
       <then>
+        <mkdir dir="${sample.catalog.dir}/plugin/sql"/>
+        <mkdir dir="${sample.catalog.dir}/plugin/sql/base"/>
+        <enki.mdr 
+          propertiesFile="${test.dir}/TestPluginStorage.properties"
+          modelPathRef="sql_gen_path">
+          <mdr-tasks>
+            <applyTablePrefix output="${sample.catalog.dir}/plugin/sql/base">
+              <fileset dir="${sample.catalog.dir}/java">
+                <include name="**/*.sql"/>
+              </fileset>
+            </applyTablePrefix>
+            <applyTablePrefix output="${sample.catalog.dir}/plugin/sql">
+              <fileset dir="${sample.catalog.dir}/plugin/java">
+                <include name="**/*.sql"/>
+              </fileset>
+            </applyTablePrefix>
+          </mdr-tasks>
+        </enki.mdr>
+
         <property 
           file="${test.dir}/TestPluginStorage.properties" 
           prefix="genSamplePluginSchema"/>
@@ -561,33 +596,44 @@
           userid="${genSamplePluginSchema.org.eigenbase.enki.hibernate.connection.username}"
           password="${genSamplePluginSchema.org.eigenbase.enki.hibernate.connection.password}">
           <path>
-            <fileset dir="${sample.catalog.dir}/java">
-              <include name="**/provider.sql"/>
-            </fileset>
-            <fileset dir="${sample.catalog.dir}/java">
+            <fileset dir="${sample.catalog.dir}/plugin/sql/base">
               <include name="**/create.sql"/>
             </fileset>
-            <fileset dir="${sample.catalog.dir}/plugin/java">
+            <fileset dir="${sample.catalog.dir}/plugin/sql">
               <include name="**/create.sql"/>
             </fileset>
           </path>
         </sql>
+
+        <!-- For Hibernate: test sample and plugin repositiroes in the same
+             database, so don't need to create the sample metamodel extent. -->
+        <enki.mdr propertiesFile="${test.dir}/TestPluginStorage.properties">
+          <mdr-tasks>
+            <createExtent 
+              name="SamplePluginRepository"
+              extent="SampleMetamodel"
+              package="EEM"/>
+            <writeDtd extent="SamplePluginRepository" file="${sample.plugin.dtd}"/>
+          </mdr-tasks>
+        </enki.mdr>
       </then>
+      <else>
+        <enki.mdr propertiesFile="${test.dir}/TestPluginStorage.properties">
+          <mdr-tasks>
+            <createExtent name="SampleMetamodel"/>
+            <importXmi 
+              extent="SampleMetamodel"
+              file="${sample.plugin.model.xmi}" />
+            <createExtent 
+              name="SamplePluginRepository"
+              extent="SampleMetamodel"
+              package="EEM"/>
+            <writeDtd extent="SamplePluginRepository" file="${sample.plugin.dtd}"/>
+          </mdr-tasks>
+        </enki.mdr>
+      </else>
     </if>
 
-    <enki.mdr propertiesFile="${test.dir}/TestPluginStorage.properties">
-      <mdr-tasks>
-        <createExtent name="SampleMetamodel"/>
-        <importXmi 
-            extent="SampleMetamodel"
-            file="${sample.plugin.model.xmi}" />
-        <createExtent 
-            name="SampleRepository"
-            extent="SampleMetamodel"
-            package="EEM"/>
-        <writeDtd extent="SampleRepository" file="${sample.plugin.dtd}"/>
-      </mdr-tasks>
-    </enki.mdr>
   </target>
 
   <target 
@@ -609,7 +655,7 @@
             dir="${umlm2.catalog.dir}/java"
             extent="Umlm2Metamodel"
             generatorClass="${gen.cls}"
-            generatorOptions="tablePrefix='UMLM2_',defaultStringLength=60000,identifierLimit=50"/>
+            generatorOptions="defaultStringLength=60000,identifierLimit=50"/>
       </mdr-tasks>
     </enki.mdr>
 
@@ -618,11 +664,11 @@
       <matches string="${enki.impl}" pattern="^hibernate.*"/>
       <then>
         <replace 
-          file="${umlm2.catalog.dir}/java/org/omg/uml/foundation/core/Stereotype$Impl.java"
+          file="${umlm2.catalog.dir}/java/org/omg/uml/foundation/core/Stereotype$Hib.java"
           token="org.omg.uml.foundation.datatypes.name" 
           value="String" />
         <replace 
-          file="${umlm2.catalog.dir}/java/org/omg/uml/foundation/core/TaggedValue$Impl.java"
+          file="${umlm2.catalog.dir}/java/org/omg/uml/foundation/core/TaggedValue$Hib.java"
           token="org.omg.uml.foundation.datatypes.string" 
           value="String" />
       </then>
@@ -895,7 +941,7 @@
       </classpath>
       <jvmarg line="${assertions.jvmarg}"/>
       <sysproperty key="enki.home" value="${enki.dir}"/>
-      <sysproperty key="enki.test.extent" value="SampleRepository"/>
+      <sysproperty key="enki.test.extent" value="SamplePluginRepository"/>
       <sysproperty 
           key="enki.test.storageProps"
           value="${test.dir}/TestPluginStorage.properties"/>

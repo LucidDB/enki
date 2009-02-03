@@ -29,6 +29,7 @@ package org.eigenbase.enki.hibernate.storage;
 public class MofIdTypeMapping
 {
     private long mofId;
+    private String tablePrefix;
     private String typeName;
     
     public MofIdTypeMapping()
@@ -43,6 +44,16 @@ public class MofIdTypeMapping
     public void setMofId(long mofId)
     {
         this.mofId = mofId;
+    }
+    
+    public String getTablePrefix()
+    {
+        return tablePrefix;
+    }
+    
+    public void setTablePrefix(String tablePrefix)
+    {
+        this.tablePrefix = tablePrefix;
     }
     
     public String getTypeName()

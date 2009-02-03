@@ -21,6 +21,8 @@
 */
 package org.eigenbase.enki.hibernate.storage;
 
+import java.util.*;
+
 /**
  * Extent represents extents stored in a Hibernate database schema.
  * 
@@ -32,6 +34,8 @@ public class Extent
     private String extentName;
     private String modelExtentName;
     private String annotation;
+    private String tablePrefix;
+    private Set<String> plugins;
     
     public Extent()
     {
@@ -75,6 +79,26 @@ public class Extent
     public void setAnnotation(String annotation)
     {
         this.annotation = annotation;
+    }
+    
+    public String getTablePrefix()
+    {
+        return tablePrefix;
+    }
+    
+    public void setTablePrefix(String tablePrefix)
+    {
+        this.tablePrefix = tablePrefix;
+    }
+    
+    public Set<String> getPlugins()
+    {
+        return plugins;
+    }
+    
+    public void setPlugins(Set<String> plugins)
+    {
+        this.plugins = plugins;
     }
 }
 

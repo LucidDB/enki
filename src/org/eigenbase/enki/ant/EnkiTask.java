@@ -591,6 +591,11 @@ public class EnkiTask
         {
             task.log(msg, Project.MSG_VERBOSE);
         }
+        
+        protected Project getProject()
+        {
+            return task.getProject();
+        }
     }
     
     public static class DuplicateProviderSpecificSubTaskException 

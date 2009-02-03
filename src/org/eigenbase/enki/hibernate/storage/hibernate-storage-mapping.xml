@@ -15,23 +15,46 @@
           type="string"
           length="255"
           not-null="true"
-          unique="true"/>
+          unique-key="ENKI_EXTENT_NAME_PREFIX_UNIQUE"/>
+
         <property
           name="modelExtentName" 
           type="string"
           length="255"
           not-null="true"
           unique="false"/>
+
         <property
           name="annotation"
           type="string"
           length="255"/>
+
+        <property
+          name="tablePrefix"
+          type="string"
+          length="128"
+          unique-key="ENKI_EXTENT_NAME_PREFIX_UNIQUE"/>
+          
+        <set name="plugins" table="ENKI_EXTENT_PLUGINS">
+          <key column="id"/>
+          <element 
+            column="pluginIdentifier" 
+            type="string" 
+            length="255"
+            not-null="true"/>
+        </set>
     </class>
     
     <class 
       name="org.eigenbase.enki.hibernate.storage.MofIdTypeMapping"
       table="ENKI_TYPE_LOOKUP">
         <id name="mofId" type="long" column="`mofId`"/>
+        <property
+          name="tablePrefix"
+          type="string"
+          length="128"
+          column="`tablePrefix`"
+          index="ENKI_TYPE_LOOKUP_TABLEPREFIX_INDEX"/>
         <property
           name="typeName"
           type="string"
@@ -66,5 +89,6 @@
     
     <query name="AllTypeMappings" cacheable="false">
         from org.eigenbase.enki.hibernate.storage.MofIdTypeMapping 
+        where tablePrefix = :tablePrefix
     </query>    
 </hibernate-mapping>

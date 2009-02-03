@@ -312,6 +312,11 @@
       classname="org.eigenbase.enki.hibernate.ant.ExportSchemaSubTask"
       classpathref="enki.run.classpath"
       loaderRef="mdr_loader"/>
+    <typedef 
+      name="applyTablePrefix"
+      classname="org.eigenbase.enki.hibernate.ant.ApplyTablePrefixSubTask"
+      classpathref="enki.run.classpath"
+      loaderRef="mdr_loader"/>
 
     <path id="empty.ref.id"/>
 

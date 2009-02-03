@@ -50,6 +50,7 @@ class HibernateMassDeletionUtil
     private final HibernateMDRepository repos;
     private final Dialect sqlDialect;
     private final String quotedMofId;
+    private final String tablePrefix;
     
     private Session session; 
     
@@ -133,6 +134,7 @@ class HibernateMassDeletionUtil
         this.repos = repos;
         this.sqlDialect = repos.getSqlDialect();
         this.quotedMofId = quote("mofId");
+        this.tablePrefix = repos.getTablePrefix();
     }
     
     void massDelete(Collection<RefObject> objects)
@@ -166,7 +168,7 @@ class HibernateMassDeletionUtil
         HibernateRefClass anyHrc = 
             repos.findRefClass(delMap.keySet().iterator().next());
         String queryCacheRegion = anyHrc.getQueryCacheRegion();
-        sessionFactory.evictQueries(queryCacheRegion);
+        sessionFactory.evictQueries(tablePrefix + queryCacheRegion);
         
         Connection conn = session.connection();
 
@@ -176,7 +178,7 @@ class HibernateMassDeletionUtil
             for(Map.Entry<HibernateRefClass, HashMultiMap<String, Long>> e: 
                     assocDerefMap.entrySet()) {
                 HibernateRefClass hrc = e.getKey();
-                String table = hrc.getTable();
+                String table = tablePrefix + hrc.getTable();
     
                 HashMultiMap<String, Long> map = e.getValue();
                 for(String columnName: map.keySet()) {
@@ -198,7 +200,7 @@ class HibernateMassDeletionUtil
                 
                 executeInSql(
                     conn, delMofIds,
-                    "delete from ", quote(hrc.getTable()), 
+                    "delete from ", quote(tablePrefix + hrc.getTable()), 
                     " where ", quotedMofId, " in (", IN_PARAMS, ")");
             }
             
@@ -302,10 +304,10 @@ class HibernateMassDeletionUtil
                     // table.
                     String collectionTable = hra.getCollectionTable();
                     if (collectionTable != null) {
-                        assocTables.add(collectionTable);
+                        assocTables.add(tablePrefix + collectionTable);
                     }
                     
-                    assocTables.add(hra.getTable());
+                    assocTables.add(tablePrefix + hra.getTable());
                 }
             }
         }
@@ -314,6 +316,7 @@ class HibernateMassDeletionUtil
         // If a class is not present in the instanceClassMap, it must not
         // belong to this extent.
         Query query = session.getNamedQuery("AllTypeMappings");
+        query.setParameter("tablePrefix", tablePrefix);
         List<?> allTypeMappings = query.list();
         for(MofIdTypeMapping m: 
                 GenericCollections.asTypedList(
@@ -349,7 +352,7 @@ class HibernateMassDeletionUtil
                 
                 executeInSql(
                     conn, delMofIds,
-                    "delete from ", quote(hrc.getTable()), 
+                    "delete from ", quote(tablePrefix + hrc.getTable()), 
                     " where ", quotedMofId, " in (", IN_PARAMS, ")");
             }
             
@@ -833,12 +836,14 @@ class HibernateMassDeletionUtil
             if (assoc != null) {
                 HibernateAssociation.Kind kind = assoc.getKind();
                 
-                String tableName = assoc.getTable();
+                String tableName = tablePrefix + assoc.getTable();
                 tableMap.put(kind, tableName);
                 
                 String collectionTableName = assoc.getCollectionTable();
                 if (collectionTableName != null) {
-                    collectionTableMap.put(kind, collectionTableName);
+                    collectionTableMap.put(
+                        kind,
+                        tablePrefix + collectionTableName);
                 }
             }
         }

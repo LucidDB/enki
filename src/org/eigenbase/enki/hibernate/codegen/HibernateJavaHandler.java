@@ -570,14 +570,10 @@ public class HibernateJavaHandler
                 false,
                 "Model-specific storage sub-class.");
             
-            tableName = tableName(tableName);
-            
             writeConstant(
                 "String", "_table", QUOTE + tableName + QUOTE, true);
             
             if (collectionTableName != null) {
-                collectionTableName = tableName(collectionTableName);
-
                 writeConstant(
                     "String", "_collectionTable", 
                     QUOTE + collectionTableName + QUOTE, true);
@@ -739,11 +735,6 @@ public class HibernateJavaHandler
                 QUOTE + allLinksQueryName + QUOTE, true);
             newLine();
 
-            table = tableName(table);            
-            if (collectionTable != null) {
-                collectionTable = tableName(collectionTable);
-            }
-            
             writeConstant(
                 "String", "_table", QUOTE + table + QUOTE, true);
             if (collectionTable == null) {
@@ -1000,15 +991,6 @@ public class HibernateJavaHandler
         }            
     }
     
-    private String tableName(String base)
-    {
-        if (tablePrefix != null) {
-            base = tablePrefix + base;
-        }
-        
-        return base;
-    }
-
     public void generateClassInstance(MofClass cls)
         throws GenerationException
     {
@@ -3085,12 +3067,8 @@ public class HibernateJavaHandler
                 HibernateMappingHandler.CACHE_REGION_SUFFIX + 
                 HibernateMappingHandler.CACHE_REGION_QUERY_SUFFIX;
             String tableName =
-                tableName(HibernateMappingHandler.computeBaseTableName(cls));
+                HibernateMappingHandler.computeBaseTableName(cls);
 
-            if (tablePrefix != null) {
-                queryCacheRegion = tablePrefix + queryCacheRegion;
-            }
-            
             writeConstant(
                 "String", "_queryCacheRegion", "\"" + queryCacheRegion + "\"",
                 true);

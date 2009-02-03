@@ -102,9 +102,14 @@ public class HibernateConstraintsTest extends SampleModelTestBase
 
 
     @Test
-    public void testReferenceDataConstraint() throws Exception
+    public void testReferenceConstraintsMissingEnd1() throws Exception
     {
         testReferenceDataConstraint(false);
+    }
+    
+    @Test
+    public void testReferenceConstraintMissingEnd2() throws Exception
+    {
         testReferenceDataConstraint(true);
     }
     
@@ -277,7 +282,7 @@ public class HibernateConstraintsTest extends SampleModelTestBase
 
     private String table(RefClass refCls)
     {
-        return ((HibernateRefClass)refCls).getTable();
+        return "SMPL_" + ((HibernateRefClass)refCls).getTable();
     }
     
     private <T> List<T> union(List<T> a, List<T> b)
@@ -296,6 +301,8 @@ public class HibernateConstraintsTest extends SampleModelTestBase
         try {
             HibernateMDRepository hibernateRepos = 
                 (HibernateMDRepository)getRepository();
+        
+            String tablePrefix = hibernateRepos.getTablePrefix();
             
             Session session = hibernateRepos.getCurrentSession();
             Dialect sqlDialect = hibernateRepos.getSqlDialect();
@@ -335,7 +342,7 @@ public class HibernateConstraintsTest extends SampleModelTestBase
                 DatabaseMetaData metaData = conn.getMetaData();
                 for(String[] data: assocDelDatas) {
                     String tableName = 
-                        getTableName(metaData, data[0]);
+                        getTableName(metaData, tablePrefix, data[0]);
 
                     stmt.executeUpdate(
                         "delete from " +
@@ -352,15 +359,21 @@ public class HibernateConstraintsTest extends SampleModelTestBase
         }
     }
     
-    private String getTableName(DatabaseMetaData metaData, String tablePattern)
-        throws SQLException
+    private String getTableName(
+        DatabaseMetaData metaData,
+        String tablePrefix,
+        String tablePattern)
+    throws SQLException
     {
-        ResultSet rs = 
-            metaData.getTables(null, null, "%_" + tablePattern, null);
+        String tableName = tablePrefix + tablePattern;
+        ResultSet rs = metaData.getTables(null, null, tableName, null);
         try {
-            Assert.assertTrue(rs.next());
+            Assert.assertTrue("Missing table: " + tableName, rs.next());
             return rs.getString(3);
         } finally {
+            Assert.assertFalse(
+                "Found multiple instances of table: " + tableName,
+                rs.next());
             rs.close();
         }
     }

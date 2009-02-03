@@ -101,6 +101,12 @@ public class HibernateMappingHandler
         "mofId";
     private static final String ASSOC_ONE_TO_MANY_CHILD_ORDINAL_COLUMN = 
         "ordinal";
+    private static final String ASSOC_ONE_TO_MANY_CHILD_KEY_INDEX= 
+        "AssocO2MMofIdIndex";
+    private static final String ASSOC_ONE_TO_MANY_ORDERED_CHILD_KEY_INDEX= 
+        "AssocO2MOrdMofIdIndex";
+    private static final String ASSOC_ONE_TO_MANY_HC_CHILD_KEY_INDEX= 
+        "AssocO2MHCMofIdIndex";
 
     public static final String ASSOC_ONE_TO_MANY_LAZY_CHILDREN_TABLE =
         "AssocOneToManyChildren";
@@ -130,6 +136,10 @@ public class HibernateMappingHandler
         "mofId";
     private static final String ASSOC_MANY_TO_MANY_TARGET_ORDINAL_COLUMN = 
         "ordinal";
+    private static final String ASSOC_MANY_TO_MANY_TARGET_KEY_INDEX = 
+        "AssocM2MMofIdIndex";
+    public static final String ASSOC_MANY_TO_MANY_ORDERED_TARGET_KEY_INDEX = 
+        "AssocM2MOrdMofIdIndex";
     
     // Purposely re-using 1-to-many field names since we re-use the lazy 
     // Element class across lazy associations.
@@ -159,6 +169,8 @@ public class HibernateMappingHandler
     public static final String QUERY_PREFIX_ASSOC_DELETE_MEMBER_BY_MOFIDS = 
         "EnkiAssociation.deleteMember.";
 
+    public static final String TABLE_REF = "${tablePrefix}";
+    
     /**
      * Controls when the mapping switches from Hibernate's "string" type to
      * the "text" type.  The distinction is that the "text" type uses 
@@ -205,7 +217,6 @@ public class HibernateMappingHandler
     
     private String extentName;
     
-    private String tablePrefix;
     private int defaultStringLength;
     private boolean generateViews;
     
@@ -239,11 +250,6 @@ public class HibernateMappingHandler
         this.extentName = extentName;
     }
     
-    public void setTablePrefix(String tablePrefix)
-    {
-        this.tablePrefix = tablePrefix;
-    }
-
     public void setGenerateViews(boolean generateViews)
     {
         this.generateViews = generateViews;
@@ -431,11 +437,6 @@ public class HibernateMappingHandler
             writeln(
                 HibernateMDRepository.PROPERTY_MODEL_PLUGIN, "=",
                 pluginMode);
-            if (tablePrefix != null) {
-                writeln(
-                    HibernateMDRepository.PROPERTY_MODEL_TABLE_PREFIX, "=",
-                    tablePrefix);
-            }
             
             writeln(
                 HibernateMDRepository.PROPERTY_MODEL_PACKAGE_VERSION, "=",
@@ -564,9 +565,19 @@ public class HibernateMappingHandler
                 "fetch", ASSOC_ONE_TO_MANY_LAZY_FETCH_TYPE);
         }
         writeCacheElement();
-        writeEmptyElem(
-            "key", 
-            "column", hibernateQuote(ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN));
+        if (isHighCardinality) {
+            writeEmptyElem(
+                "key", 
+                "column", hibernateQuote(ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN),
+                "foreign-key", 
+                    indexName(ASSOC_ONE_TO_MANY_HC_CHILD_KEY_INDEX));
+        } else {
+            writeEmptyElem(
+                "key", 
+                "column", hibernateQuote(ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN),
+                "foreign-key", 
+                    indexName(ASSOC_ONE_TO_MANY_CHILD_KEY_INDEX));
+        }
         startElem(
             "composite-element", "class", assocLazyElementClass);
         writeEmptyElem(
@@ -650,7 +661,9 @@ public class HibernateMappingHandler
         writeCacheElement();        
         writeEmptyElem(
             "key", 
-            "column", hibernateQuote(ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN));
+            "column", hibernateQuote(ASSOC_ONE_TO_MANY_CHILD_KEY_COLUMN),
+            "foreign-key", 
+                indexName(ASSOC_ONE_TO_MANY_ORDERED_CHILD_KEY_INDEX));
         writeEmptyElem(
             "list-index", 
             "column", hibernateQuote(ASSOC_ONE_TO_MANY_CHILD_ORDINAL_COLUMN));
@@ -730,7 +743,8 @@ public class HibernateMappingHandler
         writeCacheElement();
         writeEmptyElem(
             "key",
-            "column", hibernateQuote(ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN));
+            "column", hibernateQuote(ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN),
+            "foreign-key", indexName(ASSOC_MANY_TO_MANY_TARGET_KEY_INDEX));
         startElem(
             "composite-element", "class", assocLazyElementClass);
         writeEmptyElem(
@@ -807,7 +821,9 @@ public class HibernateMappingHandler
         writeCacheElement();
         writeEmptyElem(
             "key",
-            "column", hibernateQuote(ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN));
+            "column", hibernateQuote(ASSOC_MANY_TO_MANY_TARGET_KEY_COLUMN),
+            "foreign-key", 
+                indexName(ASSOC_MANY_TO_MANY_ORDERED_TARGET_KEY_INDEX));
         writeEmptyElem(
             "list-index",
             "column", 
@@ -880,7 +896,7 @@ public class HibernateMappingHandler
     private void writeViews() throws GenerationException
     {
         HibernateViewMappingUtil viewMappingUtil = 
-            new HibernateViewMappingUtil(this, dialectSet, tablePrefix);
+            new HibernateViewMappingUtil(this, dialectSet, TABLE_REF);
         
         viewMappingUtil.generateViews(allTypes);
     }
@@ -1084,7 +1100,8 @@ public class HibernateMappingHandler
                     writeCacheElement();
                     writeEmptyElem(
                         "key",
-                        "column", hibernateQuote(MOF_ID_COLUMN_NAME));
+                        "column", hibernateQuote(MOF_ID_COLUMN_NAME),
+                        "foreign-key", indexName(collTableName + "Index"));
                     if (mappingType == MappingType.LIST) {
                         writeEmptyElem(
                             "list-index", 
@@ -1148,7 +1165,7 @@ public class HibernateMappingHandler
         for(Reference ref: instanceReferences) {
             ReferenceInfo refInfo = new ReferenceInfoImpl(ref);
 
-            generateAssociationField(refInfo);                
+            generateAssociationField(tableName, refInfo);                
         }
         
         // Unreferenced associations
@@ -1165,11 +1182,11 @@ public class HibernateMappingHandler
         for(Association unref: unreferencedAssociations) {
             ReferenceInfo refInfo = unrefAssocRefInfoMap.get(unref);
             
-            generateAssociationField(refInfo);
+            generateAssociationField(tableName, refInfo);
         }
 
         for(ComponentInfo componentInfo: componentInfos) {
-            generateAssociationField(componentInfo);
+            generateAssociationField(tableName, componentInfo);
         }
         
         newLine();
@@ -1242,12 +1259,24 @@ public class HibernateMappingHandler
         return maxLen;
     }
     
-    private void generateAssociationField(ReferenceInfo refInfo)
-        throws GenerationException
+    private void generateAssociationField(
+        String tableName,
+        ReferenceInfo refInfo)
+    throws GenerationException
     {
         String fieldName = 
             generator.transformIdentifier(refInfo.getFieldName());
 
+        // Mimic hibernate's default FK names, but use the table prefix so
+        // that multiple instances of this FK can exist in on DB without
+        // conflict. (Concatenating table prefix, tableName and fieldName is
+        // too long.)
+        String indexName = 
+            indexName(
+                ("FK" +
+                 Integer.toHexString(tableName.hashCode()) + 
+                 Integer.toHexString(fieldName.hashCode())).toUpperCase());
+        
         // NOTE: Cannot specify not-null=true here because Hibernate
         // may try to insert the object without the association and
         // then circle back to create the association.  Instead, the
@@ -1259,6 +1288,7 @@ public class HibernateMappingHandler
             "name", fieldName + generator.getImplSuffix(),
             "column", hibernateQuote(fieldName),
             "not-null", "false",
+            "foreign-key", indexName,
             "cascade", "save-update");
     }
 
@@ -1269,20 +1299,17 @@ public class HibernateMappingHandler
     
     private String tableName(String tableName)
     {
-        if (tablePrefix != null) {
-            tableName = tablePrefix + tableName;
-        }
-        
-        return hibernateQuote(tableName);
+        return hibernateQuote(TABLE_REF + tableName);
     }
     
     private String tableName(String tableName, Dialect dialect)
     {
-        if (tablePrefix != null) {
-            tableName = tablePrefix + tableName;
-        }
-        
-        return HibernateDialectUtil.quote(dialect, tableName);
+        return HibernateDialectUtil.quote(dialect, TABLE_REF + tableName);
+    }
+    
+    private String indexName(String name)
+    {
+        return TABLE_REF + name;
     }
     
     static String computeBaseTableName(Classifier cls)
@@ -1308,11 +1335,9 @@ public class HibernateMappingHandler
     
     private String indexName(String tableName, Dialect dialect)
     {
-        if (tablePrefix != null) {
-            tableName = tablePrefix + tableName;
-        }
-        
-        return HibernateDialectUtil.quote(dialect, tableName + "Index");
+        return HibernateDialectUtil.quote(
+            dialect, 
+            TABLE_REF + tableName + "Index");
     }
     
     protected static MappingType getMappingType(
@@ -1445,12 +1470,7 @@ public class HibernateMappingHandler
     
     private String getCacheRegion(boolean isQuery)
     {
-        String region;
-        if (tablePrefix != null) {
-            region = tablePrefix + CACHE_REGION_SUFFIX;
-        } else{
-            region = CACHE_REGION_SUFFIX;
-        }
+        String region = TABLE_REF + CACHE_REGION_SUFFIX;
         
         if (isQuery) {
             region += CACHE_REGION_QUERY_SUFFIX;

@@ -21,6 +21,7 @@
 */
 package org.eigenbase.enki.hibernate.config;
 
+import java.io.*;
 import java.lang.reflect.*;
 import java.net.*;
 import java.util.*;
@@ -105,7 +106,7 @@ public final class HibernateConfigurator
             URL internalConfigIUrl = 
                 getClass().getResource(
                     HibernateMDRepository.HIBERNATE_STORAGE_MAPPING_XML);
-            config.addURL(internalConfigIUrl);
+            addConfig(config, internalConfigIUrl);
         }
         
         return config;
@@ -331,19 +332,42 @@ public final class HibernateConfigurator
         Configuration config, ModelDescriptor modelDesc)
     {
         URL mappingUrl = getModelMappingUrl(modelDesc);        
-        config.addURL(mappingUrl);
+        addConfig(config, mappingUrl);
 
         for(ModelPluginDescriptor pluginDesc: modelDesc.plugins) {
             URL pluginMappingUrl = getModelMappingUrl(pluginDesc);
-            config.addURL(pluginMappingUrl);
+            addConfig(config, pluginMappingUrl);
         }
     }
-    
+
     private void configureIndexMappings(
         Configuration config, ModelDescriptor modelDesc)
     {
         URL indexMappingUrl = getIndexMappingUrl(modelDesc);
-        config.addURL(indexMappingUrl);
+        addConfig(config, indexMappingUrl);
+    }
+    
+    private void addConfig(Configuration config, URL mappingUrl)
+    {
+        String tablePrefix = 
+            PropertyUtil.readStorageProperty(
+                storageProperties,
+                null,
+                HibernateMDRepository.PROPERTY_STORAGE_TABLE_PREFIX,
+                "",
+                String.class);
+        
+        InputStream urlStream;
+        try {
+            urlStream = mappingUrl.openStream();
+        } catch (IOException e) {
+            throw new ProviderInstantiationException(
+                "Cannot read mapping document @ " + mappingUrl, e);
+        }
+        
+        TablePrefixInputStream in = 
+            new TablePrefixInputStream(urlStream, tablePrefix);
+        config.addInputStream(in);
     }
     
     private URL getModelMappingUrl(AbstractModelDescriptor modelDesc)
