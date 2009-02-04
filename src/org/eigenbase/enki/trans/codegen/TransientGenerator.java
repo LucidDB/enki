@@ -101,6 +101,8 @@ public class TransientGenerator
     public TransientGenerator()
     {
         super();
+        
+        jmiInterfaces = DEFAULT_JMI_INTERFACES_OPTION;
     }
 
     @Override
