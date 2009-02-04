@@ -102,12 +102,102 @@ import org.netbeans.api.mdr.events.*;
  *     </td>
  *   </tr>
  *   <tr>
+ *     <td align="left">{@value #PROPERTY_STORAGE_CONNECTION_DATASOURCE}</td>
+ *     <td align="left">
+ *       See {@link #PROPERTY_STORAGE_CONNECTION_DATASOURCE} for a discussion
+ *       of this storage property.
+ *     </td>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">{@value #PROPERTY_STORAGE_CONNECTION_DATASOURCE}</td>
+ *     <td align="left">
+ *       See {@link #PROPERTY_STORAGE_CONNECTION_DATASOURCE} for a discussion
+ *       of this storage property.  Defaults to
+ *       {@value #PROPERTY_STORAGE_DEFAULT_CONNECTION_DATASOURCE}.
+ *     </td>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">
+ *       {@value #PROPERTY_STORAGE_CONNECTION_DRIVER_CLASS}
+ *       {@value #PROPERTY_STORAGE_CONNECTION_URL}
+ *       {@value #PROPERTY_STORAGE_CONNECTION_USERNAME}
+ *       {@value #PROPERTY_STORAGE_CONNECTION_PASSWORD}
+ *       {@value #PROPERTY_STORAGE_CONNECTION_MAX_IDLE}
+ *     </td>
+ *     <td align="left">
+ *       See {@link #PROPERTY_STORAGE_CONNECTION_DATASOURCE} for a discussion
+ *       of these storage properties.  The property
+ *       {@value #PROPERTY_STORAGE_CONNECTION_MAX_IDLE} defaults to
+ *       {@value #DEFAULT_CONNECTION_MAX_IDLE}.
+ *     </td>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">{@value #PROPERTY_STORAGE_JNDI_PREFIX}</td>
+ *     <td align="left">
+ *       All sorage properties staring with this prefix are used to construct
+ *       a JNDI {@link InitialContext}.  See
+ *       {@link #PROPERTY_STORAGE_JNDI_PREFIX}.
+ *     </td>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">
+ *       {@value #PROPERTY_STORAGE_JNDI_INITIAL_CONTEXT_FACTORY_CLASS}
+ *     </td>
+ *     <td align="left">
+ *       Initial JNDI context factory class.
+ *       See {@link #PROPERTY_STORAGE_JNDI_INITIAL_CONTEXT_FACTORY_CLASS}.
+ *     </td>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">
+ *       {@value #PROPERTY_STORAGE_JNDI_PROVIDER_URL}
+ *     </td>
+ *     <td align="left">
+ *       JNDI provider URL for JNDI {@link InitialContext}.
+ *       See {@link #PROPERTY_STORAGE_JNDI_PROVIDER_URL}.
+ *     </td>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">{@value #PROPERTY_STORAGE_PERIODIC_STATS}</td>
+ *     <td align="left">
+ *       Enables periodic logging of session factory statistics.  Set to a 
+ *       positive number to enable. Default value is
+ *       {@link #DEFAULT_PERIODIC_STATS_INTERVAL}.
+ *     </td>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">{@value #PROPERTY_STORAGE_MEM_STATS}</td>
+ *     <td align="left">
+ *       Controls whether periodic statistics logging includes details on 
+ *       second-level cache memory usage.  This is an expensive operation.
+ *       {@link #PROPERTY_STORAGE_PERIODIC_STATS} must be enabled or this
+ *       setting is ignored.  Default value is {@value #DEFAULT_MEM_STATS}.
+ *     </td>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">{@value #PROPERTY_STORAGE_CREATE_SCHEMA}</td>
+ *     <td align="left">
+ *       Controls Enki/Hibernate's behavior with respect to missing or invalid
+ *       database schemas.  See {@link #PROPERTY_STORAGE_CREATE_SCHEMA}.
+ *       Defaults to {@value #DEFAULT_CREATE_SCHEMA}.
+ *     </td>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">{@value #PROPERTY_STORAGE_TABLE_PREFIX}</td>
+ *     <td align="left">
+ *       Controls the table prefix used for all tables accessed by this
+ *       repository instance.  Defaults to no prefix.  Extents create with
+ *       different prefixes are ignored by this repository instance.
+ *     </td>
+ *   </tr>
+ *   <tr>
  *     <td align="left">hibernate.*</td>
  *     <td align="left">
- *       All properties are passed to Hibernate's {@link Configuration} without
- *       modification. Note that the property
- *       {@value #PROPERTY_STORAGE_HIBERNATE_DEFAULT_BATCH_FETCH_SIZE} controls
- *       batch fetch size for lazy associations.
+ *       All these properties are passed to Hibernate's {@link Configuration}
+ *       without modification, except some connection-related properties.
+ *       See {@link #PROPERTY_STORAGE_CONNECTION_DATASOURCE}.  Note that the
+ *       property {@value #PROPERTY_STORAGE_HIBERNATE_DEFAULT_BATCH_FETCH_SIZE}
+ *       controls batch fetch size for lazy associations.
  *     </td>
  *   </tr>
  * </table>
@@ -197,7 +287,7 @@ public class HibernateMDRepository
      * {@link #PROPERTY_STORAGE_CONNECTION_URL}, 
      * {@link #PROPERTY_STORAGE_CONNECTION_USERNAME},and 
      * {@link #PROPERTY_STORAGE_CONNECTION_PASSWORD} properties. If the driver
-     * class and URLproperties are not set, Enki/Hibernate will assume that 
+     * class and URL properties are not set, Enki/Hibernate will assume that 
      * Hibernate-specific properties have been used to configure a database
      * connection.
      * 
