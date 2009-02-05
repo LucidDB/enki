@@ -378,7 +378,9 @@ public class TransientHandler
             name = CodeGenUtils.getClassFieldName(name);
             
             if (attrib.getMultiplicity().getUpper() == 1) {
+                startConditionalBlock(CondType.IF, name, " != null");
                 writeln(name, ".refDelete();");
+                endBlock();
             } else {
                 startBlock("for(", REF_OBJECT_CLASS, " obj: ", name, ")");
                 writeln("obj.refDelete();");
