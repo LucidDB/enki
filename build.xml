@@ -1083,6 +1083,25 @@
     <delete file="${basedir}/taggedfiles.tmp" quiet="true"/>
   </target>
 
+  <target name="createEclipseProject">
+    <pathconvert 
+      property="eclipse.libpath"
+      refid="enki.3p.run.classpath"
+      pathsep="&quot;/&gt;&lt;classpathentry kind=&quot;lib&quot; path=&quot;"/>
+    <copy file="${enki.dir}/eclipse/enki.project" overwrite="true"
+        tofile="${enki.dir}/.project">
+    </copy>
+    <copy file="${enki.dir}/eclipse/enki.classpath" overwrite="true"
+        tofile="${enki.dir}/.classpath">
+      <filterset>
+        <filter token="LIBPATH" value="${eclipse.libpath}"/>
+      </filterset>
+    </copy>
+    <copy todir="${enki.dir}/.settings" overwrite="true">
+      <fileset dir="${enki.dir}/eclipse/enki.settings"/>
+    </copy>
+  </target>
+
   <target name="start-mysql-server">
     <if>
       <available file="${mysql.inst.dir}/bin" type="dir"/>
