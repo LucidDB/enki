@@ -285,8 +285,47 @@ public class MofIdGenerator
         return mofId;
     }
     
+    public synchronized long allocate(long numMofIds)
+    {
+        if (nextMofId + numMofIds >= lastMofId) {
+            // Determine how many blocks we need and advance that many
+            // blocks.  This causes a gap at the end of the current block 
+            // (same as a repository restart would).
+
+            // Always round up.  If blockSize doesn't divide evenly into
+            // numMofIds we need the round up to get enough MOF IDs.  If
+            // it does go in evenly, we'll use the extra MOF IDs for future
+            // nextMofId() calls.
+            long numBlocks = (numMofIds / blockSize) + 1;
+            
+            try {
+                readNextBlocks(numBlocks);
+            }
+            catch(SQLException e) {
+                throw new HibernateException(e);
+            }
+        }
+        
+        // Now have (or always had) enough MOF IDs before lastMofId, return 
+        // nextMofId and increment it by the number of MOF IDs allocated.
+        // Future callers to this method (or nextMofId()) will obtain values
+        // from beyond the end of the allocated block. 
+        long result = nextMofId;
+            
+        nextMofId += numMofIds;
+        
+        return result;
+    }
+    
     private void readNextBlock() throws SQLException
     {
+        readNextBlocks(1);
+    }
+    
+    private void readNextBlocks(long numBlocks) throws SQLException
+    {
+        final long numMofIds = numBlocks * (long)blockSize;
+        
         StatelessSession session = sessionFactory.openStatelessSession();
         
         Connection conn = session.connection();
@@ -324,7 +363,7 @@ public class MofIdGenerator
                 PreparedStatement updateStmt = 
                     conn.prepareStatement(updateSql);
                 try {
-                    updateStmt.setLong(1, next + (long)blockSize);
+                    updateStmt.setLong(1, next + numMofIds);
                     updateStmt.setLong(2, next);
                     rows = updateStmt.executeUpdate();
                 }
@@ -336,7 +375,7 @@ public class MofIdGenerator
             conn.commit();
             
             nextMofId = next;
-            lastMofId = next + (long)blockSize;
+            lastMofId = next + numMofIds;
             
             // Make sure we skip MOF ID 0 to avoid conflicts with the default
             // value Hibernate will pick should be ever fail to set an object's

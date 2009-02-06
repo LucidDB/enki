@@ -49,11 +49,37 @@ import org.hibernate.dialect.*;
  */
 public class HibernateBackupRestoreUtil
 {
+    /** Backup descriptor property holding the backed up extent's name. */
     public static final String PROP_EXTENT = "enki.backup.extent";
+    
+    /** 
+     * Backup descriptor property holding the backed up extent's annotation.
+     */
     public static final String PROP_EXTENT_ANNOTATION = 
         "enki.backup.annotation";
+    
+    /** 
+     * Backup descriptor property holding the name of the metamodel for the 
+     * backed up extent. 
+     */
     public static final String PROP_METAMODEL = "enki.backup.metamodel";
+    
+    /** 
+     * Backup descriptor property holding the minimum MOF ID used in the 
+     * backed up extent. 
+     */
     public static final String PROP_MIN_MOF_ID = "enki.backup.minMofId";
+    
+    /** 
+     * Names the property holding the number of MOF IDs used by the backed up
+     * extent in the backup descriptor.  The usage of MOF IDs may be sparse, 
+     * however. 
+     */
+    public static final String PROP_MOF_ID_COUNT = "enki.backup.mofIdCount";
+    
+    /** 
+     * Backup descriptor property holding the model's package version.
+     */
     public static final String PROP_PACKAGE_VERSION = 
         "enki.backup.packageVersion";
 
@@ -100,7 +126,7 @@ public class HibernateBackupRestoreUtil
     {
         log.info("Backing up extent '" + extentDesc.name + "'");
         
-        // Flush session to make sure pending, uncomitted changes are backed
+        // Flush session to make sure pending, uncommitted changes are backed
         // up.  It's weird behavior, but we want to mimic extent export.
         Session session = repos.getCurrentSession();
         session.flush();
@@ -129,9 +155,13 @@ public class HibernateBackupRestoreUtil
         }
         
         try {
-            long minMofId = dumpData(dataFile, extentDesc.extent);
+            LongRangeWrapper mofIdRange = 
+                dumpData(dataFile, extentDesc.extent);
             
-            backupProps.put(PROP_MIN_MOF_ID, String.valueOf(minMofId));
+            backupProps.put(PROP_MIN_MOF_ID, String.valueOf(mofIdRange.min));
+            backupProps.put(
+                PROP_MOF_ID_COUNT, 
+                String.valueOf(mofIdRange.max - mofIdRange.min));
             
             FileOutputStream propsStream = new FileOutputStream(propsFile);
             backupProps.storeToXML(
@@ -171,10 +201,10 @@ public class HibernateBackupRestoreUtil
      * 
      * @param dataFile temporary output file for data
      * @param extent extent to dump
-     * @return max MOF ID encountered during backup
+     * @return range of MOF IDs encountered during backup
      * @throws EnkiBackupFailedException on any error
      */
-    private long dumpData(File dataFile, RefPackage extent) 
+    private LongRangeWrapper dumpData(File dataFile, RefPackage extent) 
         throws EnkiBackupFailedException
     {
         log.fine("Dumping extent data");
@@ -186,14 +216,14 @@ public class HibernateBackupRestoreUtil
                     new FileOutputStream(dataFile),
                     DATA_ENCODING));
             
-            long minMofId = dumpData(output, extent);
+            LongRangeWrapper mofIdRange = dumpData(output, extent);
             
             output.flush();
             BufferedWriter w = output;
             output = null;
             w.close();
             
-            return minMofId;
+            return mofIdRange;
         } catch(Exception e) {
             if (output != null) {
                 try {
@@ -212,11 +242,11 @@ public class HibernateBackupRestoreUtil
      * 
      * @param output output writer for the backup
      * @param extent extent to dump
-     * @return max MOF ID encountered during backup
+     * @return range of MOF IDs encountered during backup
      * @throws IOException on write error
      * @throws SQLException on database error
      */
-    private long dumpData(BufferedWriter output, RefPackage extent)
+    private LongRangeWrapper dumpData(BufferedWriter output, RefPackage extent)
         throws IOException, SQLException
     {
         Set<HibernateAssociation.Kind> assocTypesSeen = 
@@ -294,12 +324,12 @@ public class HibernateBackupRestoreUtil
             }
         }
         
-        long minAssocMofId = 
+        LongRangeWrapper assocMofIdRange =
             dumpTables(output, assocTables, assocTableMofIdCols);
-        long minObjectMofId = 
+        LongRangeWrapper objectMofIdRange =
             dumpTables(output, objectTables, objectTableMofIdCols);
         
-        return Math.min(minAssocMofId, minObjectMofId);
+        return assocMofIdRange.union(objectMofIdRange);
     }
     
     /**
@@ -313,18 +343,19 @@ public class HibernateBackupRestoreUtil
      *               to backup
      * @param tableMofIdCols multi-map of table names to columns that store
      *                       MOF ID values (primary key or otherwise) 
-     * @return max MOF ID encountered during backup
+     * @return range of MOF IDs encountered during backup
      * @throws IOException on write error
      * @throws SQLException on database error
      */
-    private long dumpTables(
+    private LongRangeWrapper dumpTables(
         BufferedWriter output, 
         List<String> tables, 
         HashMultiMap<String, String> tableMofIdCols)
     throws IOException, SQLException
     {
         long minMofId = Long.MAX_VALUE;
-
+        long maxMofId = Long.MIN_VALUE;
+        
         File tempFile = makeTempFile();
         
         try {
@@ -372,6 +403,7 @@ public class HibernateBackupRestoreUtil
                                 {
                                     long mofId = rset.getLong(i);
                                     minMofId = Math.min(minMofId, mofId);
+                                    maxMofId = Math.max(maxMofId, mofId);
                                     type = Type.MOFID;
                                 }
                                 
@@ -402,7 +434,7 @@ public class HibernateBackupRestoreUtil
                 stmt.close();
             }
             
-            return minMofId;
+            return new LongRangeWrapper(minMofId, maxMofId);
         } finally {
             tempFile.delete();
         }
@@ -500,6 +532,7 @@ public class HibernateBackupRestoreUtil
         
         boolean throwing = true;
         try {
+            // Load backup descriptor.
             readZipEntry(zipStream, FILE_BACKUP_DESCRIPTOR);
             
             Properties backupProps = new Properties();
@@ -516,8 +549,11 @@ public class HibernateBackupRestoreUtil
             String metaModelExtent = backupProps.getProperty(PROP_METAMODEL);
             String extentAnnotation = 
                 backupProps.getProperty(PROP_EXTENT_ANNOTATION);
+            
             long minMofId = 
                 Long.parseLong(backupProps.getProperty(PROP_MIN_MOF_ID));
+            long mofIdCount =
+                Long.parseLong(backupProps.getProperty(PROP_MOF_ID_COUNT));
             
             if (repos.getExtent(metaModelExtent) == null) {
                 throw new EnkiRestoreFailedException(
@@ -526,13 +562,14 @@ public class HibernateBackupRestoreUtil
                     + "' prior to restoring this backup");
             }
             
+            // Load backup data.
             readZipEntry(zipStream, FILE_BACKUP_DATA);
 
             BufferedReader reader = makeReader(zipStream);
             
             Map<String, Class<? extends RefObject>> tableClassMap = 
                 prepareSchema(extentDesc);
-            loadData(reader, minMofId, tableClassMap);
+            loadData(reader, minMofId, mofIdCount, tableClassMap);
 
             repos.setAnnotation(extentDesc.name, extentAnnotation);
             
@@ -615,9 +652,8 @@ public class HibernateBackupRestoreUtil
     /**
      * Prepares the database schema for restoration of a backup and collects
      * table/class name mapping information from the metamodel.  This method
-     * drops and re-creates the metamodel-specific tables in the schema and
-     * then deletes all metamodel-related values from the type-lookup mapping
-     * table.
+     * truncates metamodel-specific tables in the schema and deletes all 
+     * metamodel-related values from the type-lookup mapping table.
      * 
      * @param extentDesc extent to prepare
      * @return map of table names to instance classes
@@ -714,6 +750,8 @@ public class HibernateBackupRestoreUtil
                 "delete from " +
                 HibernateDialectUtil.quote(dialect, "ENKI_TYPE_LOOKUP") +
                 " where " +
+                HibernateDialectUtil.quote(dialect, "tablePrefix") +
+                " = ? and " +
                 HibernateDialectUtil.quote(dialect, "typeName") +
                 " = ?");
         try {
@@ -723,6 +761,7 @@ public class HibernateBackupRestoreUtil
                 sessionFactory.evict(cls);
                 
                 typeLookupStmt.setString(1, cls.getName());
+                typeLookupStmt.setString(2, tablePrefix);
                 typeLookupStmt.addBatch();
                 batchSize++;
                 
@@ -751,6 +790,7 @@ public class HibernateBackupRestoreUtil
      * 
      * @param data BufferedReader on the backed up data
      * @param minMofId minimum MOF ID in the backed up data
+     * @param mofIdCount the number of MOF IDs to allocate
      * @param tableClassMap map of table name to instance class
      * @throws IOException on I/O error reading the backup data
      * @throws SQLException on database error
@@ -758,14 +798,19 @@ public class HibernateBackupRestoreUtil
     private void loadData(
         BufferedReader data, 
         long minMofId,
+        long mofIdCount,
         Map<String, Class<? extends RefObject>> tableClassMap)
     throws IOException, SQLException
     {
+        MofIdGenerator mofIdGenerator = repos.getMofIdGenerator();
+        
+        log.fine("Update MOF ID generator");
+        
+        long baseMofId = mofIdGenerator.allocate(mofIdCount);
+        
         log.fine("Restore backup data");
         
-        MofIdGenerator mofIdGenerator = repos.getMofIdGenerator();
-        long maxMofId = -1;
-        long baseMofId = mofIdGenerator.nextMofId();
+        // Offset may be negative.
         final long offset = baseMofId - minMofId;
         
         Session session = repos.getCurrentSession();
@@ -779,8 +824,10 @@ public class HibernateBackupRestoreUtil
                 + " ("
                 + HibernateDialectUtil.quote(dialect, MOF_ID_COLUMN_NAME)
                 + ", "
+                + HibernateDialectUtil.quote(dialect, "tablePrefix")
+                + ", "
                 + HibernateDialectUtil.quote(dialect, "typeName")
-                + ") values (?, ?)");
+                + ") values (?, ?, ?)");
         try {
             String line;
             while((line = data.readLine()) != null) {
@@ -847,10 +894,8 @@ public class HibernateBackupRestoreUtil
                             Object v = type.decode(value);
     
                             if (type == Type.MOFID) {
-                                long mofId = ((Long)v).longValue() + offset;
-                                maxMofId = Math.max(maxMofId, mofId);
-                                
-                                Long mofIdLong = mofId;
+                                Long mofIdLong = 
+                                    ((Long)v).longValue() + offset;
                                 v = mofIdLong;
                                 
                                 if (pos == mofIdCol) {
@@ -896,7 +941,8 @@ public class HibernateBackupRestoreUtil
                             batchSize = 0;
                             for(Long mofId: mofIds) {
                                 typeLookupStmt.setLong(1, mofId);
-                                typeLookupStmt.setString(2, typeName);
+                                typeLookupStmt.setString(2, tablePrefix);
+                                typeLookupStmt.setString(3, typeName);
                                 typeLookupStmt.addBatch();
                                 batchSize++;
                                 
@@ -917,14 +963,7 @@ public class HibernateBackupRestoreUtil
             }
         } finally {
             typeLookupStmt.close();
-        }
-        
-        log.fine("Update MOF ID generator");
-        
-        // Run up the mofId until it is greater than the the largest value we
-        // used.
-        // TODO: Add a mechanism to explicitly set the value.
-        while(mofIdGenerator.nextMofId() <= maxMofId);
+        }        
     }
 
     /**
@@ -1273,6 +1312,25 @@ public class HibernateBackupRestoreUtil
 
         public IntWrapper()
         {
+        }
+    }
+    
+    private static class LongRangeWrapper
+    {
+        public long min;
+        public long max;
+        
+        public LongRangeWrapper(long min, long max)
+        {
+            this.min = min;
+            this.max = max;
+        }
+        
+        public LongRangeWrapper union(LongRangeWrapper that)
+        {
+            return new LongRangeWrapper(
+                Math.min(this.min, that.min),
+                Math.max(this.max, that.max));
         }
     }
     
