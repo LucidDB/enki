@@ -130,7 +130,7 @@ public class MofInitHandler
     {        
         super.beginGeneration();
 
-        String simpleTypeName = "Initializer";
+        String simpleTypeName = "Initializer" + generator.getImplSuffix();
         
         String typeNamePrefix = computeInitializerPackage();
         
