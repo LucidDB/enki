@@ -514,8 +514,7 @@ public class BackupRestoreLargeDataSetTest extends SampleModelTestBase
         getRepository().beginTrans(false);
         
         try {
-            XmiWriter xmiWriter = 
-                XMIWriterFactory.getDefault().createXMIWriter();
+            XMIWriter xmiWriter = GenericBackupRestore.createXmiWriter();
             FileOutputStream outStream = new FileOutputStream(xmi);
             try {
                 xmiWriter.write(outStream, getPackage(), "1.2");

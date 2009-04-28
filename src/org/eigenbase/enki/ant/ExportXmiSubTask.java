@@ -27,6 +27,7 @@ import javax.jmi.reflect.*;
 
 import org.apache.tools.ant.*;
 import org.eigenbase.enki.mdr.*;
+import org.eigenbase.enki.util.*;
 import org.netbeans.api.xmi.*;
 
 /**
@@ -118,7 +119,7 @@ public class ExportXmiSubTask extends EnkiTask.SubTask
                 throw new BuildException(e);
             }
             
-            XMIWriter writer = XMIWriterFactory.getDefault().createXMIWriter();
+            XMIWriter writer = GenericBackupRestore.createXmiWriter();
     
             try {
                 writer.write(out, pkg, xmiVersion);

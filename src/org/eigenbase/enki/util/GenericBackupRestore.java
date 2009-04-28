@@ -52,8 +52,7 @@ public class GenericBackupRestore
     {
         try {
             RefPackage refPackage = repos.getExtent(extentName);
-            XmiWriter xmiWriter = 
-                XMIWriterFactory.getDefault().createXMIWriter();
+            XMIWriter xmiWriter = createXmiWriter();
             xmiWriter.write(stream, refPackage, "1.2");
         } catch(IOException e) {
             throw new EnkiBackupFailedException(e);
@@ -187,7 +186,20 @@ public class GenericBackupRestore
         InputStream filterStream = cons.newInstance(stream);
         
         return filterStream;
-}
+    }
+    
+    /**
+     * Creates an XMIWriter that uses a UTF-8 encoding.
+     * 
+     * @return the XMIWriter
+     */
+    public static XMIWriter createXmiWriter()
+    {
+    	XMIWriter xmiWriter = 
+            XMIWriterFactory.getDefault().createXMIWriter();
+        xmiWriter.getConfiguration().setEncoding("UTF-8");
+        return xmiWriter;
+    }
 
 }
 

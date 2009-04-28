@@ -243,8 +243,7 @@ public class ExportImportTest extends SampleModelTestBase
         getRepository().beginTrans(false);
         
         try {
-            XmiWriter xmiWriter = 
-                XMIWriterFactory.getDefault().createXMIWriter();
+            XMIWriter xmiWriter = GenericBackupRestore.createXmiWriter();
             FileOutputStream outStream = new FileOutputStream(exportFile);
             try {
                 if (roots == null) {
