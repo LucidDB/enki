@@ -315,7 +315,7 @@ public class DataSourceConfigurator
         connectionPool.setMaxActive(-1);        
         connectionPool.setMaxIdle(maxIdle);
         
-        new PoolableConnectionFactory(
+        new OptimizedPoolableConnectionFactory(
             connectionFactory,
             connectionPool,
             null,
