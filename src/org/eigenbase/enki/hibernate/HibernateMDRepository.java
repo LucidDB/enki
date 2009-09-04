@@ -53,6 +53,7 @@ import org.hibernate.*;
 import org.hibernate.cfg.*;
 import org.hibernate.criterion.*;
 import org.hibernate.dialect.*;
+import org.hibernate.dialect.resolver.*;
 import org.hibernate.stat.*;
 import org.hibernate.tool.hbm2ddl.*;
 import org.netbeans.api.mdr.*;
@@ -2701,8 +2702,7 @@ public class HibernateMDRepository
                 this.sqlDialect = 
                     DialectFactory.buildDialect(
                         config.getProperties(),
-                        dbMetadata.getDatabaseProductName(),
-                        dbMetadata.getDatabaseMajorVersion());
+                        session.connection());
             } catch(Exception e) {
                 throw new ProviderInstantiationException(
                     "Unable to determine appropriate SQL dialect", e);

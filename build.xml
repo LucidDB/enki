@@ -815,7 +815,16 @@
       <tarfileset dir="${hibernate.dir}" prefix="${enki.dist.prefix}">
         <include name="*.jar"/>
       </tarfileset>
-      <tarfileset dir="${hibernate.dir}/lib" prefix="${enki.dist.prefix}">
+      <tarfileset dir="${hibernate.dir}/lib/required" 
+        prefix="${enki.dist.prefix}">
+        <include name="*"/>
+      </tarfileset>
+      <tarfileset dir="${hibernate.dir}/lib/bytecode/cglib" 
+        prefix="${enki.dist.prefix}">
+        <include name="*"/>
+      </tarfileset>
+      <tarfileset dir="${hibernate.dir}/lib/bytecode/javassist" 
+        prefix="${enki.dist.prefix}">
         <include name="*"/>
       </tarfileset>
       <tarfileset dir="${ehcache.dir}" prefix="${enki.dist.prefix}">

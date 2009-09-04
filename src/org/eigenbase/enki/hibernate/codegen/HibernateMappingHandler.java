@@ -33,6 +33,7 @@ import org.eigenbase.enki.hibernate.storage.*;
 import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 import org.hibernate.dialect.*;
+import org.hibernate.dialect.resolver.*;
 
 /**
  * HibernateMappingHandler generates Hibernate mapping file and an Enki
@@ -192,12 +193,12 @@ public class HibernateMappingHandler
      */
     private static final Dialect[][] dialectSet = new Dialect[][] {
         {
-            DialectFactory.buildDialect(MySQLDialect.class.getName()),
-            DialectFactory.buildDialect(MySQLInnoDBDialect.class.getName()),
-            DialectFactory.buildDialect(MySQLMyISAMDialect.class.getName()),
+            DialectFactory.constructDialect(MySQLDialect.class.getName()),
+            DialectFactory.constructDialect(MySQLInnoDBDialect.class.getName()),
+            DialectFactory.constructDialect(MySQLMyISAMDialect.class.getName()),
         },
         {
-            DialectFactory.buildDialect(HSQLDialect.class.getName())
+            DialectFactory.constructDialect(HSQLDialect.class.getName())
         }
     };
     

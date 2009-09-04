@@ -1,7 +1,7 @@
 # $Id$
 
 all: ant commons-collections commons-logging hibernate hsqldb mdrlibs junit \
-	jgrapht ehcache findbugs simple-jndi commons-pool commons-dbcp \
+	jgrapht findbugs simple-jndi commons-pool commons-dbcp \
 	mysql-connector
 
 clean:
@@ -64,12 +64,6 @@ jgrapht: jgrapht-0.7.1.tar.gz
 	-rm -rf $@
 	tar xfz $<
 	mv jgrapht-0.7.1 $@
-	touch $@
-
-ehcache: ehcache-1.2.0_03.tgz
-	-rm -rf $@
-	tar xfz $<
-	mv ehcache-1.2.0_03 ehcache
 	touch $@
 
 findbugs: findbugs-1.3.2.tar.gz
