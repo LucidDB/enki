@@ -8,9 +8,9 @@
  *   </tr>
  *   <tr>
  *     <th>Copyright</th>
- *     <td>Copyright (C) 2009-2009 The Eigenbase Project
- *     <br>Copyright (C) 2009-2009 Disruptive Tech
- *     <br>Copyright (C) 2009-2009 LucidEra, Inc.</td>
+ *     <td>Copyright (C) 2009 The Eigenbase Project
+ *     <br>Copyright (C) 2009 SQLstream, Inc.
+ *     <br>Copyright (C) 2009 Dynamo BI Corporation</td>
  *   </tr>
  *   <tr>
  *     <th>Author</th>

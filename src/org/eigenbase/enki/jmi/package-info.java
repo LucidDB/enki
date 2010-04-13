@@ -11,9 +11,9 @@
  *   </tr>
  *   <tr>
  *     <th>Copyright</th>
- *     <td>Copyright (C) 2007-2007 The Eigenbase Project
- *     <br>Copyright (C) 2007-2007 Disruptive Tech
- *     <br>Copyright (C) 2007-2007 LucidEra, Inc.</td>
+ *     <td>Copyright (C) 2007 The Eigenbase Project
+ *     <br>Copyright (C) 2007 SQLstream, Inc.
+ *     <br>Copyright (C) 2007 Dynamo BI Corporation</td>
  *   </tr>
  *   <tr>
  *     <th>Author</th>

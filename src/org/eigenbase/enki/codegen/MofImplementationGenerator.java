@@ -1,9 +1,9 @@
 /*
 // $Id$
 // Enki generates and implements the JMI and MDR APIs for MOF metamodels.
-// Copyright (C) 2007-2007 The Eigenbase Project
-// Copyright (C) 2007-2007 Disruptive Tech
-// Copyright (C) 2007-2007 LucidEra, Inc.
+// Copyright (C) 2007 The Eigenbase Project
+// Copyright (C) 2007 SQLstream, Inc.
+// Copyright (C) 2007 Dynamo BI Corporation
 //
 // This library is free software; you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License as published by
@@ -39,8 +39,8 @@ public class MofImplementationGenerator
         "$" + "Id: $\n" +
         "Enki generates and implements the JMI and MDR APIs for MOF metamodels.\n" +
         "Copyright (C) 2007-@YEAR@ The Eigenbase Project\n" +
-        "Copyright (C) 2007-@YEAR@ Disruptive Tech\n" +
-        "Copyright (C) 2007-@YEAR@ LucidEra, Inc.\n" +
+        "Copyright (C) 2007-@YEAR@ SQLstream, Inc.\n" +
+        "Copyright (C) 2007-@YEAR@ Dynamo BI Corporation\n" +
         "\n" +
         "This library is free software; you can redistribute it and/or modify it\n" +
         "under the terms of the GNU Lesser General Public License as published by\n" +
