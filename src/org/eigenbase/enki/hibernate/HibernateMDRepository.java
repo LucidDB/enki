@@ -3279,8 +3279,6 @@ public class HibernateMDRepository
                 return;
             }
             if (lock == null) {
-                log.warning(
-                    "Request to release non-existent transaction lock");
                 return;
             }
             
