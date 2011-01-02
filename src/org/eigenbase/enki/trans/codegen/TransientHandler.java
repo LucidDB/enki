@@ -60,6 +60,14 @@ public class TransientHandler
     private static final JavaClassReference TRANSIENT_REF_OBJECT =
         new JavaClassReference(TransientRefObject.class, false);
     
+    /** Reference to {@link OwnedCollection}. */
+    private static final JavaClassReference OWNED_COLLECTION =
+        new JavaClassReference(OwnedCollection.class, false);
+    
+    /** Reference to {@link OwnedList}. */
+    private static final JavaClassReference OWNED_LIST =
+        new JavaClassReference(OwnedList.class, false);
+    
     private static final String OWNER_FIELD = "_owner";
     private static final String ANNOTATION_FIELD = "_annotation";
     
@@ -279,7 +287,8 @@ public class TransientHandler
     }
     
     @Override
-    protected void generateCustomClassInstanceInit(MofClass cls)
+    protected void generateCustomClassInstanceInit(
+        MofClass cls, boolean withAttributes)
         throws GenerationException
     {
         ModelGraph.ClassVertex clsVertex = 
@@ -290,10 +299,17 @@ public class TransientHandler
             Attribute attrib = edge.getAttribute();
             String name = 
                 CodeGenUtils.getClassFieldName(attrib.getName());
-            
-            startConditionalBlock(CondType.IF, name, " != null");
-            writeMarkOwnerCall(attrib, name, false);
-            endBlock();
+
+            if (attrib.getMultiplicity().getUpper() != 1) {
+                if (!withAttributes) {
+                    writeOwnedCollectionCall(
+                        name, attrib.getMultiplicity().isOrdered());
+                }
+            } else {
+                startConditionalBlock(CondType.IF, name, " != null");
+                writeMarkOwnerCall(attrib, name, false);
+                endBlock();
+            }
         }
     }
     
@@ -302,18 +318,17 @@ public class TransientHandler
     throws GenerationException    
     {
         String ownerValue = (clear ? "null" : "this");
-        
-        if (attrib.getMultiplicity().getUpper() != 1) {
-            startBlock("for(Object o: ", varName, ")");
-            writeln(
-                "((", TRANSIENT_REF_OBJECT, ")o).markOwner(", 
-                ownerValue, ");");
-            endBlock();
-        } else {
-            writeln(
-                "((", TRANSIENT_REF_OBJECT,")", varName, ").markOwner(", 
-                ownerValue, ");");
-        }
+        writeln(
+            "((", TRANSIENT_REF_OBJECT,")", varName, ").markOwner(", 
+            ownerValue, ");");
+    }
+    
+    private void writeOwnedCollectionCall(String varName, boolean ordered)
+    throws GenerationException    
+    {
+        writeln("this.", varName, " = new ",
+            ordered ? OWNED_LIST : OWNED_COLLECTION, "(this.",
+            varName, ", this);");
     }
     
     @Override

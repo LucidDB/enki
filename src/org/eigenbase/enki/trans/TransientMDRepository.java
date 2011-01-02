@@ -42,7 +42,7 @@ import org.netbeans.api.mdr.events.*;
  * TransientMDRepository implements a memory-only, non-persistent repository.
  * All objects are lost upon repository shutdown.  This repository 
  * implementation only partially supports the MDR APIs.  In particular, it 
- * doesn't generate MDR Events and does implement actual transactions (e.g.,
+ * doesn't generate MDR Events and does not implement actual transactions (e.g.,
  * all changes are immediately visible to all callers and changes cannot be
  * rolled back).
  * 

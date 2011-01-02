@@ -55,8 +55,8 @@ import org.eigenbase.enki.codegen.*;
  *   <td align="left">{@value #JMI_INTERFACES_OPTION}</td>
  *   <td align="left">
  *     Boolean flag to control whether the generated code includes the JMI
- *     interfaces (requiring them to be generated separately).  Defaults to
- *     false. Optional, defaults to {@value #DEFAULT_JMI_INTERFACES_OPTION}.
+ *     interfaces (requiring them to be generated separately).
+ *     Optional, defaults to {@value #DEFAULT_JMI_INTERFACES_OPTION}.
  *   </td>
  * </tr>
  * </table>

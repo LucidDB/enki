@@ -166,6 +166,7 @@ public class MultiValuedAttributeTest extends SampleModelTestBase
             
             Table t1 = getSpecialPackage().getTable().createTable();
             t1.getRows().add(rows[0][0]);
+            Assert.assertSame(t1, rows[0][0].refImmediateComposite());
             t1.getRows().add(rows[0][1]);
             t1MofId = t1.refMofId();
             
