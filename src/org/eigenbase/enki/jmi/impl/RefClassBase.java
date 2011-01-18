@@ -22,6 +22,7 @@
 package org.eigenbase.enki.jmi.impl;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
@@ -40,6 +41,8 @@ public abstract class RefClassBase extends RefFeaturedBase implements RefClass
     private final EnkiMDRepository repos;
     
     private final Set<RefObject> allOfClass;
+
+    private final boolean isReposWeak;
     
     protected RefClassBase(RefPackage container)
     {
@@ -47,8 +50,15 @@ public abstract class RefClassBase extends RefFeaturedBase implements RefClass
         
         this.container = container;
         this.repos = getCurrentInitializer().getRepository();
+
+        if (repos == null) {
+            isReposWeak = false;
+        } else {
+            isReposWeak = repos.isWeak();
+        }
         
-        this.allOfClass = new HashSet<RefObject>();
+        this.allOfClass = Collections.<RefObject>newSetFromMap(
+            new ConcurrentHashMap<RefObject, Boolean>());
     }
     
     // Implement RefBaseObject
@@ -136,12 +146,16 @@ public abstract class RefClassBase extends RefFeaturedBase implements RefClass
     
     protected void register(RefObject instance)
     {
-        allOfClass.add(instance);
+        if (!isReposWeak) {
+            allOfClass.add(instance);
+        }
     }
     
     protected void unregister(RefObject instance)
     {
-        allOfClass.remove(instance);
+        if (!isReposWeak) {
+            allOfClass.remove(instance);
+        }
     }
     
     public abstract Class<?> getInstanceClass();

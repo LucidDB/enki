@@ -57,10 +57,10 @@ public class JmiTestBase extends SampleModelTestBase
     protected static final int NUM_SCOOPS = 2;
     protected static final boolean IS_MELTING = true;
     
-    private static String e1MofId;
-    private static String carMofId;
-    private static String phoneNumberMofId;
-    private static String coneMofId;
+    protected static String e1MofId;
+    protected static String carMofId;
+    protected static String phoneNumberMofId;
+    protected static String coneMofId;
     
     /**
      * Creates some basic entities for use in tests. The objects' MOF IDs are

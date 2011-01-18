@@ -584,7 +584,7 @@ public abstract class TransientImplementationHandler
                     writeln(";");
                 }
             }
-            generateCustomClassInstanceInit(cls, false);
+            generateCustomClassInstanceInit(cls, nonDerivedAttribs, false);
             endBlock();
             
             // constructor
@@ -634,7 +634,7 @@ public abstract class TransientImplementationHandler
                             ";");
                     }       
                 }
-                generateCustomClassInstanceInit(cls, true);
+                generateCustomClassInstanceInit(cls, nonDerivedAttribs, true);
                 endBlock();
             }
             
@@ -1058,11 +1058,14 @@ public abstract class TransientImplementationHandler
      * 
      * @param cls class instance being generated
      *
-     * @param withAttributes true if this constructor takes attribute values;
-     * false if default constructor
+     * @param nonDerivedAttributes non-derived attributes to be initialized
+     * by this class
+     *
+     * @param withAttributes true for non-default constructor
      */
     protected void generateCustomClassInstanceInit(
-        MofClass cls, boolean withAttributes)
+        MofClass cls, List<Attribute> nonDerivedAttributes,
+        boolean withAttributes)
         throws GenerationException
     {
     }

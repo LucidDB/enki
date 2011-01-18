@@ -760,6 +760,11 @@ public class HibernateMDRepository
             EnkiMBeanUtil.unregisterRepositoryMBean(mbeanName);
         }
     }
+
+    public boolean isWeak()
+    {
+        return false;
+    }
     
     public MdrProvider getProviderType()
     {

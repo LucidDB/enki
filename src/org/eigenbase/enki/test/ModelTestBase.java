@@ -71,6 +71,7 @@ public abstract class ModelTestBase
     private static RefPackage pkg;
     private static String testExtentName;
     private static Properties storageProps;
+    private static Properties extraProps = new Properties();
     
     /**
      * Sets up this class for testing against the configured repository.
@@ -129,7 +130,16 @@ public abstract class ModelTestBase
     {
         pkg = getRepository().getExtent(getTestExtentName());
     }
-    
+
+    /**
+     * @return extra storage properties to be applied on next repository
+     * reload
+     */
+    protected static Properties getExtraProps()
+    {
+        return extraProps;
+    }
+
     /**
      * Iterates over all packages and classes in the given RefPackage and
      * deletes each object, taking to avoid errors with composite associations.
@@ -180,7 +190,7 @@ public abstract class ModelTestBase
     
     /**
      * Shuts down repository started in {@link #setUpTestClass()}, if any.
-     * Clears the statis fields used to hold references to the extent and
+     * Clears the static fields used to hold references to the extent and
      * repository.
      */
     @AfterClass
@@ -395,6 +405,8 @@ public abstract class ModelTestBase
         } catch (IOException e) {
             fail(e);
         }
+
+        result.storageProps.putAll(extraProps);
         
         result.repos = 
             MDRepositoryFactory.newMDRepository(result.storageProps);

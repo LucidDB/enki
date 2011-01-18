@@ -288,15 +288,14 @@ public class TransientHandler
     
     @Override
     protected void generateCustomClassInstanceInit(
-        MofClass cls, boolean withAttributes)
+        MofClass cls, List<Attribute> nonDerivedAttributes,
+        boolean withAttributes)
         throws GenerationException
     {
-        ModelGraph.ClassVertex clsVertex = 
-            modelGraph.getVertexForMofClass(cls);
-        Set<ModelGraph.AttributeEdge> edges = 
-            modelGraph.getAttributeGraph().outgoingEdgesOf(clsVertex);
-        for(ModelGraph.AttributeEdge edge: edges) {
-            Attribute attrib = edge.getAttribute();
+        for (Attribute attrib : nonDerivedAttributes) {
+            if (!(attrib.getType() instanceof MofClass)) {
+                continue;
+            }
             String name = 
                 CodeGenUtils.getClassFieldName(attrib.getName());
 
@@ -305,7 +304,7 @@ public class TransientHandler
                     writeOwnedCollectionCall(
                         name, attrib.getMultiplicity().isOrdered());
                 }
-            } else {
+            } else if (withAttributes) {
                 startConditionalBlock(CondType.IF, name, " != null");
                 writeMarkOwnerCall(attrib, name, false);
                 endBlock();

@@ -22,6 +22,7 @@
 package org.eigenbase.enki.jmi.impl;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 import javax.jmi.model.*;
 import javax.jmi.reflect.*;
@@ -30,10 +31,9 @@ import org.eigenbase.enki.mdr.*;
 import org.eigenbase.enki.util.*;
 
 /**
- * RefAssociationBase implements {@link RefAssociation}.  
- * {@link RefAssociationBase} is designed for use with metamodels only. 
- * It stores, in memory, all links for a particular association instance and
- * does not allow links to be removed.
+ * RefAssociationBase implements {@link RefAssociation}.  {@link
+ * RefAssociationBase} is designed for use with non-persistent models only.  It
+ * stores, in memory, all links for a particular association instance.
  * 
  * @author Stephan Zuercher
  */
@@ -46,16 +46,17 @@ public abstract class RefAssociationBase
 
     private final Set<RefAssociationLinkImpl> links;
     
-    private final Map<RefObject, Collection<RefAssociationLinkImpl>> firstToSecondMap;
-    private final Map<RefObject, Collection<RefAssociationLinkImpl>> secondToFirstMap;
-    
     protected final String end1Name;
+    protected final String end1Key;
     protected final Class<? extends RefObject> end1Class;
     protected final Multiplicity end1Multiplicity;
     protected final String end2Name;
+    protected final String end2Key;
     protected final Class<? extends RefObject> end2Class;
     protected final Multiplicity end2Multiplicity;
-    
+
+    private final boolean isReposWeak;
+
     protected RefAssociationBase(
         RefPackage container, 
         String end1Name,
@@ -67,12 +68,18 @@ public abstract class RefAssociationBase
     {
         this.container = container;
         this.repos = getCurrentInitializer().getRepository();
+        if (repos == null) {
+            isReposWeak = false;
+        } else {
+            isReposWeak = repos.isWeak();
+        }
 
-        this.links = new HashSet<RefAssociationLinkImpl>();
-        this.firstToSecondMap =
-            new HashMap<RefObject, Collection<RefAssociationLinkImpl>>();
-        this.secondToFirstMap = 
-            new HashMap<RefObject, Collection<RefAssociationLinkImpl>>();
+        if (!isReposWeak) {
+            this.links = Collections.<RefAssociationLinkImpl>newSetFromMap(
+                new ConcurrentHashMap<RefAssociationLinkImpl, Boolean>());
+        } else {
+            this.links = Collections.<RefAssociationLinkImpl>emptySet();
+        }
 
         this.end1Name = end1Name;
         this.end1Class = end1Class;
@@ -80,6 +87,9 @@ public abstract class RefAssociationBase
         this.end2Name = end2Name;
         this.end2Class = end2Class;
         this.end2Multiplicity = end2Multiplicity;
+
+        end1Key = getClass().getName() + ":" + end1Name;
+        end2Key = getClass().getName() + ":" + end2Name;
     }
     
     @Deprecated
@@ -118,8 +128,12 @@ public abstract class RefAssociationBase
 
         addToMap(link, true, -1);
         addToMap(link, false, -1);
-        
-        return links.add(link);
+
+        if (isReposWeak) {
+            return true;
+        } else {
+            return links.add(link);
+        }
     }
     
     void addLink(
@@ -129,8 +143,10 @@ public abstract class RefAssociationBase
 
         addToMap(link, true, firstEndIndex);
         addToMap(link, false, secondEndIndex);
-        
-        links.add(link);
+
+        if (isReposWeak) {
+            links.add(link);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -150,8 +166,17 @@ public abstract class RefAssociationBase
 
         RefAssociationLinkImpl testLink = 
             new RefAssociationLinkImpl(end1, end2);
-        
-        return links.contains(testLink);
+
+        if (isReposWeak) {
+            Collection<RefAssociationLinkImpl> referencedLinks =
+                getLinkCollection(end1, true);
+            if (referencedLinks == null) {
+                return false;
+            }
+            return referencedLinks.contains(testLink);
+        } else {
+            return links.contains(testLink);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -200,22 +225,23 @@ public abstract class RefAssociationBase
         if (removeFromMaps(link)) {
             return true;
         }
-        
-        return links.remove(link);
+
+        if (isReposWeak) {
+            return true;
+        } else {
+            return links.remove(link);
+        }
     }
     
     private void addToMap(
         RefAssociationLinkImpl link, boolean isFirstEnd, int index)
     {
-        Map<RefObject, Collection<RefAssociationLinkImpl>> map;
         RefObject key;
         Multiplicity multiplicity;
         if (isFirstEnd) {
-            map = firstToSecondMap;
             key = link.refFirstEnd();
             multiplicity = end2Multiplicity;
         } else {
-            map = secondToFirstMap;
             key = link.refSecondEnd();
             multiplicity = end1Multiplicity;
         }
@@ -225,15 +251,16 @@ public abstract class RefAssociationBase
             index = -1;
         }
         
-        Collection<RefAssociationLinkImpl> referencedLinks = map.get(key);
+        Collection<RefAssociationLinkImpl> referencedLinks =
+            getLinkCollection(key, isFirstEnd);
+
         if (referencedLinks == null) {
             if (multiplicity.isOrdered()) {
                 referencedLinks = new ArrayList<RefAssociationLinkImpl>();
             } else {
                 referencedLinks = new HashSet<RefAssociationLinkImpl>();
             }
-            
-            map.put(key, referencedLinks);
+            setLinkCollection(key, isFirstEnd, referencedLinks);
         }
         
         if (multiplicity.isSingle()) {
@@ -260,8 +287,8 @@ public abstract class RefAssociationBase
         boolean handleEnd1 = true;
         boolean handleEnd2 = true;
         if (end2Multiplicity.isOrdered() && end1Multiplicity.isSingle()) {
-            List<RefAssociationLinkImpl> referencedLinks = 
-                (List<RefAssociationLinkImpl>)firstToSecondMap.get(end1);
+            List<RefAssociationLinkImpl> referencedLinks =
+                (List<RefAssociationLinkImpl>) getLinkCollection(end1, true);
 
             boolean removed = referencedLinks.remove(link);
             if (!removed) {
@@ -278,7 +305,7 @@ public abstract class RefAssociationBase
         } else if (end1Multiplicity.isOrdered() && end2Multiplicity.isSingle())
         {
             List<RefAssociationLinkImpl> referencedLinks = 
-                (List<RefAssociationLinkImpl>)secondToFirstMap.get(end2);
+                (List<RefAssociationLinkImpl>) getLinkCollection(end2, false);
 
             boolean removed = referencedLinks.remove(link);
             if (!removed) {
@@ -295,15 +322,15 @@ public abstract class RefAssociationBase
         }
         
         if (handleEnd1) {
-            Collection<RefAssociationLinkImpl> referencedLinks = 
-                firstToSecondMap.get(end1);
+            Collection<RefAssociationLinkImpl> referencedLinks =
+                getLinkCollection(end1, true);
 
             referencedLinks.remove(link);
         }
         
         if (handleEnd2) {
             Collection<RefAssociationLinkImpl> referencedLinks = 
-                secondToFirstMap.get(end2);
+                getLinkCollection(end2, false);
 
             referencedLinks.remove(link);
         }
@@ -314,17 +341,14 @@ public abstract class RefAssociationBase
     protected Collection<? extends RefObject> query(
         boolean isFirstEnd, RefObject queryObject)
     {
-        Map<RefObject, Collection<RefAssociationLinkImpl>> map;
         if (isFirstEnd) {
-            map = firstToSecondMap;
             checkFirstEndType(queryObject);
         } else {
-            map = secondToFirstMap;
             checkSecondEndType(queryObject);
         }
         
-        Collection<RefAssociationLinkImpl> referencedLinks = 
-            map.get(queryObject); 
+        Collection<RefAssociationLinkImpl> referencedLinks =
+            getLinkCollection(queryObject, isFirstEnd);
 
         // isFirstEnd refers to the given end, so check the multiplicity of
         // the other end to see whether the result should be ordered.
@@ -338,7 +362,7 @@ public abstract class RefAssociationBase
             } else {
                 referencedLinks = new HashSet<RefAssociationLinkImpl>();
             }
-            map.put(queryObject, referencedLinks);
+            setLinkCollection(queryObject, isFirstEnd, referencedLinks);
         }
         
         if (isOrdered) {
@@ -448,6 +472,21 @@ public abstract class RefAssociationBase
     public EnkiMDRepository getRepository()
     {
         return repos;
+    }
+
+    private Collection<RefAssociationLinkImpl> getLinkCollection(
+        RefObject obj, boolean isFirstEnd)
+    {
+        String endKey = isFirstEnd ? end1Key : end2Key;
+        return ((RefObjectBase) obj).getLinkCollection(endKey);
+    }
+
+    private void setLinkCollection(
+        RefObject obj, boolean isFirstEnd,
+        Collection<RefAssociationLinkImpl> links)
+    {
+        String endKey = isFirstEnd ? end1Key : end2Key;
+        ((RefObjectBase) obj).setLinkCollection(endKey, links);
     }
 }
 

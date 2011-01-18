@@ -24,6 +24,7 @@ package org.eigenbase.enki.trans;
 import java.io.*;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import java.util.concurrent.locks.*;
 import java.util.logging.*;
@@ -46,6 +47,27 @@ import org.netbeans.api.mdr.events.*;
  * all changes are immediately visible to all callers and changes cannot be
  * rolled back).
  * 
+ * <p>Storage properties.  Set the 
+ * <code>org.eigenbase.enki.implementationType</code> storage property to 
+ * {@link MdrProvider#ENKI_TRANSIENT} to enable the transient
+ * repository implementation.  Additional storage properties of note are listed
+ * in the following table.
+ *
+ * <table border="1">
+ *   <caption><b>Transient-specific Storage Properties</b></caption>
+ *   <tr>
+ *     <th align="left">Name</th>
+ *     <th align="left">Description</th>
+ *   </tr>
+ *   <tr>
+ *     <td align="left">{@value #PROPERTY_WEAK}</td>
+ *     <td align="left">
+ *       Controls whether or not this is a weak reference repository.
+ *       Defaults to {@value DEFAULT_WEAK}.
+ *     </td>
+ *   </tr>
+ * </table>
+ *
  * @author Stephan Zuercher
  */
 public class TransientMDRepository implements EnkiMDRepository
@@ -77,6 +99,21 @@ public class TransientMDRepository implements EnkiMDRepository
      */
     public static final String PACKAGE_VERSION = "1.0";
 
+    /**
+     * Storage property that configures whether this is a weak reference
+     * repository.  Values are converted to boolean via {@link
+     * Boolean#valueOf(String)}.
+     */
+    public static final String PROPERTY_WEAK =
+        "org.eigenbase.enki.trans.weak";
+
+    /**
+     * Contains the default value for the 
+     * {@link #PROPERTY_WEAK} storage property.
+     * The default is {@value}.
+     */
+    public static final boolean DEFAULT_WEAK = false;
+
     private static final String MOF_EXTENT = "MOF";
     private static final Logger log = 
         Logger.getLogger(TransientMDRepository.class.getName());
@@ -93,7 +130,9 @@ public class TransientMDRepository implements EnkiMDRepository
 
     private Map<Long, RefObject> byMofIdMap;
     
-    private long nextMofId;
+    private AtomicLong nextMofId = new AtomicLong(1);
+
+    private boolean isWeak;
     
     public TransientMDRepository(
         List<Properties> modelPropertiesList,
@@ -108,13 +147,28 @@ public class TransientMDRepository implements EnkiMDRepository
         this.modelMap = new HashMap<String, ModelDescriptor>();
         this.extentMap = new HashMap<String, ExtentDescriptor>();
         
-        this.nextMofId = 1;
-        this.byMofIdMap = new HashMap<Long, RefObject>();
-        
+        this.byMofIdMap = new ConcurrentHashMap<Long, RefObject>();
+
+        String weakProp = storageProps.getProperty(PROPERTY_WEAK);
+        if (weakProp == null) {
+            isWeak = DEFAULT_WEAK;
+        } else {
+            isWeak = Boolean.valueOf(weakProp);
+        }
+
         initModelMap();
         initModelExtent(MOF_EXTENT, false);
 
         // TODO: MBean support
+    }
+    
+    // Overrides 
+    public boolean isWeak()
+    {
+        if (extentMap.size() < 2) {
+            return false;
+        }
+        return isWeak;
     }
     
     // Overrides 
@@ -521,9 +575,7 @@ public class TransientMDRepository implements EnkiMDRepository
         // TODO: optimize this path (see what initializer does)
         Long mofIdLong = MofIdUtil.parseMofIdStr(mofId);
         
-        synchronized(extentMap) {
-            return byMofIdMap.get(mofIdLong);
-        }
+        return byMofIdMap.get(mofIdLong);
     }
 
     // Overrides 
@@ -861,19 +913,20 @@ public class TransientMDRepository implements EnkiMDRepository
 
     public void register(RefClass cls, RefObject instance)
     {
-        long mofId;
-        synchronized(this) {
-            mofId = nextMofId++;
-        }
+        long mofId = nextMofId.getAndIncrement();
 
         ((RefObjectBase)instance).setMofId(mofId);
-        byMofIdMap.put(mofId, instance);
+        if (!isWeak) {
+            byMofIdMap.put(mofId, instance);
+        }
     }
     
     public void unregister(RefClass cls, RefObject instance)
     {
         long mofId = ((RefObjectBase)instance).getMofId();
-        byMofIdMap.remove(mofId);
+        if (!isWeak) {
+            byMofIdMap.remove(mofId);
+        }
     }
     
     /**

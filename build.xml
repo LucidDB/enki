@@ -569,6 +569,9 @@
       <then>
         <mkdir dir="${sample.catalog.dir}/plugin/sql"/>
         <mkdir dir="${sample.catalog.dir}/plugin/sql/base"/>
+        <path id="sql_gen_path">
+          <pathelement path="${sample.catalog.dir}/java"/>
+        </path>
         <enki.mdr 
           propertiesFile="${test.dir}/TestPluginStorage.properties"
           modelPathRef="sql_gen_path">

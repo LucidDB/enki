@@ -202,6 +202,12 @@ public class NBMDRepositoryWrapper implements EnkiMDRepository
     }
     
     // implement EnkiMDRepository
+    public boolean isWeak()
+    {
+        return false;
+    }
+    
+    // implement EnkiMDRepository
     public MdrProvider getProviderType()
     {
         return MdrProvider.NETBEANS_MDR;

@@ -43,6 +43,9 @@ public abstract class RefObjectBase
 {
     private RefClass refClass;
 
+    private Map<String, Collection<RefAssociationLinkImpl>> linkMap
+        = new HashMap<String, Collection<RefAssociationLinkImpl>>();
+    
     protected RefObjectBase(RefClass refClass)
     {
         super();
@@ -53,7 +56,19 @@ public abstract class RefObjectBase
             currInitializer.register(this);
         }
     }
-    
+
+    Collection<RefAssociationLinkImpl> getLinkCollection(String endKey)
+    {
+        return linkMap.get(endKey);
+    }
+
+    void setLinkCollection(
+        String endKey,
+        Collection<RefAssociationLinkImpl> links)
+    {
+        linkMap.put(endKey, links);
+    }
+
     protected RefObjectBase()
     {
         super();

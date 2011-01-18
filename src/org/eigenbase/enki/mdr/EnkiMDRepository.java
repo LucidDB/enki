@@ -267,6 +267,24 @@ public interface EnkiMDRepository extends MDRepository
      * @return a copy of this repository's storage properties
      */
     public Properties getStorageProperties();
+
+    /**
+     * Determines whether this repository holds weak references.  Normally,
+     * repositories (whether persistent or in-memory) hold strong references,
+     * meaning that the repository keeps track of object and link instances
+     * regardless of whether they are being strongly referenced outside of the
+     * repository.  With a weak reference repository, an object may be garbage
+     * collected any time it is no longer strongly referenced (other than by
+     * association links from other repository objects).  For
+     * weak reference repositories, extent-enumerating methods such as
+     * refAllOfClass, refAllOfType, refAllLinks, and getByMofId always return
+     * an empty result.  Note that even for a weak reference repository,
+     * strong references are still held for the MOF and metamodel extents;
+     * weakness only applies to model objects.
+     *
+     * @return whether this is a weak reference repository
+     */
+    public boolean isWeak();
 }
 
 // End EnkiMDRepository.java
