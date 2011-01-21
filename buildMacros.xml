@@ -84,7 +84,6 @@
   <property name="ehcache.dir" location="${hibernate.dir}/lib/optional/ehcache"/>
   <property name="hsqldb.dir" location="${thirdparty.dir}/hsqldb"/>
   <property name="mdrlibs.dir" location="${thirdparty.dir}/mdrlibs"/>
-  <property name="ant.dir" location="${thirdparty.dir}/ant"/>
   <property name="jgrapht.dir" location="${thirdparty.dir}/jgrapht"/>
   <property name="findbugs.dir" location="${thirdparty.dir}/findbugs"/>
   <property name="simplejndi.dir" location="${thirdparty.dir}/simple-jndi"/>
@@ -162,7 +161,7 @@
     <fileset dir="${commons-logging.dir}" includes="*.jar"/>
     <fileset dir="${commons-collections.dir}" includes="*.jar"/>
     <fileset dir="${hsqldb.dir}" includes="lib/hsqldb.jar"/>
-    <fileset dir="${ant.dir}" includes="lib/*.jar"/>
+    <fileset dir="${ant.home}" includes="lib/*.jar"/>
     <pathelement path="${mysql.driver.classpath}"/>
   </path>
   <property name="enki.3p.run.classpath" refid="enki.3p.run.classpath"/>
@@ -233,6 +232,7 @@
         <arg value="${enki.forkOutputStyle}"/>
         <arg value="${enki.forkVerbosity}"/>
         <arg value="-Denki.impl=${enki.impl}"/>
+        <arg value="-Dant.home=${ant.home}"/>
         <arg value="@{target}"/>
       </java>
     </sequential>

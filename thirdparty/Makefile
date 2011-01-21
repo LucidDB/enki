@@ -1,6 +1,6 @@
 # $Id$
 
-all: ant commons-collections commons-logging hibernate hsqldb mdrlibs junit \
+all: commons-collections commons-logging hibernate hsqldb mdrlibs \
 	jgrapht findbugs simple-jndi commons-pool commons-dbcp \
 	mysql-connector
 
@@ -8,13 +8,6 @@ clean:
 	-rm -rf ant commons-logging commons-collections hsqldb \
 		mdrlibs junit/junit.jar jgrapht ehcache findbugs \
 		simple-jndi commons-pool commons-dbcp
-
-ant: apache-ant-1.7.0-bin.tar.bz2 junit
-	-rm -rf $@ apache-ant-1.7.0
-	tar xfj $<
-	mv apache-ant-1.7.0 $@
-	touch $@
-	cp junit/junit.jar $@/lib/junit.jar
 
 commons-logging: commons-logging-1.0.4.tar.gz
 	-rm -rf $@ commons-logging-1.0.4
@@ -47,11 +40,6 @@ hsqldb: hsqldb_1_8_0_2.zip
 	-rm -rf $@
 	unzip $<
 	touch $@
-
-junit: junit/junit.jar
-
-junit/junit.jar: junit/junit-4.1.jar
-	cp -f $< $@
 
 mdrlibs: mdrextras.tar.gz mdr-standalone.zip uml2mof.zip
 	-rm -rf $@
