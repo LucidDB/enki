@@ -24,7 +24,6 @@
 <project name="enkiBuildMacros">
   <taskdef resource="net/sf/antcontrib/antlib.xml" />
 
-  <osfamily property="osfamily"/>
   <property environment="env" />
 
   <property file="customBuild.properties"/>

@@ -2,20 +2,20 @@
 
 function check_continue
 {
-    echo >/dev/stderr
+    echo >&2
     set +e
     read -p "Do you want to continue? [n] " -t 120 YESNO
     if [ $? -ne 0 ]; then
-        echo "...Aborting. (Timeout?)" >/dev/stderr
+        echo "...Aborting. (Timeout?)" >&2
         exit 1;
     fi
     set -e
     if [ "$YESNO" != "y" -a "$YESNO" != "Y" ]; then
-        echo "Aborting." >/dev/stderr
+        echo "Aborting." >&2
         exit 1;
     fi
-    echo "Continuing." >/dev/stderr
-    echo >/dev/stderr
+    echo "Continuing." >&2
+    echo >&2
 }
 
 set -e
@@ -27,7 +27,7 @@ cd $ENKI_DIR
 OPEN_FILES=`p4 -s opened ... | grep -E "^info: " | sed -e "s/info: \([^#]\+\)#.*/\1/"`
 
 if [ "$OPEN_FILES" != "" ]; then
-    cat >/dev/stderr <<-EOD
+    cat >&2 <<-EOD
 	**********************************************************************
 	Warning: The following files are currently open. This script embeds
 	information on the the latest changelist synchronized to current 
@@ -37,10 +37,10 @@ if [ "$OPEN_FILES" != "" ]; then
 	**********************************************************************
 	EOD
 
-    echo "Open files:" >/dev/stderr
+    echo "Open files:" >&2
     for i in $OPEN_FILES; do
-        echo -n "    " >/dev/stderr
-        p4 where "$i" | awk '{print $NF}' >/dev/stderr
+        echo -n "    " >&2
+        p4 where "$i" | awk '{print $NF}' >&2
     done
 
     check_continue
@@ -64,7 +64,7 @@ LAST_SYNCED=`
     head -n 1`
 
 if [ $LAST_CHANGE -ne $LAST_SYNCED ]; then
-    cat >>/dev/stderr <<-EOD
+    cat >>&2 <<-EOD
 	**********************************************************************
 	Warning: The lastest change on this source tree appears to be $LAST_CHANGE,
 	but the latest change synchronized on this source tree appears to be
