@@ -64,7 +64,7 @@ LAST_SYNCED=`
     head -n 1`
 
 if [ $LAST_CHANGE -ne $LAST_SYNCED ]; then
-    cat >>&2 <<-EOD
+    cat >&2 <<-EOD
 	**********************************************************************
 	Warning: The lastest change on this source tree appears to be $LAST_CHANGE,
 	but the latest change synchronized on this source tree appears to be
